@@ -5,18 +5,14 @@ CREATE EXTENSION pgspider_core_fdw;
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host :PGSPIDER_CORE_HOST);
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
 CREATE EXTENSION mysql_fdw;
-
 CREATE FOREIGN TABLE J1_TBL ( i integer, j integer, t text, __spd_url text) SERVER pgspider_core_svr;
 CREATE FOREIGN TABLE J2_TBL ( i integer, k integer, __spd_url text) SERVER pgspider_core_svr;
 CREATE FOREIGN TABLE J3_TBL ( i integer, t text, __spd_url text) SERVER pgspider_core_svr;
-
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL_HOST, port :MYSQL_PORT);
 CREATE USER MAPPING FOR CURRENT_USER SERVER mysql_svr OPTIONS (username :MYSQL_USER_NAME, password :MYSQL_PASS);
-
 CREATE FOREIGN TABLE J1_TBL__mysql_svr__0 ( i integer, j integer, t text) SERVER mysql_svr OPTIONS (dbname 'join_limit', table_name 'J1_TBL');
 CREATE FOREIGN TABLE J2_TBL__mysql_svr__0 ( i integer, k integer) SERVER mysql_svr OPTIONS (dbname 'join_limit', table_name 'J2_TBL');
 CREATE FOREIGN TABLE J3_TBL__mysql_svr__0 ( i integer, t text) SERVER mysql_svr OPTIONS (dbname 'join_limit', table_name 'J3_TBL');
-
 \i sql/limit/join_limit.sql
 --Pattern 2
 --Join  with WHERE __spd_url + ORDER BY
@@ -24,7 +20,7 @@ CREATE FOREIGN TABLE J3_TBL__mysql_svr__0 ( i integer, t text) SERVER mysql_svr 
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL CROSS JOIN J2_TBL WHERE J1_TBL.__spd_url != '23afw' ORDER BY 1, 2, 3;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=100.00..246.52 rows=11648569 width=40)
+ Nested Loop  (cost=100.00..246.52 rows=3413 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
    ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=40)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
@@ -149,7 +145,7 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL CROSS JOIN J2_TBL WHERE J1_TBL._
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL USING (i) AS x WHERE J1_TBL.__spd_url != 'ffff' ORDER BY J1_TBL.i;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=0.00..0.01 rows=58243 width=40)
+ Nested Loop  (cost=0.00..0.01 rows=1 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
    Join Filter: (j1_tbl.i = j2_tbl.i)
    ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=40)
@@ -231,30 +227,35 @@ SELECT t1.a, t1.b, t1.c, t2.a, t2.b FROM J1_TBL t1 (a, b, c, d) FULL JOIN J2_TBL
 --Join  with WHERE __spd_url + aggregate function + GROUP BY + LIMIT
 --Testcase 7:
 EXPLAIN VERBOSE SELECT count(J1_TBL.i), sum(J1_TBL.j), J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (k != 1 AND J1_TBL.__spd_url IS NOT NULL) GROUP BY J1_TBL.t LIMIT 5;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..114.99 rows=5 width=48)
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=233.85..234.03 rows=1 width=48)
    Output: (count(j1_tbl.i)), (sum(j1_tbl.j)), j1_tbl.t
-   ->  GroupAggregate  (cost=100.00..699.68 rows=200 width=48)
+   ->  GroupAggregate  (cost=233.85..234.03 rows=1 width=48)
          Output: count(j1_tbl.i), sum(j1_tbl.j), j1_tbl.t
          Group Key: j1_tbl.t
-         ->  Nested Loop  (cost=100.00..263.03 rows=57953 width=40)
+         ->  Sort  (cost=233.85..233.89 rows=17 width=40)
                Output: j1_tbl.t, j1_tbl.i, j1_tbl.j
-               Join Filter: (j1_tbl.i = j2_tbl.i)
-               ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=40)
-                     Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-                     Filter: (j1_tbl.__spd_url IS NOT NULL)
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `t` IS NULL ASC, `t` ASC
-               ->  Foreign Scan on public.j2_tbl  (cost=100.00..220.58 rows=3396 width=4)
-                     Output: j2_tbl.i
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` WHERE ((`k` <> 1))
-(21 rows)
+               Sort Key: j1_tbl.t
+               ->  Hash Join  (cost=100.01..233.50 rows=17 width=40)
+                     Output: j1_tbl.t, j1_tbl.i, j1_tbl.j
+                     Hash Cond: (j2_tbl.i = j1_tbl.i)
+                     ->  Foreign Scan on public.j2_tbl  (cost=100.00..220.58 rows=3396 width=4)
+                           Output: j2_tbl.i
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Local server startup cost: 10
+                             Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` WHERE ((`k` <> 1))
+                     ->  Hash  (cost=0.00..0.00 rows=1 width=40)
+                           Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
+                           ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=40)
+                                 Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
+                                 Filter: (j1_tbl.__spd_url IS NOT NULL)
+                                 Node: mysql_svr / Status: Alive
+                                   Limit push-down: no
+                                   Local server startup cost: 10
+                                   Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `t` IS NULL ASC, `t` ASC
+(26 rows)
 
 --Testcase 8:
 SELECT count(J1_TBL.i), sum(J1_TBL.j), J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (k != 1 AND J1_TBL.__spd_url IS NOT NULL) GROUP BY J1_TBL.t LIMIT 5;
@@ -268,30 +269,35 @@ SELECT count(J1_TBL.i), sum(J1_TBL.j), J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USI
 
 --Testcase 9:
 EXPLAIN VERBOSE SELECT avg(J2_TBL.i) + 91, min(J2_TBL.k) FROM J1_TBL RIGHT JOIN J2_TBL USING (i) WHERE (i = 1 OR J2_TBL.__spd_url = '/influx') GROUP BY J2_TBL.i LIMIT 5;
-                                                    QUERY PLAN                                                    
-------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..114.87 rows=5 width=40)
+                                                          QUERY PLAN                                                          
+------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.72..225.90 rows=1 width=40)
    Output: ((avg(j2_tbl.i) + '91'::numeric)), (min(j2_tbl.k)), j2_tbl.i
-   ->  GroupAggregate  (cost=100.00..694.88 rows=200 width=40)
+   ->  GroupAggregate  (cost=225.72..225.90 rows=1 width=40)
          Output: (avg(j2_tbl.i) + '91'::numeric), min(j2_tbl.k), j2_tbl.i
          Group Key: j2_tbl.i
-         ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=8)
+         ->  Sort  (cost=225.72..225.76 rows=17 width=8)
                Output: j2_tbl.i, j2_tbl.k
-               Join Filter: (j1_tbl.i = j2_tbl.i)
-               ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=8)
+               Sort Key: j2_tbl.i
+               ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=8)
                      Output: j2_tbl.i, j2_tbl.k
-                     Filter: ((j2_tbl.i = 1) OR (j2_tbl.__spd_url = '/influx'::text))
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
-               ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=4)
-                     Output: j1_tbl.i
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT `i` FROM `join_limit`.`J1_TBL`
-(21 rows)
+                     Hash Cond: (j1_tbl.i = j2_tbl.i)
+                     ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=4)
+                           Output: j1_tbl.i
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Local server startup cost: 10
+                             Remote query: SELECT `i` FROM `join_limit`.`J1_TBL`
+                     ->  Hash  (cost=0.00..0.00 rows=1 width=8)
+                           Output: j2_tbl.i, j2_tbl.k
+                           ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=8)
+                                 Output: j2_tbl.i, j2_tbl.k
+                                 Filter: ((j2_tbl.i = 1) OR (j2_tbl.__spd_url = '/influx'::text))
+                                 Node: mysql_svr / Status: Alive
+                                   Limit push-down: no
+                                   Local server startup cost: 10
+                                   Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
+(26 rows)
 
 --Testcase 10:
 SELECT avg(J2_TBL.i) + 91, min(J2_TBL.k) FROM J1_TBL RIGHT JOIN J2_TBL USING (i) WHERE (i = 1 OR J2_TBL.__spd_url = '/influx') GROUP BY J2_TBL.i LIMIT 5;
@@ -361,29 +367,34 @@ SELECT t1.i, min(j), t3.t FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i LEFT
 --Join  with WHERE __spd_url + ORDER BY + OFFSET
 --Testcase 13:
 EXPLAIN VERBOSE SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.__spd_url = t2.__spd_url) WHERE t1.__spd_url != '' ORDER BY t1.j OFFSET 10;
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
- Limit  (cost=100.03..255.05 rows=58233 width=4)
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.74..225.76 rows=7 width=4)
    Output: t1.j
-   ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=4)
+   ->  Sort  (cost=225.72..225.76 rows=17 width=4)
          Output: t1.j
-         Join Filter: (t1.__spd_url = t2.__spd_url)
-         ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=36)
-               Output: t1.j, t1.__spd_url
-               Filter: (t1.__spd_url <> ''::text)
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: yes
-                 Local server startup cost: 10
-                 Remote query: SELECT `j` FROM `join_limit`.`J1_TBL` ORDER BY `j` IS NULL ASC, `j` ASC
-         ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=32)
-               Output: t2.__spd_url
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: no
-                 Local server startup cost: 10
-                 Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
-(20 rows)
+         Sort Key: t1.j
+         ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=4)
+               Output: t1.j
+               Hash Cond: (t2.__spd_url = t1.__spd_url)
+               ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=32)
+                     Output: t2.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Local server startup cost: 10
+                       Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
+               ->  Hash  (cost=0.00..0.00 rows=1 width=36)
+                     Output: t1.j, t1.__spd_url
+                     ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=36)
+                           Output: t1.j, t1.__spd_url
+                           Filter: (t1.__spd_url <> ''::text)
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: yes
+                             Local server startup cost: 10
+                             Remote query: SELECT `j` FROM `join_limit`.`J1_TBL` ORDER BY `j` IS NULL ASC, `j` ASC
+(25 rows)
 
 --Testcase 14:
 SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.__spd_url = t2.__spd_url) WHERE t1.__spd_url != '' ORDER BY t1.j OFFSET 10;
@@ -617,9 +628,9 @@ SELECT j1.i, j, k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 WHERE j1.__spd_url != 'th
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL CROSS JOIN J2_TBL WHERE J1_TBL.__spd_url != 'twq' ORDER BY J1_TBL.i, J1_TBL.j, J1_TBL.t OFFSET 1;
                                                                              QUERY PLAN                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..246.52 rows=11648568 width=40)
+ Limit  (cost=100.04..246.52 rows=3412 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-   ->  Nested Loop  (cost=100.00..246.52 rows=11648569 width=40)
+   ->  Nested Loop  (cost=100.00..246.52 rows=3413 width=40)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
          ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=40)
                Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
@@ -851,28 +862,33 @@ SELECT J1_TBL.i, k, t FROM J1_TBL FULL JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL
 --Join  with ON __spd_url + ORDER BY + OFFSET
 --Testcase 25:
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL.__spd_url) ORDER BY J1_TBL.i OFFSET 1;
-                                                   QUERY PLAN                                                    
------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..255.05 rows=58242 width=40)
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.72..225.76 rows=16 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-   ->  Nested Loop  (cost=100.00..255.05 rows=58243 width=40)
+   ->  Sort  (cost=225.72..225.76 rows=17 width=40)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-         Join Filter: (j1_tbl.__spd_url = j2_tbl.__spd_url)
-         ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
-               Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: yes
-                 Local server startup cost: 10
-                 Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
-         ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
-               Output: j2_tbl.__spd_url
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: no
-                 Local server startup cost: 10
-                 Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
-(19 rows)
+         Sort Key: j1_tbl.i
+         ->  Hash Join  (cost=100.01..225.37 rows=17 width=40)
+               Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
+               Hash Cond: (j2_tbl.__spd_url = j1_tbl.__spd_url)
+               ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
+                     Output: j2_tbl.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Local server startup cost: 10
+                       Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
+               ->  Hash  (cost=0.00..0.00 rows=1 width=72)
+                     Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+                     ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
+                           Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: yes
+                             Local server startup cost: 10
+                             Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
+(24 rows)
 
 --Testcase 26:
 SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL.__spd_url) ORDER BY J1_TBL.i OFFSET 1;
@@ -959,21 +975,21 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL ON (J1_TBL.__s
  8 | 8 | eight
  8 | 8 | eight
    |   | null
-   |   | null
-   |   | null
-   |   | null
-   |   | null
-   |   | null
+   | 0 | zero
+   | 0 | zero
+   | 0 | zero
    |   | null
    |   | null
    |   | null
    | 0 | zero
+   |   | null
    | 0 | zero
+   |   | null
    | 0 | zero
+   |   | null
+   |   | null
    | 0 | zero
-   | 0 | zero
-   | 0 | zero
-   | 0 | zero
+   |   | null
    | 0 | zero
    | 0 | zero
 (98 rows)
@@ -1116,23 +1132,24 @@ SELECT t1.a, t1.b, t1.c, t2.a, t2.d FROM J1_TBL t1 (a, b, c, e) FULL JOIN J2_TBL
 
 --Testcase 29:
 EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.__spd_url = t2.__spd_url RIGHT JOIN J3_TBL AS t3 INNER JOIN J1_TBL AS t4 ON t4.i = t3.i ON t1.i = t3.i WHERE t1.i IS NOT NULL ORDER BY t1.i OFFSET 1;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..399.95 rows=16876738 width=16)
+                                                                                        QUERY PLAN                                                                                        
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.58..225.58 rows=1 width=16)
    Output: t1.i, t2.i, t3.i, t4.i
-   ->  Merge Join  (cost=100.00..399.95 rows=16876739 width=16)
+   ->  Nested Loop  (cost=100.01..225.58 rows=1 width=16)
          Output: t1.i, t2.i, t3.i, t4.i
-         Merge Cond: (t1.i = t4.i)
-         ->  Nested Loop Left Join  (cost=100.00..255.05 rows=57953 width=8)
+         Join Filter: (t1.i = t4.i)
+         ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
+               Output: t3.i, t4.i
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: yes
+                 Relations: (join_limit.j3_tbl__mysql_svr__0) INNER JOIN (join_limit.j1_tbl__mysql_svr__0)
+                 Local server startup cost: 10
+                 Remote query: SELECT r4.`i`, r5.`i` FROM (`join_limit`.`J3_TBL` r4 INNER JOIN `join_limit`.`J1_TBL` r5 ON (((r4.`i` = r5.`i`)))) ORDER BY r5.`i` IS NULL ASC, r5.`i` ASC
+         ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=8)
                Output: t1.i, t2.i
-               Join Filter: (t1.__spd_url = t2.__spd_url)
-               ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=36)
-                     Output: t1.i, t1.__spd_url
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: yes
-                       Local server startup cost: 10
-                       Remote query: SELECT `i` FROM `join_limit`.`J1_TBL` WHERE ((`i` IS NOT NULL)) ORDER BY `i` IS NULL ASC, `i` ASC
+               Hash Cond: (t2.__spd_url = t1.__spd_url)
                ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=36)
                      Output: t2.i, t2.__spd_url
                      Node: mysql_svr / Status: Alive
@@ -1140,16 +1157,15 @@ EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL
                        Sort push-down: no
                        Local server startup cost: 10
                        Remote query: SELECT `i` FROM `join_limit`.`J2_TBL`
-         ->  Materialize  (cost=0.00..0.00 rows=0 width=8)
-               Output: t3.i, t4.i
-               ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
-                     Output: t3.i, t4.i
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: yes
-                       Relations: (join_limit.j3_tbl__mysql_svr__0) INNER JOIN (join_limit.j1_tbl__mysql_svr__0)
-                       Local server startup cost: 10
-                       Remote query: SELECT r4.`i`, r5.`i` FROM (`join_limit`.`J3_TBL` r4 INNER JOIN `join_limit`.`J1_TBL` r5 ON (((r4.`i` = r5.`i`)))) ORDER BY r5.`i` IS NULL ASC, r5.`i` ASC
+               ->  Hash  (cost=0.00..0.00 rows=1 width=36)
+                     Output: t1.i, t1.__spd_url
+                     ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=36)
+                           Output: t1.i, t1.__spd_url
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: yes
+                             Local server startup cost: 10
+                             Remote query: SELECT `i` FROM `join_limit`.`J1_TBL` WHERE ((`i` IS NOT NULL)) ORDER BY `i` IS NULL ASC, `i` ASC
 (32 rows)
 
 --Testcase 30:
@@ -1165,21 +1181,21 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.__s
  1 |   | 1 | 1
  1 |   | 1 | 1
  2 | 1 | 2 | 2
+ 2 | 2 | 2 | 2
+ 2 | 3 | 2 | 2
+ 2 | 2 | 2 | 2
+ 2 | 5 | 2 | 2
+ 2 | 5 | 2 | 2
+ 2 | 0 | 2 | 2
+ 2 |   | 2 | 2
+ 2 |   | 2 | 2
  2 | 1 | 2 | 2
  2 | 2 | 2 | 2
- 2 | 2 | 2 | 2
- 2 | 3 | 2 | 2
  2 | 3 | 2 | 2
  2 | 2 | 2 | 2
- 2 | 2 | 2 | 2
- 2 | 5 | 2 | 2
- 2 | 5 | 2 | 2
  2 | 5 | 2 | 2
  2 | 5 | 2 | 2
  2 | 0 | 2 | 2
- 2 | 0 | 2 | 2
- 2 |   | 2 | 2
- 2 |   | 2 | 2
  2 |   | 2 | 2
  2 |   | 2 | 2
  3 | 1 | 3 | 3
@@ -1216,13 +1232,13 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.__s
 EXPLAIN VERBOSE SELECT t1.j + 1, max(t1.i), min(t1.t) FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.__spd_url = t2.__spd_url) GROUP BY t1.j ORDER BY t1.j;
                                                          QUERY PLAN                                                          
 -----------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=672.34..672.84 rows=200 width=44)
-   Output: ((t1.j + 1)), (max(t1.i)), (min(t1.t)), t1.j
-   Sort Key: t1.j
-   ->  HashAggregate  (cost=662.19..664.69 rows=200 width=44)
-         Output: (t1.j + 1), max(t1.i), min(t1.t), t1.j
-         Group Key: t1.j
-         ->  Hash Right Join  (cost=100.01..225.37 rows=58243 width=40)
+ GroupAggregate  (cost=225.72..225.90 rows=1 width=44)
+   Output: (t1.j + 1), max(t1.i), min(t1.t), t1.j
+   Group Key: t1.j
+   ->  Sort  (cost=225.72..225.76 rows=17 width=40)
+         Output: t1.j, t1.i, t1.t
+         Sort Key: t1.j
+         ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=40)
                Output: t1.j, t1.i, t1.t
                Hash Cond: (t2.__spd_url = t1.__spd_url)
                ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=32)
@@ -1260,13 +1276,13 @@ SELECT t1.j + 1, max(t1.i), min(t1.t) FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.
 EXPLAIN VERBOSE SELECT count(J1_TBL.i) + 2, max(k), min(t) FROM J1_TBL FULL JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL.__spd_url) GROUP BY J1_TBL.i ORDER BY J1_TBL.i;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=817.95..818.45 rows=200 width=48)
+ Sort  (cost=259.52..259.53 rows=1 width=48)
    Output: ((count(j1_tbl.i) + 2)), (max(j2_tbl.k)), (min(j1_tbl.t)), j1_tbl.i
    Sort Key: j1_tbl.i
-   ->  HashAggregate  (cost=807.80..810.30 rows=200 width=48)
+   ->  HashAggregate  (cost=259.50..259.51 rows=1 width=48)
          Output: (count(j1_tbl.i) + 2), max(j2_tbl.k), min(j1_tbl.t), j1_tbl.i
          Group Key: j1_tbl.i
-         ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=40)
+         ->  Hash Full Join  (cost=100.01..225.37 rows=3413 width=40)
                Output: j1_tbl.i, j2_tbl.k, j1_tbl.t
                Hash Cond: (j2_tbl.__spd_url = j1_tbl.__spd_url)
                ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=36)
@@ -1304,24 +1320,29 @@ SELECT count(J1_TBL.i) + 2, max(k), min(t) FROM J1_TBL FULL JOIN J2_TBL ON (J1_T
 --Join  with USING  __spd_url + ORDER BY
 --Testcase 35:
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL USING (__spd_url) AS x ORDER BY J1_TBL.i;
-                                                QUERY PLAN                                                 
------------------------------------------------------------------------------------------------------------
- Nested Loop  (cost=100.00..255.05 rows=58243 width=40)
+                                                      QUERY PLAN                                                       
+-----------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=225.72..225.76 rows=17 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-   Join Filter: (j1_tbl.__spd_url = j2_tbl.__spd_url)
-   ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
-         Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
-         Node: mysql_svr / Status: Alive
-           Sort push-down: yes
-           Local server startup cost: 10
-           Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
-   ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
-         Output: j2_tbl.__spd_url
-         Node: mysql_svr / Status: Alive
-           Sort push-down: no
-           Local server startup cost: 10
-           Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
-(15 rows)
+   Sort Key: j1_tbl.i
+   ->  Hash Join  (cost=100.01..225.37 rows=17 width=40)
+         Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
+         Hash Cond: (j2_tbl.__spd_url = j1_tbl.__spd_url)
+         ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
+               Output: j2_tbl.__spd_url
+               Node: mysql_svr / Status: Alive
+                 Sort push-down: no
+                 Local server startup cost: 10
+                 Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
+         ->  Hash  (cost=0.00..0.00 rows=1 width=72)
+               Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+               ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
+                     Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Sort push-down: yes
+                       Local server startup cost: 10
+                       Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
+(20 rows)
 
 --Testcase 36:
 SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL USING (__spd_url) AS x ORDER BY J1_TBL.i;
@@ -1409,21 +1430,21 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL USING (__spd_u
  8 | 8 | eight
  8 | 8 | eight
    |   | null
-   |   | null
-   |   | null
-   |   | null
-   |   | null
-   |   | null
+   | 0 | zero
+   | 0 | zero
+   | 0 | zero
    |   | null
    |   | null
    |   | null
    | 0 | zero
+   |   | null
    | 0 | zero
+   |   | null
    | 0 | zero
+   |   | null
+   |   | null
    | 0 | zero
-   | 0 | zero
-   | 0 | zero
-   | 0 | zero
+   |   | null
    | 0 | zero
    | 0 | zero
 (99 rows)
@@ -2206,31 +2227,36 @@ SELECT t1.i, k, t3.t FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(__spd_url) CROSS 
 --Join  with USING  __spd_url + GROUP BY + LIMIT + ORDER BY
 --Testcase 41:
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (__spd_url) GROUP BY J1_TBL.i, J1_TBL.j, J1_TBL.t ORDER BY J1_TBL.i LIMIT 5;
-                                                                                QUERY PLAN                                                                                 
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..114.80 rows=5 width=40)
+                                                                                      QUERY PLAN                                                                                       
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.72..225.89 rows=1 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-   ->  Group  (cost=100.00..691.88 rows=200 width=40)
+   ->  Group  (cost=225.72..225.89 rows=1 width=40)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
          Group Key: j1_tbl.i, j1_tbl.j, j1_tbl.t
-         ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=40)
+         ->  Sort  (cost=225.72..225.76 rows=17 width=40)
                Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
-               Join Filter: (j1_tbl.__spd_url = j2_tbl.__spd_url)
-               ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
-                     Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: yes
-                       Local server startup cost: 10
-                       Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `j` IS NULL ASC, `j` ASC, `t` IS NULL ASC, `t` ASC
-               ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
-                     Output: j2_tbl.__spd_url
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
-(22 rows)
+               Sort Key: j1_tbl.i, j1_tbl.j, j1_tbl.t
+               ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=40)
+                     Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
+                     Hash Cond: (j2_tbl.__spd_url = j1_tbl.__spd_url)
+                     ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=32)
+                           Output: j2_tbl.__spd_url
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Local server startup cost: 10
+                             Remote query: SELECT NULL FROM `join_limit`.`J2_TBL`
+                     ->  Hash  (cost=0.00..0.00 rows=1 width=72)
+                           Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+                           ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
+                                 Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
+                                 Node: mysql_svr / Status: Alive
+                                   Limit push-down: no
+                                   Sort push-down: yes
+                                   Local server startup cost: 10
+                                   Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `j` IS NULL ASC, `j` ASC, `t` IS NULL ASC, `t` ASC
+(27 rows)
 
 --Testcase 42:
 SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (__spd_url) GROUP BY J1_TBL.i, J1_TBL.j, J1_TBL.t ORDER BY J1_TBL.i LIMIT 5;
@@ -2245,31 +2271,36 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (__spd_ur
 
 --Testcase 43:
 EXPLAIN VERBOSE SELECT J2_TBL.i, J2_TBL.k FROM J1_TBL RIGHT JOIN J2_TBL USING (__spd_url) GROUP BY J2_TBL.i, J2_TBL.k ORDER BY J2_TBL.i LIMIT 5;
-                                                                 QUERY PLAN                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..111.16 rows=5 width=8)
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.72..225.85 rows=1 width=8)
    Output: j2_tbl.i, j2_tbl.k
-   ->  Group  (cost=100.00..546.27 rows=200 width=8)
+   ->  Group  (cost=225.72..225.85 rows=1 width=8)
          Output: j2_tbl.i, j2_tbl.k
          Group Key: j2_tbl.i, j2_tbl.k
-         ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=8)
+         ->  Sort  (cost=225.72..225.76 rows=17 width=8)
                Output: j2_tbl.i, j2_tbl.k
-               Join Filter: (j1_tbl.__spd_url = j2_tbl.__spd_url)
-               ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=40)
-                     Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: yes
-                       Local server startup cost: 10
-                       Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `k` IS NULL ASC, `k` ASC
-               ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=32)
-                     Output: j1_tbl.__spd_url
-                     Node: mysql_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Local server startup cost: 10
-                       Remote query: SELECT NULL FROM `join_limit`.`J1_TBL`
-(22 rows)
+               Sort Key: j2_tbl.i, j2_tbl.k
+               ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=8)
+                     Output: j2_tbl.i, j2_tbl.k
+                     Hash Cond: (j1_tbl.__spd_url = j2_tbl.__spd_url)
+                     ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=32)
+                           Output: j1_tbl.__spd_url
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Local server startup cost: 10
+                             Remote query: SELECT NULL FROM `join_limit`.`J1_TBL`
+                     ->  Hash  (cost=0.00..0.00 rows=1 width=40)
+                           Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
+                           ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=40)
+                                 Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
+                                 Node: mysql_svr / Status: Alive
+                                   Limit push-down: no
+                                   Sort push-down: yes
+                                   Local server startup cost: 10
+                                   Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `k` IS NULL ASC, `k` ASC
+(27 rows)
 
 --Testcase 44:
 SELECT J2_TBL.i, J2_TBL.k FROM J1_TBL RIGHT JOIN J2_TBL USING (__spd_url) GROUP BY J2_TBL.i, J2_TBL.k ORDER BY J2_TBL.i LIMIT 5;
@@ -2449,9 +2480,9 @@ SELECT i, k, t, J1_TBL.__spd_url FROM J1_TBL RIGHT JOIN J2_TBL USING (i) LIMIT 1
 EXPLAIN VERBOSE SELECT * FROM J1_TBL CROSS JOIN J2_TBL ORDER BY J1_TBL.i OFFSET 1;
                                                    QUERY PLAN                                                    
 -----------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..246.52 rows=11648568 width=112)
+ Limit  (cost=100.04..246.52 rows=3412 width=112)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-   ->  Nested Loop  (cost=100.00..246.52 rows=11648569 width=112)
+   ->  Nested Loop  (cost=100.00..246.52 rows=3413 width=112)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
          ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=72)
                Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url
@@ -2575,54 +2606,55 @@ SELECT * FROM J1_TBL CROSS JOIN J2_TBL ORDER BY J1_TBL.i OFFSET 1;
 
 --Testcase 55:
 EXPLAIN VERBOSE SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e) FULL JOIN J2_TBL x2(xx1,xx2) ON (x1.a = xx1) ORDER BY x1.a, x1.b OFFSET 1;
-                                                                      QUERY PLAN                                                                       
--------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=264207.97..266692.76 rows=993916 width=152)
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=658.23..666.76 rows=3412 width=152)
    Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
-   ->  Sort  (cost=264207.97..266692.76 rows=993917 width=152)
+   ->  Sort  (cost=658.23..666.76 rows=3413 width=152)
          Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
          Sort Key: t1.i, t1.j
-         ->  Merge Full Join  (cost=512.68..15722.09 rows=993917 width=152)
+         ->  Hash Full Join  (cost=325.58..457.94 rows=3413 width=152)
                Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
-               Merge Cond: (t1.i = x2.xx1)
-               ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=112)
-                     Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
-                     Join Filter: (t1.i = t2.i)
-                     ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=72)
-                           Output: t1.i, t1.j, t1.t, t1.__spd_url
-                           Node: mysql_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: yes
-                             Local server startup cost: 10
-                             Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `j` IS NULL ASC, `j` ASC
-                     ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
-                           Output: t2.i, t2.k, t2.__spd_url
-                           Node: mysql_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: no
-                             Local server startup cost: 10
-                             Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
-               ->  Sort  (cost=412.68..421.21 rows=3413 width=40)
+               Hash Cond: (x2.xx1 = t1.i)
+               ->  Foreign Scan on public.j2_tbl x2  (cost=100.00..212.39 rows=3413 width=40)
                      Output: x2.xx1, x2.xx2, x2.__spd_url
-                     Sort Key: x2.xx1
-                     ->  Foreign Scan on public.j2_tbl x2  (cost=100.00..212.39 rows=3413 width=40)
-                           Output: x2.xx1, x2.xx2, x2.__spd_url
-                           Node: mysql_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: no
-                             Local server startup cost: 10
-                             Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
-(35 rows)
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Local server startup cost: 10
+                       Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
+               ->  Hash  (cost=225.37..225.37 rows=17 width=112)
+                     Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
+                     ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=112)
+                           Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
+                           Hash Cond: (t2.i = t1.i)
+                           ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
+                                 Output: t2.i, t2.k, t2.__spd_url
+                                 Node: mysql_svr / Status: Alive
+                                   Limit push-down: no
+                                   Sort push-down: no
+                                   Local server startup cost: 10
+                                   Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
+                           ->  Hash  (cost=0.00..0.00 rows=1 width=72)
+                                 Output: t1.i, t1.j, t1.t, t1.__spd_url
+                                 ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=72)
+                                       Output: t1.i, t1.j, t1.t, t1.__spd_url
+                                       Node: mysql_svr / Status: Alive
+                                         Limit push-down: no
+                                         Sort push-down: yes
+                                         Local server startup cost: 10
+                                         Remote query: SELECT `i`, `j`, `t` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `j` IS NULL ASC, `j` ASC
+(36 rows)
 
 --Testcase 56:
 SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e) FULL JOIN J2_TBL x2(xx1,xx2) ON (x1.a = xx1) ORDER BY x1.a, x1.b OFFSET 1;
  a | b |   c   |      d      | e | k  |  __spd_url  | xx1 | xx2 |  __spd_url  
 ---+---+-------+-------------+---+----+-------------+-----+-----+-------------
  1 | 4 | one   | /mysql_svr/ | 1 | -1 | /mysql_svr/ |   1 |  -1 | /mysql_svr/
- 2 | 3 | two   | /mysql_svr/ | 2 |  2 | /mysql_svr/ |   2 |   4 | /mysql_svr/
- 2 | 3 | two   | /mysql_svr/ | 2 |  4 | /mysql_svr/ |   2 |   4 | /mysql_svr/
- 2 | 3 | two   | /mysql_svr/ | 2 |  4 | /mysql_svr/ |   2 |   2 | /mysql_svr/
  2 | 3 | two   | /mysql_svr/ | 2 |  2 | /mysql_svr/ |   2 |   2 | /mysql_svr/
+ 2 | 3 | two   | /mysql_svr/ | 2 |  2 | /mysql_svr/ |   2 |   4 | /mysql_svr/
+ 2 | 3 | two   | /mysql_svr/ | 2 |  4 | /mysql_svr/ |   2 |   2 | /mysql_svr/
+ 2 | 3 | two   | /mysql_svr/ | 2 |  4 | /mysql_svr/ |   2 |   4 | /mysql_svr/
  3 | 2 | three | /mysql_svr/ | 3 | -3 | /mysql_svr/ |   3 |  -3 | /mysql_svr/
  4 | 1 | four  | /mysql_svr/ |   |    |             |     |     | 
  5 | 0 | five  | /mysql_svr/ | 5 | -5 | /mysql_svr/ |   5 |  -5 | /mysql_svr/
@@ -2634,8 +2666,8 @@ SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e)
  8 | 8 | eight | /mysql_svr/ |   |    |             |     |     | 
    | 0 | zero  | /mysql_svr/ |   |    |             |     |     | 
    |   |       |             |   |    |             |     |   0 | /mysql_svr/
-   |   |       |             |   |    |             |     |     | /mysql_svr/
    |   | null  | /mysql_svr/ |   |    |             |     |     | 
+   |   |       |             |   |    |             |     |     | /mysql_svr/
 (18 rows)
 
 --Testcase 57:
@@ -2693,65 +2725,75 @@ SELECT J1_TBL.* FROM J1_TBL FULL JOIN J2_TBL ON J1_TBL.i = J2_TBL.i ORDER BY J1_
 
 --Testcase 59:
 EXPLAIN VERBOSE SELECT J2_TBL.* FROM J1_TBL RIGHT JOIN J2_TBL ON J1_TBL.i = J2_TBL.i ORDER BY J2_TBL.i OFFSET 3;
-                                                 QUERY PLAN                                                 
-------------------------------------------------------------------------------------------------------------
- Limit  (cost=100.01..255.05 rows=58240 width=40)
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.73..225.76 rows=14 width=40)
    Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-   ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=40)
+   ->  Sort  (cost=225.72..225.76 rows=17 width=40)
          Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-         Join Filter: (j1_tbl.i = j2_tbl.i)
-         ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=40)
+         Sort Key: j2_tbl.i
+         ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=40)
                Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: yes
-                 Local server startup cost: 10
-                 Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
-         ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=4)
-               Output: j1_tbl.i
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: no
-                 Local server startup cost: 10
-                 Remote query: SELECT `i` FROM `join_limit`.`J1_TBL`
-(19 rows)
+               Hash Cond: (j1_tbl.i = j2_tbl.i)
+               ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=4)
+                     Output: j1_tbl.i
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Local server startup cost: 10
+                       Remote query: SELECT `i` FROM `join_limit`.`J1_TBL`
+               ->  Hash  (cost=0.00..0.00 rows=1 width=40)
+                     Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
+                     ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=40)
+                           Output: j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: yes
+                             Local server startup cost: 10
+                             Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
+(24 rows)
 
 --Testcase 60:
 SELECT J2_TBL.* FROM J1_TBL RIGHT JOIN J2_TBL ON J1_TBL.i = J2_TBL.i ORDER BY J2_TBL.i OFFSET 3;
  i | k  |  __spd_url  
 ---+----+-------------
- 2 |  4 | /mysql_svr/
+ 2 |  2 | /mysql_svr/
  3 | -3 | /mysql_svr/
  5 | -5 | /mysql_svr/
  5 | -5 | /mysql_svr/
-   |    | /mysql_svr/
    |  0 | /mysql_svr/
+   |    | /mysql_svr/
 (6 rows)
 
 --Testcase 61:
 EXPLAIN VERBOSE SELECT t2.* FROM J1_TBL t1 LEFT JOIN J2_TBL t2 ON t1.i = t2.i ORDER BY t1.i OFFSET 1;
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
- Limit  (cost=100.00..255.05 rows=58242 width=44)
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=225.72..225.76 rows=16 width=44)
    Output: t2.i, t2.k, t2.__spd_url, t1.i
-   ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=44)
+   ->  Sort  (cost=225.72..225.76 rows=17 width=44)
          Output: t2.i, t2.k, t2.__spd_url, t1.i
-         Join Filter: (t1.i = t2.i)
-         ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=4)
-               Output: t1.i
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: yes
-                 Local server startup cost: 10
-                 Remote query: SELECT `i` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
-         ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
-               Output: t2.i, t2.k, t2.__spd_url
-               Node: mysql_svr / Status: Alive
-                 Limit push-down: no
-                 Sort push-down: no
-                 Local server startup cost: 10
-                 Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
-(19 rows)
+         Sort Key: t1.i
+         ->  Hash Right Join  (cost=100.01..225.37 rows=17 width=44)
+               Output: t2.i, t2.k, t2.__spd_url, t1.i
+               Hash Cond: (t2.i = t1.i)
+               ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
+                     Output: t2.i, t2.k, t2.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Local server startup cost: 10
+                       Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL`
+               ->  Hash  (cost=0.00..0.00 rows=1 width=4)
+                     Output: t1.i
+                     ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=4)
+                           Output: t1.i
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: yes
+                             Local server startup cost: 10
+                             Remote query: SELECT `i` FROM `join_limit`.`J1_TBL` ORDER BY `i` IS NULL ASC, `i` ASC
+(24 rows)
 
 --Testcase 62:
 SELECT t2.* FROM J1_TBL t1 LEFT JOIN J2_TBL t2 ON t1.i = t2.i ORDER BY t1.i OFFSET 1;
@@ -2903,7 +2945,7 @@ SELECT t1.i, t2.k, t3.__spd_url FROM J1_TBL t1 RIGHT JOIN (J2_TBL t2 LEFT JOIN J
 EXPLAIN VERBOSE SELECT a.i, x.i FROM J1_TBL a, LATERAL (SELECT * FROM J2_TBL b WHERE i = a.i) x LIMIT 5;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=8)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
    Output: a.i, b.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -2927,7 +2969,7 @@ SELECT a.i, x.i FROM J1_TBL a, LATERAL (SELECT * FROM J2_TBL b WHERE i = a.i) x 
 EXPLAIN VERBOSE SELECT ss.i, x.k FROM J2_TBL x CROSS JOIN LATERAL (SELECT i FROM J1_TBL WHERE i = x.i) ss LIMIT 3;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.06 rows=0 width=8)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
    Output: j1_tbl.i, x.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -2949,7 +2991,7 @@ SELECT ss.i, x.k FROM J2_TBL x CROSS JOIN LATERAL (SELECT i FROM J1_TBL WHERE i 
 EXPLAIN VERBOSE SELECT x.i, x.j, x.t FROM J1_TBL x LEFT JOIN LATERAL (SELECT i, k FROM J2_TBL WHERE i=x.i) ss ON true LIMIT 5;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: x.i, x.j, x.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -3238,17 +3280,18 @@ SELECT max(t1.i + t2.i), t1.__spd_url, t2.__spd_url FROM J1_TBL t1 INNER JOIN J2
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(i) GROUP BY t1.i, t1.j, t1.t HAVING max(t1.i) NOT IN (1, 2, 3) LIMIT 5 OFFSET 0;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=87464.27..116684.18 rows=1 width=40)
+ Limit  (cost=15.00..25.00 rows=1 width=40)
    Output: t1.i, t1.j, t1.t
-   ->  Foreign Scan  (cost=87464.27..116684.18 rows=1 width=40)
+   ->  Foreign Scan  (cost=15.00..25.00 rows=1 width=40)
          Output: t1.i, t1.j, t1.t
          Filter: ((max(t1.i)) <> ALL ('{1,2,3}'::integer[]))
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT r1.`i`, r1.`j`, r1.`t`, max(r1.`i`) FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) GROUP BY 1, 2, 3
-(10 rows)
+(11 rows)
 
 --Testcase 86:
 SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(i) GROUP BY t1.i, t1.j, t1.t HAVING max(t1.i) NOT IN (1, 2, 3) LIMIT 5 OFFSET 0;
@@ -3352,17 +3395,18 @@ SELECT t1.a, t1.b, t1.c, t2.a, t2.b FROM J1_TBL t1 (a, b, c, d) LEFT JOIN J2_TBL
 EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i = t2.i RIGHT JOIN J3_TBL AS t3 INNER JOIN J1_TBL AS t4 ON t4.i = t3.i ON t1.i = t3.i GROUP BY t1.i, t2.i, t3.i, t4.i HAVING count(t1.i) > 1 LIMIT 5 OFFSET 0;
                                                                                                                                                         QUERY PLAN                                                                                                                                                         
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1356891597577.61..1696261917659.95 rows=1 width=16)
+ Limit  (cost=15.00..25.00 rows=1 width=16)
    Output: t1.i, t2.i, t3.i, t4.i
-   ->  Foreign Scan  (cost=1356891597577.61..1696261917659.95 rows=1 width=16)
+   ->  Foreign Scan  (cost=15.00..25.00 rows=1 width=16)
          Output: t1.i, t2.i, t3.i, t4.i
          Filter: ((count(t1.i)) > 1)
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on ((((join_limit.j3_tbl__mysql_svr__0) INNER JOIN (join_limit.j1_tbl__mysql_svr__0)) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0)) LEFT JOIN (join_limit.j2_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT r1.`i`, r2.`i`, r4.`i`, r5.`i`, count(r1.`i`) FROM (((`join_limit`.`J3_TBL` r4 INNER JOIN `join_limit`.`J1_TBL` r5 ON (((r4.`i` = r5.`i`)))) LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` = r4.`i`)))) LEFT JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) GROUP BY 1, 2, 3, 4
-(10 rows)
+(11 rows)
 
 --Testcase 92:
 SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i = t2.i RIGHT JOIN J3_TBL AS t3 INNER JOIN J1_TBL AS t4 ON t4.i = t3.i ON t1.i = t3.i GROUP BY t1.i, t2.i, t3.i, t4.i HAVING count(t1.i) > 1 LIMIT 5 OFFSET 0;
@@ -3377,15 +3421,16 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT J1_TBL.i, j, k FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i, j, k HAVING max(J1_TBL.t) > '$' ORDER BY J1_TBL.i, j, k;
                                                                                                                              QUERY PLAN                                                                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..94005.25 rows=0 width=12)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=12)
    Output: j1_tbl.i, j1_tbl.j, j2_tbl.k
    Filter: ((max(j1_tbl.t)) > '$'::text)
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, r1.`j`, r2.`k`, max(r1.`t`) FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 1, 2, 3 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC, r1.`j` IS NULL ASC, r1.`j` ASC, r2.`k` IS NULL ASC, r2.`k` ASC
-(8 rows)
+(9 rows)
 
 --Testcase 94:
 SELECT J1_TBL.i, j, k FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i, j, k HAVING max(J1_TBL.t) > '$' ORDER BY J1_TBL.i, j, k;
@@ -4934,7 +4979,7 @@ SELECT count(k), max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL
 EXPLAIN VERBOSE SELECT k, t FROM J1_TBL INNER JOIN J2_TBL USING (i) WHERE J1_TBL.i <= J2_TBL.k LIMIT 5;
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.12 rows=0 width=36)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
    Output: j2_tbl.k, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -4955,7 +5000,7 @@ SELECT k, t FROM J1_TBL INNER JOIN J2_TBL USING (i) WHERE J1_TBL.i <= J2_TBL.k L
 EXPLAIN VERBOSE SELECT t1.i, k, t FROM J1_TBL t1 CROSS JOIN J2_TBL t2 WHERE t1.i = t2.i LIMIT 3;
                                                                       QUERY PLAN                                                                      
 ------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.06 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: t1.i, t2.k, t1.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -4977,7 +5022,7 @@ SELECT t1.i, k, t FROM J1_TBL t1 CROSS JOIN J2_TBL t2 WHERE t1.i = t2.i LIMIT 3;
 EXPLAIN VERBOSE SELECT k, t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (k != 1) LIMIT 1;
                                                                             QUERY PLAN                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.02 rows=0 width=36)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=36)
    Output: j2_tbl.k, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -4997,7 +5042,7 @@ SELECT k, t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (k != 1) LIMIT 1;
 EXPLAIN VERBOSE SELECT t1.i, k, t FROM J1_TBL t1 FULL JOIN J2_TBL t2 USING (i) WHERE k IS NOT NULL LIMIT 5;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: t1.i, t2.k, t1.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5021,7 +5066,7 @@ SELECT t1.i, k, t FROM J1_TBL t1 FULL JOIN J2_TBL t2 USING (i) WHERE k IS NOT NU
 EXPLAIN VERBOSE SELECT i, k FROM (SELECT i, t FROM J1_TBL) AS t1 RIGHT JOIN (SELECT i, k FROM J2_TBL) t2 USING (i) WHERE i IS NOT NULL LIMIT 5;
                                                                                 QUERY PLAN                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=8)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
    Output: j2_tbl.i, j2_tbl.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5045,7 +5090,7 @@ SELECT i, k FROM (SELECT i, t FROM J1_TBL) AS t1 RIGHT JOIN (SELECT i, k FROM J2
 EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i = t2.i RIGHT JOIN J3_TBL AS t3 INNER JOIN J1_TBL AS t4 ON t4.i = t3.i ON t1.i = t3.i WHERE t1.i IS NOT NULL LIMIT 5;
                                                                                                                                                       QUERY PLAN                                                                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=16)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=16)
    Output: t1.i, t2.i, t3.i, t4.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5309,7 +5354,7 @@ SELECT t1.i FROM J1_TBL AS t1 INNER JOIN J2_TBL AS t2 ON t1.i = t2.i WHERE t1.i 
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL CROSS JOIN J2_TBL LIMIT 5;
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.10 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5333,7 +5378,7 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL CROSS JOIN J2_TBL LIMIT 5;
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL INNER JOIN J2_TBL USING (i) AS x LIMIT 10;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.21 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5395,7 +5440,7 @@ SELECT t1.a, t1.b, t1.c, t2.a, t2.b FROM J1_TBL t1 (a, b, c, d) FULL JOIN J2_TBL
 EXPLAIN VERBOSE SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (i) LIMIT 5;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=40)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=40)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5419,7 +5464,7 @@ SELECT J1_TBL.i, J1_TBL.j, J1_TBL.t FROM J1_TBL LEFT JOIN J2_TBL USING (i) LIMIT
 EXPLAIN VERBOSE SELECT J2_TBL.i, J2_TBL.k FROM J1_TBL RIGHT JOIN J2_TBL USING (i) LIMIT 5;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=8)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
    Output: j2_tbl.i, j2_tbl.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5699,7 +5744,7 @@ SELECT i, k, t FROM J1_TBL FULL JOIN J2_TBL USING (i) OFFSET 3;
 EXPLAIN VERBOSE SELECT x, t2.i FROM (SELECT j/2 AS x FROM J1_TBL) ss1 INNER JOIN J2_TBL t2 ON x = i LIMIT 5 OFFSET 0;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.12 rows=0 width=8)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=8)
    Output: (j1_tbl.j / 2), t2.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5723,7 +5768,7 @@ SELECT x, t2.i FROM (SELECT j/2 AS x FROM J1_TBL) ss1 INNER JOIN J2_TBL t2 ON x 
 EXPLAIN VERBOSE SELECT x.i, x.j, x.t, y.i, y.k FROM J1_TBL x LEFT JOIN (SELECT i, k FROM J2_TBL) y ON x.i = y.i LIMIT 3 OFFSET 5;
                                                                                   QUERY PLAN                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.01..100.08 rows=0 width=48)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=48)
    Output: x.i, x.j, x.t, j2_tbl.i, j2_tbl.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5745,7 +5790,7 @@ SELECT x.i, x.j, x.t, y.i, y.k FROM J1_TBL x LEFT JOIN (SELECT i, k FROM J2_TBL)
 EXPLAIN VERBOSE SELECT f1.i, f1.j, f2.i, f2.k FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j >= f2.k) LIMIT 5 OFFSET 1;
                                                                                           QUERY PLAN                                                                                           
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.01..100.12 rows=0 width=16)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=16)
    Output: f1.i, f1.j, f2.i, f2.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5769,7 +5814,7 @@ SELECT f1.i, f1.j, f2.i, f2.k FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.
 EXPLAIN VERBOSE SELECT j1.i, j2.i, j1.t, j2.k FROM J1_TBL j1 CROSS JOIN J2_TBL j2 LIMIT 3 OFFSET 0;
                                                                        QUERY PLAN                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.06 rows=0 width=44)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=44)
    Output: j1.i, j2.i, j1.t, j2.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5828,7 +5873,7 @@ SELECT j1.i, j2.i, j1.i + j2.i, j1.j * j2.k, j1.t FROM J1_TBL j1 FULL JOIN J2_TB
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d1 FROM J2_TBL t2) b1 ON t1.i = b1.i ORDER BY t1.i, b1.i LIMIT 5 OFFSET 0;
                                                                                                                   QUERY PLAN                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=44)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=44)
    Output: t1.i, t1.j, t1.t, t2.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5853,7 +5898,7 @@ SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d
 EXPLAIN VERBOSE SELECT t1.i, t1.j, b1.i FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FROM J2_TBL t2) b1 ON t1.i = b1.i ORDER BY t1.i, b1.i LIMIT 5 OFFSET 1;
                                                                                                               QUERY PLAN                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.11 rows=0 width=12)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=12)
    Output: t1.i, t1.j, t2.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5878,7 +5923,7 @@ SELECT t1.i, t1.j, b1.i FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FRO
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 ORDER BY t1.i LIMIT 3 OFFSET 0;
                                                                                                 QUERY PLAN                                                                                                
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.07 rows=0 width=16)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -5901,12 +5946,12 @@ SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 OR
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i ORDER BY t1.i LIMIT 3 OFFSET 0;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=978.15..978.16 rows=3 width=16)
+ Limit  (cost=269.48..269.49 rows=3 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
-   ->  Sort  (cost=978.15..1123.76 rows=58243 width=16)
+   ->  Sort  (cost=269.48..278.02 rows=3413 width=16)
          Output: t1.i, t1.j, t2.i, t2.k
          Sort Key: t1.i
-         ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=16)
+         ->  Hash Full Join  (cost=100.01..225.37 rows=3413 width=16)
                Output: t1.i, t1.j, t2.i, t2.k
                Hash Cond: (t2.i = t1.i)
                ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=8)
@@ -5940,7 +5985,7 @@ SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i 
 EXPLAIN VERBOSE SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y, z) ORDER BY t1.i LIMIT 5 OFFSET 2;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..100.13 rows=0 width=44)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=44)
    Output: (t1.i / 2), (t1.j - 1), (t1.t || '***'::text), t1.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
@@ -6013,17 +6058,18 @@ SELECT x1.a, x1.b, x1.c, x1.e, xx1 FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i 
 EXPLAIN VERBOSE SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d1 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, b1.k, b1.i ORDER BY t1.i, b1.i OFFSET 1;
                                                                                                                       QUERY PLAN                                                                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=122409.97..156626.71 rows=1 width=16)
+ Limit  (cost=5.00..5.00 rows=1 width=16)
    Output: t1.i, t1.j, t2.k, t2.i
-   ->  Foreign Scan  (cost=122409.97..156626.71 rows=0 width=16)
+   ->  Foreign Scan  (cost=5.00..5.00 rows=0 width=16)
          Output: t1.i, t1.j, t2.k, t2.i
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Sort push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) LEFT JOIN (join_limit.j2_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT r1.`i`, r1.`j`, r4.`k`, r4.`i` FROM (`join_limit`.`J1_TBL` r1 LEFT JOIN `join_limit`.`J2_TBL` r4 ON (((r1.`i` = r4.`i`)))) GROUP BY 1, 4, 2, 3 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC, r4.`i` IS NULL ASC, r4.`i` ASC
-(10 rows)
+(11 rows)
 
 --Testcase 212:
 SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d1 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, b1.k, b1.i ORDER BY t1.i, b1.i OFFSET 1;
@@ -6046,17 +6092,18 @@ SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, t1.t, b1.i ORDER BY t1.i, b1.i OFFSET 1;
                                                                                                                       QUERY PLAN                                                                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=122409.97..155160.24 rows=1 width=44)
+ Limit  (cost=5.00..5.00 rows=1 width=44)
    Output: t1.i, t1.j, t1.t, t2.i
-   ->  Foreign Scan  (cost=122409.97..155160.24 rows=0 width=44)
+   ->  Foreign Scan  (cost=5.00..5.00 rows=0 width=44)
          Output: t1.i, t1.j, t1.t, t2.i
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Sort push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on ((join_limit.j2_tbl__mysql_svr__0) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT r1.`i`, r1.`j`, r1.`t`, r4.`i` FROM (`join_limit`.`J2_TBL` r4 LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` = r4.`i`)))) GROUP BY 1, 4, 2, 3 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC, r4.`i` IS NULL ASC, r4.`i` ASC
-(10 rows)
+(11 rows)
 
 --Testcase 214:
 SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, t1.t, b1.i ORDER BY t1.i, b1.i OFFSET 1;
@@ -6073,17 +6120,18 @@ SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FRO
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 GROUP BY t1.i, t1.j, t2.i, t2.k ORDER BY t1.i OFFSET 1;
                                                                                                     QUERY PLAN                                                                                                     
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=709.22..1139.97 rows=1 width=16)
+ Limit  (cost=5.00..5.00 rows=1 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
-   ->  Foreign Scan  (cost=709.22..1139.97 rows=0 width=16)
+   ->  Foreign Scan  (cost=5.00..5.00 rows=0 width=16)
          Output: t1.i, t1.j, t2.i, t2.k
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Sort push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT r1.`i`, r1.`j`, r2.`i`, r2.`k` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r2.`k` = 2)))) GROUP BY 1, 2, 3, 4 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC
-(10 rows)
+(11 rows)
 
 --Testcase 216:
 SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 GROUP BY t1.i, t1.j, t2.i, t2.k ORDER BY t1.i OFFSET 1;
@@ -6160,17 +6208,18 @@ SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i 
 EXPLAIN VERBOSE SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y, z) GROUP BY t1.i, t1.j, t2.x, t1.t ORDER BY t1.i OFFSET 2;
                                                                                                                           QUERY PLAN                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=122409.97..125119.82 rows=1 width=84)
+ Limit  (cost=5.00..5.00 rows=1 width=84)
    Output: ((t1.i / 2)), ((t1.j - 1)), ((t1.t || '***'::text)), t1.i, t1.j, t2.x, t1.t
-   ->  Foreign Scan  (cost=122409.97..125119.82 rows=0 width=84)
+   ->  Foreign Scan  (cost=5.00..5.00 rows=0 width=84)
          Output: ((t1.i / 2)), ((t1.j - 1)), ((t1.t || '***'::text)), t1.i, t1.j, t2.x, t1.t
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Sort push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
            Local server startup cost: 10
            Remote query: SELECT (r1.`i` DIV 2), (r1.`j` - 1), CONCAT(r1.`t` , '***'), r1.`i`, r1.`j`, r2.`i`, r1.`t` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 4, 5, 6, 7 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC
-(10 rows)
+(11 rows)
 
 --Testcase 220:
 SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y, z) GROUP BY t1.i, t1.j, t2.x, t1.t ORDER BY t1.i OFFSET 2;
@@ -6247,14 +6296,15 @@ SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y,
 EXPLAIN VERBOSE SELECT t1.i, count(k), '12x ' || t  FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t LIMIT 5 OFFSET 0;
                                                                                                      QUERY PLAN                                                                                                     
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=87029.11..87031.29 rows=0 width=80)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=80)
    Output: t1.i, (count(t2.k)), (('12x '::text || t1.t)), t2.k, t1.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, count(r2.`k`), CONCAT('12x ' , r1.`t`), r2.`k`, r1.`t` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r2.`i` <> 0)))) GROUP BY 1, 4, 5 LIMIT 5 OFFSET 0
-(7 rows)
+(8 rows)
 
 --Testcase 222:
 SELECT t1.i, count(k), '12x ' || t  FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t LIMIT 5 OFFSET 0;
@@ -6271,14 +6321,15 @@ SELECT t1.i, count(k), '12x ' || t  FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i 
 EXPLAIN VERBOSE SELECT count(J1_TBL.i), avg(k), min(t) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY k, t LIMIT 5 OFFSET 0;
                                                                                           QUERY PLAN                                                                                           
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..58343.00 rows=0 width=108)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=108)
    Output: (count(j1_tbl.i)), (avg(j2_tbl.k)), (min(j1_tbl.t)), j2_tbl.k, j1_tbl.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT count(r1.`i`), avg(r2.`k`), min(r1.`t`), r2.`k`, r1.`t` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 4, 5 LIMIT 5 OFFSET 0
-(7 rows)
+(8 rows)
 
 --Testcase 224:
 SELECT count(J1_TBL.i), avg(k), min(t) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY k, t LIMIT 5 OFFSET 0;
@@ -6338,14 +6389,15 @@ SELECT max(t1.a), min(t1.b), t2.d FROM J1_TBL t1(a, b, c, f) FULL JOIN J2_TBL t2
 EXPLAIN VERBOSE SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t LIMIT 5 OFFSET 0;
                                                                                                                         QUERY PLAN                                                                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=298174344.98..298174345.14 rows=0 width=76)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=76)
    Output: t1.i, (max(t2.k)), (min(t3.t)), t2.k, t3.t
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on (((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j3_tbl__mysql_svr__0)) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, max(r2.`k`), min(r4.`t`), r2.`k`, r4.`t` FROM ((`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J3_TBL` r4 ON (((r1.`t` = r4.`t`)))) INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 1, 4, 5 LIMIT 5 OFFSET 0
-(7 rows)
+(8 rows)
 
 --Testcase 228:
 SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t LIMIT 5 OFFSET 0;
@@ -6363,15 +6415,16 @@ SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3
 EXPLAIN VERBOSE SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z WHERE a.j = ss.z GROUP BY a.i, a.j, ss.z ORDER BY a.i ASC, a.j DESC, ss.z LIMIT 5 OFFSET 1;
                                                                                                                    QUERY PLAN                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=557.05..557.76 rows=0 width=12)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=12)
    Output: a.i, a.j, y.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, r1.`j`, r4.`i` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r4 ON (((r1.`i` = r4.`i`)) AND ((r1.`i` = r1.`j`)))) GROUP BY 1, 2, 3 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC LIMIT 5 OFFSET 1
-(8 rows)
+(9 rows)
 
 --Testcase 230:
 SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z WHERE a.j = ss.z GROUP BY a.i, a.j, ss.z ORDER BY a.i ASC, a.j DESC, ss.z LIMIT 5 OFFSET 1;
@@ -6383,15 +6436,16 @@ SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON 
 EXPLAIN VERBOSE SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NOT NULL) WHERE f1.t IS NULL GROUP BY f1.i, f1.j, f2.i ORDER BY 1 DESC LIMIT 5 OFFSET 1;
                                                                                                                                  QUERY PLAN                                                                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91376.02..91378.29 rows=0 width=12)
+ Foreign Scan  (cost=0.00..0.00 rows=0 width=12)
    Output: f1.i, f1.j, f2.i
    Node: mysql_svr / Status: Alive
      Limit push-down: yes
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j2_tbl__mysql_svr__0) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, r1.`j`, r2.`i` FROM (`join_limit`.`J2_TBL` r2 LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` = r2.`i`)) AND ((r1.`j` IS NOT NULL)))) WHERE ((r1.`t` IS NULL)) GROUP BY 1, 2, 3 ORDER BY r1.`i` IS NULL DESC, r1.`i` DESC LIMIT 5 OFFSET 1
-(8 rows)
+(9 rows)
 
 --Testcase 232:
 SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NOT NULL) WHERE f1.t IS NULL GROUP BY f1.i, f1.j, f2.i ORDER BY 1 DESC LIMIT 5 OFFSET 1;
@@ -6406,10 +6460,10 @@ SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND 
 EXPLAIN VERBOSE SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 ON j2_tbl.i = j3.i GROUP BY j3.i, j2_tbl.i, k  ORDER BY j3.i;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Group  (cost=108.53..158.80 rows=17 width=12)
+ Group  (cost=15.00..25.02 rows=1 width=12)
    Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
    Group Key: j1_tbl.i, j2_tbl.i, j2_tbl.k
-   ->  Nested Loop  (cost=108.53..158.68 rows=17 width=12)
+   ->  Nested Loop  (cost=15.00..25.01 rows=1 width=12)
          Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
          Inner Unique: true
          Join Filter: (j2_tbl.i = j1_tbl.i)
@@ -6419,13 +6473,14 @@ EXPLAIN VERBOSE SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl 
                  Sort push-down: yes
                  Local server startup cost: 10
                  Remote query: SELECT `i`, `k` FROM `join_limit`.`J2_TBL` ORDER BY `i` IS NULL ASC, `i` ASC, `k` IS NULL ASC, `k` ASC
-         ->  Foreign Scan  (cost=108.53..158.66 rows=0 width=4)
+         ->  Foreign Scan  (cost=15.00..25.00 rows=0 width=4)
                Output: j1_tbl.i
                Node: mysql_svr / Status: Alive
                  Agg push-down: yes
+                 Relations: Aggregate on (join_limit.j1_tbl__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `i` FROM `join_limit`.`J1_TBL` GROUP BY 1
-(19 rows)
+(20 rows)
 
 --Testcase 234:
 SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 ON j2_tbl.i = j3.i GROUP BY j3.i, j2_tbl.i, k  ORDER BY j3.i;
@@ -6443,14 +6498,15 @@ SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 O
 EXPLAIN VERBOSE SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.i = t2.i) GROUP BY t1.j ORDER BY t1.j;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=30677.49..61353.76 rows=0 width=4)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=4)
    Output: t1.j
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) LEFT JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`j` FROM (`join_limit`.`J1_TBL` r1 LEFT JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) GROUP BY 1 ORDER BY r1.`j` IS NULL ASC, r1.`j` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 236:
 SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.i = t2.i) GROUP BY t1.j ORDER BY t1.j;
@@ -6471,13 +6527,13 @@ SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.i = t2.i) GROUP BY t1.j OR
 EXPLAIN VERBOSE SELECT t1.i FROM j1_tbl t1 FULL JOIN (SELECT i, k FROM j2_tbl) t2 ON (t1.i = t2.i) GROUP BY t1.i ORDER BY 1;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Sort  (cost=380.62..381.12 rows=200 width=4)
+ Sort  (cost=233.92..233.93 rows=1 width=4)
    Output: t1.i
    Sort Key: t1.i
-   ->  HashAggregate  (cost=370.98..372.98 rows=200 width=4)
+   ->  HashAggregate  (cost=233.90..233.91 rows=1 width=4)
          Output: t1.i
          Group Key: t1.i
-         ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=4)
+         ->  Hash Full Join  (cost=100.01..225.37 rows=3413 width=4)
                Output: t1.i
                Hash Cond: (j2_tbl.i = t1.i)
                ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=4)
@@ -6516,14 +6572,15 @@ SELECT t1.i FROM j1_tbl t1 FULL JOIN (SELECT i, k FROM j2_tbl) t2 ON (t1.i = t2.
 EXPLAIN VERBOSE SELECT j1.i, j1.j, j2.k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 GROUP BY j1.i, j1.j, j2.k ORDER BY j2.k;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..94005.25 rows=0 width=12)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=12)
    Output: j1.i, j1.j, j2.k
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, r1.`j`, r2.`k` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 3, 1, 2 ORDER BY r2.`k` IS NULL ASC, r2.`k` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 240:
 SELECT j1.i, j1.j, j2.k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 GROUP BY j1.i, j1.j, j2.k ORDER BY j2.k;
@@ -6612,14 +6669,15 @@ SELECT j1.i, j1.j, j2.k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 GROUP BY j1.i, j1.j
 EXPLAIN VERBOSE SELECT J2_TBL.k, J1_TBL.t FROM J1_TBL RIGHT JOIN J2_TBL ON (J1_TBL.i <= J2_TBL.k) GROUP BY J1_TBL.i, J2_TBL.k, J1_TBL.t ORDER BY J2_TBL.k;
                                                                                               QUERY PLAN                                                                                               
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..124582.75 rows=0 width=40)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=40)
    Output: j2_tbl.k, j1_tbl.t, j1_tbl.i
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j2_tbl__mysql_svr__0) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r2.`k`, r1.`t`, r1.`i` FROM (`join_limit`.`J2_TBL` r2 LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` <= r2.`k`)))) GROUP BY 1, 3, 2 ORDER BY r2.`k` IS NULL ASC, r2.`k` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 242:
 SELECT J2_TBL.k, J1_TBL.t FROM J1_TBL RIGHT JOIN J2_TBL ON (J1_TBL.i <= J2_TBL.k) GROUP BY J1_TBL.i, J2_TBL.k, J1_TBL.t ORDER BY J2_TBL.k;
@@ -6706,14 +6764,15 @@ SELECT t1.i, j, t3.t FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i LEFT JOIN
 EXPLAIN VERBOSE SELECT count(t1.i) - 1, k, t FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t ORDER BY 1, 2, 3;
                                                                                                                                                     QUERY PLAN                                                                                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=124530.37..126064.87 rows=0 width=48)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=48)
    Output: ((count(t1.i) - 1)), t2.k, t1.t, t1.i
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT (count(r1.`i`) - 1), r2.`k`, r1.`t`, r1.`i` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r2.`i` <> 0)))) GROUP BY 4, 2, 3 ORDER BY (count(r1.`i`) - 1) IS NULL ASC, (count(r1.`i`) - 1) ASC, r2.`k` IS NULL ASC, r2.`k` ASC, r1.`t` IS NULL ASC, r1.`t` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 246:
 SELECT count(t1.i) - 1, k, t FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t ORDER BY 1, 2, 3;
@@ -6780,14 +6839,15 @@ SELECT count(t1.i) - 1, k, t FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GR
 EXPLAIN VERBOSE SELECT sum(x.i+x.j), avg(k) FROM J1_TBL x CROSS JOIN J2_TBL y GROUP BY k, t ORDER BY k, t;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=61254.99..62567.66 rows=0 width=76)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=76)
    Output: (sum((x.i + x.j))), (avg(y.k)), y.k, x.t
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT sum((r1.`i` + r1.`j`)), avg(r2.`k`), r2.`k`, r1.`t` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 3, 4 ORDER BY r2.`k` IS NULL ASC, r2.`k` ASC, r1.`t` IS NULL ASC, r1.`t` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 248:
 SELECT sum(x.i+x.j), avg(k) FROM J1_TBL x CROSS JOIN J2_TBL y GROUP BY k, t ORDER BY k, t;
@@ -6921,14 +6981,15 @@ SELECT max(t1.a) + max(t2.d) + 1, t1.b, t2.e FROM J1_TBL t1(a, b, c, f) FULL JOI
 EXPLAIN VERBOSE SELECT min(a.j), ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z GROUP BY a.j, ss.z ORDER BY ss.z;
                                                                                                QUERY PLAN                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=61254.99..93145.15 rows=0 width=12)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=12)
    Output: (min(a.j)), y.i, a.j
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) LEFT JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT min(r1.`j`), r4.`i`, r1.`j` FROM (`join_limit`.`J1_TBL` r1 LEFT JOIN `join_limit`.`J2_TBL` r4 ON (((r1.`i` = r4.`i`)))) GROUP BY 2, 3 ORDER BY r4.`i` IS NULL ASC, r4.`i` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 252:
 SELECT min(a.j), ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z GROUP BY a.j, ss.z ORDER BY ss.z;
@@ -6951,14 +7012,15 @@ SELECT min(a.j), ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON 
 EXPLAIN VERBOSE SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NULL) GROUP BY f1.i, f1.j, f2.i ORDER BY f1.i;
                                                                                                                    QUERY PLAN                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=556.92..914.52 rows=0 width=13)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=13)
    Output: f1.i, ((min(f1.j) > 0)), f1.j, f2.i
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j2_tbl__mysql_svr__0) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, (min(r1.`j`) > 0), r1.`j`, r2.`i` FROM (`join_limit`.`J2_TBL` r2 LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` = r2.`i`)) AND ((r1.`j` IS NULL)))) GROUP BY 1, 3, 4 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC
-(7 rows)
+(8 rows)
 
 --Testcase 254:
 SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NULL) GROUP BY f1.i, f1.j, f2.i ORDER BY f1.i;
@@ -6976,14 +7038,15 @@ SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f
 EXPLAIN VERBOSE SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t ORDER BY 1, 2, 3;
                                                                                                                                                                   QUERY PLAN                                                                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=299857111.53..300037111.53 rows=0 width=72)
+ Foreign Scan  (cost=5.00..5.00 rows=0 width=72)
    Output: t1.i, t2.k, (max(t3.t)), t3.t
    Node: mysql_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
+     Relations: Aggregate on (((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j3_tbl__mysql_svr__0)) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT r1.`i`, r2.`k`, max(r4.`t`), r4.`t` FROM ((`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J3_TBL` r4 ON (((r1.`t` = r4.`t`)))) INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 1, 2, 4 ORDER BY r1.`i` IS NULL ASC, r1.`i` ASC, r2.`k` IS NULL ASC, r2.`k` ASC, max(r4.`t`) IS NULL ASC, max(r4.`t`) ASC
-(7 rows)
+(8 rows)
 
 --Testcase 256:
 SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t ORDER BY 1, 2, 3;
@@ -7035,10 +7098,10 @@ SELECT t1.i, t2.i, t1.j, t2.k FROM J1_TBL t1 LEFT JOIN J2_TBL t2 ON t1.i = t2.i 
 EXPLAIN VERBOSE SELECT t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 using(i) ORDER BY t1.i;
                                                  QUERY PLAN                                                  
 -------------------------------------------------------------------------------------------------------------
- Sort  (cost=4835.25..4980.85 rows=58243 width=12)
+ Sort  (cost=425.66..434.19 rows=3413 width=12)
    Output: t2.i, t2.k, t1.i
    Sort Key: t1.i
-   ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=12)
+   ->  Hash Full Join  (cost=100.01..225.37 rows=3413 width=12)
          Output: t2.i, t2.k, t1.i
          Hash Cond: (t2.i = t1.i)
          ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=8)
@@ -7621,13 +7684,14 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i;
                                                                           QUERY PLAN                                                                          
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..88752.53 rows=1 width=16)
+ Foreign Scan  (cost=15.00..25.00 rows=1 width=16)
    Output: (count(*)), a.i, b.i
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT count(*), r1.`i`, r2.`i` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) GROUP BY 2, 3
-(6 rows)
+(7 rows)
 
 --Testcase 284:
 SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i;
@@ -7644,13 +7708,14 @@ SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i
 EXPLAIN VERBOSE SELECT count(J1_TBL.i) AS x, J1_TBL.j AS y FROM J1_TBL LEFT JOIN J2_TBL ON J1_TBL.i=J2_TBL.i GROUP BY J1_TBL.j, J1_TBL.i;
                                                                             QUERY PLAN                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..87562.76 rows=1 width=16)
+ Foreign Scan  (cost=15.00..25.00 rows=1 width=16)
    Output: (count(j1_tbl.i)), j1_tbl.j, j1_tbl.i
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) LEFT JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT count(r1.`i`), r1.`j`, r1.`i` FROM (`join_limit`.`J1_TBL` r1 LEFT JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) GROUP BY 2, 3
-(6 rows)
+(7 rows)
 
 --Testcase 286:
 SELECT count(J1_TBL.i) AS x, J1_TBL.j AS y FROM J1_TBL LEFT JOIN J2_TBL ON J1_TBL.i=J2_TBL.i GROUP BY J1_TBL.j, J1_TBL.i;
@@ -7673,13 +7738,14 @@ SELECT count(J1_TBL.i) AS x, J1_TBL.j AS y FROM J1_TBL LEFT JOIN J2_TBL ON J1_TB
 EXPLAIN VERBOSE SELECT sum(J1_TBL.i), avg(J1_TBL.j) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i;
                                                                      QUERY PLAN                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=29221.42..29315.68 rows=1 width=44)
+ Foreign Scan  (cost=15.00..25.00 rows=1 width=44)
    Output: (sum(j1_tbl.i)), (avg(j1_tbl.j)), j1_tbl.i
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT sum(r1.`i`), avg(r1.`j`), r1.`i` FROM (`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (TRUE)) GROUP BY 3
-(6 rows)
+(7 rows)
 
 --Testcase 288:
 SELECT sum(J1_TBL.i), avg(J1_TBL.j) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i;
@@ -7701,13 +7767,14 @@ SELECT sum(J1_TBL.i), avg(J1_TBL.j) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TB
 EXPLAIN VERBOSE SELECT max(J1_TBL.t || '111'), min(J2_TBL.i) FROM J1_TBL RIGHT JOIN J2_TBL USING (i) GROUP BY J1_TBL.i, J2_TBL.i;
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..88752.53 rows=1 width=44)
+ Foreign Scan  (cost=15.00..25.00 rows=1 width=44)
    Output: (max((j1_tbl.t || '111'::text))), (min(j2_tbl.i)), j1_tbl.i, j2_tbl.i
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on ((join_limit.j2_tbl__mysql_svr__0) LEFT JOIN (join_limit.j1_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT max(CONCAT(r1.`t` , '111')), min(r2.`i`), r1.`i`, r2.`i` FROM (`join_limit`.`J2_TBL` r2 LEFT JOIN `join_limit`.`J1_TBL` r1 ON (((r1.`i` = r2.`i`)))) GROUP BY 3, 4
-(6 rows)
+(7 rows)
 
 --Testcase 290:
 SELECT max(J1_TBL.t || '111'), min(J2_TBL.i) FROM J1_TBL RIGHT JOIN J2_TBL USING (i) GROUP BY J1_TBL.i, J2_TBL.i;
@@ -7725,10 +7792,10 @@ SELECT max(J1_TBL.t || '111'), min(J2_TBL.i) FROM J1_TBL RIGHT JOIN J2_TBL USING
 EXPLAIN VERBOSE SELECT t1.i, min(t1.j), max(t2.i), sum(t2.k) FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i GROUP BY t1.i, t1.t;
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- HashAggregate  (cost=953.41..955.41 rows=200 width=52)
+ HashAggregate  (cost=268.03..268.04 rows=1 width=52)
    Output: t1.i, min(t1.j), max(t2.i), sum(t2.k), t1.t
    Group Key: t1.i, t1.t
-   ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=48)
+   ->  Hash Full Join  (cost=100.01..225.37 rows=3413 width=48)
          Output: t1.i, t1.t, t1.j, t2.i, t2.k
          Hash Cond: (t2.i = t1.i)
          ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=8)
@@ -7750,30 +7817,31 @@ SELECT t1.i, min(t1.j), max(t2.i), sum(t2.k) FROM J1_TBL t1 FULL JOIN J2_TBL t2 
  i | min | max | sum 
 ---+-----+-----+-----
    |     |     |   0
- 6 |   6 |     |    
- 8 |   8 |     |    
-   |     |     |    
- 4 |   1 |     |    
- 7 |   7 |     |    
- 3 |   2 |   3 |  -3
-   |   0 |     |    
  0 |     |   0 |    
- 2 |   3 |   2 |   6
+ 4 |   1 |     |    
+ 6 |   6 |     |    
+   |     |     |    
+ 3 |   2 |   3 |  -3
  5 |   0 |   5 | -10
+ 8 |   8 |     |    
+ 2 |   3 |   2 |   6
  1 |   4 |   1 |  -1
+ 7 |   7 |     |    
+   |   0 |     |    
 (12 rows)
 
 --Testcase 293:
 EXPLAIN VERBOSE SELECT sum(t1.i + t2.i), avg(t1.i - t2.i) FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t1.i = t2.i CROSS JOIN J2_TBL t3 GROUP BY t1.i, t2.i;
                                                                                                                      QUERY PLAN                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=198782929.99..198813383.80 rows=1 width=48)
+ Foreign Scan  (cost=15.00..25.00 rows=1 width=48)
    Output: (sum((t1.i + t2.i))), (avg((t1.i - t2.i))), t1.i, t2.i
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on (((join_limit.j1_tbl__mysql_svr__0) INNER JOIN (join_limit.j2_tbl__mysql_svr__0)) INNER JOIN (join_limit.j2_tbl__mysql_svr__0))
      Local server startup cost: 10
      Remote query: SELECT sum((r1.`i` + r2.`i`)), avg((r1.`i` - r2.`i`)), r1.`i`, r2.`i` FROM ((`join_limit`.`J1_TBL` r1 INNER JOIN `join_limit`.`J2_TBL` r2 ON (((r1.`i` = r2.`i`)))) INNER JOIN `join_limit`.`J2_TBL` r4 ON (TRUE)) GROUP BY 3, 4
-(6 rows)
+(7 rows)
 
 --Testcase 294:
 SELECT sum(t1.i + t2.i), avg(t1.i - t2.i) FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t1.i = t2.i CROSS JOIN J2_TBL t3 GROUP BY t1.i, t2.i;
@@ -7785,7 +7853,6 @@ SELECT sum(t1.i + t2.i), avg(t1.i - t2.i) FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON
   72 | 0.0000
   18 | 0.0000
 (5 rows)
-
 
 DROP USER MAPPING FOR CURRENT_USER SERVER mysql_svr;
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;

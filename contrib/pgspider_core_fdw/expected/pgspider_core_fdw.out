@@ -800,6 +800,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
      Foreign File: /tmp/pgtest.csv
    Node: mysql_svr / Status: Alive
      Agg push-down: yes
+     Relations: Aggregate on (test.test1__mysql_svr__0)
      Remote query: SELECT sum(`i`), count(`i`) FROM `test`.`test1`
    Node: post_svr / Status: Alive
      Agg push-down: yes
@@ -812,7 +813,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT sum(i), avg(i) FROM test1;
      Agg push-down: yes
      TinyBrace query: SELECT sum(`i`), count(`i`) FROM "test1"
      TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(22 rows)
+(23 rows)
 
 -- only post_svr is alive
 --Testcase 56:
@@ -859,10 +860,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=0 width=36)
+ Sort  (cost=185.67..185.68 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=0 width=36)
          Output: i, __spd_url
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -877,6 +878,7 @@ SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -893,7 +895,7 @@ SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT `i` FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 215:
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
@@ -916,10 +918,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=0 width=36)
+ Sort  (cost=185.67..185.68 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=0 width=36)
          Output: i, __spd_url
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -934,6 +936,7 @@ SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -950,7 +953,7 @@ SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT `i` FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 58:
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -973,10 +976,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=0 width=36)
+ Sort  (cost=185.67..185.68 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=0 width=36)
          Output: __spd_url, i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -991,6 +994,7 @@ SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -1007,7 +1011,7 @@ SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT `i` FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 59:
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -1030,10 +1034,10 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=1 width=68)
+ Sort  (cost=185.67..185.68 rows=1 width=68)
    Output: (avg(i)), __spd_url, i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=1 width=68)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=1 width=68)
          Output: (avg(i)), __spd_url, i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1048,6 +1052,7 @@ SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(`i`), sum(`i`), `i` FROM `test`.`test1` GROUP BY 3
          Node: post_svr / Status: Alive
@@ -1064,7 +1069,7 @@ SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT count(`i`), sum(`i`), `i` FROM "test1" GROUP BY 3
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 219:
 SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i,__spd_url;
@@ -1087,10 +1092,10 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=1 width=68)
+ Sort  (cost=185.67..185.68 rows=1 width=68)
    Output: (avg(i)), __spd_url, i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=1 width=68)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=1 width=68)
          Output: (avg(i)), __spd_url, i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1105,6 +1110,7 @@ SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(`i`), sum(`i`), `i` FROM `test`.`test1` GROUP BY 3
          Node: post_svr / Status: Alive
@@ -1121,7 +1127,7 @@ SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT count(`i`), sum(`i`), `i` FROM "test1" GROUP BY 3
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 60:
 SELECT avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -1144,10 +1150,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=1 width=68)
+ Sort  (cost=185.67..185.68 rows=1 width=68)
    Output: __spd_url, (avg(i)), i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=1 width=68)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=1 width=68)
          Output: __spd_url, (avg(i)), i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1162,6 +1168,7 @@ SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(`i`), sum(`i`), `i` FROM `test`.`test1` GROUP BY 3
          Node: post_svr / Status: Alive
@@ -1178,7 +1185,7 @@ SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT count(`i`), sum(`i`), `i` FROM "test1" GROUP BY 3
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 61:
 SELECT __spd_url, avg(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -1201,10 +1208,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=1 width=44)
+ Sort  (cost=185.67..185.68 rows=1 width=44)
    Output: __spd_url, (sum(i)), i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=1 width=44)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=1 width=44)
          Output: __spd_url, (sum(i)), i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1219,6 +1226,7 @@ SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT sum(`i`), `i` FROM `test`.`test1` GROUP BY 2
          Node: post_svr / Status: Alive
@@ -1235,7 +1243,7 @@ SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
            Agg push-down: yes
            TinyBrace query: SELECT sum(`i`), `i` FROM "test1" GROUP BY 2
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 62:
 SELECT __spd_url, sum(i) FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -1258,10 +1266,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=319.33..319.34 rows=1 width=100)
+ Sort  (cost=185.67..185.68 rows=1 width=100)
    Output: __spd_url, (avg(i)), __spd_url, i
    Sort Key: test1.i, test1.__spd_url
-   ->  Foreign Scan  (cost=219.06..319.32 rows=1 width=100)
+   ->  Foreign Scan  (cost=125.53..185.66 rows=1 width=100)
          Output: __spd_url, (avg(i)), __spd_url, i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1276,6 +1284,7 @@ SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(`i`), sum(`i`), `i` FROM `test`.`test1` GROUP BY 3
          Node: post_svr / Status: Alive
@@ -1292,7 +1301,7 @@ SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,
            Agg push-down: yes
            TinyBrace query: SELECT count(`i`), sum(`i`), `i` FROM "test1" GROUP BY 3
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 63:
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i,__spd_url;
@@ -1560,10 +1569,10 @@ EXPLAIN VERBOSE
 SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Sort  (cost=321.33..321.34 rows=0 width=12)
+ Sort  (cost=186.67..186.68 rows=0 width=12)
    Output: ((i / 2)), ((i / 4)), i
    Sort Key: ((test1.i / 2))
-   ->  Foreign Scan  (cost=219.06..321.32 rows=0 width=12)
+   ->  Foreign Scan  (cost=125.53..186.66 rows=0 width=12)
          Output: ((i / 2)), ((i / 4)), i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1578,6 +1587,7 @@ SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -1594,7 +1604,7 @@ SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
            Agg push-down: yes
            TinyBrace query: SELECT `i` FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 271:
 SELECT i/2, i/4 FROM test1 GROUP BY i ORDER BY 1;
@@ -1614,10 +1624,10 @@ EXPLAIN VERBOSE
 SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=320.33..320.34 rows=1 width=40)
+ Sort  (cost=186.17..186.18 rows=1 width=40)
    Output: ((i / 4)), (avg(i)), i
    Sort Key: ((test1.i / 4))
-   ->  Foreign Scan  (cost=219.06..320.32 rows=1 width=40)
+   ->  Foreign Scan  (cost=125.53..186.16 rows=1 width=40)
          Output: ((i / 4)), (avg(i)), i
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1632,6 +1642,7 @@ SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i`, count(`i`), sum(`i`) FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -1648,7 +1659,7 @@ SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
            Agg push-down: yes
            TinyBrace query: SELECT `i`, count(`i`), sum(`i`) FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 273:
 SELECT i/4, avg(i) FROM test1 GROUP BY i ORDER BY 1;
@@ -1668,10 +1679,10 @@ EXPLAIN VERBOSE
 SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Sort  (cost=320.33..320.34 rows=0 width=8)
+ Sort  (cost=186.17..186.18 rows=0 width=8)
    Output: i, ((i * i))
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=219.06..320.32 rows=0 width=8)
+   ->  Foreign Scan  (cost=125.53..186.16 rows=0 width=8)
          Output: i, ((i * i))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -1686,6 +1697,7 @@ SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (test.test1__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `i` FROM `test`.`test1` GROUP BY 1
          Node: post_svr / Status: Alive
@@ -1702,7 +1714,7 @@ SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;
            Agg push-down: yes
            TinyBrace query: SELECT `i` FROM "test1" GROUP BY 1
            TinyBrace plan: SCAN TABLE test1 (~1000000 rows)
-(34 rows)
+(35 rows)
 
 --Testcase 275:
 SELECT i, i*i FROM test1 GROUP BY i ORDER BY 1;

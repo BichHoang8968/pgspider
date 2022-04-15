@@ -1346,10 +1346,10 @@ EXPLAIN VERBOSE SELECT max(c5 + c6), max(c7), min(c8) FROM tbl01 WHERE __spd_url
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=306.40..306.40 rows=1 width=56)
    Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
-   ->  Sort  (cost=306.40..306.40 rows=1 width=56)
+   ->  Sort  (cost=178.70..178.71 rows=1 width=56)
          Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
          Sort Key: tbl01.c8 DESC
-         ->  Foreign Scan  (cost=201.00..306.39 rows=1 width=56)
+         ->  Foreign Scan  (cost=116.00..178.69 rows=1 width=56)
                Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
                Filter: NULL::boolean
                Node: file_svr / Status: Alive
@@ -1367,6 +1367,7 @@ EXPLAIN VERBOSE SELECT max(c5 + c6), max(c7), min(c8) FROM tbl01 WHERE __spd_url
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT max((`c5` + `c6`)), max(`c7`), min(`c8`), `c8` FROM `limit_orderby`.`tbl01` WHERE (NULL) AND ((`c8` <> 0)) GROUP BY 4
                Node: postgres_svr / Status: Alive
@@ -1381,7 +1382,7 @@ EXPLAIN VERBOSE SELECT max(c5 + c6), max(c7), min(c8) FROM tbl01 WHERE __spd_url
                  Agg push-down: yes
                  TinyBrace query: SELECT max((`c5` + `c6`)), max(`c7`), min(`c8`), `c8` FROM "tbl01" WHERE (NULL) AND ((`c8` <> 0)) GROUP BY 4
                  TinyBrace plan: SCAN TABLE tbl01 (~500000 rows)
-(37 rows)
+(38 rows)
 
 --Testcase 54:
 SELECT max(c5 + c6), max(c7), min(c8) FROM tbl01 WHERE __spd_url != NULL GROUP BY c8 HAVING c8 != 0 ORDER BY c8 DESC LIMIT 5;
@@ -1976,9 +1977,9 @@ SELECT c1 || c2, c7 || c3, c4-c6, c5*12 FROM tbl01 WHERE c3 != 'ABC' LIMIT 10 OF
 EXPLAIN VERBOSE SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3, c5, c6, c7, c8, c9, c10, c11 HAVING c3 <> 'AJEFO' LIMIT 5;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.84..476.26 rows=1 width=1594)
+ Limit  (cost=183.92..263.63 rows=1 width=1594)
    Output: (((c5 / '2'::double precision) + (c6)::double precision)), c7, ((((abs(c8))::double precision / c9) + (c10)::double precision)), c11, c3, c5, c6, c8, c9, c10
-   ->  Foreign Scan  (cost=336.84..476.26 rows=1 width=1594)
+   ->  Foreign Scan  (cost=183.92..263.63 rows=1 width=1594)
          Output: (((c5 / '2'::double precision) + (c6)::double precision)), c7, (((abs(c8))::double precision / c9) + (c10)::double precision), c11, c3, c5, c6, c8, c9, c10
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -1992,6 +1993,7 @@ EXPLAIN VERBOSE SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3
          Node: mysql_svr / Status: Alive
            Limit push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c5`, `c6`, `c7`, `c11`, `c3`, `c8`, `c9`, `c10` FROM `limit_orderby`.`tbl01` WHERE ((`c3` <> 'AJEFO')) GROUP BY 5, 1, 2, 3, 6, 7, 8, 4 LIMIT 5
          Node: postgres_svr / Status: Alive
@@ -2004,7 +2006,7 @@ EXPLAIN VERBOSE SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3
            Agg push-down: yes
            TinyBrace query: SELECT `c5`, `c6`, `c7`, `c11`, `c3`, `c8`, `c9`, `c10` FROM "tbl01" WHERE ((`c3` <> 'AJEFO')) GROUP BY 5, 1, 2, 3, 6, 7, 8, 4 LIMIT 5
            TinyBrace plan: SCAN TABLE tbl01 (~500000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 80:
 SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3, c5, c6, c7, c8, c9, c10, c11 HAVING c3 <> 'AJEFO' LIMIT 5;
@@ -2013,9 +2015,9 @@ psql:sql/limit/limit_orderby.sql:174: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 HAVING sum(c5) != c9 LIMIT 5;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=303.39..415.52 rows=1 width=1660)
+ Limit  (cost=167.19..233.26 rows=1 width=1660)
    Output: (lower(c1)), c3, c5, (upper((c7)::text)), c9, c11, c1, c7
-   ->  Foreign Scan  (cost=303.39..415.52 rows=1 width=1660)
+   ->  Foreign Scan  (cost=167.19..233.26 rows=1 width=1660)
          Output: lower(c1), c3, c5, upper((c7)::text), c9, c11, c1, c7
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2029,6 +2031,7 @@ EXPLAIN VERBOSE SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c3`, `c5`, `c9`, `c11`, `c1`, `c7`, sum(`c5`) FROM `limit_orderby`.`tbl01` GROUP BY 5, 1, 2, 6, 3, 4
          Node: postgres_svr / Status: Alive
@@ -2041,7 +2044,7 @@ EXPLAIN VERBOSE SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY
            Agg push-down: yes
            TinyBrace query: SELECT `c3`, `c5`, `c9`, `c11`, `c1`, `c7`, sum(`c5`) FROM "tbl01" GROUP BY 5, 1, 2, 6, 3, 4
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 82:
 SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 HAVING sum(c5) != c9 LIMIT 5;
@@ -2058,9 +2061,9 @@ SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7,
 EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING max(c4) > max(c8) LIMIT 10;
                                                                             QUERY PLAN                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=337.52..459.88 rows=1 width=1700)
+ Limit  (cost=184.26..255.44 rows=1 width=1700)
    Output: (upper((c1 || c2))), (lower(((c3)::text || (c7)::text))), ((((c4 / 100))::double precision - c5)), c1, c2, c3, c4, c5, c6, c7, c8
-   ->  Foreign Scan  (cost=337.52..459.88 rows=1 width=1700)
+   ->  Foreign Scan  (cost=184.26..255.44 rows=1 width=1700)
          Output: upper((c1 || c2)), lower(((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c1, c2, c3, c4, c5, c6, c7, c8
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2074,6 +2077,7 @@ EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GR
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c1`, `c2`, `c3`, `c6`, `c7`, `c8`, max(`c4`), max(`c8`) FROM `limit_orderby`.`tbl01` GROUP BY 3, 4, 5, 1, 2, 6, 7, 8
          Node: postgres_svr / Status: Alive
@@ -2086,7 +2090,7 @@ EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GR
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c1`, `c2`, `c3`, `c6`, `c7`, `c8`, max(`c4`), max(`c8`) FROM "tbl01" GROUP BY 3, 4, 5, 1, 2, 6, 7, 8
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 84:
 SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING max(c4) > max(c8) LIMIT 10;
@@ -2108,9 +2112,9 @@ SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GROUP BY c1, c2, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8 HAVING min(c4) < min(c8) LIMIT 10;
                                                                        QUERY PLAN                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=320.46..437.70 rows=1 width=1664)
+ Limit  (cost=175.73..244.35 rows=1 width=1664)
    Output: c1, c2, (((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c3, c4, c5, c7, c8
-   ->  Foreign Scan  (cost=320.46..437.70 rows=1 width=1664)
+   ->  Foreign Scan  (cost=175.73..244.35 rows=1 width=1664)
          Output: c1, c2, (((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c3, c4, c5, c7, c8
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2124,6 +2128,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c7`, `c8`, min(`c4`), min(`c8`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7
          Node: postgres_svr / Status: Alive
@@ -2136,7 +2141,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c7`, `c8`, min(`c4`), min(`c8`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 86:
 SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8 HAVING min(c4) < min(c8) LIMIT 10;
@@ -2146,9 +2151,9 @@ psql:sql/limit/limit_orderby.sql:186: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHERE c4/c5 > c4/c9 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING c3 != '$%' LIMIT 5;
                                                                                                     QUERY PLAN                                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=246.28..460.38 rows=1 width=1178)
+ Limit  (cost=138.64..255.69 rows=1 width=1178)
    Output: ((c1 || c2)), c3, c4, c5, (to_hex(c6)), c9, c10, c1, c2, c6
-   ->  Foreign Scan  (cost=246.28..460.38 rows=1 width=1178)
+   ->  Foreign Scan  (cost=138.64..255.69 rows=1 width=1178)
          Output: ((c1 || c2)), c3, c4, c5, to_hex(c6), c9, c10, c1, c2, c6
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2162,6 +2167,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHER
          Node: mysql_svr / Status: Alive
            Limit push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c9`, `c10`, `c6` FROM `limit_orderby`.`tbl01` WHERE (((`c4` / `c5`) > (`c4` / `c9`))) AND ((`c3` <> '$%')) GROUP BY 1, 2, 3, 4, 5, 8, 6, 7 LIMIT 5
          Node: postgres_svr / Status: Alive
@@ -2174,7 +2180,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHER
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c9`, `c10`, `c6` FROM "tbl01" WHERE (((`c4` / `c5`) > (`c4` / `c9`))) AND ((`c3` <> '$%')) GROUP BY 1, 2, 3, 4, 5, 8, 6, 7 LIMIT 5
            TinyBrace plan: SCAN TABLE tbl01 (~250000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 88:
 SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHERE c4/c5 > c4/c9 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING c3 != '$%' LIMIT 5;
@@ -2198,9 +2204,9 @@ HINT:  No function matches the given name and argument types. You might need to 
 EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING c4 != 0 LIMIT 15;
                                                                                                     QUERY PLAN                                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=246.28..468.75 rows=1 width=574)
+ Limit  (cost=138.64..259.88 rows=1 width=574)
    Output: ((((c4 / 2))::double precision + c5)), c6, c7, (((((c8 / 22))::double precision * c5) - c9)), c10, c11, c4, c5, c8, c9
-   ->  Foreign Scan  (cost=246.28..468.75 rows=1 width=574)
+   ->  Foreign Scan  (cost=138.64..259.88 rows=1 width=574)
          Output: ((((c4 / 2))::double precision + c5)), c6, c7, (((((c8 / 22))::double precision * c5) - c9)), c10, c11, c4, c5, c8, c9
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2214,6 +2220,7 @@ EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c
          Node: mysql_svr / Status: Alive
            Limit push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM `limit_orderby`.`tbl01` WHERE ((((`c4` DIV 100) + `c5`) > `c8`)) AND ((`c4` <> 0)) GROUP BY 1, 2, 3, 4, 5, 6, 7, 8 LIMIT 15
          Node: postgres_svr / Status: Alive
@@ -2226,7 +2233,7 @@ EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM "tbl01" WHERE ((((`c4` / 100) + `c5`) > `c8`)) AND ((`c4` <> 0)) GROUP BY 1, 2, 3, 4, 5, 6, 7, 8 LIMIT 15
            TinyBrace plan: SCAN TABLE tbl01 (~250000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 92:
 SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING c4 != 0 LIMIT 15;
@@ -2249,9 +2256,9 @@ SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c4/100+c5 > c8 GR
 EXPLAIN VERBOSE SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3 NOT IN ('/pgspider', '/postgres', '/svr')  GROUP BY c1, c3, c5, c7, c8, c9, c11 HAVING c8 BETWEEN -10000 AND 10000 LIMIT 15;
                                                                                                                      QUERY PLAN                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=201.59..350.94 rows=1 width=1644)
+ Limit  (cost=116.30..200.97 rows=1 width=1644)
    Output: (lower((c1 || (c3)::text))), c5, c7, c9, ((c11 + '@ 1 hour'::interval)), c1, c3, c8, c11
-   ->  Foreign Scan  (cost=201.59..350.94 rows=1 width=1644)
+   ->  Foreign Scan  (cost=116.30..200.97 rows=1 width=1644)
          Output: lower((c1 || (c3)::text)), c5, c7, c9, ((c11 + '@ 1 hour'::interval)), c1, c3, c8, c11
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2265,6 +2272,7 @@ EXPLAIN VERBOSE SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FRO
          Node: mysql_svr / Status: Alive
            Limit push-down: yes
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c5`, `c7`, `c9`, `c11`, `c1`, `c3`, `c8` FROM `limit_orderby`.`tbl01` WHERE (`c3`  NOT IN ('/pgspider', '/postgres', '/svr')) AND ((`c8` >= (-10000))) AND ((`c8` <= 10000)) GROUP BY 5, 6, 1, 2, 7, 3, 4 LIMIT 15
          Node: postgres_svr / Status: Alive
@@ -2277,7 +2285,7 @@ EXPLAIN VERBOSE SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FRO
            Agg push-down: yes
            TinyBrace query: SELECT `c5`, `c7`, `c9`, `c11`, `c1`, `c3`, `c8` FROM "tbl01" WHERE (`c3` NOT IN ('/pgspider', '/postgres', '/svr')) AND ((`c8` >= (-10000))) AND ((`c8` <= 10000)) GROUP BY 5, 6, 1, 2, 7, 3, 4 LIMIT 15
            TinyBrace plan: SCAN TABLE tbl01 (~55555 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 94:
 SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3 NOT IN ('/pgspider', '/postgres', '/svr')  GROUP BY c1, c3, c5, c7, c8, c9, c11 HAVING c8 BETWEEN -10000 AND 10000 LIMIT 15;
@@ -2477,12 +2485,12 @@ SELECT upper(c1 || '&' || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 W
 EXPLAIN VERBOSE SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
                                           QUERY PLAN                                           
 -----------------------------------------------------------------------------------------------
- Limit  (cost=307.39..307.40 rows=1 width=8)
+ Limit  (cost=179.70..179.71 rows=1 width=8)
    Output: (count(*))
-   ->  Sort  (cost=307.39..307.40 rows=1 width=8)
+   ->  Sort  (cost=179.70..179.71 rows=1 width=8)
          Output: (count(*))
          Sort Key: (count(*))
-         ->  Foreign Scan  (cost=202.00..307.38 rows=1 width=8)
+         ->  Foreign Scan  (cost=117.00..179.69 rows=1 width=8)
                Output: (count(*))
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -2499,6 +2507,7 @@ EXPLAIN VERBOSE SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT count(*) FROM `limit_orderby`.`tbl01` WHERE ((`c8` > 0))
                Node: postgres_svr / Status: Alive
@@ -2513,7 +2522,7 @@ EXPLAIN VERBOSE SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
                  Agg push-down: yes
                  TinyBrace query: SELECT count(*) FROM "tbl01" WHERE ((`c8` > 0))
                  TinyBrace plan: SCAN TABLE tbl01 (~333333 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 104:
 SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
@@ -2526,12 +2535,12 @@ SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
 EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE c4 <> 0 ORDER BY 1 ASC, 2 DESC, 3 LIMIT 1;
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=306.39..306.40 rows=1 width=76)
+ Limit  (cost=178.70..178.71 rows=1 width=76)
    Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
-   ->  Sort  (cost=306.39..306.40 rows=1 width=76)
+   ->  Sort  (cost=178.70..178.71 rows=1 width=76)
          Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
          Sort Key: (min((tbl01.c1 || tbl01.c2))), (max(tbl01.c3)) DESC, (min(tbl01.c4))
-         ->  Foreign Scan  (cost=201.00..306.38 rows=1 width=76)
+         ->  Foreign Scan  (cost=116.00..178.69 rows=1 width=76)
                Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -2548,6 +2557,7 @@ EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT min(CONCAT(`c1` , `c2`)), max(`c3`), min(`c4`), sum(`c5`) FROM `limit_orderby`.`tbl01` WHERE ((`c4` <> 0))
                Node: postgres_svr / Status: Alive
@@ -2562,7 +2572,7 @@ EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE
                  Agg push-down: yes
                  TinyBrace query: SELECT min((`c1` || `c2`)), max(`c3`), min(`c4`), sum(`c5`) FROM "tbl01" WHERE ((`c4` <> 0))
                  TinyBrace plan: SCAN TABLE tbl01 (~500000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 106:
 SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE c4 <> 0 ORDER BY 1 ASC, 2 DESC, 3 LIMIT 1;
@@ -2624,12 +2634,12 @@ SELECT min(c5/3 + c6), max(c7), min(c8), max(c9/2+c10), max(c11) FROM tbl01 WHER
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=306.39..306.40 rows=1 width=56)
+ Limit  (cost=178.70..178.71 rows=1 width=56)
    Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
-   ->  Sort  (cost=306.39..306.40 rows=1 width=56)
+   ->  Sort  (cost=178.70..178.71 rows=1 width=56)
          Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
          Sort Key: (min((tbl01.c7)::text)), (max(tbl01.c8))
-         ->  Foreign Scan  (cost=201.00..306.38 rows=1 width=56)
+         ->  Foreign Scan  (cost=116.00..178.69 rows=1 width=56)
                Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -2646,6 +2656,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`) FROM `limit_orderby`.`tbl01` WHERE ((`c5` <> `c9`))
                Node: postgres_svr / Status: Alive
@@ -2660,7 +2671,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE
                  Agg push-down: yes
                  TinyBrace query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`) FROM "tbl01" WHERE ((`c5` <> `c9`))
                  TinyBrace plan: SCAN TABLE tbl01 (~500000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 110:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
@@ -2673,12 +2684,12 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER 
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WHERE c8 BETWEEN -10000 AND 10000 ORDER BY 1 LIMIT 15;
                                                                                           QUERY PLAN                                                                                           
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=323.46..323.46 rows=1 width=56)
+ Limit  (cost=187.23..187.24 rows=1 width=56)
    Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - (c5 * '2'::double precision))))
-   ->  Sort  (cost=323.46..323.46 rows=1 width=56)
+   ->  Sort  (cost=187.23..187.24 rows=1 width=56)
          Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - (c5 * '2'::double precision))))
          Sort Key: (sum(tbl01.c5))
-         ->  Foreign Scan  (cost=201.00..323.45 rows=1 width=56)
+         ->  Foreign Scan  (cost=116.00..187.22 rows=1 width=56)
                Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - (c5 * '2'::double precision))))
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -2695,6 +2706,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WH
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) - (`c5` * 2))) FROM `limit_orderby`.`tbl01` WHERE ((`c8` >= (-10000))) AND ((`c8` <= 10000))
                Node: postgres_svr / Status: Alive
@@ -2709,7 +2721,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WH
                  Agg push-down: yes
                  TinyBrace query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) - (`c5` * 2))) FROM "tbl01" WHERE ((`c8` >= (-10000))) AND ((`c8` <= 10000))
                  TinyBrace plan: SCAN TABLE tbl01 (~111111 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 112:
 SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WHERE c8 BETWEEN -10000 AND 10000 ORDER BY 1 LIMIT 15;
@@ -2723,9 +2735,9 @@ SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WHERE c8 BETWEEN -
 EXPLAIN VERBOSE SELECT c1 || c2, min(c3), c4/c5+ c6, c7, ceil(c8) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' LIMIT 10 OFFSET 1;
                                                                             QUERY PLAN                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=458.18..578.83 rows=1 width=1708)
+ Limit  (cost=254.59..324.92 rows=1 width=1708)
    Output: ((c1 || c2)), (min(c3)), ((((c4)::double precision / c5) + (c6)::double precision)), c7, (ceil((c8)::double precision)), c1, c2, c3, c4, c5, c6, c8
-   ->  Foreign Scan  (cost=337.52..458.18 rows=1 width=1708)
+   ->  Foreign Scan  (cost=184.26..254.59 rows=1 width=1708)
          Output: ((c1 || c2)), (min(c3)), ((((c4)::double precision / c5) + (c6)::double precision)), c7, ceil((c8)::double precision), c1, c2, c3, c4, c5, c6, c8
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2739,6 +2751,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, min(c3), c4/c5+ c6, c7, ceil(c8) FROM tbl01 GRO
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, min(`c3`), `c4`, `c5`, `c6`, `c7`, `c3`, `c8` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 8, 4, 5, 6, 7, 9
          Node: postgres_svr / Status: Alive
@@ -2751,7 +2764,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, min(c3), c4/c5+ c6, c7, ceil(c8) FROM tbl01 GRO
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, min(`c3`), `c4`, `c5`, `c6`, `c7`, `c3`, `c8` FROM "tbl01" GROUP BY 1, 2, 8, 4, 5, 6, 7, 9
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 114:
 SELECT c1 || c2, min(c3), c4/c5+ c6, c7, ceil(c8) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' LIMIT 10 OFFSET 1;
@@ -2760,9 +2773,9 @@ psql:sql/limit/limit_orderby.sql:246: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 LIMIT 5 OFFSET 1;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=429.16..554.93 rows=1 width=78)
+ Limit  (cost=240.08..312.96 rows=1 width=78)
    Output: ((((c4)::double precision - c5) + ((((c8 / 2))::double precision * c9) / '23'::double precision))), (((c11)::text || 'time1'::text)), c10, c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=303.39..429.16 rows=1 width=78)
+   ->  Foreign Scan  (cost=167.19..240.08 rows=1 width=78)
          Output: ((((c4)::double precision - c5) + ((((c8 / 2))::double precision * c9) / '23'::double precision))), (((c11)::text || 'time1'::text)), c10, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2776,6 +2789,7 @@ EXPLAIN VERBOSE SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP 
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, max(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
          Node: postgres_svr / Status: Alive
@@ -2788,7 +2802,7 @@ EXPLAIN VERBOSE SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP 
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, max(`c4`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 116:
 SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 LIMIT 5 OFFSET 1;
@@ -2805,9 +2819,9 @@ SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP BY c4, c5, c8, c
 EXPLAIN VERBOSE SELECT c11 + '1 hour'::interval, c1, c2, c3, c4/(c5+2), c8/(c9-12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) LIMIT 5 OFFSET NULL;
                                                                                                QUERY PLAN                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=337.52..458.18 rows=1 width=1148)
+ Limit  (cost=184.26..254.59 rows=1 width=1148)
    Output: ((c11 + '@ 1 hour'::interval)), c1, c2, c3, (((c4)::double precision / (c5 + '2'::double precision))), (((c8)::double precision / (c9 - '12'::double precision))), c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=337.52..458.18 rows=1 width=1148)
+   ->  Foreign Scan  (cost=184.26..254.59 rows=1 width=1148)
          Output: ((c11 + '@ 1 hour'::interval)), c1, c2, c3, (((c4)::double precision / (c5 + '2'::double precision))), (((c8)::double precision / (c9 - '12'::double precision))), c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -2821,6 +2835,7 @@ EXPLAIN VERBOSE SELECT c11 + '1 hour'::interval, c1, c2, c3, c4/(c5+2), c8/(c9-1
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c11`, `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, sum(`c5`), min(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 2, 3, 4, 5, 6, 7, 8, 1
          Node: postgres_svr / Status: Alive
@@ -2833,7 +2848,7 @@ EXPLAIN VERBOSE SELECT c11 + '1 hour'::interval, c1, c2, c3, c4/(c5+2), c8/(c9-1
            Agg push-down: yes
            TinyBrace query: SELECT `c11`, `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, sum(`c5`), min(`c4`) FROM "tbl01" GROUP BY 2, 3, 4, 5, 6, 7, 8, 1
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 118:
 SELECT c11 + '1 hour'::interval, c1, c2, c3, c4/(c5+2), c8/(c9-12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) LIMIT 5 OFFSET NULL;
@@ -3059,9 +3074,9 @@ SELECT upper(c1 || c2 || 'base64'), c5, round(c8/23+c9), c10 FROM tbl01 WHERE NO
 EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING sum(c4/c5) > c4 LIMIT 5;
                                                                                       QUERY PLAN                                                                                      
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=337.52..465.00 rows=1 width=1186)
+ Limit  (cost=184.26..258.00 rows=1 width=1186)
    Output: ((c1 || c2)), (upper((c3)::text)), (round((((((c4)::double precision - c5) + (c6)::double precision) - c9) - (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
-   ->  Foreign Scan  (cost=337.52..465.00 rows=1 width=1186)
+   ->  Foreign Scan  (cost=184.26..258.00 rows=1 width=1186)
          Output: ((c1 || c2)), upper((c3)::text), round((((((c4)::double precision - c5) + (c6)::double precision) - c9) - (c10)::double precision)), c1, c2, c3, c4, c5, c6, c9, c10
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -3075,6 +3090,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GR
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10`, sum((`c4` / `c5`)) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
          Node: postgres_svr / Status: Alive
@@ -3087,7 +3103,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GR
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10`, sum((`c4` / `c5`)) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 128:
 SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING sum(c4/c5) > c4 LIMIT 5;
@@ -3097,9 +3113,9 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c8, c9 HAVING count(c3) < c5 LIMIT 5;
                                                                        QUERY PLAN                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=337.52..454.76 rows=1 width=1136)
+ Limit  (cost=184.26..252.88 rows=1 width=1136)
    Output: c1, c2, c3, (((c4)::double precision - c5)), (((c8)::double precision / (c9 + '12'::double precision))), c4, c5, c6, c8, c9
-   ->  Foreign Scan  (cost=337.52..454.76 rows=1 width=1136)
+   ->  Foreign Scan  (cost=184.26..252.88 rows=1 width=1136)
          Output: c1, c2, c3, (((c4)::double precision - c5)), (((c8)::double precision / (c9 + '12'::double precision))), c4, c5, c6, c8, c9
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -3113,6 +3129,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2,
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, `c6`, count(`c3`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 8, 6, 7
          Node: postgres_svr / Status: Alive
@@ -3125,7 +3142,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2,
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, `c6`, count(`c3`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 8, 6, 7
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 130:
 SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c8, c9 HAVING count(c3) < c5 LIMIT 5;
@@ -3142,9 +3159,9 @@ SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6,
 EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING max(c4) != 0 LIMIT 15;
                                                                        QUERY PLAN                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=337.52..456.47 rows=1 width=574)
+ Limit  (cost=184.26..253.74 rows=1 width=574)
    Output: ((((c4 / 2))::double precision + c5)), c6, c7, ((((c8)::double precision - c5) - c9)), c10, c11, c4, c5, c8, c9
-   ->  Foreign Scan  (cost=337.52..456.47 rows=1 width=574)
+   ->  Foreign Scan  (cost=184.26..253.74 rows=1 width=574)
          Output: ((((c4 / 2))::double precision + c5)), c6, c7, ((((c8)::double precision - c5) - c9)), c10, c11, c4, c5, c8, c9
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -3158,6 +3175,7 @@ EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11`, max(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
          Node: postgres_svr / Status: Alive
@@ -3170,7 +3188,7 @@ EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11`, max(`c4`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 132:
 SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING max(c4) != 0 LIMIT 15;
@@ -3197,9 +3215,9 @@ SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c
 EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c9 HAVING NOT min(c4) > (c5 + c9) LIMIT 15;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=303.39..418.93 rows=1 width=1152)
+ Limit  (cost=167.19..234.97 rows=1 width=1152)
    Output: (length(((c1 || c2) || (c3)::text))), 1, 2, 'abc'::text, c1, c2, c3, c4, c5, c9
-   ->  Foreign Scan  (cost=303.39..418.93 rows=1 width=1152)
+   ->  Foreign Scan  (cost=167.19..234.97 rows=1 width=1152)
          Output: length(((c1 || c2) || (c3)::text)), 1, 2, 'abc'::text, c1, c2, c3, c4, c5, c9
          Node: file_svr / Status: Alive
            Limit push-down: no
@@ -3213,6 +3231,7 @@ EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c
          Node: mysql_svr / Status: Alive
            Limit push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c9`, min(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6
          Node: postgres_svr / Status: Alive
@@ -3225,7 +3244,7 @@ EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c9`, min(`c4`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+(29 rows)
 
 --Testcase 134:
 SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c9 HAVING NOT min(c4) > (c5 + c9) LIMIT 15;
@@ -3253,12 +3272,12 @@ SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3, c4, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 ORDER BY c1, c2, c3 LIMIT 15;
                                                                                                 QUERY PLAN                                                                                                 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=4199.91..4199.95 rows=15 width=1132)
+ Limit  (cost=3869.66..3869.69 rows=15 width=1132)
    Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3
-   ->  Sort  (cost=4199.91..4225.65 rows=10295 width=1132)
+   ->  Sort  (cost=3869.66..3886.86 rows=6882 width=1132)
          Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3
          Sort Key: tbl01.c1, tbl01.c2, tbl01.c3
-         ->  Foreign Scan on public.tbl01  (cost=210.00..3947.33 rows=10295 width=1132)
+         ->  Foreign Scan on public.tbl01  (cost=110.00..3700.81 rows=6882 width=1132)
                Output: c1, c2, (((c3)::text || '123'::text) || (c7)::text), c4, (c8 / 1000), c3
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -3342,12 +3361,12 @@ psql:sql/limit/limit_orderby.sql:297: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 3 LIMIT 5;
                                                                                                                            QUERY PLAN                                                                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=4144.06..4144.08 rows=5 width=1072)
+ Limit  (cost=3832.32..3832.34 rows=5 width=1072)
    Output: ((c1 || c2)), c3, (((c4)::double precision - c5)), (((c8)::double precision - c9))
-   ->  Sort  (cost=4144.06..4169.80 rows=10295 width=1072)
+   ->  Sort  (cost=3832.32..3849.53 rows=6882 width=1072)
          Output: ((c1 || c2)), c3, (((c4)::double precision - c5)), (((c8)::double precision - c9))
          Sort Key: ((tbl01.c1 || tbl01.c2)), tbl01.c3, (((tbl01.c4)::double precision - tbl01.c5))
-         ->  Foreign Scan on public.tbl01  (cost=210.00..3973.07 rows=10295 width=1072)
+         ->  Foreign Scan on public.tbl01  (cost=110.00..3718.01 rows=6882 width=1072)
                Output: (c1 || c2), c3, ((c4)::double precision - c5), ((c8)::double precision - c9)
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -3389,12 +3408,12 @@ SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 3 LIMIT 5;
 EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, abs(c8-c5-c9), c10, c11 FROM tbl01 ORDER BY c4/(c5 + c6) DESC, c7 LIMIT 15;
                                                                                                             QUERY PLAN                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=7877.86..7877.90 rows=15 width=542)
+ Limit  (cost=7513.47..7513.51 rows=15 width=542)
    Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, (abs((((c8)::double precision - c5) - c9))), c10, c11
-   ->  Sort  (cost=7877.86..7912.13 rows=13708 width=542)
+   ->  Sort  (cost=7513.47..7539.21 rows=10295 width=542)
          Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, (abs((((c8)::double precision - c5) - c9))), c10, c11
          Sort Key: (((tbl01.c4)::double precision / (tbl01.c5 + (tbl01.c6)::double precision))) DESC, tbl01.c7
-         ->  Foreign Scan on public.tbl01  (cost=220.00..7541.54 rows=13708 width=542)
+         ->  Foreign Scan on public.tbl01  (cost=120.00..7260.89 rows=10295 width=542)
                Output: ((c4)::double precision / (c5 + (c6)::double precision)), c7, abs((((c8)::double precision - c5) - c9)), c10, c11
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -3493,12 +3512,12 @@ SELECT c1 || c2, c3 || c7, round(c4/(c8-c5)+c9), c11 FROM tbl01 ORDER BY c1, c2,
 EXPLAIN VERBOSE SELECT c1, c2 || c3, 1, 2, 'abc' FROM tbl01 ORDER BY c1, c2, c3 LIMIT 5;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=4066.85..4066.86 rows=5 width=1160)
+ Limit  (cost=3780.71..3780.72 rows=5 width=1160)
    Output: c1, ((c2 || (c3)::text)), 1, 2, 'abc'::text, c2, c3
-   ->  Sort  (cost=4066.85..4092.59 rows=10295 width=1160)
+   ->  Sort  (cost=3780.71..3797.91 rows=6882 width=1160)
          Output: c1, ((c2 || (c3)::text)), 1, 2, 'abc'::text, c2, c3
          Sort Key: tbl01.c1, tbl01.c2, tbl01.c3
-         ->  Foreign Scan on public.tbl01  (cost=210.00..3895.85 rows=10295 width=1160)
+         ->  Foreign Scan on public.tbl01  (cost=110.00..3666.40 rows=6882 width=1160)
                Output: c1, (c2 || (c3)::text), 1, 2, 'abc'::text, c2, c3
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4077,12 +4096,12 @@ SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7 HA
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1, c2, c3, c4, c7, c8 ORDER BY 1 ASC, 2 DESC LIMIT 1 OFFSET 1;
                                                            QUERY PLAN                                                           
 --------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=418.94..418.94 rows=1 width=1688)
+ Limit  (cost=234.97..234.98 rows=1 width=1688)
    Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
-   ->  Sort  (cost=418.94..418.94 rows=0 width=1688)
+   ->  Sort  (cost=234.97..234.98 rows=0 width=1688)
          Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
          Sort Key: tbl01.c1, tbl01.c2 DESC
-         ->  Foreign Scan  (cost=303.39..418.93 rows=0 width=1688)
+         ->  Foreign Scan  (cost=167.19..234.97 rows=0 width=1688)
                Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4099,6 +4118,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP B
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c7` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
                Node: postgres_svr / Status: Alive
@@ -4113,7 +4133,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP B
                  Agg push-down: yes
                  TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c7` FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
                  TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 170:
 SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1, c2, c3, c4, c7, c8 ORDER BY 1 ASC, 2 DESC LIMIT 1 OFFSET 1;
@@ -4122,12 +4142,12 @@ psql:sql/limit/limit_orderby.sql:364: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c5, c8, c9, c10, c11 ORDER BY 1 DESC LIMIT 5 OFFSET 1;
                                                                               QUERY PLAN                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=425.76..425.76 rows=1 width=118)
+ Limit  (cost=238.38..238.39 rows=1 width=118)
    Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
-   ->  Sort  (cost=425.76..425.76 rows=0 width=118)
+   ->  Sort  (cost=238.38..238.39 rows=0 width=118)
          Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
          Sort Key: (((tbl01.c4)::double precision - tbl01.c5)) DESC
-         ->  Foreign Scan  (cost=303.39..425.75 rows=0 width=118)
+         ->  Foreign Scan  (cost=167.19..238.38 rows=0 width=118)
                Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4144,6 +4164,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY 
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
                Node: postgres_svr / Status: Alive
@@ -4158,7 +4179,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY 
                  Agg push-down: yes
                  TinyBrace query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10` FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
                  TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 172:
 SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c5, c8, c9, c10, c11 ORDER BY 1 DESC LIMIT 5 OFFSET 1;
@@ -4175,12 +4196,12 @@ SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c
 EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __spd_url, c4, c5, c6, c7, c8, c9, c10, c11 ORDER BY 1 ASC LIMIT 5 OFFSET 2;
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=458.19..458.19 rows=1 width=606)
+ Limit  (cost=254.60..254.60 rows=1 width=606)
    Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
-   ->  Sort  (cost=458.19..458.19 rows=0 width=606)
+   ->  Sort  (cost=254.60..254.60 rows=0 width=606)
          Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
          Sort Key: (((tbl01.c4)::double precision / (tbl01.c5 + (tbl01.c6)::double precision)))
-         ->  Foreign Scan  (cost=337.52..458.18 rows=0 width=606)
+         ->  Foreign Scan  (cost=184.26..254.59 rows=0 width=606)
                Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4197,6 +4218,7 @@ EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
                Node: postgres_svr / Status: Alive
@@ -4211,7 +4233,7 @@ EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __
                  Agg push-down: yes
                  TinyBrace query: SELECT `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
                  TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 174:
 SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __spd_url, c4, c5, c6, c7, c8, c9, c10, c11 ORDER BY 1 ASC LIMIT 5 OFFSET 2;
@@ -4220,12 +4242,12 @@ psql:sql/limit/limit_orderby.sql:372: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, __spd_url, c9, c10 ORDER BY 1 LIMIT 5 OFFSET 3;
                                                                     QUERY PLAN                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=446.25..446.25 rows=1 width=1146)
+ Limit  (cost=248.63..248.63 rows=1 width=1146)
    Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
-   ->  Sort  (cost=446.25..446.25 rows=0 width=1146)
+   ->  Sort  (cost=248.63..248.63 rows=0 width=1146)
          Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=337.52..446.24 rows=0 width=1146)
+         ->  Foreign Scan  (cost=184.26..248.62 rows=0 width=1146)
                Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4242,6 +4264,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
                Node: postgres_svr / Status: Alive
@@ -4256,7 +4279,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c
                  Agg push-down: yes
                  TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
                  TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 176:
 SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, __spd_url, c9, c10 ORDER BY 1 LIMIT 5 OFFSET 3;
@@ -4273,12 +4296,12 @@ SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_url, c4, c5, c7, c8, c9 ORDER BY 1 LIMIT 5 OFFSET 4;
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=458.19..458.19 rows=1 width=1712)
+ Limit  (cost=254.60..254.60 rows=1 width=1712)
    Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
-   ->  Sort  (cost=458.19..458.19 rows=0 width=1712)
+   ->  Sort  (cost=254.60..254.60 rows=0 width=1712)
          Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=337.52..458.18 rows=0 width=1712)
+         ->  Foreign Scan  (cost=184.26..254.59 rows=0 width=1712)
                Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4295,6 +4318,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, 
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, `c7` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 8, 6, 7
                Node: postgres_svr / Status: Alive
@@ -4309,7 +4333,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, 
                  Agg push-down: yes
                  TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, `c7` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 8, 6, 7
                  TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 178:
 SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_url, c4, c5, c7, c8, c9 ORDER BY 1 LIMIT 5 OFFSET 4;
@@ -4318,12 +4342,12 @@ psql:sql/limit/limit_orderby.sql:380: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url ORDER BY 1 LIMIT 10 OFFSET 5;
                                                                                                                QUERY PLAN                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=491.41..491.42 rows=1 width=1678)
+ Limit  (cost=271.21..271.22 rows=1 width=1678)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
-   ->  Sort  (cost=491.41..491.42 rows=0 width=1678)
+   ->  Sort  (cost=271.21..271.22 rows=0 width=1678)
          Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=263.59..491.40 rows=0 width=1678)
+         ->  Foreign Scan  (cost=147.30..271.20 rows=0 width=1678)
                Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
                Node: file_svr / Status: Alive
                  Limit push-down: no
@@ -4340,6 +4364,7 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3,
                  Limit push-down: no
                  Sort push-down: no
                  Agg push-down: yes
+                 Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
                  Local server startup cost: 10
                  Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM `limit_orderby`.`tbl01` WHERE ((((`c4` DIV 2) + `c5`) > ((`c4` DIV 2) - `c8`))) GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
                Node: postgres_svr / Status: Alive
@@ -4354,7 +4379,7 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3,
                  Agg push-down: yes
                  TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM "tbl01" WHERE ((((`c4` / 2) + `c5`) > ((`c4` / 2) - `c8`))) GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
                  TinyBrace plan: SCAN TABLE tbl01 (~500000 rows)
-(36 rows)
+(37 rows)
 
 --Testcase 180:
 SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url ORDER BY 1 LIMIT 10 OFFSET 5;
@@ -5559,12 +5584,12 @@ SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url;
 --ORDER BY 3
 --Testcase 223:
 EXPLAIN VERBOSE SELECT count(*) FROM tbl01 ORDER BY 1;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
- Sort  (cost=290.33..290.33 rows=1 width=8)
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Sort  (cost=171.17..171.17 rows=1 width=8)
    Output: (count(*))
    Sort Key: (count(*))
-   ->  Foreign Scan  (cost=202.00..290.32 rows=1 width=8)
+   ->  Foreign Scan  (cost=117.00..171.16 rows=1 width=8)
          Output: (count(*))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -5578,6 +5603,7 @@ EXPLAIN VERBOSE SELECT count(*) FROM tbl01 ORDER BY 1;
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(*) FROM `limit_orderby`.`tbl01`
          Node: postgres_svr / Status: Alive
@@ -5590,7 +5616,7 @@ EXPLAIN VERBOSE SELECT count(*) FROM tbl01 ORDER BY 1;
            Agg push-down: yes
            TinyBrace query: SELECT count(*) FROM "tbl01"
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 224:
 SELECT count(*) FROM tbl01 ORDER BY 1;
@@ -5603,10 +5629,10 @@ SELECT count(*) FROM tbl01 ORDER BY 1;
 EXPLAIN VERBOSE SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORDER BY 1, 2 DESC;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=1 width=52)
+ Sort  (cost=170.17..170.17 rows=1 width=52)
    Output: (count((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
    Sort Key: (count((tbl01.c1 || tbl01.c2))), (max(tbl01.c3)) DESC
-   ->  Foreign Scan  (cost=201.00..289.32 rows=1 width=52)
+   ->  Foreign Scan  (cost=116.00..170.16 rows=1 width=52)
          Output: (count((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -5620,6 +5646,7 @@ EXPLAIN VERBOSE SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORD
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(CONCAT(`c1` , `c2`)), max(`c3`), min(`c4`), sum(`c5`) FROM `limit_orderby`.`tbl01`
          Node: postgres_svr / Status: Alive
@@ -5632,7 +5659,7 @@ EXPLAIN VERBOSE SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORD
            Agg push-down: yes
            TinyBrace query: SELECT count((`c1` || `c2`)), max(`c3`), min(`c4`), sum(`c5`) FROM "tbl01"
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 226:
 SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORDER BY 1, 2 DESC;
@@ -5645,10 +5672,10 @@ SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORDER BY 1, 2 DESC;
 EXPLAIN VERBOSE SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl01 ORDER BY 1 ASC, 2 DESC, 3;
                                                                                    QUERY PLAN                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=1 width=56)
+ Sort  (cost=170.17..170.17 rows=1 width=56)
    Output: (count(((c5 / '2'::double precision) + (c6)::double precision))), (max((c7)::text)), (min(c8)), (sum(((c9 / '2'::double precision) + (c10)::double precision)))
    Sort Key: (count(((tbl01.c5 / '2'::double precision) + (tbl01.c6)::double precision))), (max((tbl01.c7)::text)) DESC, (min(tbl01.c8))
-   ->  Foreign Scan  (cost=201.00..289.32 rows=1 width=56)
+   ->  Foreign Scan  (cost=116.00..170.16 rows=1 width=56)
          Output: (count(((c5 / '2'::double precision) + (c6)::double precision))), (max((c7)::text)), (min(c8)), (sum(((c9 / '2'::double precision) + (c10)::double precision)))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -5662,6 +5689,7 @@ EXPLAIN VERBOSE SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl0
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(((`c5` / 2) + `c6`)), max(`c7`), min(`c8`), sum(((`c9` / 2) + `c10`)) FROM `limit_orderby`.`tbl01`
          Node: postgres_svr / Status: Alive
@@ -5674,7 +5702,7 @@ EXPLAIN VERBOSE SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl0
            Agg push-down: yes
            TinyBrace query: SELECT count(((`c5` / 2) + `c6`)), max(`c7`), min(`c8`), sum(((`c9` / 2) + `c10`)) FROM "tbl01"
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 228:
 SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl01 ORDER BY 1 ASC, 2 DESC, 3;
@@ -5687,10 +5715,10 @@ SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl01 ORDER BY 1 ASC
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
                                                      QUERY PLAN                                                     
 --------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=1 width=56)
+ Sort  (cost=170.17..170.17 rows=1 width=56)
    Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
    Sort Key: (min((tbl01.c7)::text)) DESC, (max(tbl01.c8)), (sum(((tbl01.c8)::double precision - tbl01.c9)))
-   ->  Foreign Scan  (cost=201.00..289.32 rows=1 width=56)
+   ->  Foreign Scan  (cost=116.00..170.16 rows=1 width=56)
          Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -5704,6 +5732,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`) FROM `limit_orderby`.`tbl01`
          Node: postgres_svr / Status: Alive
@@ -5716,7 +5745,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER
            Agg push-down: yes
            TinyBrace query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`) FROM "tbl01"
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 230:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
@@ -5729,10 +5758,10 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 AS
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2+c5) FROM tbl01 ORDER BY 1 ASC, 2, 3;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=289.33..289.33 rows=1 width=56)
+ Sort  (cost=170.17..170.17 rows=1 width=56)
    Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) + c5)))
    Sort Key: (sum(tbl01.c5)), (max((tbl01.c7)::text)), (min(tbl01.c8))
-   ->  Foreign Scan  (cost=201.00..289.32 rows=1 width=56)
+   ->  Foreign Scan  (cost=116.00..170.16 rows=1 width=56)
          Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) + c5)))
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -5746,6 +5775,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2+c5) FROM tbl01 ORDE
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) + `c5`)) FROM `limit_orderby`.`tbl01`
          Node: postgres_svr / Status: Alive
@@ -6069,10 +6099,10 @@ SELECT string_agg(c3, c7) FROM tbl01 ORDER BY 1 DESC;
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY c1, c2, c3, c4, c7, c8 HAVING count(c3) > 0 ORDER BY c1, c2, c3, c4, c7, c8;
                                                               QUERY PLAN                                                               
 ---------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=418.94..418.94 rows=1 width=1656)
+ Sort  (cost=234.97..234.98 rows=1 width=1656)
    Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3, c7, c8
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c7, tbl01.c8
-   ->  Foreign Scan  (cost=303.39..418.93 rows=1 width=1656)
+   ->  Foreign Scan  (cost=167.19..234.97 rows=1 width=1656)
          Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3, c7, c8
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6086,6 +6116,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP B
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c7`, count(`c3`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
          Node: postgres_svr / Status: Alive
@@ -6098,7 +6129,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP B
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c7`, count(`c3`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 246:
 SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY c1, c2, c3, c4, c7, c8 HAVING count(c3) > 0 ORDER BY c1, c2, c3, c4, c7, c8;
@@ -6107,10 +6138,10 @@ psql:sql/limit/limit_orderby.sql:526: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING sum(c5/c4) != 0 ORDER BY c4, c5, c8, c9, c10, c11;
                                                                                QUERY PLAN                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=425.76..425.76 rows=1 width=86)
+ Sort  (cost=238.38..238.39 rows=1 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / (c9 - '23'::double precision))), (((c11)::text || 'time3'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=303.39..425.75 rows=1 width=86)
+   ->  Foreign Scan  (cost=167.19..238.38 rows=1 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / (c9 - '23'::double precision))), (((c11)::text || 'time3'::text)), c10, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6124,6 +6155,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP B
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, sum((`c5` / `c4`)) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
          Node: postgres_svr / Status: Alive
@@ -6136,7 +6168,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP B
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, sum((`c5` / `c4`)) FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 248:
 SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING sum(c5/c4) != 0 ORDER BY c4, c5, c8, c9, c10, c11;
@@ -6149,10 +6181,10 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9 HAVING max(c4/c5) > 10 ORDER BY c1, c2, c3, c4, c5, c8, c9;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=442.82..442.83 rows=1 width=1164)
+ Sort  (cost=246.92..246.92 rows=1 width=1164)
    Output: c1, (lower((c2 || (c3)::text))), (((c4)::double precision - c5)), (round(((c8)::double precision / c9))), c2, c3, c4, c5, c8, c9
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9
-   ->  Foreign Scan  (cost=320.46..442.81 rows=1 width=1164)
+   ->  Foreign Scan  (cost=175.73..246.91 rows=1 width=1164)
          Output: c1, lower((c2 || (c3)::text)), (((c4)::double precision - c5)), round(((c8)::double precision / c9)), c2, c3, c4, c5, c8, c9
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6166,6 +6198,7 @@ EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c4`, `c5`, `c2`, `c3`, `c8`, `c9`, max((`c4` / `c5`)) FROM `limit_orderby`.`tbl01` GROUP BY 1, 4, 5, 2, 3, 6, 7
          Node: postgres_svr / Status: Alive
@@ -6178,7 +6211,7 @@ EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c4`, `c5`, `c2`, `c3`, `c8`, `c9`, max((`c4` / `c5`)) FROM "tbl01" GROUP BY 1, 4, 5, 2, 3, 6, 7
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 250:
 SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9 HAVING max(c4/c5) > 10 ORDER BY c1, c2, c3, c4, c5, c8, c9;
@@ -6190,10 +6223,10 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 EXPLAIN VERBOSE SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING min(c4) < 0 ORDER BY c4, c5, c6, c7, c8, c9, c10, c11;
                                                                                                                QUERY PLAN                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=468.41..468.42 rows=1 width=606)
+ Sort  (cost=259.71..259.72 rows=1 width=606)
    Output: (abs((((c4)::double precision / c5) + (c6)::double precision))), (upper((c7)::text)), ((((((c8 / 23))::double precision + c5) - (c9 / '3'::double precision)) + (c10)::double precision)), c11, c4, c5, c6, c7, c8, c9, c10
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=337.52..468.40 rows=1 width=606)
+   ->  Foreign Scan  (cost=184.26..259.70 rows=1 width=606)
          Output: abs((((c4)::double precision / c5) + (c6)::double precision)), upper((c7)::text), ((((((c8 / 23))::double precision + c5) - (c9 / '3'::double precision)) + (c10)::double precision)), c11, c4, c5, c6, c7, c8, c9, c10
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6207,6 +6240,7 @@ EXPLAIN VERBOSE SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c8`, `c5`, `c9`, `c10`, `c11`, `c4`, `c6`, `c7`, min(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 6, 2, 7, 8, 1, 3, 4, 5
          Node: postgres_svr / Status: Alive
@@ -6219,7 +6253,7 @@ EXPLAIN VERBOSE SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl
            Agg push-down: yes
            TinyBrace query: SELECT `c8`, `c5`, `c9`, `c10`, `c11`, `c4`, `c6`, `c7`, min(`c4`) FROM "tbl01" GROUP BY 6, 2, 7, 8, 1, 3, 4, 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 252:
 SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING min(c4) < 0 ORDER BY c4, c5, c6, c7, c8, c9, c10, c11;
@@ -6238,10 +6272,10 @@ SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl01 GROUP BY c4, 
 EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, c4/2+c8-c5/32+c9, c11 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 HAVING min(c4) < min (c8) ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
                                                                                    QUERY PLAN                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=478.66..478.66 rows=1 width=1712)
+ Sort  (cost=264.83..264.84 rows=1 width=1712)
    Output: ((c1 || c2)), (((c3)::text || (c7)::text)), ((((((c4 / 2) + c8))::double precision - (c5 / '32'::double precision)) + c9)), c11, c1, c2, c3, c4, c5, c7, c8, c9
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=354.59..478.65 rows=1 width=1712)
+   ->  Foreign Scan  (cost=192.79..264.82 rows=1 width=1712)
          Output: ((c1 || c2)), (((c3)::text || (c7)::text)), ((((((c4 / 2) + c8))::double precision - (c5 / '32'::double precision)) + c9)), c11, c1, c2, c3, c4, c5, c7, c8, c9
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6255,6 +6289,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, c4/2+c8-c5/32+c9, c11 FROM tbl01 GROU
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c5`, `c9`, `c11`, `c7`, min(`c4`), min(`c8`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 9, 5, 7, 8
          Node: postgres_svr / Status: Alive
@@ -6267,7 +6302,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, c4/2+c8-c5/32+c9, c11 FROM tbl01 GROU
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c8`, `c5`, `c9`, `c11`, `c7`, min(`c4`), min(`c8`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 9, 5, 7, 8
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 254:
 SELECT c1 || c2, c3 || c7, c4/2+c8-c5/32+c9, c11 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 HAVING min(c4) < min (c8) ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
@@ -6276,10 +6311,10 @@ psql:sql/limit/limit_orderby.sql:542: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HAVING max(c4) - max(c5) > 0 ORDER BY c1, c2, c3;
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
- Sort  (cost=360.92..360.93 rows=1 width=1128)
+ Sort  (cost=205.97..205.97 rows=1 width=1128)
    Output: c1, c2, c3, 1, 2, 'abc'::text
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3
-   ->  Foreign Scan  (cost=252.19..360.91 rows=1 width=1128)
+   ->  Foreign Scan  (cost=141.60..205.96 rows=1 width=1128)
          Output: c1, c2, c3, 1, 2, 'abc'::text
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6293,6 +6328,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HA
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, max(`c4`), max(`c5`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3
          Node: postgres_svr / Status: Alive
@@ -6305,7 +6341,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HA
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, max(`c4`), max(`c5`) FROM "tbl01" GROUP BY 1, 2, 3
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 256:
 SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HAVING max(c4) - max(c5) > 0 ORDER BY c1, c2, c3;
@@ -6337,10 +6373,10 @@ SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HAVING max(c4) - m
 EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 ORDER BY c4, c5, c8, c9, c10, c11;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=424.06..424.06 rows=0 width=86)
+ Sort  (cost=237.53..237.54 rows=0 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timex'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=303.39..424.05 rows=0 width=86)
+   ->  Foreign Scan  (cost=167.19..237.52 rows=0 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timex'::text)), c10, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6354,6 +6390,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4,
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 6, 5
          Node: postgres_svr / Status: Alive
@@ -6366,7 +6403,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4,
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10` FROM "tbl01" GROUP BY 1, 2, 3, 4, 6, 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 258:
 SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 ORDER BY c4, c5, c8, c9, c10, c11;
@@ -6375,10 +6412,10 @@ psql:sql/limit/limit_orderby.sql:551: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 ORDER BY c1, c2, c3, c4, c5, c6, c9, c10;
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=463.30..463.31 rows=0 width=1158)
+ Sort  (cost=257.15..257.16 rows=0 width=1158)
    Output: (((c1 || c2) || (c3)::text)), ((c4 - 100)), ((((c5 / '112'::double precision) * (c6)::double precision) - (c9 / (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c9, tbl01.c10
-   ->  Foreign Scan  (cost=337.52..463.29 rows=0 width=1158)
+   ->  Foreign Scan  (cost=184.26..257.14 rows=0 width=1158)
          Output: (((c1 || c2) || (c3)::text)), ((c4 - 100)), ((((c5 / '112'::double precision) * (c6)::double precision) - (c9 / (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6392,6 +6429,7 @@ EXPLAIN VERBOSE SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GRO
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
          Node: postgres_svr / Status: Alive
@@ -6404,7 +6442,7 @@ EXPLAIN VERBOSE SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GRO
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c6`, `c9`, `c10` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 260:
 SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 ORDER BY c1, c2, c3, c4, c5, c6, c9, c10;
@@ -6413,10 +6451,10 @@ psql:sql/limit/limit_orderby.sql:555: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23)) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
                                                                                                     QUERY PLAN                                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=485.48..485.49 rows=0 width=1712)
+ Sort  (cost=268.25..268.25 rows=0 width=1712)
    Output: (upper((c1 || c2))), (lower(((c3)::text || (c7)::text))), (abs(((((c4 / 2))::double precision + c5) + ((c8)::double precision / (c9 - '23'::double precision))))), c1, c2, c3, c4, c5, c7, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=354.59..485.47 rows=0 width=1712)
+   ->  Foreign Scan  (cost=192.79..268.24 rows=0 width=1712)
          Output: upper((c1 || c2)), lower(((c3)::text || (c7)::text)), abs(((((c4 / 2))::double precision + c5) + ((c8)::double precision / (c9 - '23'::double precision)))), c1, c2, c3, c4, c5, c7, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6430,6 +6468,7 @@ EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c7`, `c8`, `c9`, `c11` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
          Node: postgres_svr / Status: Alive
@@ -6442,7 +6481,7 @@ EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4`, `c5`, `c7`, `c8`, `c9`, `c11` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6, 7, 8, 9
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 262:
 SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23)) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
@@ -6494,10 +6533,10 @@ SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23)) FROM tbl01 GR
 EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=465.00..465.01 rows=0 width=1152)
+ Sort  (cost=258.01..258.01 rows=0 width=1152)
    Output: (length(((c1 || c2) || (c3)::text))), (floor(((c4)::double precision - c5))), ((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c1, c2, c3, c4, c5, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=337.52..465.00 rows=0 width=1152)
+   ->  Foreign Scan  (cost=184.26..258.00 rows=0 width=1152)
          Output: length(((c1 || c2) || (c3)::text)), floor(((c4)::double precision - c5)), ((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c1, c2, c3, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6511,6 +6550,7 @@ EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c8`, `c9`, `c11`, `c1`, `c2`, `c3`, `c4`, `c5` FROM `limit_orderby`.`tbl01` GROUP BY 4, 5, 6, 7, 8, 1, 2, 3
          Node: postgres_svr / Status: Alive
@@ -6523,7 +6563,7 @@ EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 
            Agg push-down: yes
            TinyBrace query: SELECT `c8`, `c9`, `c11`, `c1`, `c2`, `c3`, `c4`, `c5` FROM "tbl01" GROUP BY 4, 5, 6, 7, 8, 1, 2, 3
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 264:
 SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
@@ -6575,10 +6615,10 @@ SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 hours'::interval
 EXPLAIN VERBOSE SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 ORDER BY c1, c3, c5, c7, c9, c11;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=412.12..412.12 rows=0 width=1596)
+ Sort  (cost=231.56..231.57 rows=0 width=1596)
    Output: c1, c3, c5, c7, c9, c11
    Sort Key: tbl01.c1, tbl01.c3, tbl01.c5, tbl01.c7, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=303.39..412.11 rows=0 width=1596)
+   ->  Foreign Scan  (cost=167.19..231.56 rows=0 width=1596)
          Output: c1, c3, c5, c7, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6592,6 +6632,7 @@ EXPLAIN VERBOSE SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c3`, `c5`, `c7`, `c9`, `c11` FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6
          Node: postgres_svr / Status: Alive
@@ -6604,7 +6645,7 @@ EXPLAIN VERBOSE SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c3`, `c5`, `c7`, `c9`, `c11` FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 266:
 SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 ORDER BY c1, c3, c5, c7, c9, c11;
@@ -6657,10 +6698,10 @@ SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 ORDER
 EXPLAIN VERBOSE SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' ORDER BY c1, c2, c3, c4, c5, c6, c7, c8;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=446.25..446.25 rows=1 width=1628)
+ Sort  (cost=248.63..248.63 rows=1 width=1628)
    Output: c3, c5, c1, c8, c7, c2, c4, c6
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8
-   ->  Foreign Scan  (cost=337.52..446.24 rows=1 width=1628)
+   ->  Foreign Scan  (cost=184.26..248.62 rows=1 width=1628)
          Output: c3, c5, c1, c8, c7, c2, c4, c6
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6674,6 +6715,7 @@ EXPLAIN VERBOSE SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c3`, `c5`, `c1`, `c8`, `c7`, `c2`, `c4`, `c6`, min(`c3`) FROM `limit_orderby`.`tbl01` GROUP BY 3, 6, 1, 7, 2, 8, 5, 4
          Node: postgres_svr / Status: Alive
@@ -6686,7 +6728,7 @@ EXPLAIN VERBOSE SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2
            Agg push-down: yes
            TinyBrace query: SELECT `c3`, `c5`, `c1`, `c8`, `c7`, `c2`, `c4`, `c6`, min(`c3`) FROM "tbl01" GROUP BY 3, 6, 1, 7, 2, 8, 5, 4
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 268:
 SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' ORDER BY c1, c2, c3, c4, c5, c6, c7, c8;
@@ -6738,10 +6780,10 @@ SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6
 EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 ORDER BY c4, c5, c8, c9, c11;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=424.06..424.06 rows=1 width=86)
+ Sort  (cost=237.53..237.54 rows=1 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timez'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=303.39..424.05 rows=1 width=86)
+   ->  Foreign Scan  (cost=167.19..237.52 rows=1 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timez'::text)), c10, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6755,6 +6797,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4,
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, max(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 2, 3, 4, 5, 6
          Node: postgres_svr / Status: Alive
@@ -6767,7 +6810,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4,
            Agg push-down: yes
            TinyBrace query: SELECT `c4`, `c5`, `c8`, `c9`, `c11`, `c10`, max(`c4`) FROM "tbl01" GROUP BY 1, 2, 3, 4, 5, 6
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 270:
 SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 ORDER BY c4, c5, c8, c9, c11;
@@ -6776,10 +6819,10 @@ psql:sql/limit/limit_orderby.sql:576: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), abs(c4-c5), abs(c8/3+c9), c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
                                                                                          QUERY PLAN                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=465.00..465.01 rows=1 width=1180)
+ Sort  (cost=258.01..258.01 rows=1 width=1180)
    Output: c1, (lower((c2 || (c3)::text))), (abs(((c4)::double precision - c5))), (abs((((c8 / 3))::double precision + c9))), ((c11 + '@ 23 hours'::interval)), c2, c3, c4, c5, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=337.52..465.00 rows=1 width=1180)
+   ->  Foreign Scan  (cost=184.26..258.00 rows=1 width=1180)
          Output: c1, lower((c2 || (c3)::text)), abs(((c4)::double precision - c5)), abs((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c2, c3, c4, c5, c8, c9, c11
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -6793,6 +6836,7 @@ EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), abs(c4-c5), abs(c8/3+c9), c11 + '23 
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c11`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, sum(`c5`), min(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 1, 3, 4, 5, 6, 7, 8, 2
          Node: postgres_svr / Status: Alive
@@ -6805,7 +6849,7 @@ EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), abs(c4-c5), abs(c8/3+c9), c11 + '23 
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c11`, `c2`, `c3`, `c4`, `c5`, `c8`, `c9`, sum(`c5`), min(`c4`) FROM "tbl01" GROUP BY 1, 3, 4, 5, 6, 7, 8, 2
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 272:
 SELECT c1, lower(c2 || c3), abs(c4-c5), abs(c8/3+c9), c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
@@ -7351,10 +7395,10 @@ SELECT length(c1 || c2), lower(c3), abs(c5/12+c8/3-c9+c10) FROM tbl01 WHERE NOT 
 EXPLAIN VERBOSE SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0 ORDER BY 1;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=318.33..318.34 rows=1 width=28)
+ Sort  (cost=184.67..184.68 rows=1 width=28)
    Output: (count(*)), (count(c1)), (count(c3)), c4
    Sort Key: (count(*))
-   ->  Foreign Scan  (cost=218.06..318.32 rows=1 width=28)
+   ->  Foreign Scan  (cost=124.53..184.66 rows=1 width=28)
          Output: (count(*)), (count(c1)), (count(c3)), c4
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7368,6 +7412,7 @@ EXPLAIN VERBOSE SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAV
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT count(*), count(`c1`), count(`c3`), `c4`, min(`c4`) FROM `limit_orderby`.`tbl01` GROUP BY 4
          Node: postgres_svr / Status: Alive
@@ -7380,7 +7425,7 @@ EXPLAIN VERBOSE SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAV
            Agg push-down: yes
            TinyBrace query: SELECT count(*), count(`c1`), count(`c3`), `c4`, min(`c4`) FROM "tbl01" GROUP BY 4
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 290:
 SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0 ORDER BY 1;
@@ -7424,10 +7469,10 @@ SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0
 EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP BY c3 HAVING max(c3) IS NOT NULL ORDER BY c3;
                                                                            QUERY PLAN                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=318.33..318.34 rows=1 width=1100)
+ Sort  (cost=184.67..184.68 rows=1 width=1100)
    Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5)), c3
    Sort Key: tbl01.c3
-   ->  Foreign Scan  (cost=218.06..318.32 rows=1 width=1100)
+   ->  Foreign Scan  (cost=124.53..184.66 rows=1 width=1100)
          Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5)), c3
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7441,6 +7486,7 @@ EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT min(CONCAT(`c1` , `c2`)), max(`c3`), min(`c4`), sum(`c5`), `c3`, (max(`c3`) IS NOT NULL) FROM `limit_orderby`.`tbl01` GROUP BY 5
          Node: postgres_svr / Status: Alive
@@ -7453,7 +7499,7 @@ EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP
            Agg push-down: yes
            TinyBrace query: SELECT min((`c1` || `c2`)), max(`c3`), min(`c4`), sum(`c5`), `c3`, (max(`c3`) IS NOT NULL) FROM "tbl01" GROUP BY 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 292:
 SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP BY c3 HAVING max(c3) IS NOT NULL ORDER BY c3;
@@ -7462,10 +7508,10 @@ psql:sql/limit/limit_orderby.sql:623: ERROR:  syntax error at end of input
 EXPLAIN VERBOSE SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY c3, c7 HAVING max(c7) != max(c3) ORDER BY c3, c7;
                                                                                  QUERY PLAN                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=343.86..343.87 rows=1 width=1604)
+ Sort  (cost=197.44..197.44 rows=1 width=1604)
    Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), (min((c9 - (c10)::double precision))), (max(c11)), c3, c7
    Sort Key: tbl01.c3, tbl01.c7
-   ->  Foreign Scan  (cost=235.13..343.85 rows=1 width=1604)
+   ->  Foreign Scan  (cost=133.06..197.43 rows=1 width=1604)
          Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), (min((c9 - (c10)::double precision))), (max(c11)), c3, c7
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7479,6 +7525,7 @@ EXPLAIN VERBOSE SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FRO
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT max((`c5` + `c6`)), max(`c7`), min(`c8`), min((`c9` - `c10`)), max(`c11`), `c3`, `c7`, max(`c3`) FROM `limit_orderby`.`tbl01` GROUP BY 6, 7
          Node: postgres_svr / Status: Alive
@@ -7491,7 +7538,7 @@ EXPLAIN VERBOSE SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FRO
            Agg push-down: yes
            TinyBrace query: SELECT max((`c5` + `c6`)), max(`c7`), min(`c8`), min((`c9` - `c10`)), max(`c11`), `c3`, `c7`, max(`c3`) FROM "tbl01" GROUP BY 6, 7
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 294:
 SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY c3, c7 HAVING max(c7) != max(c3) ORDER BY c3, c7;
@@ -7543,10 +7590,10 @@ SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP BY c4, c8 HAVING min(c4) < min(c8) ORDER BY c4, c8;
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=343.86..343.87 rows=1 width=68)
+ Sort  (cost=197.44..197.44 rows=1 width=68)
    Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10)), c4, c8
    Sort Key: tbl01.c4, tbl01.c8
-   ->  Foreign Scan  (cost=235.13..343.85 rows=1 width=68)
+   ->  Foreign Scan  (cost=133.06..197.43 rows=1 width=68)
          Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10)), c4, c8
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7560,6 +7607,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`), `c4`, `c8`, min(`c4`), min(`c8`) FROM `limit_orderby`.`tbl01` GROUP BY 5, 6
          Node: postgres_svr / Status: Alive
@@ -7572,7 +7620,7 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP
            Agg push-down: yes
            TinyBrace query: SELECT min(`c7`), max(`c8`), sum((`c8` - `c9`)), count(`c10`), `c4`, `c8`, min(`c4`), min(`c8`) FROM "tbl01" GROUP BY 5, 6
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 296:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP BY c4, c8 HAVING min(c4) < min(c8) ORDER BY c4, c8;
@@ -7612,10 +7660,10 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP BY c4, c8 HAVIN
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING count(c3) > 0 ORDER BY c3;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=318.33..318.34 rows=1 width=1080)
+ Sort  (cost=184.67..184.68 rows=1 width=1080)
    Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - c5))), c3
    Sort Key: tbl01.c3
-   ->  Foreign Scan  (cost=218.06..318.32 rows=1 width=1080)
+   ->  Foreign Scan  (cost=124.53..184.66 rows=1 width=1080)
          Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - c5))), c3
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7629,6 +7677,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROU
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) - `c5`)), `c3`, count(`c3`) FROM `limit_orderby`.`tbl01` GROUP BY 5
          Node: postgres_svr / Status: Alive
@@ -7641,7 +7690,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROU
            Agg push-down: yes
            TinyBrace query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) - `c5`)), `c3`, count(`c3`) FROM "tbl01" GROUP BY 5
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 298:
 SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING count(c3) > 0 ORDER BY c3;
@@ -7687,10 +7736,10 @@ SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING c
 EXPLAIN VERBOSE SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT NULL GROUP BY c7 HAVING c7 != '' ORDER BY c7;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=335.23..335.24 rows=1 width=588)
+ Sort  (cost=193.12..193.12 rows=1 width=588)
    Output: '~!@#$%^&*()_+=-,./[]\\'::text, 332, 'wefakef'::text, 21332, c7
    Sort Key: tbl01.c7
-   ->  Foreign Scan  (cost=217.90..335.22 rows=1 width=588)
+   ->  Foreign Scan  (cost=124.45..193.11 rows=1 width=588)
          Output: '~!@#$%^&*()_+=-,./[]\\'::text, 332, 'wefakef'::text, 21332, c7
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7704,6 +7753,7 @@ EXPLAIN VERBOSE SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c7` FROM `limit_orderby`.`tbl01` WHERE ((`c3` IS NOT NULL)) AND ((`c7` <> '')) GROUP BY 1
          Node: postgres_svr / Status: Alive
@@ -7716,7 +7766,7 @@ EXPLAIN VERBOSE SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01
            Agg push-down: yes
            TinyBrace query: SELECT `c7` FROM "tbl01" WHERE ((`c3` IS NOT NULL)) AND ((`c7` <> '')) GROUP BY 1
            TinyBrace plan: SCAN TABLE tbl01 (~250000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 300:
 SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT NULL GROUP BY c7 HAVING c7 != '' ORDER BY c7;
@@ -7762,10 +7812,10 @@ SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT
 EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, __spd_url HAVING c4 BETWEEN -11000 AND 10000 ORDER BY c1, c2, c3, c4, __spd_url;
                                                                                  QUERY PLAN                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=340.95..340.95 rows=1 width=1124)
+ Sort  (cost=195.98..195.98 rows=1 width=1124)
    Output: c1, c2, c3, __spd_url, c4
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.__spd_url
-   ->  Foreign Scan  (cost=201.12..340.94 rows=1 width=1124)
+   ->  Foreign Scan  (cost=116.06..195.97 rows=1 width=1124)
          Output: c1, c2, c3, __spd_url, c4
          Node: file_svr / Status: Alive
            Sort push-down: no
@@ -7779,6 +7829,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Agg push-down: yes
+           Relations: Aggregate on (limit_orderby.tbl01__mysql_svr__0)
            Local server startup cost: 10
            Remote query: SELECT `c1`, `c2`, `c3`, `c4` FROM `limit_orderby`.`tbl01` WHERE ((`c3` > `c7`)) AND ((`c4` >= (-11000))) AND ((`c4` <= 10000)) GROUP BY 1, 2, 3, 4
          Node: postgres_svr / Status: Alive
@@ -7791,7 +7842,7 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c
            Agg push-down: yes
            TinyBrace query: SELECT `c1`, `c2`, `c3`, `c4` FROM "tbl01" WHERE ((`c3` > `c7`)) AND ((`c4` >= (-11000))) AND ((`c4` <= 10000)) GROUP BY 1, 2, 3, 4
            TinyBrace plan: SCAN TABLE tbl01 (~55555 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 302:
 SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, __spd_url HAVING c4 BETWEEN -11000 AND 10000 ORDER BY c1, c2, c3, c4, __spd_url;
@@ -8025,7 +8076,6 @@ SELECT lower(c1), c2 || c3, string_agg(c3, c7) FROM tbl01 WHERE c8-c9 != 0 GROUP
  常ならむき夢見                | 9 - FGHIJKLMNOPQRST敷ヘカウ告政ヨハツヤ消70者32精楽ざ     | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ
  比迪吉吾艾儿                  | qkwjoqwăâđêôơưdêđêdờenờíìờẹ53412                          | ăâđêôơưdêđêdờenờíìờẹ53412
 (19 rows)
-
 
 -- The aggregation is not pushed down in single node if SPDURL is selected and grouped.
 --Testcase 311:
