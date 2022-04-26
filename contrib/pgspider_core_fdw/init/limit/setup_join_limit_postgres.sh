@@ -1,26 +1,24 @@
-PGS_DIR=/home/jenkins/postgresql-14beta2/install
-PGS_PORT=15435
-PGS_DB=join_limit
+PG_PORT=15435
+DB_NAME=join_limit
 
-
-CURR_PATH=$(pwd)
+source $(pwd)/../environment_variable.config
 
 if [[ "--start" == $1 ]]
 then
-  #Start PGS1
-  cd ${PGS_DIR}/bin/
-  if ! [ -d "../${PGS_DB}" ];
+  #Start POSTGRES
+  cd ${POSTGRES_HOME}/bin/
+  if ! [ -d "../${DB_NAME}" ];
   then
-    ./initdb ../${PGS_DB}
-    sed -i "s~#port = .*~port = $PGS_PORT~g" ../${PGS_DB}/postgresql.conf
-    ./pg_ctl -D ../${PGS_DB} start #-l ../log.pg1
+    ./initdb ../${DB_NAME}
+    sed -i "s~#port = .*~port = $PG_PORT~g" ../${DB_NAME}/postgresql.conf
+    ./pg_ctl -D ../${DB_NAME} start
     sleep 2
-    ./createdb -p $PGS_PORT postgres
+    ./createdb -p $PG_PORT postgres
   fi
-  if ! ./pg_isready -p $PGS_PORT
+  if ! ./pg_isready -p $PG_PORT
   then
-    echo "Start PG1"
-    ./pg_ctl -D ../${PGS_DB} start #-l ../log.pg1
+    echo "Start POSTGRES"
+    ./pg_ctl -D ../${DB_NAME} start
     sleep 2
   fi
 
@@ -30,8 +28,8 @@ cd $CURR_PATH
 
 # postgres should be already started
 
-$PGS_DIR/bin/psql -p $PGS_PORT postgres -c "create user postgres with encrypted password 'postgres';"
-$PGS_DIR/bin/psql -p $PGS_PORT postgres -c "grant all privileges on database postgres to postgres;"
-$PGS_DIR/bin/psql -p $PGS_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
-$PGS_DIR/bin/psql postgres -p $PGS_PORT -U postgres $PGS_DB < ./postgres_join_limit.dat
+$POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "create user postgres with encrypted password 'postgres';"
+$POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "grant all privileges on database postgres to postgres;"
+$POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql postgres -p $PG_PORT -U postgres $DB_NAME < ./postgres_join_limit.dat
 

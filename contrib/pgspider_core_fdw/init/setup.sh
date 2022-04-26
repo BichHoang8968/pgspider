@@ -1,6 +1,4 @@
-TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/postgres/postgresql-14.0/pgbuild
-CURR_PATH=$(pwd)
+source $(pwd)/environment_variable.config
 
 if [[ "--start" == $1 ]]
 then
@@ -57,7 +55,7 @@ sqlite3 /tmp/pgtest.db < sqlite.dat
 
 # SET PASSWORD = PASSWORD('mysql')
 mysql -uroot -pMysql_1234 < mysql.dat
- 
+
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
 
