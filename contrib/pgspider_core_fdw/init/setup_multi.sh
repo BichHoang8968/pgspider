@@ -1,15 +1,10 @@
-PGS1_DIR=/home/jenkins/PGSpider/PGS/
 PGS1_PORT=5433
 PGS1_DB=pg1db
-PGS2_DIR=/home/jenkins/PGSpider/PGS/
 PGS2_PORT=5434
 PGS2_DB=pg2db
 DB_NAME=postgres
-TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/postgres/postgresql-14.0/pgbuild
-GRIDDB_CLIENT=/home/jenkins/src/griddb
-GRIDDB_HOME=/home/jenkins/src/griddb-4.6.1
-CURR_PATH=$(pwd)
+
+source $(pwd)/environment_variable.config
 
 if [[ "--start" == $1 ]]
 then
@@ -29,8 +24,8 @@ then
     ./pg_ctl -D ../databases start
     sleep 2
   fi
+  cd ${PGSPIDER_HOME}/bin/
   #Start PGS1
-  cd ${PGS1_DIR}/bin/
   if ! [ -d "../${PGS1_DB}" ];
   then
     ./initdb ../${PGS1_DB}
@@ -149,7 +144,7 @@ ${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "grant all privileges on database
 ${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
 ${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 
-# Setup PGSPider1 and PGSpider2
-$PGS1_DIR/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
-$PGS2_DIR/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
+# Setup PGSpider1 and PGSpider2
+$PGSPIDER_HOME/bin/psql -p $PGS1_PORT $DB_NAME < pgspider1.dat
+$PGSPIDER_HOME/bin/psql -p $PGS2_PORT $DB_NAME < pgspider2.dat
 

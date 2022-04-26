@@ -1,6 +1,4 @@
-TINYBRACE_HOME=/usr/local/tinybrace
-POSTGRES_HOME=/home/jenkins/postgresql-13.0/install
-CURR_PATH=$(pwd)
+source $(pwd)/../environment_variable.config
 
 if [[ "--start" == $1 ]]
 then
@@ -51,7 +49,7 @@ cp ./file_fdw_multi.csv /tmp/
 
 # SET PASSWORD = PASSWORD('Mysql_1234')
 mysql -uroot -pMysql_1234 < ./mysql_multi.dat
- 
+
 # postgres should be already started with port=15432
 # pg_ctl -o "-p 15432" start -D data
 
@@ -62,6 +60,3 @@ $POSTGRES_HOME/bin/psql postgres -p 15432  -U postgres < ./postgres_multi.dat
 
 # Setup InfluxDB
 influx -import -path=./influx_multi.data -precision=ns
-
-
-

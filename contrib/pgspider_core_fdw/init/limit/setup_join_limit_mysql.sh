@@ -1,8 +1,6 @@
-CURR_PATH=$(pwd)
-
+# Setup MySQL
 if [[ "--start" == $1 ]]
 then
-  cd $CURR_PATH
   # Start MySQL
   if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
   then

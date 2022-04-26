@@ -1,6 +1,4 @@
-GRIDDB_CLIENT=/home/jenkins/GridDB/griddb
-GRIDDB_HOME=/home/jenkins/GridDB/griddb-4.5.3
-CURR_PATH=$(pwd)
+source $(pwd)/../environment_variable.config
 
 if [[ "--start" == $1 ]]
 then
