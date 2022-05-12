@@ -1,5 +1,5 @@
 CREATE EXTENSION
-File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 14813 failed: FATAL:  password authentication failed for user "pgspider2"
+File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 4813 failed: FATAL:  password authentication failed for user "pgspider2"
 
 Config directory: ./
 Node information file: node_information.json

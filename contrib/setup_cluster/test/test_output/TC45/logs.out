@@ -1,4 +1,4 @@
-File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 14813 failed: FATAL:  password authentication failed for user "wrong_admin"
+File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 4813 failed: FATAL:  password authentication failed for user "wrong_admin"
 
 Config directory: ./
 Node information file: node_information.json

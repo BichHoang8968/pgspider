@@ -5265,7 +5265,8 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	StringInfoData buf;
 	PGresult   *volatile res = NULL;
 	int			numrows,
-				i;
+				i,
+				pg_server_version;
 	ListCell   *lc;
 
 	/* Parse statement options */
@@ -5294,9 +5295,10 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 	server = GetForeignServer(serverOid);
 	mapping = GetUserMapping(GetUserId(), server->serverid);
 	conn = PGSpiderGetConnection(mapping, false, NULL);
+	pg_server_version = PQserverVersion(conn);
 
 	/* Don't attempt to import collation if remote server hasn't got it */
-	if (PQserverVersion(conn) < 90100)
+	if (pg_server_version < 90100)
 		import_collate = false;
 
 	/* Create workspace for strings */
@@ -5322,14 +5324,44 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		PQclear(res);
 		res = NULL;
 		resetStringInfo(&buf);
+		/*
+		 * There are 4 table types:
+		 * 		1. Normal table
+		 * 		2. Multi-tenant table
+		 * 		3. Foreign table which is a child table of multi-tenant table
+		 * 		4. Foreign table which is not a child table of multi-tenant table
+		 * 
+		 * Using CTEs to get multi tenants table (type2) and build regex patterns from their name.
+		 */
+		appendStringInfoString(&buf, "WITH multi_tenant_tbl AS "
+							   "  ( "
+							   "  SELECT c.relname AS relname "
+							   "  FROM pg_class c "
+							   "    JOIN pg_namespace n "
+							   "      ON relnamespace = n.oid " 
+							   "	LEFT JOIN pg_foreign_table ft "
+							   "   	  ON c.oid = ft.ftrelid "
+							   "	LEFT JOIN pg_foreign_server fs "
+							   "      ON ft.ftserver = fs.oid "
+							   "	LEFT JOIN pg_foreign_data_wrapper fdw "
+							   "      ON fs.srvfdw = fdw.oid "
+							   "        WHERE n.nspname = ");
+		PGSpiderDeparseStringLiteral(&buf, stmt->remote_schema);
+		appendStringInfoString(&buf,
+							   "        AND fdw.fdwname = 'pgspider_core_fdw' "
+							   "  ) , regex AS ( "
+							   "  SELECT CONCAT(multi_tenant_tbl.relname, '__.*__[0-9]+$' ) "
+							   "    AS regex_col "
+							   "  FROM multi_tenant_tbl ) ");
 
 		/*
-		 * Fetch all table data from this schema, possibly restricted by
-		 * EXCEPT or LIMIT TO.  (We don't actually need to pay any attention
-		 * to EXCEPT/LIMIT TO here, because the core code will filter the
-		 * statements we return according to those lists anyway.  But it
-		 * should save a few cycles to not process excluded tables in the
-		 * first place.)
+		 * Fetch all table types of 1,2,4 and table data from this schema, 
+		 * possibly restricted by EXCEPT or LIMIT TO.  (We don't actually 
+		 * need to pay any attention to EXCEPT/LIMIT TO here, because the 
+		 * core code will filter the statements we return according to those 
+		 * lists anyway. But it should save a few cycles to not process 
+		 * excluded tables in the first place.)
+		 * Table of type 3 will be excluded by regex pattern.
 		 *
 		 * Import table data for partitions only when they are explicitly
 		 * specified in LIMIT TO clause. Otherwise ignore them and only
@@ -5343,25 +5375,58 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		 * is what we want.
 		 */
 		appendStringInfoString(&buf,
-							   "SELECT relname, "
-							   "  attname, "
-							   "  format_type(atttypid, atttypmod), "
-							   "  attnotnull, ");
+							   "SELECT cc.relname, "
+							   "  cc.attname, "
+							   "  cc.formattype, "
+							   "  cc.attnotnull, ");
 
 		/* Generated columns are supported since Postgres 12 */
-		if (PQserverVersion(conn) >= 120000)
+		if (pg_server_version >= 120000)
 			appendStringInfoString(&buf,
-								   "  attgenerated, "
-								   "  pg_get_expr(adbin, adrelid), ");
+								   "  cc.attgenerated, "
+								   "  cc.pggetexpr, ");
 		else
 			appendStringInfoString(&buf,
 								   "  NULL, "
-								   "  pg_get_expr(adbin, adrelid), ");
+								   "  cc.pggetexpr, ");
+
+		if (import_collate)
+			appendStringInfoString(&buf,
+								   "  cc.collname, "
+								   "  cc.collnspnspname, "
+								   "  cc.attnum "
+								   "  FROM ( "
+								   "    SELECT relname, "
+								   "      attname, "
+								   "      format_type(atttypid, atttypmod) AS formattype, "
+								   "      attnotnull, ");
+		else 
+			appendStringInfoString(&buf,
+								   "  NULL, NULL, "
+								   "  cc.attnum "
+								   "  FROM ( "
+								   "    SELECT relname, "
+								   "      attname, "
+								   "      format_type(atttypid, atttypmod) AS formattype, "
+								   "      attnotnull, ");
+
+
+		/* Generated columns are supported since Postgres 12 */
+		if (pg_server_version >= 120000)
+			appendStringInfoString(&buf,
+								   "  attgenerated, "
+								   "  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
+		else
+			appendStringInfoString(&buf,
+								   "  NULL, "
+								   "  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
+		
 
 		if (import_collate)
 			appendStringInfoString(&buf,
 								   "  collname, "
-								   "  collnsp.nspname "
+								   "  collnsp.nspname AS collnspnspname, "
+								   "  a.attnum "
 								   "FROM pg_class c "
 								   "  JOIN pg_namespace n ON "
 								   "    relnamespace = n.oid "
@@ -5376,7 +5441,8 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 								   "    collnsp.oid = collnamespace ");
 		else
 			appendStringInfoString(&buf,
-								   "  NULL, NULL "
+								   "  NULL, NULL, "
+								   "  a.attnum "
 								   "FROM pg_class c "
 								   "  JOIN pg_namespace n ON "
 								   "    relnamespace = n.oid "
@@ -5397,7 +5463,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		PGSpiderDeparseStringLiteral(&buf, stmt->remote_schema);
 
 		/* Partitions are supported since Postgres 10 */
-		if (PQserverVersion(conn) >= 100000 &&
+		if (pg_server_version >= 100000 &&
 			stmt->list_type != FDW_IMPORT_SCHEMA_LIMIT_TO)
 			appendStringInfoString(&buf, " AND NOT c.relispartition ");
 
@@ -5426,8 +5492,44 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 			appendStringInfoChar(&buf, ')');
 		}
 
+		/* Append a closing parenthesis and alias name for first statement. */
+		appendStringInfoString(&buf, " ) cc ");
+
+		/* Append LEFT JOIN with (pg_class, pg_namespace, pg_foreign_tables, pg_foreign_server and pg_foreign_data_wrapper)  */
+		appendStringInfoString(&buf, 
+							   "LEFT JOIN ( " 
+							   "  SELECT c.relname "
+							   "  FROM pg_class c "
+							   "  JOIN pg_namespace n "
+							   "    ON relnamespace = n.oid "
+							   "  LEFT JOIN pg_foreign_table ft "
+							   "    ON c.oid = ft.ftrelid "
+							   "  LEFT JOIN pg_foreign_server fs "
+							   "    ON ft.ftserver = fs.oid "
+							   "  LEFT JOIN pg_foreign_data_wrapper fdw "
+							   "    ON fs.srvfdw = fdw.oid "
+							   "       WHERE n.nspname = ");
+		PGSpiderDeparseStringLiteral(&buf, stmt->remote_schema);
+
+		/* Append a closing parenthesis and alias name for second statement. */
+		appendStringInfoString(&buf, " ) ss ");
+
+		/* Append ON condition to JOIN 2 statement 'cc' and 'ss'. */
+		appendStringInfoString(&buf, " ON cc.relname = ss.relname");
+
+		/* Append WHERE condition to filter child foreign table 
+		 * of multi-tenant (type3) out final result. 
+		 */
+		appendStringInfoString(&buf,
+							   "  WHERE ( SELECT "
+							   "              CASE "
+							   "                 WHEN COUNT(*) = 0 THEN cc.relname ~ '.*' "
+							   "                 WHEN COUNT(*) != 0 THEN cc.relname !~ string_agg(regex_col, '|') "
+							   "              END "
+                               "          FROM regex)");
+
 		/* Append ORDER BY at the end of query to ensure output ordering */
-		appendStringInfoString(&buf, " ORDER BY c.relname, a.attnum");
+		appendStringInfoString(&buf, " ORDER BY cc.relname, cc.attnum");
 
 		/* Fetch the data */
 		res = pgspiderfdw_exec_query(conn, buf.data, NULL);

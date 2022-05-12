@@ -1,0 +1,52 @@
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" already exists, skipping
+NOTICE:  extension "postgres_fdw" already exists, skipping
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" already exists, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+NOTICE:  relation "tbl_postgre" already exists, skipping
+NOTICE:  relation "tbl_postgre" already exists, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+NOTICE:  relation "tbl_postgre" already exists, skipping
+NOTICE:  relation "tbl_postgre" already exists, skipping
+Config directory: /home/tsdv/release_FDW/test_PGSPider/PGSpider/contrib/setup_cluster/test/test_input/TC20
+Node information file: information.json
+Node structure file: node_structure.json
+Timeout: 0
+FINISH db3 
+FINISH db4 
+FINISH db1 
+free db2
+free db5
+free db6
+free db7
+free db3
+free db8
+free db4
+Success to create pgspider tables.
