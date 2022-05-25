@@ -5253,3 +5253,38 @@ disable_statement_timeout(void)
 	if (get_timeout_active(STATEMENT_TIMEOUT))
 		disable_timeout(STATEMENT_TIMEOUT, false);
 }
+
+#ifdef PGSPIDER
+/*
+ * spd_block_handle_signals: set block all for called thread,
+ * old signal mask returned.
+ */
+sigset_t
+spd_block_handle_signals(void)
+{
+	int			err;
+	sigset_t	new_mask;
+
+	/* Block all signal */
+	sigfillset(&new_mask);
+
+	return spd_set_sigmask(new_mask);
+}
+
+/*
+ * spd_set_sigmask: set signal mask for called thread,
+ * old signal mask returned.
+ */
+sigset_t
+spd_set_sigmask(sigset_t new_mask)
+{
+	int			err;
+	sigset_t	old_mask;
+
+	err = pthread_sigmask(SIG_SETMASK, &new_mask, &old_mask);
+	if (err != 0)
+		ereport(ERROR, (errmsg("Cannot set signal mask! error=%d", err)));
+
+	return old_mask;
+}
+#endif

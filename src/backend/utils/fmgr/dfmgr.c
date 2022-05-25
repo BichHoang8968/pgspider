@@ -188,6 +188,15 @@ internal_load_library(const char *libname)
 	char	   *load_error;
 	struct stat stat_buf;
 	PG_init_t	PG_init;
+#ifdef PGSPIDER
+	sigset_t	old_mask;
+
+	/*
+	 * On PGSpider, signal handler must be run on main thread.
+	 * Block signal when loading library for safety library worker thread
+	 */
+	SPD_SIGBLOCK_TRY(old_mask);
+#endif
 
 	/*
 	 * Scan the list of loaded FILES to see if the file has been loaded.
@@ -295,6 +304,10 @@ internal_load_library(const char *libname)
 			file_tail->next = file_scanner;
 		file_tail = file_scanner;
 	}
+
+#ifdef PGSPIDER
+	SPD_SIGBLOCK_END_TRY(old_mask);
+#endif
 
 	return file_scanner->handle;
 }
