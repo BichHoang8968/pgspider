@@ -48,6 +48,7 @@
 #include "utils/palloc.h"
 #ifdef PGSPIDER
 #include <pthread.h>
+#include <signal.h>
 #endif
 
 /* ----------------------------------------------------------------
@@ -841,6 +842,19 @@ extern Datum Float8GetDatum(float8 X);
 	} PG_END_TRY();\
   	    pthread_rwlock_unlock(mutex);
 extern void skip_memory_checking(bool flag);
+extern sigset_t spd_block_handle_signals(void);
+extern sigset_t spd_set_sigmask(sigset_t new_mask);
+
+/* Macro for ensuring sigmask will reversed after error occurs */
+#define SPD_SIGBLOCK_TRY(old_mask) old_mask = spd_block_handle_signals(); \
+	PG_TRY(); \
+	{
+#define SPD_SIGBLOCK_END_TRY(old_mask) } PG_CATCH(); \
+	{ \
+		spd_set_sigmask(old_mask); \
+		PG_RE_THROW(); \
+	} PG_END_TRY(); \
+	spd_set_sigmask(old_mask);
 #endif							/* PGSPIDER */
 
 #endif							/* POSTGRES_H */
