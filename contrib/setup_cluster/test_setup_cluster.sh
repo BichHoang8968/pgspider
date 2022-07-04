@@ -101,6 +101,12 @@ do
     # Get data in parent node
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_postgre;" >> results/$i/results.out 2>&1
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tmp_test_setcluster;" >> results/$i/results.out 2>&1
+
+    # tmp_test_setcluster2 is only created in TC79
+    if [[ ${i} == "TC79" ]]; then
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tmp_test_setcluster2;" >> results/$i/results.out 2>&1
+    fi
+
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_grid;" >> results/$i/results.out 2>&1
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_influx;" >> results/$i/results.out 2>&1
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_mysql;" >> results/$i/results.out 2>&1

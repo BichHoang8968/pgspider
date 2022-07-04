@@ -11,8 +11,9 @@ Config directory: ./
 Node information file: node_information.json
 Node structure file: structure.json
 Timeout: 0
-file CREATE SERVER IF NOT EXISTS tmp_test_setcluster FOREIGN DATA WRAPPER file_fdw;
-mapping set file CREATE FOREIGN TABLE tmp_test_setcluster__tbl_file__0(c1 text, c2 bigint, c3 float8) SERVER tmp_test_setcluster OPTIONS(filename '/tmp/test_setcluster/tbl_file.csv', format 'csv');
+file_fdw parent foreign table: CREATE FOREIGN TABLE IF NOT EXISTS "tmp_test_setcluster"(c1 text, c2 bigint, c3 float8,__spd_url text) server db1;
+file_fdw server: CREATE SERVER IF NOT EXISTS db2 FOREIGN DATA WRAPPER file_fdw;
+file_fdw child foreign table: CREATE FOREIGN TABLE tmp_test_setcluster__db2__0(c1 text, c2 bigint, c3 float8) SERVER db2 OPTIONS(filename '/tmp/test_setcluster/tbl_file.csv', format 'csv');
 
 FINISH db1 
 free db2

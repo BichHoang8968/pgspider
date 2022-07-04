@@ -35,6 +35,6 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUS
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
 
 cd $DATA_PATH
-rm /tmp/test_setcluster/tbl_file.csv
+rm /tmp/test_setcluster/*
 mkdir -p /tmp/test_setcluster
 cp ./tbl_file.csv /tmp/test_setcluster/

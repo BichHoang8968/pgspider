@@ -17,30 +17,30 @@ CREATE SERVER pgspider_srv_1 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '12
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_1;
 -- pgspider_core_fdw table
 --Testcase 72:
-CREATE FOREIGN TABLE test1__pgspider_srv_1__test (i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test1');
+CREATE FOREIGN TABLE test1__pgspider_srv_1__0 (i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test1');
 --Testcase 1:
-SELECT * FROM test1__pgspider_srv_1__test ORDER BY i, __spd_url;
+SELECT * FROM test1__pgspider_srv_1__0 ORDER BY i, __spd_url;
 --Testcase 2:
 SELECT * FROM test1 ORDER BY i, __spd_url;
 --Testcase 3:
-SELECT i FROM test1__pgspider_srv_1__test ORDER BY i;
+SELECT i FROM test1__pgspider_srv_1__0 ORDER BY i;
 --Testcase 4:
-SELECT __spd_url FROM test1__pgspider_srv_1__test ORDER BY __spd_url;
+SELECT __spd_url FROM test1__pgspider_srv_1__0 ORDER BY __spd_url;
 --Testcase 5:
 SELECT i FROM test1 ORDER BY i;
 --Testcase 6:
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 --
 --Testcase 73:
-CREATE FOREIGN TABLE test2__pgspider_srv_1__test2 (t text, t2 text, i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__pgspider_srv_1__1 (t text, t2 text, i int,__spd_url text) SERVER pgspider_srv_1 OPTIONS (table_name 'test2');
 --Testcase 7:
-SELECT * FROM test2__pgspider_srv_1__test2 ORDER BY i, t2, __spd_url;
+SELECT * FROM test2__pgspider_srv_1__1 ORDER BY i, t2, __spd_url;
 --Testcase 8:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 --Testcase 9:
-SELECT i, t, t2 FROM test2__pgspider_srv_1__test2 ORDER BY i, t2;
+SELECT i, t, t2 FROM test2__pgspider_srv_1__1 ORDER BY i, t2;
 --Testcase 10:
-SELECT __spd_url FROM test2__pgspider_srv_1__test2 ORDER BY __spd_url;
+SELECT __spd_url FROM test2__pgspider_srv_1__1 ORDER BY __spd_url;
 --Testcase 11:
 SELECT i, t, t2 FROM test2 ORDER BY i, t2;
 --Testcase 12:
@@ -78,30 +78,30 @@ CREATE SERVER pgspider_srv_2 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '12
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_srv_2;
 -- pgspider_core_fdw table
 --Testcase 76:
-CREATE FOREIGN TABLE test1__pgspider_srv_2__test (i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test1');
+CREATE FOREIGN TABLE test1__pgspider_srv_2__0 (i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test1');
 --Testcase 25:
-SELECT * FROM test1__pgspider_srv_2__test ORDER BY i, __spd_url;
+SELECT * FROM test1__pgspider_srv_2__0 ORDER BY i, __spd_url;
 --Testcase 26:
 SELECT * FROM test1 ORDER BY i, __spd_url;
 --Testcase 27:
-SELECT i FROM test1__pgspider_srv_2__test ORDER BY i;
+SELECT i FROM test1__pgspider_srv_2__0 ORDER BY i;
 --Testcase 28:
-SELECT __spd_url FROM test1__pgspider_srv_2__test ORDER BY __spd_url;
+SELECT __spd_url FROM test1__pgspider_srv_2__0 ORDER BY __spd_url;
 --Testcase 29:
 SELECT i FROM test1 ORDER BY i;
 --Testcase 30:
 SELECT __spd_url FROM test1 ORDER BY __spd_url;
 --
 --Testcase 77:
-CREATE FOREIGN TABLE test2__pgspider_srv_2__test2 (t text,t2 text,i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__pgspider_srv_2__1 (t text,t2 text,i int,__spd_url text) SERVER pgspider_srv_2 OPTIONS (table_name 'test2');
 --Testcase 31:
-SELECT * FROM test2__pgspider_srv_2__test2 ORDER BY i, t, t2, __spd_url;
+SELECT * FROM test2__pgspider_srv_2__1 ORDER BY i, t, t2, __spd_url;
 --Testcase 32:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 --Testcase 33:
-SELECT t, t2, i FROM test2__pgspider_srv_2__test2 ORDER BY i, t2;
+SELECT t, t2, i FROM test2__pgspider_srv_2__1 ORDER BY i, t2;
 --Testcase 34:
-SELECT __spd_url FROM test2__pgspider_srv_2__test2 ORDER BY __spd_url;
+SELECT __spd_url FROM test2__pgspider_srv_2__1 ORDER BY __spd_url;
 --Testcase 35:
 SELECT t, t2, i FROM test2 ORDER BY i, t2;
 --Testcase 36:
@@ -275,25 +275,25 @@ SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY __spd_url;
 
 -- DROP FOREIGN TABLE
 --Testcase 118:
-DROP FOREIGN TABLE test1__pgspider_srv_2__test;
+DROP FOREIGN TABLE test1__pgspider_srv_2__0;
 --Testcase 57:
-SELECT * FROM test1__pgspider_srv_2__test;
+SELECT * FROM test1__pgspider_srv_2__0;
 --Testcase 58:
 SELECT * FROM test1 ORDER BY i, __spd_url;
 --Testcase 59:
 SELECT * FROM test1 WHERE i = 1 OR i = 777 ORDER BY i, __spd_url ;
 --Testcase 119:
-DROP FOREIGN TABLE test1__pgspider_srv_1__test;
+DROP FOREIGN TABLE test1__pgspider_srv_1__0;
 --Testcase 60:
-SELECT * FROM test1__pgspider_srv_1__test;
+SELECT * FROM test1__pgspider_srv_1__0;
 --Testcase 61:
 SELECT * FROM test1 ORDER BY i, __spd_url;
 --Testcase 120:
-DROP FOREIGN TABLE test2__pgspider_srv_1__test2;
+DROP FOREIGN TABLE test2__pgspider_srv_1__1;
 --Testcase 62:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 --Testcase 121:
-DROP FOREIGN TABLE test2__pgspider_srv_2__test2;
+DROP FOREIGN TABLE test2__pgspider_srv_2__1;
 --Testcase 63:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 -- Clean up

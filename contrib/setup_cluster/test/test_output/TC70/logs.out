@@ -1,4 +1,4 @@
-File:install_main.c Function:main L:1600 Msg:Error: Can not open file ./not_exist_file.json
+File:install_main.c Function:main L:1546 Msg:Error: Can not open file ./not_exist_file.json
 Config directory: ./
 Node information file: not_exist_file.json
 Node structure file: node_structure.json
