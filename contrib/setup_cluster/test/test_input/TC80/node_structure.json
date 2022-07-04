@@ -1,0 +1,29 @@
+{
+    "Nodename":"db1",
+    "Nodes":[
+        {"Nodename":"db2"},
+        {"Nodename":"db3"},
+        {"Nodename":"db4",
+            "Nodes":[
+                    {
+                        "Nodename":"db5",
+                        "Nodes":[
+                            {"Nodename":"db8"},
+                            {"Nodename":"db9"}
+                        ]
+                    },
+                    { "Nodename":"db6"},
+                    { "Nodename":"db13"},
+                    { "Nodename":"db14"},
+                    {
+                        "Nodename":"db7",
+                        "Nodes":[
+                            {"Nodename":"db10"},
+                            {"Nodename":"db11"},
+                            {"Nodename":"db12"}
+                        ]
+                    }
+            ]
+        }
+    ]
+}

@@ -2473,28 +2473,36 @@ spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid)
 	MemoryContext oldcontext;
 	MemoryContext spicontext;
 
+	/* CurrentMemoryContext is changed during SPI_execute, so save the oldContext to be able to switch back */
 	oldcontext = CurrentMemoryContext;
 	ret = SPI_connect();
 	if (ret < 0)
 		elog(ERROR, "SPI_connect failed. Returned %d.", ret);
 
 	/*
-	 * Child table name is "ParentTableName_NodeName_sequenceNum". We creates
-	 * SQL searching child table oids whose name is like
-	 * "ParentTableName_...". Tables whose name is like
-	 * "<tablename>_<columnname>_seq" is excepted, because this is a system
+	 * Child table name is "ParentTableName_ServerName_sequenceNum". We creates
+	 * SQL searching child table oids whose name match regex "ParentTableName_ServerName_[0-9]+$".
+	 * Tables whose name is like "<tablename>_<columnname>_seq" is excepted, because this is a system
 	 * table. If using function pg_catalog.setval, for example,
 	 * pg_catalog.setval('<table>_<column>_seq', 10, false), relname of this
 	 * system also matches the format.
 	 */
-	sprintf(query, "SELECT oid, relname FROM pg_class WHERE (relname LIKE (SELECT relname FROM pg_class WHERE oid = %d) ||"
-			"'\\_\\_%%') AND (relname NOT LIKE '%%\\_%%\\_seq') ORDER BY relname;", foreigntableid);
+	sprintf(query, "WITH srv AS "
+				   "    (SELECT srvname FROM pg_foreign_table ft "
+				   "        JOIN pg_foreign_server fs ON ft.ftserver = fs.oid GROUP BY srvname ORDER BY srvname),"
+				   "regex_pattern AS "
+				   "    (SELECT '^' || relname || '\\_\\_' || srv.srvname  || '\\_\\_[0-9]+$' regex FROM pg_class "
+				   "        CROSS JOIN srv WHERE oid = %d)"
+				   "SELECT oid, relname FROM pg_class "
+				   "    WHERE (relname ~ (SELECT string_agg(regex, '|') FROM regex_pattern)) "
+				   "      AND (relname NOT LIKE '%%\\_%%\\_seq') "
+				   "    ORDER BY relname;", foreigntableid);
 
 	ret = SPI_execute(query, true, 0);
 	if (ret != SPI_OK_SELECT)
 	{
 		SPI_finish();
-		elog(ERROR, "SPI_execute failed. Retrned %d. SQL is %s.", ret, query);
+		elog(ERROR, "SPI_execute failed. Returned %d. SQL is %s.", ret, query);
 	}
 	spi_temp = SPI_processed;
 	spicontext = MemoryContextSwitchTo(oldcontext);

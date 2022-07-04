@@ -37,14 +37,12 @@ SELECT * FROM public.pgspider_core_fdw_version();
 --Testcase 297:
 SELECT pgspider_core_fdw_version();
 
---Testcase 195:
-CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 --Testcase 196:
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 3:
 SELECT * FROM test1;
 --Testcase 197:
-CREATE FOREIGN TABLE test1__filesvr2__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 4:
 SELECT * FROM test1 order by i,__spd_url;
 --Testcase 5:

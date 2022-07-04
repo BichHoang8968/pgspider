@@ -60,8 +60,6 @@ SELECT pgspider_core_fdw_version();
                      20000
 (1 row)
 
---Testcase 195:
-CREATE SERVER filesvr2 FOREIGN DATA WRAPPER file_fdw;
 --Testcase 196:
 CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 3:
@@ -75,7 +73,7 @@ SELECT * FROM test1;
 (4 rows)
 
 --Testcase 197:
-CREATE FOREIGN TABLE test1__filesvr2__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 4:
 SELECT * FROM test1 order by i,__spd_url;
  i | __spd_url  
@@ -3162,12 +3160,11 @@ drop cascades to user mapping for public on server post_svr3
 drop cascades to foreign table t2__post_svr3__0
 --Testcase 271:
 DROP EXTENSION file_fdw CASCADE;
-NOTICE:  drop cascades to 5 other objects
+NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server file_svr
 drop cascades to foreign table filetbl__file_svr__0
 drop cascades to foreign table test1__file_svr__0
-drop cascades to foreign table test1__filesvr2__0
-drop cascades to server filesvr2
+drop cascades to foreign table test1__file_svr__1
 --Testcase 272:
 DROP EXTENSION sqlite_fdw CASCADE;
 NOTICE:  drop cascades to 3 other objects

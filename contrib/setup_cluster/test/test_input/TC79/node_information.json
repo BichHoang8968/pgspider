@@ -1,0 +1,34 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "file_fdw",
+		"column": "c1 text, c2 bigint, c3 float8",
+		"dirpath": "/tmp/test_setcluster",
+		"table": "tmp_test_setcluster"
+	},
+	{
+		"nodename": "db3",
+		"fdw": "file_fdw",
+		"column": "c1 text, c2 bigint, c3 float8",
+		"dirpath": "/tmp/test_setcluster2",
+		"table": "tmp_test_setcluster2"
+	},
+	{
+		"nodename": "db4",
+		"fdw": "file_fdw",
+		"column": "c1 text, c2 bigint, c3 float8",
+		"dirpath": "/tmp/test_setcluster3",
+		"table": "tmp_test_setcluster"
+	}
+]

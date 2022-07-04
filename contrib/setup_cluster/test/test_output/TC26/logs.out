@@ -1,4 +1,4 @@
-File:install_main.c Function:main L:1613 Msg:Error: ./node_information.json is invalid json file 
+File:install_main.c Function:main L:1559 Msg:Error: ./node_information.json is invalid json file 
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

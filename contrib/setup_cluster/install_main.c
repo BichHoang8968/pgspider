@@ -209,49 +209,12 @@ set_child_ip(PGconn *conn, nodes * node_data)
 	char		query[QUERY_LEN];
 
 	if (node_data->ip == NULL)
-		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->name, node_data->fdw);
+		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->nodename, node_data->fdw);
 	else if (strcmp(node_data->fdw, "influxdb_fdw") == 0)
-		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->name, node_data->fdw);
+		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->nodename, node_data->fdw);
 	else
-		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','%s');", node_data->name, node_data->fdw, node_data->ip);
+		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','%s');", node_data->nodename, node_data->fdw, node_data->ip);
 	return query_execute(conn, query);
-}
-
-/*
- * replace '/' to '_'. This is for file fdw
- *
- * @param[in] str - directory path
- *
- * @return replace string
- */
-static char *
-replace_sla(char *str)
-{
-	char	   *result;
-	char	   *p;
-	int			len;
-	int			start = 0,
-				end = 0;
-
-	len = strlen(str) + 1;
-	result = malloc(sizeof(char) * len);
-	if (result != NULL)
-	{
-		if (str[0] == '/')
-			start = 1;
-		if (str[len - 2] == '/')
-			end = 1;
-		strncpy(result, str + start, len - 1 - start - end);
-		result[len - 1 - start - end] = '\0';
-		p = strchr(result, '/');
-		while (p)
-		{
-			*p = '_';
-			p = strchr(p + 1, '/');
-		}
-	}
-
-	return result;
 }
 
 /*
@@ -277,9 +240,9 @@ import_schema(PGconn *conn, nodes * node_data)
 		return rc;
 
 	if (strcmp(node_data->fdw, "mysql_fdw") == 0)
-		sprintf(query, "IMPORT FOREIGN SCHEMA %s FROM server %s INTO temp_schema;", node_data->dbname, node_data->name);
+		sprintf(query, "IMPORT FOREIGN SCHEMA %s FROM server %s INTO temp_schema;", node_data->dbname, node_data->nodename);
 	else
-		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM server %s INTO temp_schema;", node_data->name);
+		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM server %s INTO temp_schema;", node_data->nodename);
 
 	rc = query_execute(conn, query);
 	if (rc != SETUP_OK)
@@ -394,9 +357,6 @@ load_filefdw_admin(PGconn *conn, nodes * node_data, char *parent_server, char *u
 {
 	ReturnCode	rc;
 	char		query[QUERY_LEN];
-	file_fdw_tables *elem;
-	char	   *backup_tablename = node_data->tablename;
-	char	   *backup_name = node_data->name;
 
 	rc = list_up_files(node_data);
 	if (rc != SETUP_OK)
@@ -411,37 +371,32 @@ load_filefdw_admin(PGconn *conn, nodes * node_data, char *parent_server, char *u
 	if (rc != SETUP_OK)
 		return rc;
 
-	elem = node_data->file_tables;
-	while (elem)
-	{
-		node_data->name = elem->tablename;
-		node_data->tablename = elem->filename;
-
-		/* Insert a record to pg_spd_node_info table. */
-		rc = set_child_ip(conn, node_data);
-		if (rc != SETUP_OK)
-			goto end_load_filefdw_admin;
-
-		elem = elem->next;
-	}
-
-end_load_filefdw_admin:
-	/* Restore variables which wee modified temporary in the while loop. */
-	node_data->tablename = backup_tablename;
-	node_data->name = backup_name;
+	rc = set_child_ip(conn, node_data);
 
 	return rc;
 }
 
 /*
  * Load and set file fdw tables.
- * File fdw table name is directory path.
- * Same directory data is same table.
+ * File fdw parent table name is the table value in node_information.json.
+ * Server name is node name in node_information.json.
+ * Each file in directory is corresponding with a child table.
+ * Child table name has format [tablename]__[nodename]__[sequencenumber]
  *
  * ex.
- * /csv/data/data1.csv, /csv/data/data2.csv
- * Parent table name is csv_data
- * Child table name are csv_data__data1__0 and csv_data__data2__0
+ * - Data in node_information.json:
+ *	 {
+ *		"nodename": "db3",
+ *		"fdw": "file_fdw",
+ *		"column": "c1 text, c2 bigint, c3 float8",
+ *		"dirpath": "/tmp/test_setcluster1"
+ *		"table":"tbl1"
+ *	 }
+ * - Folder /tmp/test_setcluster1 has 2 files: file1.csv, file2.csv
+ * Result:
+ * - Parent table name is tbl1
+ * - Server name is db3
+ * - Child table name are tbl1__db3__0 and tbl1__db3__1
  *
  * @param[in] conn - Connection for pgspider
  * @param[in] node_data - Nodes data
@@ -455,39 +410,31 @@ load_filefdw(PGconn *conn, nodes * node_data, char *parent_server)
 	ReturnCode	rc = SETUP_OK;
 	char		query[QUERY_LEN];
 	file_fdw_tables *elem;
-	char	   *backup_tablename = node_data->tablename;
-	char	   *backup_name = node_data->name;
+	int			i = 0;
 
 	/* CREATE parent table */
-	sprintf(query, "CREATE FOREIGN TABLE IF NOT EXISTS \"%s\"(%s,__spd_url text) server %s;", node_data->nodename, node_data->column, parent_server);
+	sprintf(query, "CREATE FOREIGN TABLE IF NOT EXISTS \"%s\"(%s,__spd_url text) server %s;", node_data->table, node_data->column, parent_server);
+	printf("file_fdw parent foreign table: %s\n", query);
 	rc = query_execute(conn, query);
+	if (rc != SETUP_OK)
+		return rc;
+
+	/* Create a foreign server. */
+	rc = node_set(node_data, conn);
 	if (rc != SETUP_OK)
 		return rc;
 
 	elem = node_data->file_tables;
 	while (elem)
 	{
-		node_data->name = elem->tablename;
-		node_data->tablename = elem->filename;
-
-		/* Create a foreign server. */
-		rc = node_set(node_data, conn);
-		if (rc != SETUP_OK)
-			goto end_load_filefdw;
-
 		/* Create a foreign table. */
-		rc = mapping_set_file(node_data, conn, elem->filename);
+		rc = mapping_set_file(node_data, conn, elem->filename, i);
 		if (rc != SETUP_OK)
-			goto end_load_filefdw;
+			return rc;
 
 		elem = elem->next;
+		i++;
 	}
-
-
-end_load_filefdw:
-	/* Restore variables which wee modified temporary in the while loop. */
-	node_data->tablename = backup_tablename;
-	node_data->name = backup_name;
 
 	return rc;
 }
@@ -705,7 +652,7 @@ search_nodes(char *nodename, nodes * node)
 
 	while (tempnode)
 	{
-		if (tempnode->name != NULL && strcmp(nodename, tempnode->name) == 0)
+		if (tempnode->nodename != NULL && strcmp(nodename, tempnode->nodename) == 0)
 			return tempnode;
 		tempnode = tempnode->next;
 	}
@@ -734,7 +681,7 @@ free_nodedata(nodes * node)
 		pnext = node;
 		free(node->nodename);
 		free(node->fdw);
-		free(node->name);
+		free(node->nodename);
 		free(node->ip);
 		free(node->port);
 		free(node->user);
@@ -829,7 +776,7 @@ parse_conf(json_t * element, nodes * nodes_data)
 					return SETUP_NOMEM;
 				}
 				if (strcasecmp(key, "nodename") == 0)
-					nodes_data->name = data;
+					nodes_data->nodename = data;
 				else if (strcasecmp(key, "fdw") == 0)
 					nodes_data->fdw = data;
 				else if (strcasecmp(key, "ip") == 0)
@@ -848,6 +795,8 @@ parse_conf(json_t * element, nodes * nodes_data)
 					nodes_data->pass_admin = data;
 				else if (strcasecmp(key, "dbname") == 0)
 					nodes_data->dbname = data;
+				else if (strcasecmp(key, "table") == 0)
+					nodes_data->table = data;
 				else if (strcasecmp(key, "dirpath") == 0)
 					nodes_data->dirpath = data;
 				else if (strcasecmp(key, "column") == 0)
@@ -896,7 +845,7 @@ verify_nodename(nodes * node_data)
 	head_data = node_data;
 	while (head_data)
 	{
-		if (!head_data->name || strcmp(head_data->name, "") == 0)
+		if (!head_data->nodename || strcmp(head_data->nodename, "") == 0)
 		{
 			PRINT_ERROR("Error: Node name is not existed\n");
 			return SETUP_INVALID_CONTENT;
@@ -905,14 +854,14 @@ verify_nodename(nodes * node_data)
 		head2_data = head_data->next;
 		while (head2_data)
 		{
-			if (!head2_data->name || strcmp(head2_data->name, "") == 0)
+			if (!head2_data->nodename || strcmp(head2_data->nodename, "") == 0)
 			{
 				PRINT_ERROR("Error: Node name is not existed\n");
 				return SETUP_INVALID_CONTENT;
 			}
-			else if (strcasecmp(head_data->name, head2_data->name) == 0)
+			else if (strcasecmp(head_data->nodename, head2_data->nodename) == 0)
 			{
-				PRINT_ERROR("Error: Duplicate node name in node data: %s\n", head_data->name);
+				PRINT_ERROR("Error: Duplicate node name in node data: %s\n", head_data->nodename);
 				return SETUP_INVALID_CONTENT;
 			}
 			head2_data = head2_data->next;
@@ -955,8 +904,8 @@ get_all_child(child_node_list * parent_node, nodes * *child_list)
 		return SETUP_INVALID_CONTENT;
 	}
 	new_child_data = create_node();
-	new_child_data->name = malloc_nodedata(p->node_name);
-	if (!new_child_data->name)
+	new_child_data->nodename = malloc_nodedata(p->node_name);
+	if (!new_child_data->nodename)
 	{
 		PRINT_ERROR("Error: out of memory\n");
 		return SETUP_NOMEM;
@@ -1000,12 +949,12 @@ detect_loop(child_node_list * parent_node, nodes * child_list, nodes * nodes_dat
 
 	while (head_data)
 	{
-		if (!head_data->name || strcmp(head_data->name, "") == 0)
+		if (!head_data->nodename || strcmp(head_data->nodename, "") == 0)
 		{
 			PRINT_ERROR("Error: Node name is not existed\n");
 			return SETUP_INVALID_CONTENT;
 		}
-		child_data = search_nodes(head_data->name, nodes_data);
+		child_data = search_nodes(head_data->nodename, nodes_data);
 		if (!child_data)
 			return SETUP_INVALID_CONTENT;
 
@@ -1216,23 +1165,20 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 
 		if (strcasecmp(child_node_data->fdw, "file_fdw") == 0)
 		{
-			char	   *tablename;
+			char	   *missing_content = NULL;
 
 			if (child_node_data->dirpath == NULL)
+				missing_content = "dirpath";
+			else if (child_node_data->table == NULL)
+				missing_content = "table";
+
+			if (missing_content != NULL)
 			{
-				PRINT_ERROR("Error: dirpath is not specified for file_fdw. \n");
+				PRINT_ERROR("Error: %s is not specified for file_fdw. \n", missing_content);
 				rc = SETUP_INVALID_CONTENT;
 				goto err_set_pgspider_node_admin;
 			}
-			tablename = replace_sla(child_node_data->dirpath);
-			if (tablename == NULL)
-			{
-				PRINT_ERROR("Error: out of memory\n");
-				rc = SETUP_NOMEM;
-				goto err_set_pgspider_node_admin;
-			}
 
-			child_node_data->nodename = tablename;
 			rc = load_filefdw_admin(conn, child_node_data, child_node->node_name, parent_node->user);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node_admin;
@@ -1337,7 +1283,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 			rc = import_schema(conn, child_node_data);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node;
-			rc = rename_foreign_table(conn, child_node_data->name, child_node_data->fdw, parent_node->name);
+			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node;
 		}
@@ -1347,7 +1293,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 		goto err_set_pgspider_node;
 
 	PQfinish(conn);
-	printf("FINISH %s \n", parent_node->name);
+	printf("FINISH %s \n", parent_node->nodename);
 
 	return SETUP_OK;
 

@@ -41,12 +41,12 @@ node_set_spdcore(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->name, "pgspider_core_fdw", option->ip, option->port);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "pgspider_core_fdw", option->ip, option->port);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -61,12 +61,12 @@ tinybrace_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "tinybrace_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "tinybrace_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -80,12 +80,12 @@ mysql_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->name, "mysql_fdw", option->ip, option->port);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "mysql_fdw", option->ip, option->port);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -99,12 +99,12 @@ postgres_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s',dbname '%s');\n", option->name, "postgres_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s',dbname '%s');\n", option->nodename, "postgres_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -118,12 +118,12 @@ pgspider_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "pgspider_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "pgspider_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -137,7 +137,7 @@ sqlite_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(database '%s');\n", option->name, "sqlite_fdw", option->dbname);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(database '%s');\n", option->nodename, "sqlite_fdw", option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -152,7 +152,7 @@ file_fdw(nodes * option, PGconn *conn)
 	char		sql[QUERY_LEN];
 
 	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s;", option->nodename, "file_fdw");
-	printf("file %s\n", sql);
+	printf("file_fdw server: %s\n", sql);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -167,9 +167,9 @@ griddb_fdw(nodes * option, PGconn *conn)
 	char		sql[QUERY_LEN];
 
 	if (option->notification_member == NULL || strcmp(option->notification_member, "") == 0)
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->name, option->ip, option->port, option->clustername);
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->nodename, option->ip, option->port, option->clustername);
 	else
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->name, option->notification_member, option->clustername);
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->nodename, option->notification_member, option->clustername);
 	/* set dbname */
 	if (option->dbname == NULL)
 		sprintf(sql, "%s);", sql);
@@ -179,7 +179,7 @@ griddb_fdw(nodes * option, PGconn *conn)
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->name, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -194,13 +194,13 @@ influxdb_fdw(nodes * option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->name, "influxdb_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
 	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
-			option->name, option->user, option->pass);
+			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -228,18 +228,19 @@ node_set(nodes * option, PGconn *conn)
 }
 
 ReturnCode
-mapping_set_file(nodes * option, PGconn *conn, char *table_name)
+mapping_set_file(nodes * option, PGconn *conn, char *filename, int seqnum)
 {
 	char		sql[QUERY_LEN];
 	char		table_path[512];
 
 	if (option->dirpath[strlen(option->dirpath) - 1] == '/')
-		sprintf(table_path, "%s%s", option->dirpath, table_name);
+		sprintf(table_path, "%s%s", option->dirpath, filename);
 	else
-		sprintf(table_path, "%s/%s", option->dirpath, table_name);
-	sprintf(sql, "CREATE FOREIGN TABLE %s__%s__0(%s) SERVER %s OPTIONS(filename '%s', format 'csv');\n",
-			option->nodename, option->name, option->column, option->nodename, table_path);
-	/* sprintf(table_name, "%s__%s__%d", option->fdw, option[6], resp_cnt); */
-	printf("mapping set file %s\n", sql);
+		sprintf(table_path, "%s/%s", option->dirpath, filename);
+
+	sprintf(sql, "CREATE FOREIGN TABLE %s__%s__%d(%s) SERVER %s OPTIONS(filename '%s', format 'csv');\n",
+			option->table, option->nodename, seqnum, option->column, option->nodename, table_path);
+	printf("file_fdw child foreign table: %s\n", sql);
+
 	return query_execute(conn, sql);
 }

@@ -44,7 +44,6 @@ typedef struct nodes
 {
 	char	   *nodename;
 	char	   *fdw;
-	char	   *name;
 	char	   *ip;
 	char	   *port;
 	char	   *user;
@@ -52,7 +51,7 @@ typedef struct nodes
 	char	   *user_admin;
 	char	   *pass_admin;
 	char	   *dbname;
-	char	   *tablename;
+	char	   *table;
 	char	   *clustername;
 	char	   *notification_member;
 	char	   *dbpath;

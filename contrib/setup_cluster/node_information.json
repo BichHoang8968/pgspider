@@ -43,7 +43,8 @@
 		"nodename": "db5",
 		"fdw": "file_fdw",
 		"column": "i int, t text",
-		"dirpath": ""
+		"dirpath": "",
+		"table": "tmp_test_setcluster"
 	},
 	{
 		"nodename": "db6",

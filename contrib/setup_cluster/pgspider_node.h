@@ -18,6 +18,6 @@ extern const spd_function spd_func[];
 
 ReturnCode	node_set(nodes * option, PGconn *conn);
 ReturnCode	node_set_spdcore(nodes * option, PGconn *conn);
-ReturnCode	mapping_set_file(nodes * node_data, PGconn *conn, char *table_name);
+ReturnCode	mapping_set_file(nodes * node_data, PGconn *conn, char *table_name, int seqnum);
 
 #endif							/* PGSPIDER_FDW_H */
