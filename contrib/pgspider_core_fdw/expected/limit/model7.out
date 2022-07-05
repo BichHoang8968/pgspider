@@ -5788,7 +5788,7 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2+c5) FROM tbl01 ORDE
            Agg push-down: yes
            TinyBrace query: SELECT sum(`c5`), max(`c7`), min(`c8`), count(((`c9` / 2) + `c5`)) FROM "tbl01"
            TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(29 rows)
+(30 rows)
 
 --Testcase 232:
 SELECT sum(c5), max(c7), min(c8), count(c9/2+c5) FROM tbl01 ORDER BY 1 ASC, 2, 3;
