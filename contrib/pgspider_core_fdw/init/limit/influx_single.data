@@ -1,9 +1,9 @@
 # DDL
-DROP DATABASE limit_orderby
-CREATE DATABASE limit_orderby
+DROP DATABASE limit_orderby_influx_single
+CREATE DATABASE limit_orderby_influx_single
 
 # DML
-# CONTEXT-DATABASE: limit_orderby
+# CONTEXT-DATABASE: limit_orderby_influx_single
 
 
 tbl01,c1=abcd,c2=AGK c3="Cuba",c4=100i,c5=100.5,c6=1i,c7="Thequickbrownfoxjumpsoverthelazydog",c8=-36854775808i,c9=1.79E+68,c10=212i,c11="1999-01-08T10:00:00" -9223372036854775806
