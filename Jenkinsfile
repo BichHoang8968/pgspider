@@ -204,73 +204,73 @@ pipeline {
                 }
             }
         }
-        // stage('pgspider_core_fdw_multi.sql') {
-        //     steps {
-        //         catchError() {
-        //             sh """
-        //                 docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_multi ${BRANCH_PGSPIDER}" postgres'
-        //                 docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec tinybraceserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
-        //                 docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'
-        //                 docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
-        //                 docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-        //                 docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-        //                 docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs2" pgspider'
-        //                 docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs3" pgspider'
-        //                 docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_multi" pgspider'
-        //                 docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_multi_make_check.out
-        //             """
-        //         }
-        //         script {
-        //             status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_multi_make_check.out'")
-        //             if (status != 0) {
-        //                 unstable(message: "Set UNSTABLE result")
-        //                 emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_multi_make_check.out"}', to: "${MAIL_TO}", attachLog: false
-        //                 sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_multi_regression.diffs'
-        //                 sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_multi_fdw'
-        //                 sh 'cat pgspider_core_fdw_multi_regression.diffs || true'
-        //                 updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
-        //             } else {
-        //                 updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
-        //             }
-        //         }
-        //     }
-        // }
-        // stage('pgspider_selectfunc') {
-        //     steps {
-        //         catchError() {
-        //             sh """
-        //                 docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'
-        //                 docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
-        //                 docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
-        //                 docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-        //                 docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
-        //                 docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs2" pgspider'
-        //                 docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs3" pgspider'
-        //                 docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_selectfunc" pgspider'
-        //                 docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_selectfunc_make_check.out
-        //             """
-        //         }
-        //         script {
-        //             status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_selectfunc_make_check.out'")
-        //             if (status != 0) {
-        //                 unstable(message: "Set UNSTABLE result")
-        //                 emailext subject: '[CI PGSpider] pgspider_core_fdw_selectfunc Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_selectfunc_make_check.out"}', to: "${MAIL_TO}", attachLog: false
-        //                 sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_selectfunc.diffs'
-        //                 sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_fdw_selectfunc'
-        //                 sh 'cat pgspider_core_fdw_selectfunc.diffs || true'
-        //                 updateGitlabCommitStatus name: 'pgspider_core_fdw_selectfunc', state: 'failed'
-        //             } else {
-        //                 updateGitlabCommitStatus name: 'pgspider_core_fdw_selectfunc', state: 'success'
-        //             }
-        //         }
-        //     }
-        // }
+        stage('pgspider_core_fdw_multi.sql') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_multi ${BRANCH_PGSPIDER}" postgres'
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
+                        docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}"
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs2" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_multi.sh --pgs3" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_multi" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_multi_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_multi_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_multi_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_multi_regression.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_multi_fdw'
+                        sh 'cat pgspider_core_fdw_multi_regression.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_multi', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('pgspider_selectfunc') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_selectfunc.sh ${BRANCH_PGSPIDER}"
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs2" pgspider'
+                        docker exec pgspiderserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_selectfunc.sh --pgs3" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_selectfunc" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_selectfunc_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_selectfunc_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_selectfunc Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_selectfunc_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_selectfunc.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_fdw_selectfunc'
+                        sh 'cat pgspider_core_fdw_selectfunc.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_selectfunc', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_selectfunc', state: 'success'
+                    }
+                }
+            }
+        }
         stage('pgspider_limit') {
             steps {
                 catchError() {
@@ -307,7 +307,7 @@ pipeline {
                     }
                 }
             }
-        }        
+        }
         /*stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
