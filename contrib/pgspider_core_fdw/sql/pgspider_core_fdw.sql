@@ -784,17 +784,3 @@ DROP EXTENSION sqlite_fdw CASCADE;
 DROP EXTENSION tinybrace_fdw CASCADE;
 --Testcase 274:
 DROP EXTENSION mysql_fdw CASCADE;
-
-select datname, 
-       datcollate
-from pg_database;
-
-select table_schema,
-       table_name,
-       column_name,
-       collation_name
-from information_schema.columns
-where collation_name is not null
-order by table_schema,
-         table_name,
-         ordinal_position;
