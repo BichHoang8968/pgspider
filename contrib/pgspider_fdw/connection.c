@@ -74,11 +74,11 @@ typedef struct ConnCacheEntry
 static HTAB *ConnectionHash = NULL;
 
 /* for assigning cursor numbers and prepared statement numbers */
-static unsigned int cursor_number = 0;
+static volatile unsigned int cursor_number = 0;
 static unsigned int prep_stmt_number = 0;
 
 /* tracks whether any work is needed in callback functions */
-static bool xact_got_connection = false;
+static volatile bool xact_got_connection = false;
 
 /*
  * SQL functions
