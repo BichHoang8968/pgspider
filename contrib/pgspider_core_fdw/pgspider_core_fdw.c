@@ -691,7 +691,7 @@ static bool throwErrorIfDead;
 static bool isPrintError;
 
 /* We need to make postgres_fdw_options variable initial one time */
-static bool isPostgresFdwInit = false;
+static volatile bool isPostgresFdwInit = false;
 pthread_mutex_t postgres_fdw_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /* We write lock SPI function and read lock child fdw routines */
@@ -2776,7 +2776,7 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 {
 	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 
-	SPD_READ_LOCK_TRY(scan_mutex);
+	SPD_WRITE_LOCK_TRY(scan_mutex);
 
 	PG_TRY();
 	{
