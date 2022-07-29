@@ -532,6 +532,7 @@ select count(*) from tenk1, tenk2 where tenk1.hundred > 1 and tenk2.thousand=0;
 
 create table bmscantest (a int, t text);
 insert into bmscantest select r, 'fooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo' FROM generate_series(1,100000) r;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 create index i_bmtest ON bmscantest(a);
 select count(*) from bmscantest where a>1;
  count 
@@ -1159,6 +1160,7 @@ $$declare x int[];
   end$$ language plpgsql parallel safe;
 CREATE TABLE fooarr(f1 text, f2 int[], f3 text);
 INSERT INTO fooarr VALUES('1', ARRAY[1,2], 'one');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 PREPARE pstmt(text, int[]) AS SELECT * FROM fooarr WHERE f1 = $1 AND f2 = $2;
 EXPLAIN (COSTS OFF) EXECUTE pstmt('1', make_some_array(1,2));
                             QUERY PLAN                            

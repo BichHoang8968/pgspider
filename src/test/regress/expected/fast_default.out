@@ -776,11 +776,13 @@ SELECT * FROM vtype2;
 BEGIN;
 CREATE TABLE t();
 INSERT INTO t DEFAULT VALUES;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ALTER TABLE t ADD COLUMN a int DEFAULT 1;
 CREATE INDEX ON t(a);
 -- set column with a default 1 to NULL, due to a bug that wasn't
 -- noticed has heap_getattr buggily returned NULL for default columns
 UPDATE t SET a = NULL;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- verify that index and non-index scans show the same result
 SET LOCAL enable_seqscan = true;
 SELECT * FROM t WHERE a IS NULL;

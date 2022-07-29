@@ -856,8 +856,10 @@ create function count_tt1_s() returns int8 as
 'select count(*) from tt1' language sql stable;
 begin;
 insert into tt1 values(1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 declare c1 cursor for select count_tt1_v(), count_tt1_s();
 insert into tt1 values(2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 fetch all from c1;
  count_tt1_v | count_tt1_s 
 -------------+-------------
@@ -867,8 +869,10 @@ fetch all from c1;
 rollback;
 begin;
 insert into tt1 values(1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 declare c2 cursor with hold for select count_tt1_v(), count_tt1_s();
 insert into tt1 values(2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 delete from tt1;
 fetch all from c2;
@@ -960,6 +964,7 @@ FETCH 2 FROM c1;
 (2 rows)
 
 DELETE FROM uctest WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should show deletion
 SELECT * FROM uctest;
  f1 |  f2   
@@ -1004,6 +1009,7 @@ FETCH c1;
 (1 row)
 
 UPDATE uctest SET f1 = 8 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 |  f2   
 ----+-------
@@ -1029,6 +1035,7 @@ FETCH c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 |  f2   
 ----+-------
@@ -1037,6 +1044,7 @@ SELECT * FROM uctest;
 (2 rows)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 |  f2   
 ----+-------
@@ -1052,6 +1060,7 @@ FETCH RELATIVE 0 FROM c1;
 (1 row)
 
 DELETE FROM uctest WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1059,6 +1068,7 @@ SELECT * FROM uctest;
 (1 row)
 
 DELETE FROM uctest WHERE CURRENT OF c1; -- no-op
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1066,6 +1076,7 @@ SELECT * FROM uctest;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1; -- no-op
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1095,6 +1106,7 @@ FETCH c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 |  f2   
 ----+-------
@@ -1103,6 +1115,7 @@ SELECT * FROM uctest;
 (2 rows)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 |  f2   
 ----+-------
@@ -1111,6 +1124,7 @@ SELECT * FROM uctest;
 (2 rows)
 
 DELETE FROM uctest WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1118,6 +1132,7 @@ SELECT * FROM uctest;
 (1 row)
 
 DELETE FROM uctest WHERE CURRENT OF c1; -- no-op
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1125,6 +1140,7 @@ SELECT * FROM uctest;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1; -- no-op
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1 | f2  
 ----+-----
@@ -1151,6 +1167,7 @@ SELECT * FROM uctest;
 BEGIN;
 DECLARE c1 INSENSITIVE CURSOR FOR SELECT * FROM uctest;
 INSERT INTO uctest VALUES (10, 'ten');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 FETCH NEXT FROM c1;
  f1 |  f2   
 ----+-------
@@ -1198,6 +1215,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 FETCH 1 FROM c1;
  f1 | f2  
 ----+-----
@@ -1205,6 +1223,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 FETCH 1 FROM c1;
  f1  |   f2    
 -----+---------
@@ -1212,6 +1231,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 FETCH 1 FROM c1;
  f1 | f2 
 ----+----
@@ -1236,6 +1256,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;  -- fail
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c1" is not a simply updatable scan of table "uctest"
 ROLLBACK;
 BEGIN;
@@ -1247,6 +1268,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;  -- fail
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c1" has multiple FOR UPDATE/SHARE references to table "uctest"
 ROLLBACK;
 BEGIN;
@@ -1258,6 +1280,7 @@ FETCH 1 FROM c1;
 (1 row)
 
 UPDATE uctest SET f1 = f1 + 10 WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM uctest;
  f1  |   f2    
 -----+---------
@@ -1276,26 +1299,31 @@ ERROR:  cursor "cx" is held from a previous transaction
 BEGIN;
 DECLARE c CURSOR FOR SELECT * FROM tenk2;
 DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor on wrong table
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c" is not a simply updatable scan of table "uctest"
 ROLLBACK;
 BEGIN;
 DECLARE c CURSOR FOR SELECT * FROM tenk2 FOR SHARE;
 DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor on wrong table
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c" does not have a FOR UPDATE/SHARE reference to table "uctest"
 ROLLBACK;
 BEGIN;
 DECLARE c CURSOR FOR SELECT * FROM tenk1 JOIN tenk2 USING (unique1);
 DELETE FROM tenk1 WHERE CURRENT OF c;  -- fail, cursor is on a join
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c" is not a simply updatable scan of table "tenk1"
 ROLLBACK;
 BEGIN;
 DECLARE c CURSOR FOR SELECT f1,count(*) FROM uctest GROUP BY f1;
 DELETE FROM uctest WHERE CURRENT OF c;  -- fail, cursor is on aggregation
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c" is not a simply updatable scan of table "uctest"
 ROLLBACK;
 BEGIN;
 DECLARE c1 CURSOR FOR SELECT * FROM uctest;
 DELETE FROM uctest WHERE CURRENT OF c1; -- fail, no current row
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  cursor "c1" is not positioned on a row
 ROLLBACK;
 BEGIN;
@@ -1316,6 +1344,7 @@ FETCH FROM c1;
 (1 row)
 
 DELETE FROM ucview WHERE CURRENT OF c1; -- fail, views not supported
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  WHERE CURRENT OF on a view is not implemented
 ROLLBACK;
 -- Check WHERE CURRENT OF with an index-only scan
@@ -1336,6 +1365,7 @@ FETCH FROM c1;
 (1 row)
 
 DELETE FROM onek WHERE CURRENT OF c1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT stringu1 FROM onek WHERE stringu1 = 'DZAAAA';
  stringu1 
 ----------
@@ -1349,7 +1379,9 @@ CREATE TABLE current_check (currentid int, payload text);
 CREATE TABLE current_check_1 () INHERITS (current_check);
 CREATE TABLE current_check_2 () INHERITS (current_check);
 INSERT INTO current_check_1 SELECT i, 'p' || i FROM generate_series(1,9) i;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO current_check_2 SELECT i, 'P' || i FROM generate_series(10,19) i;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DECLARE c1 SCROLL CURSOR FOR SELECT * FROM current_check;
 -- This tests the fetch-backwards code path
 FETCH ABSOLUTE 12 FROM c1;
@@ -1365,6 +1397,7 @@ FETCH ABSOLUTE 8 FROM c1;
 (1 row)
 
 DELETE FROM current_check WHERE CURRENT OF c1 RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload 
 -----------+---------
          8 | p8
@@ -1384,6 +1417,7 @@ FETCH ABSOLUTE 1 FROM c1;
 (1 row)
 
 DELETE FROM current_check WHERE CURRENT OF c1 RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload 
 -----------+---------
          1 | p1
@@ -1418,8 +1452,10 @@ BEGIN;
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 CREATE TABLE cursor (a int);
 INSERT INTO cursor VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DECLARE c1 NO SCROLL CURSOR FOR SELECT * FROM cursor FOR UPDATE;
 UPDATE cursor SET a = 2;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 FETCH ALL FROM c1;
  a 
 ---

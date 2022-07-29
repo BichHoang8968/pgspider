@@ -2841,12 +2841,19 @@ create temp table c (
      constraint c_pk primary key (name)
 );
 insert into a (code) values ('p');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into a (code) values ('q');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into b (a, num) values ('p', 1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into b (a, num) values ('p', 2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into c (name, a) values ('A', 'p');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into c (name, a) values ('B', 'q');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into c (name, a) values ('C', null);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select c.name, ss.code, ss.b_cnt, ss.const
 from c left join
   (select a.code, coalesce(b_grp.cnt, 0) as b_cnt, -1 as const
@@ -4532,9 +4539,13 @@ CREATE TEMP TABLE b (id int PRIMARY KEY, c_id int);
 CREATE TEMP TABLE c (id int PRIMARY KEY);
 CREATE TEMP TABLE d (a int, b int);
 INSERT INTO a VALUES (0, 0), (1, NULL);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO b VALUES (0, 0), (1, NULL);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO c VALUES (0), (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO d VALUES (1,3), (2,2), (3,1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- all three cases should be optimizable into a simple seqscan
 explain (costs off) SELECT a.* FROM a LEFT JOIN b ON a.b_id = b.id;
   QUERY PLAN   
@@ -4743,7 +4754,9 @@ begin;
 CREATE TEMP TABLE a (id int PRIMARY KEY);
 CREATE TEMP TABLE b (id int PRIMARY KEY, a_id int);
 INSERT INTO a VALUES (0), (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO b VALUES (0, 0), (1, NULL);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM b LEFT JOIN a ON (b.a_id = a.id) WHERE (a.id IS NULL OR a.id > 0);
  id | a_id | id 
 ----+------+----
@@ -4761,6 +4774,7 @@ rollback;
 begin;
 create temp table innertab (id int8 primary key, dat1 int8);
 insert into innertab values(123, 42);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM
     (SELECT 1 AS x) ss1
   LEFT JOIN
@@ -6098,6 +6112,7 @@ drop table join_ut1;
 begin;
 create table fkest (x integer, x10 integer, x10b integer, x100 integer);
 insert into fkest select x, x/10, x/10, x/100 from generate_series(1,1000) x;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 create unique index on fkest(x, x10, x100);
 analyze fkest;
 explain (costs off)
@@ -6149,7 +6164,9 @@ begin;
 create table fkest (a int, b int, c int unique, primary key(a,b));
 create table fkest1 (a int, b int, primary key(a,b));
 insert into fkest select x/10, x%10, x from generate_series(1,1000) x;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into fkest1 select x/10, x%10 from generate_series(1,1000) x;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 alter table fkest1
   add constraint fkest1_a_b_fkey foreign key (a,b) references fkest;
 analyze fkest;

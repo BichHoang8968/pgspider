@@ -11,6 +11,7 @@ INSERT INTO pxtest1 VALUES ('aaa');
 -- Test PREPARE TRANSACTION
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 UPDATE pxtest1 SET foobar = 'bbb' WHERE foobar = 'aaa';
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM pxtest1;
  foobar 
 --------
@@ -47,6 +48,7 @@ SELECT gid FROM pg_prepared_xacts;
 -- Test COMMIT PREPARED
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 INSERT INTO pxtest1 VALUES ('ddd');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM pxtest1;
  foobar 
 --------
@@ -72,6 +74,7 @@ SELECT * FROM pxtest1;
 -- Test duplicate gids
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 UPDATE pxtest1 SET foobar = 'eee' WHERE foobar = 'ddd';
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM pxtest1;
  foobar 
 --------
@@ -88,6 +91,7 @@ SELECT gid FROM pg_prepared_xacts;
 
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 INSERT INTO pxtest1 VALUES ('fff');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- This should fail, because the gid foo3 is already in use
 PREPARE TRANSACTION 'foo3';
 ERROR:  transaction identifier "foo3" is already in use
@@ -109,6 +113,7 @@ SELECT * FROM pxtest1;
 -- Test serialization failure (SSI)
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 UPDATE pxtest1 SET foobar = 'eee' WHERE foobar = 'ddd';
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM pxtest1;
  foobar 
 --------
@@ -133,6 +138,7 @@ SELECT * FROM pxtest1;
 
 -- This should fail, because the two transactions have a write-skew anomaly
 INSERT INTO pxtest1 VALUES ('fff');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  could not serialize access due to read/write dependencies among transactions
 DETAIL:  Reason code: Canceled on identification as a pivot, during write.
 HINT:  The transaction might succeed if retried.
@@ -171,11 +177,14 @@ ERROR:  cannot PREPARE while holding both session-level and transaction-level lo
 BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
   CREATE TABLE pxtest2 (a int);
   INSERT INTO pxtest2 VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
   SAVEPOINT a;
     INSERT INTO pxtest2 VALUES (2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
   ROLLBACK TO a;
   SAVEPOINT b;
   INSERT INTO pxtest2 VALUES (3);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 PREPARE TRANSACTION 'regress-one';
 CREATE TABLE pxtest3(fff int);
 -- Test shared invalidation
@@ -183,7 +192,9 @@ BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
   DROP TABLE pxtest3;
   CREATE TABLE pxtest4 (a int);
   INSERT INTO pxtest4 VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
   INSERT INTO pxtest4 VALUES (2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
   DECLARE foo CURSOR FOR SELECT * FROM pxtest4;
   -- Fetch 1 tuple, keeping the cursor open
   FETCH 1 FROM foo;

@@ -3325,6 +3325,7 @@ FETCH ABSOLUTE 1 FROM current_check_cursor;
 
 -- Still cannot UPDATE row 2 through cursor
 UPDATE current_check SET payload = payload || '_new' WHERE CURRENT OF current_check_cursor RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload | rlsuser 
 -----------+---------+---------
 (0 rows)
@@ -3337,6 +3338,7 @@ FETCH RELATIVE 1 FROM current_check_cursor;
 (1 row)
 
 UPDATE current_check SET payload = payload || '_new' WHERE CURRENT OF current_check_cursor RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload |     rlsuser     
 -----------+---------+-----------------
          4 | def_new | regress_rls_bob
@@ -3367,6 +3369,7 @@ FETCH ABSOLUTE 1 FROM current_check_cursor;
 (1 row)
 
 DELETE FROM current_check WHERE CURRENT OF current_check_cursor RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload | rlsuser 
 -----------+---------+---------
 (0 rows)
@@ -3378,6 +3381,7 @@ FETCH RELATIVE 1 FROM current_check_cursor;
 (1 row)
 
 DELETE FROM current_check WHERE CURRENT OF current_check_cursor RETURNING *;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  currentid | payload |     rlsuser     
 -----------+---------+-----------------
          4 | def_new | regress_rls_bob
