@@ -6,6 +6,7 @@ SELECT *
    INTO TABLE xacttest
    FROM aggtest;
 INSERT INTO xacttest (a, b) VALUES (777, 777.777);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 END;
 -- should retrieve one value--
 SELECT a FROM xacttest WHERE a > 100;
@@ -17,6 +18,7 @@ SELECT a FROM xacttest WHERE a > 100;
 BEGIN;
 CREATE TABLE disappear (a int4);
 DELETE FROM aggtest;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should be empty
 SELECT * FROM aggtest;
  a | b 
@@ -183,8 +185,10 @@ SELECT * FROM trans_baz;		-- should be empty
 -- inserts
 BEGIN;
 	INSERT INTO trans_foo VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT into trans_bar VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  relation "trans_bar" does not exist
 LINE 1: INSERT into trans_bar VALUES (1);
                     ^
@@ -192,14 +196,17 @@ LINE 1: INSERT into trans_bar VALUES (1);
 	RELEASE SAVEPOINT one;
 	SAVEPOINT two;
 		INSERT into trans_barbaz VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	RELEASE two;
 	SAVEPOINT three;
 		SAVEPOINT four;
 			INSERT INTO trans_foo VALUES (2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		RELEASE SAVEPOINT four;
 	ROLLBACK TO SAVEPOINT three;
 	RELEASE SAVEPOINT three;
 	INSERT INTO trans_foo VALUES (3);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM trans_foo;		-- should have 1 and 3
  a 
@@ -227,10 +234,13 @@ LINE 1: SELECT trans_foo;
 		CREATE TABLE savepoints (a int);
 		SAVEPOINT three;
 			INSERT INTO savepoints VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 			SAVEPOINT four;
 				INSERT INTO savepoints VALUES (2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 				SAVEPOINT five;
 					INSERT INTO savepoints VALUES (3);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 				ROLLBACK TO SAVEPOINT five;
 COMMIT;
 COMMIT;		-- should not be in a transaction block
@@ -246,11 +256,14 @@ SELECT * FROM savepoints;
 BEGIN;
 	SAVEPOINT one;
 		DELETE FROM savepoints WHERE a=1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	RELEASE SAVEPOINT one;
 	SAVEPOINT two;
 		DELETE FROM savepoints WHERE a=1;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		SAVEPOINT three;
 			DELETE FROM savepoints WHERE a=2;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 COMMIT;		-- should not be in a transaction block
 WARNING:  there is no transaction in progress
@@ -264,8 +277,10 @@ SELECT * FROM savepoints;
 -- test whole-tree commit on an aborted subtransaction
 BEGIN;
 	INSERT INTO savepoints VALUES (4);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT INTO savepoints VALUES (5);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		SELECT trans_foo;
 ERROR:  column "trans_foo" does not exist
 LINE 1: SELECT trans_foo;
@@ -280,10 +295,13 @@ SELECT * FROM savepoints;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (6);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT INTO savepoints VALUES (7);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	RELEASE SAVEPOINT one;
 	INSERT INTO savepoints VALUES (8);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 -- rows 6 and 8 should have been created by the same xact
 SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=8;
@@ -301,10 +319,13 @@ SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=7;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (9);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT INTO savepoints VALUES (10);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (11);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT a FROM savepoints WHERE a in (9, 10, 11);
  a  
@@ -322,16 +343,22 @@ SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=9 AND b.a=11;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (12);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT INTO savepoints VALUES (13);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		SAVEPOINT two;
 			INSERT INTO savepoints VALUES (14);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (15);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		SAVEPOINT two;
 			INSERT INTO savepoints VALUES (16);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 			SAVEPOINT three;
 				INSERT INTO savepoints VALUES (17);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17;
  a  
@@ -344,14 +371,19 @@ SELECT a FROM savepoints WHERE a BETWEEN 12 AND 17;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (18);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	SAVEPOINT one;
 		INSERT INTO savepoints VALUES (19);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		SAVEPOINT two;
 			INSERT INTO savepoints VALUES (20);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (21);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	ROLLBACK TO SAVEPOINT one;
 		INSERT INTO savepoints VALUES (22);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT a FROM savepoints WHERE a BETWEEN 18 AND 22;
  a  
@@ -476,6 +508,7 @@ create or replace function max_xacttest() returns smallint language sql as
 'select max(a) from xacttest' stable;
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select * from xacttest;
   a  |    b    
 -----+---------
@@ -492,6 +525,7 @@ create or replace function max_xacttest() returns smallint language sql as
 'select max(a) from xacttest' volatile;
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select * from xacttest;
   a  |    b    
 -----+---------
@@ -508,6 +542,7 @@ create or replace function max_xacttest() returns smallint language plpgsql as
 'begin return max(a) from xacttest; end' stable;
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select * from xacttest;
   a  |    b    
 -----+---------
@@ -523,6 +558,7 @@ create or replace function max_xacttest() returns smallint language plpgsql as
 'begin return max(a) from xacttest; end' volatile;
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select * from xacttest;
   a  |    b    
 -----+---------
@@ -539,13 +575,17 @@ BEGIN;
 	savepoint x;
 		CREATE TABLE koju (a INT UNIQUE);
 		INSERT INTO koju VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 		INSERT INTO koju VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  duplicate key value violates unique constraint "koju_a_key"
 DETAIL:  Key (a)=(1) already exists.
 	rollback to x;
 	CREATE TABLE koju (a INT UNIQUE);
 	INSERT INTO koju VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 	INSERT INTO koju VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  duplicate key value violates unique constraint "koju_a_key"
 DETAIL:  Key (a)=(1) already exists.
 ROLLBACK;
@@ -573,7 +613,9 @@ begin;
 savepoint x;
 create table abc (a int);
 insert into abc values (5);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into abc values (10);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 declare foo cursor for select * from abc;
 fetch from foo;
  a 
@@ -589,8 +631,11 @@ commit;
 begin;
 create table abc (a int);
 insert into abc values (5);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into abc values (10);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into abc values (15);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 declare foo cursor for select * from abc;
 fetch from foo;
  a 
@@ -683,7 +728,9 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES (1);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO abc VALUES (2);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT AND CHAIN;  -- TBLOCK_END
 SHOW transaction_isolation;
  transaction_isolation 
@@ -704,6 +751,7 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES ('error');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  invalid input syntax for type integer: "error"
 LINE 1: INSERT INTO abc VALUES ('error');
                                 ^
@@ -729,6 +777,7 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES (4);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
 SHOW transaction_isolation;
@@ -751,6 +800,7 @@ SHOW transaction_deferrable;
 
 SAVEPOINT x;
 INSERT INTO abc VALUES ('error');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  invalid input syntax for type integer: "error"
 LINE 1: INSERT INTO abc VALUES ('error');
                                 ^
@@ -774,6 +824,7 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES (5);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
 SHOW transaction_isolation;
@@ -836,6 +887,7 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES (6);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK AND CHAIN;  -- TBLOCK_ABORT_PENDING
 SHOW transaction_isolation;
  transaction_isolation 
@@ -856,6 +908,7 @@ SHOW transaction_deferrable;
 (1 row)
 
 INSERT INTO abc VALUES ('error');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  invalid input syntax for type integer: "error"
 LINE 1: INSERT INTO abc VALUES ('error');
                                 ^
@@ -927,16 +980,20 @@ rollback;  -- we are not in a transaction at this point
 WARNING:  there is no transaction in progress
 -- can use regular begin/commit/rollback within a single Query
 begin\; insert into i_table values(3)\; commit;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 rollback;  -- we are not in a transaction at this point
 WARNING:  there is no transaction in progress
 begin\; insert into i_table values(4)\; rollback;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 rollback;  -- we are not in a transaction at this point
 WARNING:  there is no transaction in progress
 -- begin converts implicit transaction into a regular one that
 -- can extend past the end of the Query
 select 1\; begin\; insert into i_table values(5);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 select 1\; begin\; insert into i_table values(6);
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 rollback;
 -- commit in implicit-transaction state commits but issues a warning.
 insert into i_table values(7)\; commit\; insert into i_table values(8)\; select 1/0;
@@ -1011,6 +1068,7 @@ INSERT INTO abc VALUES (13)\; ROLLBACK AND CHAIN\; INSERT INTO abc VALUES (14)\;
 ERROR:  ROLLBACK AND CHAIN can only be used in transaction blocks
 -- START TRANSACTION + COMMIT/ROLLBACK AND CHAIN
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (15)\; COMMIT AND CHAIN;  -- 15 ok
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SHOW transaction_isolation;  -- transaction is active at this point
  transaction_isolation 
 -----------------------
@@ -1019,6 +1077,7 @@ SHOW transaction_isolation;  -- transaction is active at this point
 
 COMMIT;
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (16)\; ROLLBACK AND CHAIN;  -- 16 ok
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SHOW transaction_isolation;  -- transaction is active at this point
  transaction_isolation 
 -----------------------
@@ -1029,6 +1088,7 @@ ROLLBACK;
 SET default_transaction_isolation = 'read committed';
 -- START TRANSACTION + COMMIT/ROLLBACK + COMMIT/ROLLBACK AND CHAIN
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (17)\; COMMIT\; INSERT INTO abc VALUES (18)\; COMMIT AND CHAIN;  -- 17 commit, 18 error
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  COMMIT AND CHAIN can only be used in transaction blocks
 SHOW transaction_isolation;  -- out of transaction block
  transaction_isolation 
@@ -1037,6 +1097,7 @@ SHOW transaction_isolation;  -- out of transaction block
 (1 row)
 
 START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (19)\; ROLLBACK\; INSERT INTO abc VALUES (20)\; ROLLBACK AND CHAIN;  -- 19 rollback, 20 error
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  ROLLBACK AND CHAIN can only be used in transaction blocks
 SHOW transaction_isolation;  -- out of transaction block
  transaction_isolation 

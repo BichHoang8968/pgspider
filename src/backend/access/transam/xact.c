@@ -6293,4 +6293,19 @@ SpdAtCommitTransaction(void)
 		item->callback(SPD_EVENT_COMMIT_TRANSACTION, item->arg);
 	}
 }
+
+/*
+ * SpdIsInAutoCommitMode
+ * Return true if we are in auto commit mode.
+ */
+bool
+SpdIsInAutoCommitMode(void)
+{
+	TransactionState s = CurrentTransactionState;
+
+	if (s->blockState == TBLOCK_STARTED)
+		return true;
+	else
+		return false;
+}
 #endif

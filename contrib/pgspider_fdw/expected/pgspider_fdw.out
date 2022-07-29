@@ -5874,6 +5874,7 @@ select c2, count(*) from "S 1"."T 1" where c2 < 500 group by 1 order by 1;
 
 begin;
 update ft2 set c2 = 42 where c2 = 0;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  c2  | count 
 -----+-------
@@ -5894,6 +5895,7 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 
 savepoint s1;
 update ft2 set c2 = 44 where c2 = 4;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  c2  | count 
 -----+-------
@@ -5933,6 +5935,7 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 
 savepoint s2;
 update ft2 set c2 = 46 where c2 = 6;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
  c2  | count 
 -----+-------
@@ -5991,6 +5994,7 @@ select c2, count(*) from ft2 where c2 < 500 group by 1 order by 1;
 
 savepoint s3;
 update ft2 set c2 = -2 where c2 = 42 and c1 = 10; -- fail on remote side
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  pgspider_fdw fail to get tuples from child process
 {
 ERROR:  new row for relation "T 1" violates check constraint "c2positive"
@@ -7689,6 +7693,7 @@ fetch from c;
 (1 row)
 
 update bar set f2 = null where current of c;
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  WHERE CURRENT OF is not supported for this table type
 rollback;
 explain (verbose, costs off)

@@ -416,6 +416,7 @@ ERROR:  cannot perform COPY FREEZE because the table was not created or truncate
 COMMIT;
 BEGIN;
 INSERT INTO vistest VALUES ('z');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SAVEPOINT s1;
 TRUNCATE vistest;
 ROLLBACK TO SAVEPOINT s1;
@@ -433,6 +434,7 @@ END;
 $$ language plpgsql;
 BEGIN;
 INSERT INTO vistest VALUES ('z');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT truncate_in_subxact();
  truncate_in_subxact 
 ---------------------
