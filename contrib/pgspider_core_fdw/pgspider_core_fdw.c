@@ -58,6 +58,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "catalog/pg_operator.h"
 #include "pgspider_core_fdw.h"
+#include "pgspider_core_timemeasure.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
@@ -518,6 +519,8 @@ typedef struct SpdFdwPrivate
 	bool		orderby_query;	/* ORDER BY flag */
 	bool		limit_query;	/* LIMIT/OFFSET flag */
 
+	SpdTimeMeasureInfo tm_info; /* time measure info */
+
 	/* USE ONLY IN EXECUTION */
 	pthread_t	foreign_scan_threads[NODES_MAX];	/* child node thread  */
 	Datum	  **agg_values;		/* aggregation temp table result set */
@@ -539,6 +542,7 @@ typedef struct SpdFdwPrivate
 	SpdPendingRequest requestPendingChildThread;			/* pending request for all child thread */
 	pthread_mutex_t	thread_pending_mutex;	/* mutex for pending condition */
 	pthread_cond_t	thread_pending_cond;	/* pending condition */
+
 }			SpdFdwPrivate;
 
 typedef struct SpdFdwModifyState
@@ -644,7 +648,7 @@ static void rebuild_target_expr(Node *node, StringInfo buf, Extractcells * extce
 								int *cellid, List *groupby_target, bool isfirst);
 
 static void notify_error_to_child_threads(ForeignScanThreadInfo * fssThrdInfo, int nThreads);
-static TupleTableSlot *nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId);
+static TupleTableSlot *nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId, SpdTimeMeasureInfo *info);
 #ifdef ENABLE_PARALLEL_S3
 List	   *getS3FileList(Oid foreigntableid);
 #endif
@@ -652,11 +656,11 @@ static bool is_target_contain_group_by(PathTarget *grouping_target, List *groupC
 									   Expr *expr, ListCell *lc, int index);
 static void spd_request_child_thread_pending(ForeignScanThreadInfo *threadInfo, SpdPendingRequest thread_pending_request);
 static void spd_wait_transaction_thread_safe(ForeignScanThreadInfo *fssThrdInfo);
-static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo);
+static void spd_check_pending_request(ForeignScanThreadInfo * threadInfo, SpdTimeMeasureInfo * tm_info);
 static void spd_request_end_all_child_thread(void *arg);
 
 /* Queue functions */
-static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy);
+static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeMeasureInfo * tm_info, int thread_index);
 static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, SpdQueueState * queue_state);
 static void spd_queue_reset(SpdTupleQueue * que);
 static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
@@ -1186,7 +1190,7 @@ spd_queue_notify_error(SpdTupleQueue * que)
  * @param[in] deepcopy True if requireing deep copy
  */
 static bool
-spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
+spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeMeasureInfo * tm_info, int thread_index)
 {
 	int			natts;
 	int			idx;
@@ -1219,7 +1223,9 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy)
 	{
 		while (!que->safe_to_clear)
 		{
+			spd_tm_time_set_start(tm_info, thread_index, SPD_TM_CHILD_WAIT_FOR_QUEUE_GET);
 			usleep(1);
+			spd_tm_accum_diff(tm_info, thread_index, SPD_TM_CHILD_WAIT_FOR_QUEUE_GET);
 		}
 	}
 	/* Clear slot before storing new data */
@@ -1494,6 +1500,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private)
 		lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->root->parse));
 
 	}
+	spd_tm_serialize_info(&fdw_private->tm_info, lfdw_private);
 
 	return lfdw_private;
 }
@@ -1652,6 +1659,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private)
 		pChildInfo->root->parse = (Query *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 	}
+	spd_tm_deserialize_info(&fdw_private->tm_info, lfdw_private, lc);
 
 	return fdw_private;
 }
@@ -2965,6 +2973,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				 */
 				fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_per_tuple_memory = tuplectx[ctx_idx];
 				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+				spd_tm_count_iterateforeignscan(&fdw_private_main->tm_info, pChildInfo->index_threadinfo);
 
 				SPD_RWUNLOCK_CATCH(scan_mutex);
 				deepcopy = true;
@@ -2993,8 +3002,8 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 			while (1)
 			{
 				/* Check pending request from main thread */
-				spd_check_pending_request(fssthrdInfo);
-				success = spd_queue_add(&fssthrdInfo->tupleQueue, slot, deepcopy);
+				spd_check_pending_request(fssthrdInfo, &fdw_private_main->tm_info);
+				success = spd_queue_add(&fssthrdInfo->tupleQueue, slot, deepcopy, &fdw_private_main->tm_info, fssthrdInfo->childInfoIndex);
 				if (success)
 					break;
 
@@ -3007,7 +3016,9 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				 * condition variable may be better than pthread_yield for
 				 * reducing cpu usage.
 				 */
+				spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_QUEUE_ADD);
 				pthread_yield();
+				spd_tm_accum_diff(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_QUEUE_ADD);
 			}
 			tuple_cnt++;
 			if (fssthrdInfo->requestRescan || fssthrdInfo->requestEndScan)
@@ -3062,7 +3073,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 static void
 spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildInfo,
 						pthread_rwlock_t * scan_mutex, PlanState *agg_result,
-						MemoryContext *tuplectx)
+						MemoryContext *tuplectx, SpdTimeMeasureInfo *tm_info)
 {
 	PG_TRY();
 	{
@@ -3105,7 +3116,9 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 				break;
 			}
 			/* Wait for a request from main thread. */
+			spd_tm_time_set_start(tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_END_REQUEST);
 			usleep(1);
+			spd_tm_accum_diff(tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_END_REQUEST);
 		}
 	}
 	PG_CATCH();
@@ -3131,7 +3144,7 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
  * @param[in] scan_mutex Mutex for scanning
  */
 static void
-spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t * scan_mutex)
+spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t * scan_mutex, SpdTimeMeasureInfo * tm_info)
 {
 	if (fssthrdInfo->requestRescan &&
 		fssthrdInfo->state != SPD_FS_STATE_BEGIN)
@@ -3139,6 +3152,8 @@ spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t
 		SPD_READ_LOCK_TRY(scan_mutex);
 		fssthrdInfo->fdwroutine->ReScanForeignScan(fssthrdInfo->fsstate);
 		SPD_RWUNLOCK_CATCH(scan_mutex);
+
+		spd_tm_count_rescanforeignscan(tm_info, fssthrdInfo->childInfoIndex);
 
 		fssthrdInfo->requestRescan = false;
 		fssthrdInfo->state = SPD_FS_STATE_BEGIN;
@@ -3153,7 +3168,8 @@ spd_RescanForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, pthread_rwlock_t
  * - Timeout is enable if statement_timeout is set by non-rezo
  * 	 e.g. set statement_timeout = 1000; -- set time out by 1 second
  */
-static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo)
+static void
+spd_check_pending_request(ForeignScanThreadInfo * threadInfo, SpdTimeMeasureInfo * tm_info)
 {
 	SpdForeignScanThreadState old_state = threadInfo->state;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *)threadInfo->private;
@@ -3167,7 +3183,9 @@ static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo)
 		if (StatementTimeout == 0)
 		{
 			/* Time out is disable */
+			spd_tm_time_set_start(tm_info, threadInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_PENDING_REQUEST);
 			pthread_cond_wait(thread_pending_cond, thread_pending_mutex);
+			spd_tm_accum_diff(tm_info, threadInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_PENDING_REQUEST);
 		}
 		else
 		{
@@ -3191,7 +3209,9 @@ static void spd_check_pending_request(ForeignScanThreadInfo *threadInfo)
 			t.tv_nsec %= (1000 * 1000 * 1000);
 
 			/* Timed wait */
+			spd_tm_time_set_start(tm_info, threadInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_PENDING_REQUEST);
 			rt = pthread_cond_timedwait(thread_pending_cond, thread_pending_mutex, &t);
+			spd_tm_accum_diff(tm_info, threadInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_PENDING_REQUEST);
 			if (rt != 0)
 			{
 				/* Timeout */
@@ -3283,6 +3303,9 @@ spd_ForeignScan_thread(void *arg)
 	/* Configuration for context of error handling and memory context. */
 	spd_setThreadContext(fssthrdInfo, &errcallback, tuplectx);
 
+	spd_tm_child_thread_init(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, get_rel_name(pChildInfo->oid));
+	spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_TOTAL_TIME);
+
 	/* Begin Foreign Scan */
 	spd_BeginForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, &is_first);
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
@@ -3295,7 +3318,7 @@ spd_ForeignScan_thread(void *arg)
 
 RESCAN:
 	/* Rescan Foreign Scan */
-	spd_RescanForeignScanChild(fssthrdInfo, &fdw_private->scan_mutex);
+	spd_RescanForeignScanChild(fssthrdInfo, &fdw_private->scan_mutex, &fdw_private_main->tm_info);
 
 	/*
 	 * requestStartScan is used in case a query has parameter.
@@ -3313,7 +3336,9 @@ RESCAN:
 	while (!fssthrdInfo->requestStartScan &&
 		   fssthrdInfo->state == SPD_FS_STATE_BEGIN)
 	{
+		spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_SUB_QUERY);
 		usleep(1);
+		spd_tm_accum_diff(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_SUB_QUERY);
 		if (fssthrdInfo->requestEndScan)
 			goto THREAD_END;
 
@@ -3355,7 +3380,7 @@ RESCAN:
 THREAD_END:
 	/* Waiting for the timing to call End Foreign Scan. */
 	fssthrdInfo->state = SPD_FS_STATE_PRE_END;
-	spd_EndForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, agg_result, tuplectx);
+	spd_EndForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, agg_result, tuplectx, &fdw_private->tm_info);
 
 	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
 		goto THREAD_EXIT;
@@ -3376,6 +3401,8 @@ THREAD_EXIT:
 	gettimeofday(&e, NULL);
 	elog(DEBUG1, "thread%d all time = %lf", fssthrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
+
+	spd_tm_accum_diff(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_TOTAL_TIME);
 
 	/* decrease num_child_thread_running when start a child thread */
 	pthread_mutex_lock(&thread_running_mutex);
@@ -4405,6 +4432,13 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	fdw_private->rinfo.lower_subquery_rels = NULL;
 	/* Set the relation index. */
 	fdw_private->rinfo.relation_index = baserel->relid;
+
+	/* for time_measure_mode option */
+	fdw_private->tm_info.thread_num = fdw_private->node_num;
+	fdw_private->tm_info.mode = spd_tm_get_option(foreigntableid);
+	fdw_private->tm_info.table_name = relname;
+	fdw_private->tm_info.ref_name = refname;
+
 	/* Init mutex. */
 	SPD_RWLOCK_INIT(&fdw_private->scan_mutex, &rtn);
 	if (rtn != SPD_RWLOCK_INIT_OK)
@@ -8483,6 +8517,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	/* Deserialize fdw_private list to SpdFdwPrivate object. */
 	fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
 
+	spd_tm_init(&fdw_private->tm_info);
+	spd_tm_time_set_start(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_BEGINFOREIGNSCAN);
+
 	/*
 	 * Create tuple descriptor and tuple table slot which are used if GROUP BY
 	 * has SPDURL.
@@ -8651,6 +8688,9 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	fdw_private->isFirst = true;
 	fdw_private->startNodeId = 0;
 	fdw_private->lastThreadId = -1;
+
+	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_BEGINFOREIGNSCAN);
+
 	return;
 }
 
@@ -10174,7 +10214,7 @@ notify_error_to_child_threads(ForeignScanThreadInfo * fssThrdInfo, int nThreads)
  * @param[out] startNodeId
  */
 static TupleTableSlot *
-nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId)
+nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, int *startNodeId, int *lastThreadId, SpdTimeMeasureInfo * tm_info)
 {
 	int			count = 0;
 	int			start = *startNodeId;
@@ -10200,7 +10240,9 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, i
 			}
 			all_thread_finished = true;
 			count = start;
+			spd_tm_time_set_start(tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_WAIT_FOR_QUEUE_FINISH);
 			pthread_yield();
+			spd_tm_accum_diff(tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_WAIT_FOR_QUEUE_FINISH);
 		}
 		slot = spd_queue_get(&fssThrdInfo[thread_idx].tupleQueue, &queue_state);
 		if (queue_state == SPD_QUEUE_ERROR)
@@ -10275,6 +10317,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 	if (fdw_private == NULL)
 		fdw_private = spd_DeserializeSpdFdwPrivate(fsplan->fdw_private);
 
+	spd_tm_time_set_start(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ITERATE);
+
 #ifdef GETPROGRESS_ENABLED
 	if (getResultFlag)
 		return NULL;
@@ -10283,6 +10327,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 		return NULL;
 
 	mapping_tlist = fdw_private->mapping_tlist;
+
+	spd_tm_count_iterateforeignscan(&fdw_private->tm_info, SPD_TM_PARENT_ID);
 
 	/*
 	 * After the core engine initialize stuff for query, it jump to
@@ -10332,7 +10378,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			 */
 			for (;;)
 			{
-				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId);
+				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId, &fdw_private->tm_info);
 				if (slot == NULL)
 					break;
 
@@ -10369,9 +10415,10 @@ spd_IterateForeignScan(ForeignScanState *node)
 		 */
 		fdw_private->isFirst = false;
 
-		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId);
+		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId, &fdw_private->tm_info);
 	}
 
+	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ITERATE);
 	return slot;
 }
 
@@ -10395,6 +10442,9 @@ spd_ReScanForeignScan(ForeignScanState *node)
 
 	if (fdw_private == NULL)
 		return;
+
+	spd_tm_time_set_start(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_RESCAN);
+	spd_tm_count_rescanforeignscan(&fdw_private->tm_info, SPD_TM_PARENT_ID);
 
 	/*
 	 * If rescan, a new temp table is created, we need to drop the old temp
@@ -10439,6 +10489,7 @@ spd_ReScanForeignScan(ForeignScanState *node)
 		}
 	}
 
+	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_RESCAN);
 	return;
 }
 
@@ -10496,6 +10547,8 @@ spd_EndForeignScan(ForeignScanState *node)
 	fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 	if (!fdw_private)
 		return;
+
+	spd_tm_time_set_start(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ENDFOREIGNSCAN);
 
 	spd_end_child_node_thread((ForeignScanState *) node);
 
@@ -10566,6 +10619,9 @@ spd_EndForeignScan(ForeignScanState *node)
 	}
 	pfree(fssThrdInfo);
 	node->spd_fsstate = NULL;
+
+	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ENDFOREIGNSCAN);
+	spd_tm_print(&fdw_private->tm_info);
 }
 
 /**
