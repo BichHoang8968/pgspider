@@ -22,6 +22,7 @@
 #include "executor/spi.h"
 #include "fmgr.h"
 #include "utils/hsearch.h"
+#include "pgspider_core_timemeasure.h"
 
 #include "libpq-fe.h"
 
@@ -165,6 +166,23 @@ pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 						 errmsg("%s requires a non-negative numeric value",
 								def->defname)));
 		}
+		else if (strcmp(def->defname, SPD_TM_OPTION_TITLE) == 0)
+		{
+			const char *val = NULL;
+
+			val = defGetString(def);
+			if (strcmp(val, SPD_TM_OPTION_NORMAL) != 0 &&
+				strcmp(val, SPD_TM_OPTION_VERBOSE) != 0 &&
+				strcmp(val, SPD_TM_OPTION_QUIET) != 0)
+				ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("%s [ %s|%s|%s]",
+								SPD_TM_OPTION_NORMAL,
+								SPD_TM_OPTION_VERBOSE,
+								SPD_TM_OPTION_QUIET,
+								def->defname)));
+		}
+
 	}
 
 	PG_RETURN_VOID();
@@ -197,6 +215,9 @@ InitSpdFdwOptions(void)
 		{"updatable", ForeignTableRelationId, false},
 		{"config_file", ForeignServerRelationId, false},
 		{"config_file", ForeignTableRelationId, false},
+		/* time_measure_mode is available on both server and table */
+		{SPD_TM_OPTION_TITLE, ForeignServerRelationId, false},
+		{SPD_TM_OPTION_TITLE, ForeignTableRelationId, false},
 		{NULL, InvalidOid, false}
 	};
 
