@@ -2859,36 +2859,38 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 {
 	bool		is_first_iterate = true;
 	int			tuple_cnt = 0;
+	TupleTableSlot	*spdurl_slot = NULL;
 
 	fssthrdInfo->requestStartScan = false;
 
 	fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 
-	/* Executes the aggregate if necessary. */
-	if (pChildInfo->pseudo_agg)
-	{
-		SPD_WRITE_LOCK_TRY(scan_mutex);
-		fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
-		if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
-		{
-			/* We need to make postgres_fdw_options variable initial one time */
-			SPD_LOCK_TRY(&postgres_fdw_mutex);
-			*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
-			isPostgresFdwInit = true;
-			SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
-		}
-		else
-		{
-			*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
-		}
-		SPD_RWUNLOCK_CATCH(scan_mutex);
-	}
-
-	/* Start Iterate Foreign Scan loop. */
 	PG_TRY();
 	{
-		TupleTableSlot *spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc,
-															   fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
+		/* Executes the aggregate if necessary. */
+		if (pChildInfo->pseudo_agg)
+		{
+			SPD_WRITE_LOCK_TRY(scan_mutex);
+			fssthrdInfo->fsstate->ss.ps.state->es_param_exec_vals = fssthrdInfo->fsstate->ss.ps.ps_ExprContext->ecxt_param_exec_vals;
+			if (strcmp(fssthrdInfo->fdw->fdwname, POSTGRES_FDW_NAME) == 0 && !isPostgresFdwInit)
+			{
+				/* We need to make postgres_fdw_options variable initial one time */
+				SPD_LOCK_TRY(&postgres_fdw_mutex);
+				*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+				isPostgresFdwInit = true;
+				SPD_UNLOCK_CATCH(&postgres_fdw_mutex);
+			}
+			else
+			{
+				*pagg_result = ExecInitNode((Plan *) pChildInfo->pAgg, fssthrdInfo->fsstate->ss.ps.state, 0);
+			}
+			SPD_RWUNLOCK_CATCH(scan_mutex);
+		}
+
+		/* Start Iterate Foreign Scan loop. */
+
+		spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc,
+												fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
 
 		while (1)
 		{
@@ -3409,8 +3411,6 @@ THREAD_EXIT:
 	num_child_thread_running--;
 	pthread_mutex_unlock(&thread_running_mutex);
 
-	/* Notify that child thread already joined or dead */
-	fssthrdInfo->is_joined = true;
 	pthread_exit(NULL);
 }
 
@@ -7773,6 +7773,8 @@ spd_end_child_node_thread(ForeignScanState *node)
 			rtn = pthread_join(fdw_private->foreign_scan_threads[node_incr], NULL);
 			if (rtn != 0)
 				elog(WARNING, "Failed to join thread in EndForeignScan of thread[%d]. Returned %d.", node_incr, rtn);
+
+			fssThrdInfo[node_incr].is_joined = true;
 		}
 	}
 }
@@ -7912,7 +7914,9 @@ spd_at_abort_subtransaction(void *arg)
 			{
 				elog(DEBUG1, "End thread %d, xact depth: %d, curlevel: %d", node_incr, fssThrdInfo[node_incr].transaction_level, curlevel);
 				spd_end_child_node_thread_explicit(&fssThrdInfo[node_incr], fdw_private, node_incr);
+				fssThrdInfo[node_incr].is_joined = true;
 			}
+
 		}
 
 		/* Request pending all other */
