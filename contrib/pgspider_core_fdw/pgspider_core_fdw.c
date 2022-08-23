@@ -10482,14 +10482,10 @@ spd_ReScanForeignScan(ForeignScanState *node)
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		if (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR &&
-			fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH)
+		/* Break this loop when child thread starts scan again. */
+		while (fssThrdInfo[node_incr].state != SPD_FS_STATE_ERROR && fssThrdInfo[node_incr].state != SPD_FS_STATE_FINISH && fssThrdInfo[node_incr].requestRescan)
 		{
-			/* Break this loop when child thread starts scan again. */
-			while (fssThrdInfo[node_incr].requestRescan)
-			{
-				pthread_yield();
-			}
+			pthread_yield();
 		}
 	}
 
