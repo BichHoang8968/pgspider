@@ -132,7 +132,7 @@ PG_MODULE_MAGIC;
 #define SPD_LAST_GET_IDX(QUEUE) ((QUEUE)->start - 1)
 
 /* Code version is updated at new release. */
-#define CODE_VERSION   20100
+#define CODE_VERSION   20200
 
 /*
  * Same as COMPARE_SCALAR_FIELD of equalfuncs.c
