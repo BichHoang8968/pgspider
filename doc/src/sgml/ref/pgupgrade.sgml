@@ -24,8 +24,7 @@ PostgreSQL documentation
    <command>pg_upgrade</command>
    <arg choice="plain"><option>-b</option></arg>
    <arg choice="plain"><replaceable>oldbindir</replaceable></arg>
-   <arg choice="plain"><option>-B</option></arg>
-   <arg choice="plain"><replaceable>newbindir</replaceable></arg>
+   <arg choice="opt"><option>-B</option> <replaceable>newbindir</replaceable></arg>
    <arg choice="plain"><option>-d</option></arg>
    <arg choice="plain"><replaceable>oldconfigdir</replaceable></arg>
    <arg choice="plain"><option>-D</option></arg>
@@ -68,7 +67,7 @@ PostgreSQL documentation
  </para>
 
   <para>
-   pg_upgrade supports upgrades from 8.4.X and later to the current
+   pg_upgrade supports upgrades from 9.2.X and later to the current
    major release of <productname>PostgreSQL</productname>, including snapshot and beta releases.
   </para>
  </refsect1>
@@ -128,6 +127,22 @@ PostgreSQL documentation
       <term><option>--link</option></term>
       <listitem><para>use hard links instead of copying files to the new
       cluster</para></listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>-N</option></term>
+      <term><option>--no-sync</option></term>
+      <listitem>
+       <para>
+        By default, <command>pg_upgrade</command> will wait for all files
+        of the upgraded cluster to be written safely to disk.  This option
+        causes <command>pg_upgrade</command> to return without waiting, which
+        is faster, but means that a subsequent operating system crash can leave
+        the data directory corrupt.  Generally, this option is
+        useful for testing but should not be used on a production
+        installation.
+       </para>
+      </listitem>
      </varlistentry>
 
      <varlistentry>
@@ -483,7 +498,7 @@ pg_upgrade.exe
      is running.
     </para>
 
-    <substeps>
+    <procedure>
 
      <step>
       <title>Install the new PostgreSQL binaries on standby servers</title>
@@ -602,13 +617,13 @@ rsync --archive --delete --hard-links --size-only --no-inc-recursive /vol1/pg_tb
 
       <para>
        Configure the servers for log shipping.  (You do not need to run
-       <function>pg_start_backup()</function> and <function>pg_stop_backup()</function>
+       <function>pg_backup_start()</function> and <function>pg_backup_stop()</function>
        or take a file system backup as the standbys are still synchronized
        with the primary.)
       </para>
      </step>
 
-    </substeps>
+    </procedure>
 
    </step>
 
@@ -752,8 +767,11 @@ psql --username=postgres --file=script.sql postgres
 
   <para>
    <application>pg_upgrade</application> creates various working files, such
-   as schema dumps, in the current working directory.  For security, be sure
-   that that directory is not readable or writable by any other users.
+   as schema dumps, stored within <literal>pg_upgrade_output.d</literal> in
+   the directory of the new cluster. Each run creates a new subdirectory named
+   with a timestamp formatted as per ISO 8601
+   (<literal>%Y%m%dT%H%M%S</literal>), where all the generated files are
+   stored.
   </para>
 
   <para>
@@ -798,21 +816,6 @@ psql --username=postgres --file=script.sql postgres
     <member><type>regprocedure</type></member>
    </simplelist>
    (<type>regclass</type>, <type>regrole</type>, and <type>regtype</type> can be upgraded.)
-  </para>
-
-  <para>
-   If you are upgrading a pre-<productname>PostgreSQL</productname> 9.2 cluster
-   that uses a configuration-file-only directory, you must pass the
-   real data directory location to <application>pg_upgrade</application>, and
-   pass the configuration directory location to the server, e.g.,
-   <literal>-d /real-data-directory -o '-D /configuration-directory'</literal>.
-  </para>
-
-  <para>
-   If using a pre-9.1 old server that is using a non-default Unix-domain
-   socket directory or a default that differs from the default of the
-   new cluster, set <envar>PGHOST</envar> to point to the old server's socket
-   location.  (This is not relevant on Windows.)
   </para>
 
   <para>

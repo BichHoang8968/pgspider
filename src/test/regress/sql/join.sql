@@ -391,11 +391,11 @@ rollback;
 --
 explain (costs off)
 select aa, bb, unique1, unique1
-  from tenk1 right join b on aa = unique1
+  from tenk1 right join b_star on aa = unique1
   where bb < bb and bb is null;
 
 select aa, bb, unique1, unique1
-  from tenk1 right join b on aa = unique1
+  from tenk1 right join b_star on aa = unique1
   where bb < bb and bb is null;
 
 --
@@ -1984,6 +1984,9 @@ select * from
    union all
    (select q1.v)
   ) as q2;
+
+-- check the number of columns specified
+SELECT * FROM (int8_tbl i cross join int4_tbl j) ss(a,b,c,d);
 
 -- check we don't try to do a unique-ified semijoin with LATERAL
 explain (verbose, costs off)

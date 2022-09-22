@@ -7,7 +7,7 @@
  * numbers of equally-sized objects are allocated (and freed).
  *
  *
- * Portions Copyright (c) 2017-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2017-2022, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/utils/mmgr/slab.c
@@ -131,6 +131,9 @@ static void SlabFree(MemoryContext context, void *pointer);
 static void *SlabRealloc(MemoryContext context, void *pointer, Size size);
 static void SlabReset(MemoryContext context);
 static void SlabDelete(MemoryContext context);
+#ifdef PGSPIDER
+static void SlabFreeContextList(void);
+#endif
 static Size SlabGetChunkSpace(MemoryContext context, void *pointer);
 static bool SlabIsEmpty(MemoryContext context);
 static void SlabStats(MemoryContext context,
@@ -150,6 +153,9 @@ static const MemoryContextMethods SlabMethods = {
 	SlabRealloc,
 	SlabReset,
 	SlabDelete,
+#ifdef PGSPIDER
+	SlabFreeContextList,
+#endif
 	SlabGetChunkSpace,
 	SlabIsEmpty,
 	SlabStats
@@ -330,6 +336,20 @@ SlabDelete(MemoryContext context)
 	/* And free the context header */
 	free(context);
 }
+
+#ifdef PGSPIDER
+/*
+ * SlabFreeContextList
+ *
+ * Dummy function for PGSpider
+ *
+ */
+static void
+SlabFreeContextList(void)
+{
+	return;
+}
+#endif
 
 /*
  * SlabAlloc
@@ -671,7 +691,7 @@ SlabStats(MemoryContext context,
 		char		stats_string[200];
 
 		snprintf(stats_string, sizeof(stats_string),
-				 "%zu total in %zd blocks; %zu free (%zd chunks); %zu used",
+				 "%zu total in %zu blocks; %zu free (%zu chunks); %zu used",
 				 totalspace, nblocks, freespace, freechunks,
 				 totalspace - freespace);
 		printfunc(context, passthru, stats_string, print_to_stderr);

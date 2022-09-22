@@ -930,7 +930,7 @@ spd_is_record_func(List *tlist)
 		else
 			return false;
 
-		if ((funcid >= FirstBootstrapObjectId && returntype == TEXTOID))
+		if ((funcid >= FirstGenbkiObjectId && returntype == TEXTOID))
 		{
 			ListCell   *funclc;
 			Node	   *firstArg;

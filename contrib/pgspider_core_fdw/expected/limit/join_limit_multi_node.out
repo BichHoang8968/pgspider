@@ -18,12 +18,12 @@ CREATE FOREIGN TABLE tbl01__postgres_svr_2__0 (c1 text, c2 text, c3 char(255), c
 EXPLAIN VERBOSE SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING (c4) WHERE (t1.__spd_url = t2.__spd_url) OR t1.__spd_url != '' GROUP BY t1.c1, t2.c4 LIMIT 10;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=27275.61..27276.61 rows=10 width=40)
+ Limit  (cost=8144.77..8144.87 rows=10 width=40)
    Output: t1.c1, (min(t2.c4)), t2.c4
-   ->  HashAggregate  (cost=27275.61..31297.67 rows=40000 width=40)
+   ->  HashAggregate  (cost=8144.77..8544.77 rows=40000 width=40)
          Output: t1.c1, min(t2.c4), t2.c4
          Group Key: t1.c1, t2.c4
-         ->  Merge Left Join  (cost=1718.98..6412.53 rows=231812 width=36)
+         ->  Merge Left Join  (cost=1712.63..6406.18 rows=231812 width=36)
                Output: t1.c1, t2.c4
                Merge Cond: (t1.c4 = t2.c4)
                Filter: ((t1.__spd_url = t2.__spd_url) OR (t1.__spd_url <> ''::text))
@@ -53,34 +53,34 @@ EXPLAIN VERBOSE SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING 
 
 --Testcase 2:
 SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING (c4) WHERE (t1.__spd_url = t2.__spd_url) OR t1.__spd_url != '' GROUP BY t1.c1, t2.c4 LIMIT 10;
-        c1         |  min  
--------------------+-------
- Đẹp trai          | 86786
- красивый Đẹp trai | 86786
- Hang paintings    | -5695
- txid_snapshot     |  4656
- красивый Đẹp trai | 43123
- Hang paintings    | 43123
- กระทะ сковорода   |   454
- paintings         | -5695
- сковорода         | 76786
- paintings         | 43123
+           c1            |  min  
+-------------------------+-------
+ Hang paintings          | -5695
+ paintings               | -5695
+ paintings               | 43123
+ сковорода               |   454
+ fat20 & (rat21 | cat22) |   -62
+ Đẹp trai                |  -626
+ Đẹp trai                | 86786
+ красивый Đẹp trai       | 86786
+ txid_snapshot           |  4656
+ красивый Đẹp trai       | 43123
 (10 rows)
 
 --Testcase 3:
 EXPLAIN VERBOSE SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl01 t2 USING (c1) WHERE t1.c5 < 0 GROUP BY t2.c1, t2.c4, t2.c5, t2.__spd_url LIMIT 5;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1369.89..1588.27 rows=5 width=116)
+ Limit  (cost=1465.22..1872.88 rows=5 width=116)
    Output: (min(t2.c1)), t2.c4, (max(t2.c5)), t2.__spd_url, t2.c1, t2.c5
-   ->  GroupAggregate  (cost=1369.89..10105.10 rows=200 width=116)
+   ->  GroupAggregate  (cost=1465.22..17771.79 rows=200 width=116)
          Output: min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url, t2.c1, t2.c5
          Group Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
-         ->  Incremental Sort  (cost=1369.89..8937.90 rows=77680 width=76)
+         ->  Incremental Sort  (cost=1465.22..16604.59 rows=77680 width=76)
                Output: t2.c4, t2.__spd_url, t2.c1, t2.c5
                Sort Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
                Presorted Key: t2.c1
-               ->  Merge Join  (cost=1337.25..2513.83 rows=77680 width=76)
+               ->  Merge Join  (cost=1394.53..2571.11 rows=77680 width=76)
                      Output: t2.c4, t2.__spd_url, t2.c1, t2.c5
                      Merge Cond: (t1.c1 = t2.c1)
                      ->  Sort  (cost=477.76..483.45 rows=2276 width=32)
@@ -122,13 +122,13 @@ SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl0
 EXPLAIN VERBOSE SELECT t1.a1, t1.a4, t2.a5 FROM tbl01 t1(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) FULL JOIN tbl01 t2(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) ON t1.a1 = t2.a1 GROUP BY t1.a1, t1.a4, t2.a5 HAVING max(t1.a4) <> max(t2.a5) + 1 LIMIT 10 OFFSET 1;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=29200.12..29201.33 rows=10 width=44)
+ Limit  (cost=8218.70..8218.88 rows=10 width=44)
    Output: t1.a1, t1.a4, t2.a5
-   ->  HashAggregate  (cost=29200.00..33995.19 rows=39800 width=44)
+   ->  HashAggregate  (cost=8218.68..8918.68 rows=39800 width=44)
          Output: t1.a1, t1.a4, t2.a5
          Group Key: t1.a1, t1.a4, t2.a5
          Filter: ((max(t1.a4))::double precision <> (max(t2.a5) + '1'::double precision))
-         ->  Merge Full Join  (cost=1718.98..5247.67 rows=232971 width=44)
+         ->  Merge Full Join  (cost=1777.85..5306.55 rows=232971 width=44)
                Output: t1.a1, t1.a4, t2.a5
                Merge Cond: (t1.a1 = t2.a1)
                ->  Sort  (cost=859.49..876.55 rows=6826 width=36)
@@ -157,33 +157,32 @@ EXPLAIN VERBOSE SELECT t1.a1, t1.a4, t2.a5 FROM tbl01 t1(a1, a2, a3, a4, a5, a6,
 
 --Testcase 6:
 SELECT t1.a1, t1.a4, t2.a5 FROM tbl01 t1(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) FULL JOIN tbl01 t2(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) ON t1.a1 = t2.a1 GROUP BY t1.a1, t1.a4, t2.a5 HAVING max(t1.a4) <> max(t2.a5) + 1 LIMIT 10 OFFSET 1;
-        a1         |  a4   |     a5     
--------------------+-------+------------
- Đẹp trai          |  -626 | -656233.25
- paintings         | -5695 | -656233.25
- Đẹp trai          | 86786 |       3.25
- сковорода         | 76786 |      0.453
- paintings         | -5695 |          0
- Hang paintings    | -5695 |          0
- Hang paintings    | 43123 |          0
- กระทะ сковорода   |   454 |  55634.453
- сковорода         |   454 |      0.453
- красивый Đẹp trai | 86786 | -656233.25
+           a1            |  a4   |     a5     
+-------------------------+-------+------------
+ Đẹp trai                |  -626 | -656233.25
+ Đẹp trai                | 86786 |       3.25
+ paintings               | -5695 |          0
+ กระทะ сковорода         |   454 |  55634.453
+ fat20 & (rat21 | cat22) |   -62 |    9678.65
+ красивый Đẹp trai       | 86786 |       3.25
+ paintings               | 43123 |          0
+ Đẹp trai                |  -626 |       3.25
+ txid txid               | 34578 |     -65.25
+ ごきげんよう            |  -565 | -656233.25
 (10 rows)
 
 --Testcase 7:
 EXPLAIN VERBOSE SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2) GROUP BY  t1.c4, t1.c5, t1.__spd_url, t2.__spd_url ORDER BY t1.c4, t1.c5, t1.__spd_url, t2.__spd_url LIMIT 5;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Limit  (cost=8130548.07..8130548.08 rows=5 width=116)
+ Limit  (cost=8132180.41..8132180.42 rows=5 width=116)
    Output: (avg(t1.c4)), (sum(t1.c5)), t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
-   ->  Sort  (cost=8130548.07..8130648.07 rows=40000 width=116)
+   ->  Sort  (cost=8132180.41..8132280.41 rows=40000 width=116)
          Output: (avg(t1.c4)), (sum(t1.c5)), t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
          Sort Key: t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
          ->  HashAggregate  (cost=6946325.89..8129883.68 rows=40000 width=116)
                Output: avg(t1.c4), sum(t1.c5), t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
                Group Key: t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
-               Planned Partitions: 4
                ->  Nested Loop  (cost=400.00..583295.08 rows=46594276 width=76)
                      Output: t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
                      ->  Foreign Scan on public.tbl01 t1  (cost=200.00..424.78 rows=6826 width=44)
@@ -208,7 +207,7 @@ EXPLAIN VERBOSE SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2
                                    Limit push-down: no
                                    Sort push-down: no
                                    Remote SQL: SELECT NULL FROM public.tbl01
-(33 rows)
+(32 rows)
 
 --Testcase 8:
 SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2) GROUP BY  t1.c4, t1.c5, t1.__spd_url, t2.__spd_url ORDER BY t1.c4, t1.c5, t1.__spd_url, t2.__spd_url LIMIT 5;
@@ -225,12 +224,12 @@ SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2) GROUP BY  t1.c
 EXPLAIN VERBOSE SELECT t1.c1, t1.c2, t1.c4, t1.c5 FROM tbl01 t1 LEFT JOIN tbl01 t2 USING(c4) WHERE t1.c4 > 0 ORDER BY t1.c1, t1.c2, t1.c4, t1.c5 LIMIT 10 OFFSET 0;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=4192.46..4192.49 rows=10 width=76)
+ Limit  (cost=7823.58..7823.60 rows=10 width=76)
    Output: t1.c1, t1.c2, t1.c4, t1.c5
-   ->  Sort  (cost=4192.46..4386.66 rows=77680 width=76)
+   ->  Sort  (cost=7823.58..8017.78 rows=77680 width=76)
          Output: t1.c1, t1.c2, t1.c4, t1.c5
          Sort Key: t1.c1, t1.c2, t1.c4, t1.c5
-         ->  Merge Left Join  (cost=1337.25..2513.83 rows=77680 width=76)
+         ->  Merge Left Join  (cost=1351.05..2527.63 rows=77680 width=76)
                Output: t1.c1, t1.c2, t1.c4, t1.c5
                Merge Cond: (t1.c4 = t2.c4)
                ->  Sort  (cost=477.76..483.45 rows=2276 width=76)
@@ -281,19 +280,19 @@ SELECT t1.c1, t1.c2, t1.c4, t1.c5 FROM tbl01 t1 LEFT JOIN tbl01 t2 USING(c4) WHE
 EXPLAIN VERBOSE SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOIN tbl01 AS ss1 ON t1.c4 >= ss1.c4 WHERE ss1.c5 > 0 GROUP BY t1.c1, t1.c2 ORDER BY t1.c1 LIMIT 10 OFFSET 0;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=276187.78..3170863.18 rows=10 width=64)
+ Limit  (cost=320242.60..3652677.69 rows=10 width=64)
    Output: t1.c1, t1.c2
-   ->  Group  (cost=276187.78..58169695.89 rows=200 width=64)
+   ->  Group  (cost=320242.60..66968944.43 rows=200 width=64)
          Output: t1.c1, t1.c2
          Group Key: t1.c1, t1.c2
-         ->  Incremental Sort  (cost=276187.78..57285959.23 rows=176747332 width=64)
+         ->  Incremental Sort  (cost=320242.60..66085207.77 rows=176747332 width=64)
                Output: t1.c1, t1.c2
                Sort Key: t1.c1, t1.c2
                Presorted Key: t1.c1
-               ->  Nested Loop  (cost=1918.98..7959234.15 rows=176747332 width=64)
+               ->  Nested Loop  (cost=1977.85..7959293.02 rows=176747332 width=64)
                      Output: t1.c1, t1.c2
                      Join Filter: (t1.c4 >= ss1.c4)
-                     ->  Merge Left Join  (cost=1718.98..5247.67 rows=232971 width=68)
+                     ->  Merge Left Join  (cost=1777.85..5306.55 rows=232971 width=68)
                            Output: t1.c1, t1.c2, t1.c4
                            Merge Cond: (t1.c1 = t3.c1)
                            ->  Sort  (cost=859.49..876.55 rows=6826 width=68)
@@ -356,26 +355,15 @@ SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOI
 EXPLAIN VERBOSE SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 AND f1.c5 IS NOT NULL) GROUP BY f1.__spd_url, f1.c2, f1.c1, f2.c1 ORDER BY f1.c1;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
- Group  (cost=40941.37..43839.01 rows=40000 width=128)
+ Sort  (cost=13324.63..13424.63 rows=40000 width=128)
    Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
-   Group Key: f1.c1, f1.__spd_url, f1.c2, f2.c1
-   ->  Sort  (cost=40941.37..41520.90 rows=231811 width=128)
+   Sort Key: f1.c1
+   ->  HashAggregate  (cost=7604.26..8004.26 rows=40000 width=128)
          Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
-         Sort Key: f1.c1, f1.__spd_url, f1.c2, f2.c1
-         ->  Merge Right Join  (cost=1715.89..5227.01 rows=231811 width=128)
+         Group Key: f1.c1, f1.__spd_url, f1.c2, f2.c1
+         ->  Merge Left Join  (cost=1774.86..5286.15 rows=231811 width=128)
                Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
-               Merge Cond: (f1.c1 = f2.c1)
-               ->  Sort  (cost=856.40..873.38 rows=6792 width=96)
-                     Output: f1.c1, f1.c2, f1.__spd_url
-                     Sort Key: f1.c1
-                     ->  Foreign Scan on public.tbl01 f1  (cost=200.00..424.10 rows=6792 width=96)
-                           Output: f1.c1, f1.c2, f1.__spd_url
-                           Node: postgres_svr_1 / Status: Alive
-                             Sort push-down: no
-                             Remote SQL: SELECT c1, c2, c5 FROM public.tbl01 WHERE ((c5 IS NOT NULL))
-                           Node: postgres_svr_2 / Status: Alive
-                             Sort push-down: no
-                             Remote SQL: SELECT c1, c2, c5 FROM public.tbl01 WHERE ((c5 IS NOT NULL))
+               Merge Cond: (f2.c1 = f1.c1)
                ->  Sort  (cost=859.49..876.55 rows=6826 width=32)
                      Output: f2.c1
                      Sort Key: f2.c1
@@ -387,6 +375,17 @@ EXPLAIN VERBOSE SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON 
                            Node: postgres_svr_2 / Status: Alive
                              Sort push-down: no
                              Remote SQL: SELECT c1 FROM public.tbl01
+               ->  Sort  (cost=856.40..873.38 rows=6792 width=96)
+                     Output: f1.c1, f1.c2, f1.__spd_url
+                     Sort Key: f1.c1
+                     ->  Foreign Scan on public.tbl01 f1  (cost=200.00..424.10 rows=6792 width=96)
+                           Output: f1.c1, f1.c2, f1.__spd_url
+                           Node: postgres_svr_1 / Status: Alive
+                             Sort push-down: no
+                             Remote SQL: SELECT c1, c2, c5 FROM public.tbl01 WHERE ((c5 IS NOT NULL))
+                           Node: postgres_svr_2 / Status: Alive
+                             Sort push-down: no
+                             Remote SQL: SELECT c1, c2, c5 FROM public.tbl01 WHERE ((c5 IS NOT NULL))
 (31 rows)
 
 --Testcase 14:
@@ -395,10 +394,10 @@ SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 A
 -------------------------+----------------------+-------------------------
  ハンサム                | ()ƯEFJAF             | ハンサム
  ハンサム                | Improvements         | ハンサム
- ごきげんよう            | AWEFPƠ               | ごきげんよう
  ごきげんよう            | Officep              | ごきげんよう
- Đẹp trai                | 030-1923=0           | Đẹp trai
+ ごきげんよう            | AWEFPƠ               | ごきげんよう
  Đẹp trai                | 格納用のドキュメント | Đẹp trai
+ Đẹp trai                | 030-1923=0           | Đẹp trai
  fat20 & ()\\            | MOẰNAJFK             | fat20 & ()\\
  fat20 & (rat21 | cat22) | Officep              | fat20 & (rat21 | cat22)
  Hang paintings          | Improvements         | Hang paintings
@@ -407,12 +406,12 @@ SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 A
  paintings               | J%-2i30              | paintings
  txid_snapshot           | сковорода            | txid_snapshot
  txid txid               | сковорода            | txid txid
- красивый Đẹp trai       | Improvements         | красивый Đẹp trai
  красивый Đẹp trai       | 格納用のドキュメント | красивый Đẹp trai
+ красивый Đẹp trai       | Improvements         | красивый Đẹp trai
  сковорода               | J%-2i30              | сковорода
  сковорода               | 格納用のドキュメント | сковорода
- กระทะ сковорода         | J%kwe93-2i30         | กระทะ сковорода
  กระทะ сковорода         | 格納用のドキュメント | กระทะ сковорода
+ กระทะ сковорода         | J%kwe93-2i30         | กระทะ сковорода
 (20 rows)
 
 --Testcase 15:
@@ -422,7 +421,7 @@ EXPLAIN VERBOSE SELECT x.c1, x.c6, y.c7, max(x.c11), min(y.c8) FROM tbl01 x CROS
  HashAggregate  (cost=29267896.24..36002625.19 rows=40000 width=584)
    Output: x.c1, x.c6, y.c7, max(x.c11), min(y.c8), x.c11, y.c8
    Group Key: x.c1, x.c6, y.c7, x.c11, y.c8
-   Planned Partitions: 16
+   Planned Partitions: 8
    ->  Nested Loop  (cost=400.00..583295.08 rows=46594276 width=568)
          Output: x.c1, x.c6, y.c7, x.c11, y.c8
          ->  Foreign Scan on public.tbl01 x  (cost=200.00..424.78 rows=6826 width=44)
@@ -445,111 +444,57 @@ EXPLAIN VERBOSE SELECT x.c1, x.c6, y.c7, max(x.c11), min(y.c8) FROM tbl01 x CROS
 SELECT x.c1, x.c6, y.c7, max(x.c11), min(y.c8) FROM tbl01 x CROSS JOIN tbl01 y GROUP BY x.c1, x.c6, y.c7, x.c11, y.c8;
            c1            | c6 |                  c7                  |         max         |         min         
 -------------------------+----+--------------------------------------+---------------------+---------------------
- txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                6569
  Hang paintings          | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                6569
- txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
- ごきげんよう            | 33 | ((-99999,999999),(1,1))              | 2004-10-19 10:23:54 |             3453453
  сковорода               | 33 | ((-99999,999999),(1,1))              | 2008-10-19 10:23:54 |             3453453
  ハンサム                | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 3999-12-31 23:59:58 |                5353
- fat20 & ()\\            | 33 | {"name":"9a1b5b13a5d5"}              | 2004-10-19 10:23:54 |             4534534
- сковорода               | 33 | {"name":"b!WX4IJ%"}                  | 2008-10-19 10:23:54 |             6131213
  fat20 & ()\\            | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2004-10-19 10:23:54 |                5353
- paintings               | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
- fat20 & ()\\            | 33 | 格納用のドキュメント                 | 2004-10-19 10:23:54 |           -45625342
  paintings               | 33 | ((-99999,999999),(1,1))              | 0001-01-01 00:00:00 |             3453453
- ハンサム                | 33 | ((-99999,999999),(1,1))              | 3999-12-31 23:59:58 |             3453453
- ごきげんよう            | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
  txid txid               | 33 | Ông là nhà văn                       | 2000-01-01 00:00:00 |                7569
  fat20 & (rat21 | cat22) | 33 | ((-99999,999999),(1,1))              | 2004-10-19 10:23:54 |             3453453
  красивый Đẹp trai       | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 |                   0
  txid_snapshot           | 33 | ((-99999,999999),(1,1))              | 0001-01-01 00:00:00 |             3453453
  txid txid               | 33 | ((-99999,999999),(1,1))              | 2000-01-01 00:00:00 |             3453453
- txid_snapshot           | 33 | {"name":"b!WX4IJ%"}                  | 0001-01-01 00:00:00 |             6131213
  Đẹp trai                | 33 | 格納用のドキュメント                 | 2019-10-19 10:23:54 |           -45625342
- Hang paintings          | 33 | Ông là nhà văn                       | 0001-01-01 00:00:00 |                7569
- กระทะ сковорода         | 33 | {"name":"b!WX4IJ%"}                  | 2008-10-19 10:23:54 |             6131213
- txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 | 9223372036854775807
  красивый Đẹp trai       | 33 | сковорода                            | 2019-10-19 10:23:54 |              -59549
  กระทะ сковорода         | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 |                6569
  paintings               | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2000-01-01 00:00:00 |                5353
- fat20 & ()\\            | 33 | ((-99999,999999),(1,1))              | 2004-10-19 10:23:54 |             3453453
  paintings               | 33 | ((-99999,999999),(1,1))              | 2000-01-01 00:00:00 |             3453453
- Hang paintings          | 33 | ((-99999,999999),(1,1))              | 0001-01-01 00:00:00 |             3453453
- сковорода               | 33 | сковорода                            | 2008-10-19 10:23:54 |              -59549
- ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 |                   0
  paintings               | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                6569
- paintings               | 33 | Ông là nhà văn                       | 2000-01-01 00:00:00 |                7569
  Hang paintings          | 33 | {"name":"9a1b5b13a5d5"}              | 0001-01-01 00:00:00 |             4534534
- ごきげんよう            | 33 | Ông là nhà văn                       | 2004-10-19 10:23:54 |                7569
  Đẹp trai                | 33 | Ông là nhà văn                       | 2019-10-19 10:23:54 |                7569
  fat20 & ()\\            | 33 | Ông là nhà văn                       | 2004-10-19 10:23:54 |                7569
  paintings               | 33 | 格納用のドキュメント                 | 0001-01-01 00:00:00 |           -45625342
- Đẹp trai                | 33 | {"name":"9a1b5b13a5d5"}              | 2019-10-19 10:23:54 |             4534534
  paintings               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 |                6569
- กระทะ сковорода         | 33 | ((-99999,999999),(1,1))              | 2008-10-19 10:23:54 |             3453453
- ごきげんよう            | 33 | 格納用のドキュメント                 | 2004-10-19 10:23:54 |           -45625342
  paintings               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 | 9223372036854775807
  paintings               | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 0001-01-01 00:00:00 |                5353
- txid_snapshot           | 33 | Ông là nhà văn                       | 0001-01-01 00:00:00 |                7569
- paintings               | 33 | сковорода                            | 0001-01-01 00:00:00 |              -59549
  Đẹp trai                | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2019-10-19 10:23:54 |                5353
- fat20 & ()\\            | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
- сковорода               | 33 | 格納用のドキュメント                 | 2008-10-19 10:23:54 |           -45625342
  сковорода               | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 |                6569
  fat20 & ()\\            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                6569
  красивый Đẹp trai       | 33 | {"name":"9a1b5b13a5d5"}              | 2019-10-19 10:23:54 |             4534534
  красивый Đẹp trai       | 33 | {"name":"b!WX4IJ%"}                  | 2019-10-19 10:23:54 |             6131213
- ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 | 9223372036854775807
- Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 |                   0
  fat20 & ()\\            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                   0
  ごきげんよう            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 | 9223372036854775807
- paintings               | 33 | {"name":"9a1b5b13a5d5"}              | 0001-01-01 00:00:00 |             4534534
  txid_snapshot           | 33 | сковорода                            | 0001-01-01 00:00:00 |              -59549
  ごきげんよう            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                   0
  txid txid               | 33 | {"name":"b!WX4IJ%"}                  | 2000-01-01 00:00:00 |             6131213
  fat20 & ()\\            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 | 9223372036854775807
  กระทะ сковорода         | 33 | 格納用のドキュメント                 | 2008-10-19 10:23:54 |           -45625342
  Đẹp trai                | 33 | сковорода                            | 2019-10-19 10:23:54 |              -59549
- fat20 & (rat21 | cat22) | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
  paintings               | 33 | Ông là nhà văn                       | 0001-01-01 00:00:00 |                7569
  ごきげんよう            | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2004-10-19 10:23:54 |                5353
- красивый Đẹp trai       | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2019-10-19 10:23:54 |                5353
  paintings               | 33 | {"name":"b!WX4IJ%"}                  | 0001-01-01 00:00:00 |             6131213
- ごきげんよう            | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
- ハンサム                | 33 | {"name":"9a1b5b13a5d5"}              | 3999-12-31 23:59:58 |             4534534
- ハンサム                | 33 | сковорода                            | 3999-12-31 23:59:58 |              -59549
  красивый Đẹp trai       | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 | 9223372036854775807
- Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 | 9223372036854775807
- ハンサム                | 33 | Ông là nhà văn                       | 3999-12-31 23:59:58 |                7569
- paintings               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 |                   0
  paintings               | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 | 9223372036854775807
  fat20 & (rat21 | cat22) | 33 | 格納用のドキュメント                 | 2004-10-19 10:23:54 |           -45625342
- красивый Đẹp trai       | 33 | 格納用のドキュメント                 | 2019-10-19 10:23:54 |           -45625342
- Hang paintings          | 33 | 格納用のドキュメント                 | 0001-01-01 00:00:00 |           -45625342
- Hang paintings          | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 0001-01-01 00:00:00 |                5353
  paintings               | 33 | {"name":"9a1b5b13a5d5"}              | 2000-01-01 00:00:00 |             4534534
  txid_snapshot           | 33 | 格納用のドキュメント                 | 0001-01-01 00:00:00 |           -45625342
- paintings               | 33 | 格納用のドキュメント                 | 2000-01-01 00:00:00 |           -45625342
- Hang paintings          | 33 | сковорода                            | 0001-01-01 00:00:00 |              -59549
  ハンサム                | 33 | {"name":"b!WX4IJ%"}                  | 3999-12-31 23:59:58 |             6131213
  красивый Đẹp trai       | 33 | ((-99999,999999),(1,1))              | 2019-10-19 10:23:54 |             3453453
- сковорода               | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2008-10-19 10:23:54 |                5353
- fat20 & (rat21 | cat22) | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
- กระทะ сковорода         | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2008-10-19 10:23:54 |                5353
  ごきげんよう            | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                6569
- paintings               | 33 | {"name":"b!WX4IJ%"}                  | 2000-01-01 00:00:00 |             6131213
  fat20 & (rat21 | cat22) | 33 | {"name":"9a1b5b13a5d5"}              | 2004-10-19 10:23:54 |             4534534
- ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 |                6569
- fat20 & (rat21 | cat22) | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 | 9223372036854775807
- Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 |                6569
- Hang paintings          | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
  txid txid               | 33 | 格納用のドキュメント                 | 2000-01-01 00:00:00 |           -45625342
  txid_snapshot           | 33 | {"name":"9a1b5b13a5d5"}              | 0001-01-01 00:00:00 |             4534534
- Đẹp trai                | 33 | {"name":"b!WX4IJ%"}                  | 2019-10-19 10:23:54 |             6131213
  сковорода               | 33 | {"name":"9a1b5b13a5d5"}              | 2008-10-19 10:23:54 |             4534534
- paintings               | 33 | сковорода                            | 2000-01-01 00:00:00 |              -59549
- txid txid               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 | 9223372036854775807
- fat20 & ()\\            | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
  txid txid               | 33 | сковорода                            | 2000-01-01 00:00:00 |              -59549
  กระทะ сковорода         | 33 | сковорода                            | 2008-10-19 10:23:54 |              -59549
  ごきげんよう            | 33 | {"name":"9a1b5b13a5d5"}              | 2004-10-19 10:23:54 |             4534534
@@ -560,18 +505,72 @@ SELECT x.c1, x.c6, y.c7, max(x.c11), min(y.c8) FROM tbl01 x CROSS JOIN tbl01 y G
  กระทะ сковорода         | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 |                   0
  fat20 & (rat21 | cat22) | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                6569
  fat20 & (rat21 | cat22) | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2004-10-19 10:23:54 |                5353
+ Đẹp trai                | 33 | ((-99999,999999),(1,1))              | 2019-10-19 10:23:54 |             3453453
+ Hang paintings          | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 | 9223372036854775807
+ กระทะ сковорода         | 33 | Ông là nhà văn                       | 2008-10-19 10:23:54 |                7569
+ сковорода               | 33 | Ông là nhà văn                       | 2008-10-19 10:23:54 |                7569
+ txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                6569
+ txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
+ ごきげんよう            | 33 | ((-99999,999999),(1,1))              | 2004-10-19 10:23:54 |             3453453
+ fat20 & ()\\            | 33 | {"name":"9a1b5b13a5d5"}              | 2004-10-19 10:23:54 |             4534534
+ сковорода               | 33 | {"name":"b!WX4IJ%"}                  | 2008-10-19 10:23:54 |             6131213
+ paintings               | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
+ fat20 & ()\\            | 33 | 格納用のドキュメント                 | 2004-10-19 10:23:54 |           -45625342
+ ハンサム                | 33 | ((-99999,999999),(1,1))              | 3999-12-31 23:59:58 |             3453453
+ ごきげんよう            | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
+ txid_snapshot           | 33 | {"name":"b!WX4IJ%"}                  | 0001-01-01 00:00:00 |             6131213
+ Hang paintings          | 33 | Ông là nhà văn                       | 0001-01-01 00:00:00 |                7569
+ กระทะ сковорода         | 33 | {"name":"b!WX4IJ%"}                  | 2008-10-19 10:23:54 |             6131213
+ txid_snapshot           | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 | 9223372036854775807
+ fat20 & ()\\            | 33 | ((-99999,999999),(1,1))              | 2004-10-19 10:23:54 |             3453453
+ Hang paintings          | 33 | ((-99999,999999),(1,1))              | 0001-01-01 00:00:00 |             3453453
+ сковорода               | 33 | сковорода                            | 2008-10-19 10:23:54 |              -59549
+ ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 |                   0
+ paintings               | 33 | Ông là nhà văn                       | 2000-01-01 00:00:00 |                7569
+ ごきげんよう            | 33 | Ông là nhà văn                       | 2004-10-19 10:23:54 |                7569
+ Đẹp trai                | 33 | {"name":"9a1b5b13a5d5"}              | 2019-10-19 10:23:54 |             4534534
+ กระทะ сковорода         | 33 | ((-99999,999999),(1,1))              | 2008-10-19 10:23:54 |             3453453
+ ごきげんよう            | 33 | 格納用のドキュメント                 | 2004-10-19 10:23:54 |           -45625342
+ txid_snapshot           | 33 | Ông là nhà văn                       | 0001-01-01 00:00:00 |                7569
+ paintings               | 33 | сковорода                            | 0001-01-01 00:00:00 |              -59549
+ fat20 & ()\\            | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
+ сковорода               | 33 | 格納用のドキュメント                 | 2008-10-19 10:23:54 |           -45625342
+ ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 | 9223372036854775807
+ Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 |                   0
+ paintings               | 33 | {"name":"9a1b5b13a5d5"}              | 0001-01-01 00:00:00 |             4534534
+ fat20 & (rat21 | cat22) | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
+ красивый Đẹp trai       | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2019-10-19 10:23:54 |                5353
+ ごきげんよう            | 33 | {"name":"b!WX4IJ%"}                  | 2004-10-19 10:23:54 |             6131213
+ ハンサム                | 33 | {"name":"9a1b5b13a5d5"}              | 3999-12-31 23:59:58 |             4534534
+ ハンサム                | 33 | сковорода                            | 3999-12-31 23:59:58 |              -59549
+ Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 | 9223372036854775807
+ ハンサム                | 33 | Ông là nhà văn                       | 3999-12-31 23:59:58 |                7569
+ paintings               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 |                   0
+ красивый Đẹp trai       | 33 | 格納用のドキュメント                 | 2019-10-19 10:23:54 |           -45625342
+ Hang paintings          | 33 | 格納用のドキュメント                 | 0001-01-01 00:00:00 |           -45625342
+ Hang paintings          | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 0001-01-01 00:00:00 |                5353
+ paintings               | 33 | 格納用のドキュメント                 | 2000-01-01 00:00:00 |           -45625342
+ Hang paintings          | 33 | сковорода                            | 0001-01-01 00:00:00 |              -59549
+ сковорода               | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2008-10-19 10:23:54 |                5353
+ fat20 & (rat21 | cat22) | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
+ กระทะ сковорода         | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2008-10-19 10:23:54 |                5353
+ paintings               | 33 | {"name":"b!WX4IJ%"}                  | 2000-01-01 00:00:00 |             6131213
+ ハンサム                | 33 | 友達と会うので遅刻した               | 3999-12-31 23:59:58 |                6569
+ fat20 & (rat21 | cat22) | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 | 9223372036854775807
+ Đẹp trai                | 33 | 友達と会うので遅刻した               | 2019-10-19 10:23:54 |                6569
+ Hang paintings          | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 |                   0
+ Đẹp trai                | 33 | {"name":"b!WX4IJ%"}                  | 2019-10-19 10:23:54 |             6131213
+ paintings               | 33 | сковорода                            | 2000-01-01 00:00:00 |              -59549
+ txid txid               | 33 | 友達と会うので遅刻した               | 2000-01-01 00:00:00 | 9223372036854775807
+ fat20 & ()\\            | 33 | сковорода                            | 2004-10-19 10:23:54 |              -59549
  fat20 & (rat21 | cat22) | 33 | 友達と会うので遅刻した               | 2004-10-19 10:23:54 |                   0
  กระทะ сковорода         | 33 | {"name":"9a1b5b13a5d5"}              | 2008-10-19 10:23:54 |             4534534
  fat20 & (rat21 | cat22) | 33 | Ông là nhà văn                       | 2004-10-19 10:23:54 |                7569
  сковорода               | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 |                   0
- Đẹp trai                | 33 | ((-99999,999999),(1,1))              | 2019-10-19 10:23:54 |             3453453
- Hang paintings          | 33 | 友達と会うので遅刻した               | 0001-01-01 00:00:00 | 9223372036854775807
  กระทะ сковорода         | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 | 9223372036854775807
  сковорода               | 33 | 友達と会うので遅刻した               | 2008-10-19 10:23:54 | 9223372036854775807
  красивый Đẹp trai       | 33 | Ông là nhà văn                       | 2019-10-19 10:23:54 |                7569
  txid txid               | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 2000-01-01 00:00:00 |                5353
- กระทะ сковорода         | 33 | Ông là nhà văn                       | 2008-10-19 10:23:54 |                7569
- сковорода               | 33 | Ông là nhà văn                       | 2008-10-19 10:23:54 |                7569
  txid txid               | 33 | {"name":"9a1b5b13a5d5"}              | 2000-01-01 00:00:00 |             4534534
  ハンサム                | 33 | 格納用のドキュメント                 | 3999-12-31 23:59:58 |           -45625342
  txid_snapshot           | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 | 0001-01-01 00:00:00 |                5353

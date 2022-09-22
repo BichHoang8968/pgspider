@@ -3,7 +3,7 @@
  * clauses.c
  *	  routines to manipulate qualification clauses
  *
- * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2022, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,6 +28,7 @@
 #include "catalog/pg_type.h"
 #include "executor/executor.h"
 #include "executor/functions.h"
+#include "executor/execExpr.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
@@ -50,6 +51,9 @@
 #include "utils/builtins.h"
 #include "utils/datum.h"
 #include "utils/fmgroids.h"
+#include "utils/json.h"
+#include "utils/jsonb.h"
+#include "utils/jsonpath.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"
@@ -157,6 +161,7 @@ static Query *substitute_actual_srf_parameters(Query *expr,
 											   int nargs, List *args);
 static Node *substitute_actual_srf_parameters_mutator(Node *node,
 													  substitute_actual_srf_parameters_context *context);
+static bool pull_paramids_walker(Node *node, Bitmapset **context);
 
 
 #ifdef PGSPIDER
@@ -196,25 +201,24 @@ contain_not_builtin_stable_function_walker(Node *node, void *context)
 /*
  * Return true if given object is one of PostgreSQL's built-in objects.
  *
- * We use FirstBootstrapObjectId as the cutoff, so that we only consider
+ * We use FirstGenbkiObjectId as the cutoff, so that we only consider
  * objects with hand-assigned OIDs to be "built in", not for instance any
  * function or type defined in the information_schema.
  *
  * Our constraints for dealing with types are tighter than they are for
  * functions or operators: we want to accept only types that are in pg_catalog,
- * else format_type might incorrectly fail to schema-qualify their names.
- * (This could be fixed with some changes to format_type, but for now there's
- * no need.)  Thus we must exclude information_schema types.
+ * else deparse_type_name might incorrectly fail to schema-qualify their names.
+ * Thus we must exclude information_schema types.
  *
  * XXX there is a problem with this, which is that the set of built-in
  * objects expands over time.  Something that is built-in to us might not
  * be known to the remote server, if it's of an older version.  But keeping
  * track of that would be a huge exercise.
  */
-static bool
+bool
 is_builtin(Oid objectId)
 {
-	return (objectId < FirstBootstrapObjectId);
+	return (objectId < FirstGenbkiObjectId);
 }
 
 /*
@@ -453,6 +457,45 @@ contain_mutable_functions_walker(Node *node, void *context)
 	if (check_functions_in_node(node, contain_mutable_functions_checker,
 								context))
 		return true;
+
+	if (IsA(node, JsonConstructorExpr))
+	{
+		const JsonConstructorExpr *ctor = (JsonConstructorExpr *) node;
+		ListCell   *lc;
+		bool		is_jsonb =
+		ctor->returning->format->format_type == JS_FORMAT_JSONB;
+
+		/* Check argument_type => json[b] conversions */
+		foreach(lc, ctor->args)
+		{
+			Oid			typid = exprType(lfirst(lc));
+
+			if (is_jsonb ?
+				!to_jsonb_is_immutable(typid) :
+				!to_json_is_immutable(typid))
+				return true;
+		}
+
+		/* Check all subnodes */
+	}
+
+	if (IsA(node, JsonExpr))
+	{
+		JsonExpr   *jexpr = castNode(JsonExpr, node);
+		Const	   *cnst;
+
+		if (!IsA(jexpr->path_spec, Const))
+			return true;
+
+		cnst = castNode(Const, jexpr->path_spec);
+
+		Assert(cnst->consttype == JSONPATHOID);
+		if (cnst->constisnull)
+			return false;
+
+		return jspIsMutable(DatumGetJsonPathP(cnst->constvalue),
+							jexpr->passing_names, jexpr->passing_values);
+	}
 
 	if (IsA(node, SQLValueFunction))
 	{
@@ -923,6 +966,18 @@ max_parallel_hazard_walker(Node *node, max_parallel_hazard_context *context)
 		return query_tree_walker(query,
 								 max_parallel_hazard_walker,
 								 context, 0);
+	}
+
+	/* JsonExpr is parallel-unsafe if subtransactions can be used. */
+	else if (IsA(node, JsonExpr))
+	{
+		JsonExpr   *jsexpr = (JsonExpr *) node;
+
+		if (ExecEvalJsonNeedsSubTransaction(jsexpr, NULL))
+		{
+			context->max_hazard = PROPARALLEL_UNSAFE;
+			return true;
+		}
 	}
 
 	/* Recurse to check arguments */
@@ -2214,27 +2269,71 @@ convert_saop_to_hashed_saop_walker(Node *node, void *context)
 		Oid			lefthashfunc;
 		Oid			righthashfunc;
 
-		if (saop->useOr && arrayarg && IsA(arrayarg, Const) &&
-			!((Const *) arrayarg)->constisnull &&
-			get_op_hash_functions(saop->opno, &lefthashfunc, &righthashfunc) &&
-			lefthashfunc == righthashfunc)
+		if (arrayarg && IsA(arrayarg, Const) &&
+			!((Const *) arrayarg)->constisnull)
 		{
-			Datum		arrdatum = ((Const *) arrayarg)->constvalue;
-			ArrayType  *arr = (ArrayType *) DatumGetPointer(arrdatum);
-			int			nitems;
-
-			/*
-			 * Only fill in the hash functions if the array looks large enough
-			 * for it to be worth hashing instead of doing a linear search.
-			 */
-			nitems = ArrayGetNItems(ARR_NDIM(arr), ARR_DIMS(arr));
-
-			if (nitems >= MIN_ARRAY_SIZE_FOR_HASHED_SAOP)
+			if (saop->useOr)
 			{
-				/* Looks good. Fill in the hash functions */
-				saop->hashfuncid = lefthashfunc;
+				if (get_op_hash_functions(saop->opno, &lefthashfunc, &righthashfunc) &&
+					lefthashfunc == righthashfunc)
+				{
+					Datum		arrdatum = ((Const *) arrayarg)->constvalue;
+					ArrayType  *arr = (ArrayType *) DatumGetPointer(arrdatum);
+					int			nitems;
+
+					/*
+					 * Only fill in the hash functions if the array looks
+					 * large enough for it to be worth hashing instead of
+					 * doing a linear search.
+					 */
+					nitems = ArrayGetNItems(ARR_NDIM(arr), ARR_DIMS(arr));
+
+					if (nitems >= MIN_ARRAY_SIZE_FOR_HASHED_SAOP)
+					{
+						/* Looks good. Fill in the hash functions */
+						saop->hashfuncid = lefthashfunc;
+					}
+					return true;
+				}
 			}
-			return true;
+			else				/* !saop->useOr */
+			{
+				Oid			negator = get_negator(saop->opno);
+
+				/*
+				 * Check if this is a NOT IN using an operator whose negator
+				 * is hashable.  If so we can still build a hash table and
+				 * just ensure the lookup items are not in the hash table.
+				 */
+				if (OidIsValid(negator) &&
+					get_op_hash_functions(negator, &lefthashfunc, &righthashfunc) &&
+					lefthashfunc == righthashfunc)
+				{
+					Datum		arrdatum = ((Const *) arrayarg)->constvalue;
+					ArrayType  *arr = (ArrayType *) DatumGetPointer(arrdatum);
+					int			nitems;
+
+					/*
+					 * Only fill in the hash functions if the array looks
+					 * large enough for it to be worth hashing instead of
+					 * doing a linear search.
+					 */
+					nitems = ArrayGetNItems(ARR_NDIM(arr), ARR_DIMS(arr));
+
+					if (nitems >= MIN_ARRAY_SIZE_FOR_HASHED_SAOP)
+					{
+						/* Looks good. Fill in the hash functions */
+						saop->hashfuncid = lefthashfunc;
+
+						/*
+						 * Also set the negfuncid.  The executor will need
+						 * that to perform hashtable lookups.
+						 */
+						saop->negfuncid = get_opcode(negator);
+					}
+					return true;
+				}
+			}
 		}
 	}
 
@@ -2359,6 +2458,7 @@ eval_const_expressions_mutator(Node *node,
 							int16		typLen;
 							bool		typByVal;
 							Datum		pval;
+							Const	   *con;
 
 							get_typlenbyval(param->paramtype,
 											&typLen, &typByVal);
@@ -2366,13 +2466,15 @@ eval_const_expressions_mutator(Node *node,
 								pval = prm->value;
 							else
 								pval = datumCopy(prm->value, typByVal, typLen);
-							return (Node *) makeConst(param->paramtype,
-													  param->paramtypmod,
-													  param->paramcollid,
-													  (int) typLen,
-													  pval,
-													  prm->isnull,
-													  typByVal);
+							con = makeConst(param->paramtype,
+											param->paramtypmod,
+											param->paramcollid,
+											(int) typLen,
+											pval,
+											prm->isnull,
+											typByVal);
+							con->location = param->location;
+							return (Node *) con;
 						}
 					}
 				}
@@ -3537,6 +3639,29 @@ eval_const_expressions_mutator(Node *node,
 					return ece_evaluate_expr((Node *) newcre);
 				return (Node *) newcre;
 			}
+		case T_JsonValueExpr:
+			{
+				JsonValueExpr *jve = (JsonValueExpr *) node;
+				Node	   *raw = eval_const_expressions_mutator((Node *) jve->raw_expr,
+																 context);
+
+				if (raw && IsA(raw, Const))
+				{
+					Node	   *formatted;
+					Node	   *save_case_val = context->case_val;
+
+					context->case_val = raw;
+
+					formatted = eval_const_expressions_mutator((Node *) jve->formatted_expr,
+															   context);
+
+					context->case_val = save_case_val;
+
+					if (formatted && IsA(formatted, Const))
+						return formatted;
+				}
+				break;
+			}
 		default:
 			break;
 	}
@@ -4165,7 +4290,7 @@ add_function_defaults(List *args, int pronargs, HeapTuple func_tuple)
 	if (ndelete < 0)
 		elog(ERROR, "not enough default arguments");
 	if (ndelete > 0)
-		defaults = list_copy_tail(defaults, ndelete);
+		defaults = list_delete_first_n(defaults, ndelete);
 
 	/* And form the combined argument list, not modifying the input list */
 	return list_concat_copy(args, defaults);
@@ -5082,7 +5207,7 @@ inline_set_returning_function(PlannerInfo *root, RangeTblEntry *rte)
 		if (list_length(raw_parsetree_list) != 1)
 			goto fail;
 
-		querytree_list = pg_analyze_and_rewrite_params(linitial(raw_parsetree_list),
+		querytree_list = pg_analyze_and_rewrite_withcb(linitial(raw_parsetree_list),
 													   src,
 													   (ParserSetupHook) sql_fn_parser_setup,
 													   pinfo, NULL);
@@ -5239,4 +5364,34 @@ substitute_actual_srf_parameters_mutator(Node *node,
 	return expression_tree_mutator(node,
 								   substitute_actual_srf_parameters_mutator,
 								   (void *) context);
+}
+
+/*
+ * pull_paramids
+ *		Returns a Bitmapset containing the paramids of all Params in 'expr'.
+ */
+Bitmapset *
+pull_paramids(Expr *expr)
+{
+	Bitmapset  *result = NULL;
+
+	(void) pull_paramids_walker((Node *) expr, &result);
+
+	return result;
+}
+
+static bool
+pull_paramids_walker(Node *node, Bitmapset **context)
+{
+	if (node == NULL)
+		return false;
+	if (IsA(node, Param))
+	{
+		Param	   *param = (Param *) node;
+
+		*context = bms_add_member(*context, param->paramid);
+		return false;
+	}
+	return expression_tree_walker(node, pull_paramids_walker,
+								  (void *) context);
 }

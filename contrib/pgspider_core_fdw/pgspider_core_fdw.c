@@ -2432,7 +2432,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 
 						extcells->cells = lappend(extcells->cells, mapcells);
 
-						if (!(((Aggref *) inner_expr)->aggfnoid) >= FirstBootstrapObjectId
+						if (!(((Aggref *) inner_expr)->aggfnoid) >= FirstGenbkiObjectId
 							&& (((Aggref *) inner_expr)->aggtype) == TEXTOID)
 							fdw_private->record_function = true;
 					}

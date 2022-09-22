@@ -12897,7 +12897,7 @@ EXPLAIN VERBOSE
 SELECT value1, concat(value2, str2) FROM s3 ORDER BY concat(value2, str2);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=421.21..429.74 rows=3413 width=40)
+ Sort  (cost=453.00..461.53 rows=3413 width=40)
    Output: value1, (concat(value2, str2))
    Sort Key: (concat(s3.value2, s3.str2))
    ->  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=40)
@@ -13107,7 +13107,7 @@ EXPLAIN VERBOSE
 SELECT value1, concat_ws('.', str2, str1) FROM s3 ORDER BY concat_ws('.', str2, str1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=421.21..429.74 rows=3413 width=40)
+ Sort  (cost=453.00..461.53 rows=3413 width=40)
    Output: value1, (concat_ws('.'::text, str2, str1))
    Sort Key: (concat_ws('.'::text, s3.str2, s3.str1))
    ->  Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=40)
@@ -14149,146 +14149,146 @@ SELECT value1, find_in_set('---XYZ---', str1) FROM s3 GROUP BY 1,2 HAVING value1
 (3 rows)
 
 --
--- test format()
+-- test mysql_format()
 --
--- select format (stub function, explain)
+-- select mysql_format (stub function, explain)
 --Testcase 1170:
 EXPLAIN VERBOSE
-SELECT format(value1, 4), format(value2, 4), format(value4, 4) FROM s3;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_format(value1, 4), mysql_format(value2, 4), mysql_format(value4, 4) FROM s3;
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..2789.20 rows=3413 width=96)
-   Output: (format(value1, 4)), (format((value2)::double precision, 4)), (format((value4)::double precision, 4))
+   Output: (mysql_format(value1, 4)), (mysql_format((value2)::double precision, 4)), (mysql_format((value4)::double precision, 4))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.format(value1, 4), public.format(value2, 4), public.format(value4, 4) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_format(value1, 4), public.mysql_format(value2, 4), public.mysql_format(value4, 4) FROM public.s3mysql
 (4 rows)
 
--- select format (stub function, result)
+-- select mysql_format (stub function, result)
 --Testcase 1171:
-SELECT format(value1, 4), format(value2, 4), format(value4, 4) FROM s3;
- format |  format  |  format   
---------+----------+-----------
- 0.1000 | 100.0000 | -100.0000
- 0.2000 | 100.0000 | -100.0000
- 0.3000 | 100.0000 | -100.0000
- 1.1000 | 200.0000 | -200.0000
- 2.2000 | 200.0000 | -200.0000
- 3.3000 | 200.0000 | -200.0000
+SELECT mysql_format(value1, 4), mysql_format(value2, 4), mysql_format(value4, 4) FROM s3;
+ mysql_format | mysql_format | mysql_format 
+--------------+--------------+--------------
+ 0.1000       | 100.0000     | -100.0000
+ 0.2000       | 100.0000     | -100.0000
+ 0.3000       | 100.0000     | -100.0000
+ 1.1000       | 200.0000     | -200.0000
+ 2.2000       | 200.0000     | -200.0000
+ 3.3000       | 200.0000     | -200.0000
 (6 rows)
 
--- select format (stub function, explain)
+-- select mysql_format (stub function, explain)
 --Testcase 1172:
 EXPLAIN VERBOSE
-SELECT format(value1, 4, 'de_DE'), format(value2, 4, 'de_DE'), format(value4, 4, 'de_DE') FROM s3;
-                                                                              QUERY PLAN                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_format(value1, 4, 'de_DE'), mysql_format(value2, 4, 'de_DE'), mysql_format(value4, 4, 'de_DE') FROM s3;
+                                                                                       QUERY PLAN                                                                                       
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..2789.20 rows=3413 width=96)
-   Output: (format(value1, 4, 'de_DE'::text)), (format((value2)::double precision, 4, 'de_DE'::text)), (format((value4)::double precision, 4, 'de_DE'::text))
+   Output: (mysql_format(value1, 4, 'de_DE'::text)), (mysql_format((value2)::double precision, 4, 'de_DE'::text)), (mysql_format((value4)::double precision, 4, 'de_DE'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.format(value1, 4, 'de_DE'::text), public.format(value2, 4, 'de_DE'::text), public.format(value4, 4, 'de_DE'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_format(value1, 4, 'de_DE'::text), public.mysql_format(value2, 4, 'de_DE'::text), public.mysql_format(value4, 4, 'de_DE'::text) FROM public.s3mysql
 (4 rows)
 
--- select format (stub function, result)
+-- select mysql_format (stub function, result)
 --Testcase 1173:
-SELECT format(value1, 4, 'de_DE'), format(value2, 4, 'de_DE'), format(value4, 4, 'de_DE') FROM s3;
- format |  format  |  format   
---------+----------+-----------
- 0,1000 | 100,0000 | -100,0000
- 0,2000 | 100,0000 | -100,0000
- 0,3000 | 100,0000 | -100,0000
- 1,1000 | 200,0000 | -200,0000
- 2,2000 | 200,0000 | -200,0000
- 3,3000 | 200,0000 | -200,0000
+SELECT mysql_format(value1, 4, 'de_DE'), mysql_format(value2, 4, 'de_DE'), mysql_format(value4, 4, 'de_DE') FROM s3;
+ mysql_format | mysql_format | mysql_format 
+--------------+--------------+--------------
+ 0,1000       | 100,0000     | -100,0000
+ 0,2000       | 100,0000     | -100,0000
+ 0,3000       | 100,0000     | -100,0000
+ 1,1000       | 200,0000     | -200,0000
+ 2,2000       | 200,0000     | -200,0000
+ 3,3000       | 200,0000     | -200,0000
 (6 rows)
 
--- select format (stub function, not pushdown constraints, explain)
+-- select mysql_format (stub function, not pushdown constraints, explain)
 --Testcase 1174:
 EXPLAIN VERBOSE
-SELECT value1, format(value1, 4) FROM s3 WHERE to_hex(value2) = '64';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+SELECT value1, mysql_format(value1, 4) FROM s3 WHERE to_hex(value2) = '64';
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=40)
-   Output: value1, (format(value1, 4))
+   Output: value1, (mysql_format(value1, 4))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.format(value1, 4), value2 FROM public.s3mysql
+     Remote SQL: SELECT value1, public.mysql_format(value1, 4), value2 FROM public.s3mysql
 (5 rows)
 
--- select format (stub function, not pushdown constraints, result)
+-- select mysql_format (stub function, not pushdown constraints, result)
 --Testcase 1175:
-SELECT value1, format(value1, 4) FROM s3 WHERE to_hex(value2) = '64';
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 WHERE to_hex(value2) = '64';
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
 (3 rows)
 
--- select format (stub function, pushdown constraints, explain)
+-- select mysql_format (stub function, pushdown constraints, explain)
 --Testcase 1176:
 EXPLAIN VERBOSE
-SELECT value1, format(value1, 4) FROM s3 WHERE value2 != 200;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_format(value1, 4) FROM s3 WHERE value2 != 200;
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=40)
-   Output: value1, (format(value1, 4))
+   Output: value1, (mysql_format(value1, 4))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.format(value1, 4) FROM public.s3mysql WHERE ((value2 <> 200))
+     Remote SQL: SELECT value1, public.mysql_format(value1, 4) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
 
--- select format (stub function, pushdown constraints, result)
+-- select mysql_format (stub function, pushdown constraints, result)
 --Testcase 1177:
-SELECT value1, format(value1, 4) FROM s3 WHERE value2 != 200;
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 WHERE value2 != 200;
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
 (3 rows)
 
--- select format with non pushdown func and explicit constant (explain)
+-- select mysql_format with non pushdown func and explicit constant (explain)
 --Testcase 1178:
 EXPLAIN VERBOSE
-SELECT format(value1, 4), pi(), 4.1 FROM s3;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
+SELECT mysql_format(value1, 4), pi(), 4.1 FROM s3;
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=72)
-   Output: (format(value1, 4)), '3.141592653589793'::double precision, 4.1
+   Output: (mysql_format(value1, 4)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.format(value1, 4), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_format(value1, 4), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
 
--- select format with non pushdown func and explicit constant (result)
+-- select mysql_format with non pushdown func and explicit constant (result)
 --Testcase 1179:
-SELECT format(value1, 4), pi(), 4.1 FROM s3;
- format |        pi         | ?column? 
---------+-------------------+----------
- 0.1000 | 3.141592653589793 |      4.1
- 0.2000 | 3.141592653589793 |      4.1
- 0.3000 | 3.141592653589793 |      4.1
- 1.1000 | 3.141592653589793 |      4.1
- 2.2000 | 3.141592653589793 |      4.1
- 3.3000 | 3.141592653589793 |      4.1
+SELECT mysql_format(value1, 4), pi(), 4.1 FROM s3;
+ mysql_format |        pi         | ?column? 
+--------------+-------------------+----------
+ 0.1000       | 3.141592653589793 |      4.1
+ 0.2000       | 3.141592653589793 |      4.1
+ 0.3000       | 3.141592653589793 |      4.1
+ 1.1000       | 3.141592653589793 |      4.1
+ 2.2000       | 3.141592653589793 |      4.1
+ 3.3000       | 3.141592653589793 |      4.1
 (6 rows)
 
--- select format with order by (explain)
+-- select mysql_format with order by (explain)
 --Testcase 1180:
 EXPLAIN VERBOSE
-SELECT value1, format(value1, 4) FROM s3 ORDER BY format(value1, 4);
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_format(value1, 4) FROM s3 ORDER BY mysql_format(value1, 4);
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=40)
-   Output: value1, (format(value1, 4))
+   Output: value1, (mysql_format(value1, 4))
    Node: pgspider_svr / Status: Alive
      Sort push-down: yes
-     Remote SQL: SELECT value1, public.format(value1, 4) FROM public.s3mysql ORDER BY public.format(value1, 4) ASC NULLS LAST
+     Remote SQL: SELECT value1, public.mysql_format(value1, 4) FROM public.s3mysql ORDER BY public.mysql_format(value1, 4) ASC NULLS LAST
 (5 rows)
 
--- select format with order by (result)
+-- select mysql_format with order by (result)
 --Testcase 1181:
-SELECT value1, format(value1, 4) FROM s3 ORDER BY format(value1, 4);
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 ORDER BY mysql_format(value1, 4);
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
@@ -14297,11 +14297,11 @@ SELECT value1, format(value1, 4) FROM s3 ORDER BY format(value1, 4);
     3.3 | 3.3000
 (6 rows)
 
--- select format with order by index (result)
+-- select mysql_format with order by index (result)
 --Testcase 1182:
-SELECT value1, format(value1, 4) FROM s3 ORDER BY 2,1;
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 ORDER BY 2,1;
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
@@ -14310,11 +14310,11 @@ SELECT value1, format(value1, 4) FROM s3 ORDER BY 2,1;
     3.3 | 3.3000
 (6 rows)
 
--- select format with order by index (result)
+-- select mysql_format with order by index (result)
 --Testcase 1183:
-SELECT value1, format(value1, 4) FROM s3 ORDER BY 1,2;
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 ORDER BY 1,2;
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
@@ -14323,25 +14323,25 @@ SELECT value1, format(value1, 4) FROM s3 ORDER BY 1,2;
     3.3 | 3.3000
 (6 rows)
 
--- select format with group by (explain)
+-- select mysql_format with group by (explain)
 --Testcase 1184:
 EXPLAIN VERBOSE
-SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4);
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_format(value1, 4) FROM s3 GROUP BY mysql_format(value1, 4);
+                                             QUERY PLAN                                              
+-----------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=108.53..208.66 rows=1 width=40)
-   Output: (count(value1)), (format(value1, 4))
+   Output: (count(value1)), (mysql_format(value1, 4))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.format(value1, 4) FROM public.s3mysql GROUP BY 2
+     Remote SQL: SELECT count(value1), public.mysql_format(value1, 4) FROM public.s3mysql GROUP BY 2
 (6 rows)
 
--- select format with group by (result)
+-- select mysql_format with group by (result)
 --Testcase 1185:
-SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4);
- count | format 
--------+--------
+SELECT count(value1), mysql_format(value1, 4) FROM s3 GROUP BY mysql_format(value1, 4);
+ count | mysql_format 
+-------+--------------
      1 | 0.1000
      1 | 0.2000
      1 | 0.3000
@@ -14350,11 +14350,11 @@ SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4);
      1 | 3.3000
 (6 rows)
 
--- select format with group by index (result)
+-- select mysql_format with group by index (result)
 --Testcase 1186:
-SELECT value1, format(value1, 4) FROM s3 GROUP BY 2,1;
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 GROUP BY 2,1;
+ value1 | mysql_format 
+--------+--------------
     0.1 | 0.1000
     0.2 | 0.2000
     0.3 | 0.3000
@@ -14363,26 +14363,26 @@ SELECT value1, format(value1, 4) FROM s3 GROUP BY 2,1;
     3.3 | 3.3000
 (6 rows)
 
--- select format with group by having (explain)
+-- select mysql_format with group by having (explain)
 --Testcase 1187:
 EXPLAIN VERBOSE
-SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4), value1 HAVING format(value1, 4) IS NOT NULL;
-                                                                        QUERY PLAN                                                                        
-----------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_format(value1, 4) FROM s3 GROUP BY mysql_format(value1, 4), value1 HAVING mysql_format(value1, 4) IS NOT NULL;
+                                                                              QUERY PLAN                                                                              
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..266.93 rows=1 width=48)
-   Output: (count(value1)), (format(value1, 4)), value1
-   Filter: ((format(s3.value1, 4)) IS NOT NULL)
+   Output: (count(value1)), (mysql_format(value1, 4)), value1
+   Filter: ((mysql_format(s3.value1, 4)) IS NOT NULL)
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.format(value1, 4), value1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.format(value1, 4) IS NOT NULL))
+     Remote SQL: SELECT count(value1), public.mysql_format(value1, 4), value1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.mysql_format(value1, 4) IS NOT NULL))
 (7 rows)
 
--- select format with group by having (result)
+-- select mysql_format with group by having (result)
 --Testcase 1188:
-SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4), value1 HAVING format(value1, 4) IS NOT NULL;
- count | format 
--------+--------
+SELECT count(value1), mysql_format(value1, 4) FROM s3 GROUP BY mysql_format(value1, 4), value1 HAVING mysql_format(value1, 4) IS NOT NULL;
+ count | mysql_format 
+-------+--------------
      1 | 0.1000
      1 | 0.2000
      1 | 0.3000
@@ -14391,11 +14391,11 @@ SELECT count(value1), format(value1, 4) FROM s3 GROUP BY format(value1, 4), valu
      1 | 3.3000
 (6 rows)
 
--- select format with group by index having (result)
+-- select mysql_format with group by index having (result)
 --Testcase 1189:
-SELECT value1, format(value1, 4) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
- value1 | format 
---------+--------
+SELECT value1, mysql_format(value1, 4) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
+ value1 | mysql_format 
+--------+--------------
     1.1 | 1.1000
     2.2 | 2.2000
     3.3 | 3.3000
@@ -18346,636 +18346,636 @@ SELECT value1, quote(str2) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
 (3 rows)
 
 --
--- test regexp_instr()
+-- test mysql_regexp_instr()
 --
--- select regexp_instr (stub function, explain)
+-- select mysql_regexp_instr (stub function, explain)
 --Testcase 1516:
 EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'XY'), regexp_instr(str2, 'XYZ') FROM s3;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'XY'::text)), (regexp_instr(str2, 'XYZ'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'XY'::text), public.regexp_instr(str2, 'XYZ'::text) FROM public.s3mysql
-(4 rows)
-
--- select regexp_instr (stub function, result)
---Testcase 1517:
-SELECT regexp_instr(str1, 'XY'), regexp_instr(str2, 'XYZ') FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-(6 rows)
-
--- select regexp_instr (stub function, explain)
---Testcase 1518:
-EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'XY', 3), regexp_instr(str2, 'XYZ', 3) FROM s3;
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'XY'::text, 3)), (regexp_instr(str2, 'XYZ'::text, 3))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'XY'::text, 3), public.regexp_instr(str2, 'XYZ'::text, 3) FROM public.s3mysql
-(4 rows)
-
--- select regexp_instr (stub function, result)
---Testcase 1519:
-SELECT regexp_instr(str1, 'XY', 3), regexp_instr(str2, 'XYZ', 3) FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-(6 rows)
-
--- select regexp_instr (stub function, explain)
---Testcase 1520:
-EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'XY', 3, 0), regexp_instr(str2, 'XYZ', 3, 0) FROM s3;
+SELECT mysql_regexp_instr(str1, 'XY'), mysql_regexp_instr(str2, 'XYZ') FROM s3;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'XY'::text, 3, 0)), (regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Output: (mysql_regexp_instr(str1, 'XY'::text)), (mysql_regexp_instr(str2, 'XYZ'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'XY'::text, 3, 0), public.regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'XY'::text), public.mysql_regexp_instr(str2, 'XYZ'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_instr (stub function, result)
---Testcase 1521:
-SELECT regexp_instr(str1, 'XY', 3, 0), regexp_instr(str2, 'XYZ', 3, 0) FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
+-- select mysql_regexp_instr (stub function, result)
+--Testcase 1517:
+SELECT mysql_regexp_instr(str1, 'XY'), mysql_regexp_instr(str2, 'XYZ') FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
 (6 rows)
 
--- select regexp_instr (stub function, explain)
---Testcase 1522:
+-- select mysql_regexp_instr (stub function, explain)
+--Testcase 1518:
 EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'XY', 3, 0, 1), regexp_instr(str2, 'XYZ', 3, 0, 1) FROM s3;
+SELECT mysql_regexp_instr(str1, 'XY', 3), mysql_regexp_instr(str2, 'XYZ', 3) FROM s3;
                                                                  QUERY PLAN                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'XY'::text, 3, 0, 1)), (regexp_instr(str2, 'XYZ'::text, 3, 0, 1))
+   Output: (mysql_regexp_instr(str1, 'XY'::text, 3)), (mysql_regexp_instr(str2, 'XYZ'::text, 3))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'XY'::text, 3, 0, 1), public.regexp_instr(str2, 'XYZ'::text, 3, 0, 1) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'XY'::text, 3), public.mysql_regexp_instr(str2, 'XYZ'::text, 3) FROM public.s3mysql
 (4 rows)
 
--- select regexp_instr (stub function, result)
---Testcase 1523:
-SELECT regexp_instr(str1, 'XY', 3, 0, 1), regexp_instr(str2, 'XYZ', 3, 0, 1) FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
+-- select mysql_regexp_instr (stub function, result)
+--Testcase 1519:
+SELECT mysql_regexp_instr(str1, 'XY', 3), mysql_regexp_instr(str2, 'XYZ', 3) FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
 (6 rows)
 
--- select regexp_instr (stub function, explain)
+-- select mysql_regexp_instr (stub function, explain)
+--Testcase 1520:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_instr(str1, 'XY', 3, 0), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3;
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
+   Output: (mysql_regexp_instr(str1, 'XY'::text, 3, 0)), (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'XY'::text, 3, 0), public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_instr (stub function, result)
+--Testcase 1521:
+SELECT mysql_regexp_instr(str1, 'XY', 3, 0), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+(6 rows)
+
+-- select mysql_regexp_instr (stub function, explain)
+--Testcase 1522:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_instr(str1, 'XY', 3, 0, 1), mysql_regexp_instr(str2, 'XYZ', 3, 0, 1) FROM s3;
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
+   Output: (mysql_regexp_instr(str1, 'XY'::text, 3, 0, 1)), (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0, 1))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'XY'::text, 3, 0, 1), public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0, 1) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_instr (stub function, result)
+--Testcase 1523:
+SELECT mysql_regexp_instr(str1, 'XY', 3, 0, 1), mysql_regexp_instr(str2, 'XYZ', 3, 0, 1) FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+(6 rows)
+
+-- select mysql_regexp_instr (stub function, explain)
 --Testcase 1524:
 EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'xy', 3, 0, 1, 'i'), regexp_instr(str2, 'xyz', 3, 0, 1, 'i') FROM s3;
-                                                                            QUERY PLAN                                                                            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_instr(str1, 'xy', 3, 0, 1, 'i'), mysql_regexp_instr(str2, 'xyz', 3, 0, 1, 'i') FROM s3;
+                                                                                  QUERY PLAN                                                                                  
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'xy'::text, 3, 0, 1, 'i'::text)), (regexp_instr(str2, 'xyz'::text, 3, 0, 1, 'i'::text))
+   Output: (mysql_regexp_instr(str1, 'xy'::text, 3, 0, 1, 'i'::text)), (mysql_regexp_instr(str2, 'xyz'::text, 3, 0, 1, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'xy'::text, 3, 0, 1, 'i'::text), public.regexp_instr(str2, 'xyz'::text, 3, 0, 1, 'i'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'xy'::text, 3, 0, 1, 'i'::text), public.mysql_regexp_instr(str2, 'xyz'::text, 3, 0, 1, 'i'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_instr (stub function, result)
+-- select mysql_regexp_instr (stub function, result)
 --Testcase 1525:
-SELECT regexp_instr(str1, 'xy', 3, 0, 1, 'i'), regexp_instr(str2, 'xyz', 3, 0, 1, 'i') FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
-            6 |            7
+SELECT mysql_regexp_instr(str1, 'xy', 3, 0, 1, 'i'), mysql_regexp_instr(str2, 'xyz', 3, 0, 1, 'i') FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
+                  6 |                  7
 (6 rows)
 
--- select regexp_instr (stub function, not pushdown constraints, explain)
+-- select mysql_regexp_instr (stub function, not pushdown constraints, explain)
 --Testcase 1526:
 EXPLAIN VERBOSE
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE to_hex(value2) = '64';
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE to_hex(value2) = '64';
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=12)
-   Output: value1, (regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Output: value1, (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_instr(str2, 'XYZ'::text, 3, 0), value2 FROM public.s3mysql
+     Remote SQL: SELECT value1, public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0), value2 FROM public.s3mysql
 (5 rows)
 
--- select regexp_instr (stub function, not pushdown constraints, result)
+-- select mysql_regexp_instr (stub function, not pushdown constraints, result)
 --Testcase 1527:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE to_hex(value2) = '64';
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE to_hex(value2) = '64';
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
 (3 rows)
 
--- select regexp_instr (stub function, pushdown constraints, explain)
+-- select mysql_regexp_instr (stub function, pushdown constraints, explain)
 --Testcase 1528:
 EXPLAIN VERBOSE
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE value2 != 200;
-                                                       QUERY PLAN                                                        
--------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE value2 != 200;
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=12)
-   Output: value1, (regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Output: value1, (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql WHERE ((value2 <> 200))
+     Remote SQL: SELECT value1, public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
 
--- select regexp_instr (stub function, pushdown constraints, result)
+-- select mysql_regexp_instr (stub function, pushdown constraints, result)
 --Testcase 1529:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE value2 != 200;
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE value2 != 200;
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
 (3 rows)
 
--- select regexp_instr with non pushdown func and explicit constant (explain)
+-- select mysql_regexp_instr with non pushdown func and explicit constant (explain)
 --Testcase 1530:
 EXPLAIN VERBOSE
-SELECT regexp_instr(str2, 'XYZ', 3, 0), pi(), 4.1 FROM s3;
-                                                            QUERY PLAN                                                             
------------------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_instr(str2, 'XYZ', 3, 0), pi(), 4.1 FROM s3;
+                                                               QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=44)
-   Output: (regexp_instr(str2, 'XYZ'::text, 3, 0)), '3.141592653589793'::double precision, 4.1
+   Output: (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str2, 'XYZ'::text, 3, 0), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
 
--- select regexp_instr with non pushdown func and explicit constant (result)
+-- select mysql_regexp_instr with non pushdown func and explicit constant (result)
 --Testcase 1531:
-SELECT regexp_instr(str2, 'XYZ', 3, 0), pi(), 4.1 FROM s3;
- regexp_instr |        pi         | ?column? 
---------------+-------------------+----------
-            4 | 3.141592653589793 |      4.1
-            4 | 3.141592653589793 |      4.1
-            4 | 3.141592653589793 |      4.1
-            4 | 3.141592653589793 |      4.1
-            4 | 3.141592653589793 |      4.1
-            4 | 3.141592653589793 |      4.1
+SELECT mysql_regexp_instr(str2, 'XYZ', 3, 0), pi(), 4.1 FROM s3;
+ mysql_regexp_instr |        pi         | ?column? 
+--------------------+-------------------+----------
+                  4 | 3.141592653589793 |      4.1
+                  4 | 3.141592653589793 |      4.1
+                  4 | 3.141592653589793 |      4.1
+                  4 | 3.141592653589793 |      4.1
+                  4 | 3.141592653589793 |      4.1
+                  4 | 3.141592653589793 |      4.1
 (6 rows)
 
--- select regexp_instr with order by (explain)
+-- select mysql_regexp_instr with order by (explain)
 --Testcase 1532:
 EXPLAIN VERBOSE
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY regexp_instr(str2, 'XYZ', 3, 0);
-                                                                              QUERY PLAN                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY mysql_regexp_instr(str2, 'XYZ', 3, 0);
+                                                                                    QUERY PLAN                                                                                    
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=12)
-   Output: value1, (regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Output: value1, (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
    Node: pgspider_svr / Status: Alive
      Sort push-down: yes
-     Remote SQL: SELECT value1, public.regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql ORDER BY public.regexp_instr(str2, 'XYZ'::text, 3, 0) ASC NULLS LAST
+     Remote SQL: SELECT value1, public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql ORDER BY public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) ASC NULLS LAST
 (5 rows)
 
--- select regexp_instr with order by (result)
+-- select mysql_regexp_instr with order by (result)
 --Testcase 1533:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY regexp_instr(str2, 'XYZ', 3, 0);
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
-    1.1 |            4
-    2.2 |            4
-    3.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY mysql_regexp_instr(str2, 'XYZ', 3, 0);
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
+    1.1 |                  4
+    2.2 |                  4
+    3.3 |                  4
 (6 rows)
 
--- select regexp_instr with order by index (result)
+-- select mysql_regexp_instr with order by index (result)
 --Testcase 1534:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY 2,1;
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
-    1.1 |            4
-    2.2 |            4
-    3.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY 2,1;
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
+    1.1 |                  4
+    2.2 |                  4
+    3.3 |                  4
 (6 rows)
 
--- select regexp_instr with order by index (result)
+-- select mysql_regexp_instr with order by index (result)
 --Testcase 1535:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY 1,2;
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
-    1.1 |            4
-    2.2 |            4
-    3.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 ORDER BY 1,2;
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
+    1.1 |                  4
+    2.2 |                  4
+    3.3 |                  4
 (6 rows)
 
--- select regexp_instr with group by (explain)
+-- select mysql_regexp_instr with group by (explain)
 --Testcase 1536:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY regexp_instr(str2, 'XYZ', 3, 0);
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY mysql_regexp_instr(str2, 'XYZ', 3, 0);
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=108.53..208.66 rows=1 width=12)
-   Output: (count(value1)), (regexp_instr(str2, 'XYZ'::text, 3, 0))
+   Output: (count(value1)), (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql GROUP BY 2
+     Remote SQL: SELECT count(value1), public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) FROM public.s3mysql GROUP BY 2
 (6 rows)
 
--- select regexp_instr with group by (result)
+-- select mysql_regexp_instr with group by (result)
 --Testcase 1537:
-SELECT count(value1), regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY regexp_instr(str2, 'XYZ', 3, 0);
- count | regexp_instr 
--------+--------------
-     6 |            4
+SELECT count(value1), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY mysql_regexp_instr(str2, 'XYZ', 3, 0);
+ count | mysql_regexp_instr 
+-------+--------------------
+     6 |                  4
 (1 row)
 
--- select regexp_instr with group by index (result)
+-- select mysql_regexp_instr with group by index (result)
 --Testcase 1538:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY 2,1;
- value1 | regexp_instr 
---------+--------------
-    0.1 |            4
-    0.2 |            4
-    0.3 |            4
-    1.1 |            4
-    2.2 |            4
-    3.3 |            4
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY 2,1;
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    0.1 |                  4
+    0.2 |                  4
+    0.3 |                  4
+    1.1 |                  4
+    2.2 |                  4
+    3.3 |                  4
 (6 rows)
 
--- select regexp_instr with group by having (explain)
+-- select mysql_regexp_instr with group by having (explain)
 --Testcase 1539:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY regexp_instr(str2, 'XYZ', 3, 0), str2 HAVING regexp_instr(str2, 'XYZ', 3, 0) IS NOT NULL;
-                                                                                           QUERY PLAN                                                                                           
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=117.06..266.93 rows=1 width=44)
-   Output: (count(value1)), (regexp_instr(str2, 'XYZ'::text, 3, 0)), str2
-   Filter: ((regexp_instr(s3.str2, 'XYZ'::text, 3, 0)) IS NOT NULL)
-   Node: pgspider_svr / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_instr(str2, 'XYZ'::text, 3, 0), str2 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.regexp_instr(str2, 'XYZ'::text, 3, 0) IS NOT NULL))
-(7 rows)
-
--- select regexp_instr with group by having (result)
---Testcase 1540:
-SELECT count(value1), regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY regexp_instr(str2, 'XYZ', 3, 0), str2 HAVING regexp_instr(str2, 'XYZ', 3, 0) IS NOT NULL;
- count | regexp_instr 
--------+--------------
-     6 |            4
-(1 row)
-
--- select regexp_instr with group by index having (result)
---Testcase 1541:
-SELECT value1, regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
- value1 | regexp_instr 
---------+--------------
-    1.1 |            4
-    2.2 |            4
-    3.3 |            4
-(3 rows)
-
---
--- test regexp_like()
---
--- select regexp_like (stub function, explain)
---Testcase 1542:
-EXPLAIN VERBOSE
-SELECT regexp_instr(str1, 'XY'), regexp_instr(str2, 'XYZ') FROM s3;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
-   Output: (regexp_instr(str1, 'XY'::text)), (regexp_instr(str2, 'XYZ'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_instr(str1, 'XY'::text), public.regexp_instr(str2, 'XYZ'::text) FROM public.s3mysql
-(4 rows)
-
--- select regexp_like (stub function, result)
---Testcase 1543:
-SELECT regexp_instr(str1, 'XY'), regexp_instr(str2, 'XYZ') FROM s3;
- regexp_instr | regexp_instr 
---------------+--------------
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-            4 |            4
-(6 rows)
-
--- select regexp_like (stub function, explain)
---Testcase 1544:
-EXPLAIN VERBOSE
-SELECT regexp_like('   XyZ   ', str2, 'i') FROM s3;
-                                            QUERY PLAN                                             
----------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=4)
-   Output: (regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql
-(4 rows)
-
--- select regexp_like (stub function, result)
---Testcase 1545:
-SELECT regexp_like('   XyZ   ', str2, 'i') FROM s3;
- regexp_like 
--------------
-           1
-           1
-           1
-           1
-           1
-           1
-(6 rows)
-
--- select regexp_like (stub function, not pushdown constraints, explain)
---Testcase 1546:
-EXPLAIN VERBOSE
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE to_hex(value2) = '64';
-                                                    QUERY PLAN                                                     
--------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=12)
-   Output: value1, (regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Filter: (to_hex(s3.value2) = '64'::text)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_like('   XyZ   '::text, str2, 'i'::text), value2 FROM public.s3mysql
-(5 rows)
-
--- select regexp_like (stub function, not pushdown constraints, result)
---Testcase 1547:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE to_hex(value2) = '64';
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-(3 rows)
-
--- select regexp_like (stub function, pushdown constraints, explain)
---Testcase 1548:
-EXPLAIN VERBOSE
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE value2 != 200;
-                                                            QUERY PLAN                                                             
------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=12)
-   Output: value1, (regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql WHERE ((value2 <> 200))
-(4 rows)
-
--- select regexp_like (stub function, pushdown constraints, result)
---Testcase 1549:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE value2 != 200;
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-(3 rows)
-
--- select regexp_like with non pushdown func and explicit constant (explain)
---Testcase 1550:
-EXPLAIN VERBOSE
-SELECT regexp_like('   XyZ   ', str2, 'i'), pi(), 4.1 FROM s3;
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=44)
-   Output: (regexp_like('   XyZ   '::text, str2, 'i'::text)), '3.141592653589793'::double precision, 4.1
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_like('   XyZ   '::text, str2, 'i'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
-(4 rows)
-
--- select regexp_like with non pushdown func and explicit constant (result)
---Testcase 1551:
-SELECT regexp_like('   XyZ   ', str2, 'i'), pi(), 4.1 FROM s3;
- regexp_like |        pi         | ?column? 
--------------+-------------------+----------
-           1 | 3.141592653589793 |      4.1
-           1 | 3.141592653589793 |      4.1
-           1 | 3.141592653589793 |      4.1
-           1 | 3.141592653589793 |      4.1
-           1 | 3.141592653589793 |      4.1
-           1 | 3.141592653589793 |      4.1
-(6 rows)
-
--- select regexp_like with order by (explain)
---Testcase 1552:
-EXPLAIN VERBOSE
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY regexp_like('   XyZ   ', str2, 'i');
-                                                                                        QUERY PLAN                                                                                        
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=12)
-   Output: value1, (regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Node: pgspider_svr / Status: Alive
-     Sort push-down: yes
-     Remote SQL: SELECT value1, public.regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql ORDER BY public.regexp_like('   XyZ   '::text, str2, 'i'::text) ASC NULLS LAST
-(5 rows)
-
--- select regexp_like with order by (result)
---Testcase 1553:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY regexp_like('   XyZ   ', str2, 'i');
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-    1.1 |           1
-    2.2 |           1
-    3.3 |           1
-(6 rows)
-
--- select regexp_like with order by index (result)
---Testcase 1554:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY 2,1;
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-    1.1 |           1
-    2.2 |           1
-    3.3 |           1
-(6 rows)
-
--- select regexp_like with order by index (result)
---Testcase 1555:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY 1,2;
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-    1.1 |           1
-    2.2 |           1
-    3.3 |           1
-(6 rows)
-
--- select regexp_like with group by (explain)
---Testcase 1556:
-EXPLAIN VERBOSE
-SELECT count(value1), regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY regexp_like('   XyZ   ', str2, 'i');
-                                                         QUERY PLAN                                                          
------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=108.53..208.66 rows=1 width=12)
-   Output: (count(value1)), (regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Node: pgspider_svr / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql GROUP BY 2
-(6 rows)
-
--- select regexp_like with group by (result)
---Testcase 1557:
-SELECT count(value1), regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY regexp_like('   XyZ   ', str2, 'i');
- count | regexp_like 
--------+-------------
-     6 |           1
-(1 row)
-
--- select regexp_like with group by index (result)
---Testcase 1558:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY 2,1;
- value1 | regexp_like 
---------+-------------
-    0.1 |           1
-    0.2 |           1
-    0.3 |           1
-    1.1 |           1
-    2.2 |           1
-    3.3 |           1
-(6 rows)
-
--- select regexp_like with group by having (explain)
---Testcase 1559:
-EXPLAIN VERBOSE
-SELECT count(value1), regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY regexp_like('   XyZ   ', str2, 'i'), str2 HAVING regexp_like('   XyZ   ', str2, 'i') > 0;
+SELECT count(value1), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY mysql_regexp_instr(str2, 'XYZ', 3, 0), str2 HAVING mysql_regexp_instr(str2, 'XYZ', 3, 0) IS NOT NULL;
                                                                                                  QUERY PLAN                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=117.06..231.78 rows=1 width=44)
-   Output: (count(value1)), (regexp_like('   XyZ   '::text, str2, 'i'::text)), str2
-   Filter: ((regexp_like('   XyZ   '::text, s3.str2, 'i'::text)) > 0)
+ Foreign Scan  (cost=117.06..266.93 rows=1 width=44)
+   Output: (count(value1)), (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0)), str2
+   Filter: ((mysql_regexp_instr(s3.str2, 'XYZ'::text, 3, 0)) IS NOT NULL)
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_like('   XyZ   '::text, str2, 'i'::text), str2 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.regexp_like('   XyZ   '::text, str2, 'i'::text) > 0))
+     Remote SQL: SELECT count(value1), public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0), str2 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.mysql_regexp_instr(str2, 'XYZ'::text, 3, 0) IS NOT NULL))
 (7 rows)
 
--- select regexp_like with group by having (result)
---Testcase 1560:
-SELECT count(value1), regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY regexp_like('   XyZ   ', str2, 'i'), str2 HAVING regexp_like('   XyZ   ', str2, 'i') > 0;
- count | regexp_like 
--------+-------------
-     6 |           1
+-- select mysql_regexp_instr with group by having (result)
+--Testcase 1540:
+SELECT count(value1), mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY mysql_regexp_instr(str2, 'XYZ', 3, 0), str2 HAVING mysql_regexp_instr(str2, 'XYZ', 3, 0) IS NOT NULL;
+ count | mysql_regexp_instr 
+-------+--------------------
+     6 |                  4
 (1 row)
 
--- select regexp_like with group by index having (result)
---Testcase 1561:
-SELECT value1, regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY 1,2 HAVING value1 > 1;
- value1 | regexp_like 
---------+-------------
-    1.1 |           1
-    2.2 |           1
-    3.3 |           1
+-- select mysql_regexp_instr with group by index having (result)
+--Testcase 1541:
+SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
+ value1 | mysql_regexp_instr 
+--------+--------------------
+    1.1 |                  4
+    2.2 |                  4
+    3.3 |                  4
 (3 rows)
 
 --
--- test regexp_replace()
+-- test mysql_regexp_like()
 --
--- select regexp_replace (stub function, explain)
+-- select mysql_regexp_like (stub function, explain)
+--Testcase 1542:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_instr(str1, 'XY'), mysql_regexp_instr(str2, 'XYZ') FROM s3;
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1918.89 rows=3413 width=8)
+   Output: (mysql_regexp_instr(str1, 'XY'::text)), (mysql_regexp_instr(str2, 'XYZ'::text))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_instr(str1, 'XY'::text), public.mysql_regexp_instr(str2, 'XYZ'::text) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_like (stub function, result)
+--Testcase 1543:
+SELECT mysql_regexp_instr(str1, 'XY'), mysql_regexp_instr(str2, 'XYZ') FROM s3;
+ mysql_regexp_instr | mysql_regexp_instr 
+--------------------+--------------------
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+                  4 |                  4
+(6 rows)
+
+-- select mysql_regexp_like (stub function, explain)
+--Testcase 1544:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=4)
+   Output: (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_like (stub function, result)
+--Testcase 1545:
+SELECT mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3;
+ mysql_regexp_like 
+-------------------
+                 1
+                 1
+                 1
+                 1
+                 1
+                 1
+(6 rows)
+
+-- select mysql_regexp_like (stub function, not pushdown constraints, explain)
+--Testcase 1546:
+EXPLAIN VERBOSE
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE to_hex(value2) = '64';
+                                                       QUERY PLAN                                                        
+-------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=12)
+   Output: value1, (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT value1, public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text), value2 FROM public.s3mysql
+(5 rows)
+
+-- select mysql_regexp_like (stub function, not pushdown constraints, result)
+--Testcase 1547:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE to_hex(value2) = '64';
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+(3 rows)
+
+-- select mysql_regexp_like (stub function, pushdown constraints, explain)
+--Testcase 1548:
+EXPLAIN VERBOSE
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE value2 != 200;
+                                                               QUERY PLAN                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=12)
+   Output: value1, (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT value1, public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql WHERE ((value2 <> 200))
+(4 rows)
+
+-- select mysql_regexp_like (stub function, pushdown constraints, result)
+--Testcase 1549:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE value2 != 200;
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+(3 rows)
+
+-- select mysql_regexp_like with non pushdown func and explicit constant (explain)
+--Testcase 1550:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_like('   XyZ   ', str2, 'i'), pi(), 4.1 FROM s3;
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=44)
+   Output: (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text)), '3.141592653589793'::double precision, 4.1
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_like with non pushdown func and explicit constant (result)
+--Testcase 1551:
+SELECT mysql_regexp_like('   XyZ   ', str2, 'i'), pi(), 4.1 FROM s3;
+ mysql_regexp_like |        pi         | ?column? 
+-------------------+-------------------+----------
+                 1 | 3.141592653589793 |      4.1
+                 1 | 3.141592653589793 |      4.1
+                 1 | 3.141592653589793 |      4.1
+                 1 | 3.141592653589793 |      4.1
+                 1 | 3.141592653589793 |      4.1
+                 1 | 3.141592653589793 |      4.1
+(6 rows)
+
+-- select mysql_regexp_like with order by (explain)
+--Testcase 1552:
+EXPLAIN VERBOSE
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY mysql_regexp_like('   XyZ   ', str2, 'i');
+                                                                                              QUERY PLAN                                                                                              
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=12)
+   Output: value1, (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
+   Node: pgspider_svr / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT value1, public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql ORDER BY public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) ASC NULLS LAST
+(5 rows)
+
+-- select mysql_regexp_like with order by (result)
+--Testcase 1553:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY mysql_regexp_like('   XyZ   ', str2, 'i');
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+    1.1 |                 1
+    2.2 |                 1
+    3.3 |                 1
+(6 rows)
+
+-- select mysql_regexp_like with order by index (result)
+--Testcase 1554:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY 2,1;
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+    1.1 |                 1
+    2.2 |                 1
+    3.3 |                 1
+(6 rows)
+
+-- select mysql_regexp_like with order by index (result)
+--Testcase 1555:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 ORDER BY 1,2;
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+    1.1 |                 1
+    2.2 |                 1
+    3.3 |                 1
+(6 rows)
+
+-- select mysql_regexp_like with group by (explain)
+--Testcase 1556:
+EXPLAIN VERBOSE
+SELECT count(value1), mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY mysql_regexp_like('   XyZ   ', str2, 'i');
+                                                            QUERY PLAN                                                             
+-----------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=108.53..208.66 rows=1 width=12)
+   Output: (count(value1)), (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT count(value1), public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) FROM public.s3mysql GROUP BY 2
+(6 rows)
+
+-- select mysql_regexp_like with group by (result)
+--Testcase 1557:
+SELECT count(value1), mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY mysql_regexp_like('   XyZ   ', str2, 'i');
+ count | mysql_regexp_like 
+-------+-------------------
+     6 |                 1
+(1 row)
+
+-- select mysql_regexp_like with group by index (result)
+--Testcase 1558:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY 2,1;
+ value1 | mysql_regexp_like 
+--------+-------------------
+    0.1 |                 1
+    0.2 |                 1
+    0.3 |                 1
+    1.1 |                 1
+    2.2 |                 1
+    3.3 |                 1
+(6 rows)
+
+-- select mysql_regexp_like with group by having (explain)
+--Testcase 1559:
+EXPLAIN VERBOSE
+SELECT count(value1), mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY mysql_regexp_like('   XyZ   ', str2, 'i'), str2 HAVING mysql_regexp_like('   XyZ   ', str2, 'i') > 0;
+                                                                                                       QUERY PLAN                                                                                                       
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan  (cost=117.06..231.78 rows=1 width=44)
+   Output: (count(value1)), (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text)), str2
+   Filter: ((mysql_regexp_like('   XyZ   '::text, s3.str2, 'i'::text)) > 0)
+   Node: pgspider_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.s3)
+     Remote SQL: SELECT count(value1), public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text), str2 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.mysql_regexp_like('   XyZ   '::text, str2, 'i'::text) > 0))
+(7 rows)
+
+-- select mysql_regexp_like with group by having (result)
+--Testcase 1560:
+SELECT count(value1), mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY mysql_regexp_like('   XyZ   ', str2, 'i'), str2 HAVING mysql_regexp_like('   XyZ   ', str2, 'i') > 0;
+ count | mysql_regexp_like 
+-------+-------------------
+     6 |                 1
+(1 row)
+
+-- select mysql_regexp_like with group by index having (result)
+--Testcase 1561:
+SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 GROUP BY 1,2 HAVING value1 > 1;
+ value1 | mysql_regexp_like 
+--------+-------------------
+    1.1 |                 1
+    2.2 |                 1
+    3.3 |                 1
+(3 rows)
+
+--
+-- test mysql_regexp_replace()
+--
+-- select mysql_regexp_replace (stub function, explain)
 --Testcase 1562:
 EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'X', 'x') FROM s3;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..220.92 rows=3413 width=32)
-   Output: (regexp_replace(str1, 'X'::text, 'x'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT regexp_replace(str1, 'X'::text, 'x'::text) FROM public.s3mysql
-(4 rows)
-
--- select regexp_replace (stub function, result)
---Testcase 1563:
-SELECT regexp_replace(str1, 'X', 'x') FROM s3;
- regexp_replace 
-----------------
- ---xYZ---
- ---xYZ---
- ---xYZ---
- ---xYZ---
- ---xYZ---
- ---xYZ---
-(6 rows)
-
--- select regexp_replace (stub function, explain)
---Testcase 1564:
-EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'Y', 'y', 3) FROM s3;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_replace(str1, 'Y'::text, 'y'::text, 3))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_replace(str1, 'Y'::text, 'y'::text, 3) FROM public.s3mysql
-(4 rows)
-
--- select regexp_replace (stub function, result)
---Testcase 1565:
-SELECT regexp_replace(str1, 'Y', 'y', 3) FROM s3;
- regexp_replace 
-----------------
- ---XyZ---
- ---XyZ---
- ---XyZ---
- ---XyZ---
- ---XyZ---
- ---XyZ---
-(6 rows)
-
--- select regexp_replace (stub function, explain)
---Testcase 1566:
-EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3;
+SELECT mysql_regexp_replace(str1, 'X', 'x') FROM s3;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Output: (mysql_regexp_replace(str1, 'X'::text, 'x'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'X'::text, 'x'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_replace (stub function, result)
+-- select mysql_regexp_replace (stub function, result)
+--Testcase 1563:
+SELECT mysql_regexp_replace(str1, 'X', 'x') FROM s3;
+ mysql_regexp_replace 
+----------------------
+ ---xYZ---
+ ---xYZ---
+ ---xYZ---
+ ---xYZ---
+ ---xYZ---
+ ---xYZ---
+(6 rows)
+
+-- select mysql_regexp_replace (stub function, explain)
+--Testcase 1564:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3) FROM s3;
+                                              QUERY PLAN                                               
+-------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
+   Output: (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_replace (stub function, result)
+--Testcase 1565:
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3) FROM s3;
+ mysql_regexp_replace 
+----------------------
+ ---XyZ---
+ ---XyZ---
+ ---XyZ---
+ ---XyZ---
+ ---XyZ---
+ ---XyZ---
+(6 rows)
+
+-- select mysql_regexp_replace (stub function, explain)
+--Testcase 1566:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3;
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
+   Output: (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_replace (stub function, result)
 --Testcase 1567:
-SELECT regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3;
- regexp_replace 
-----------------
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3;
+ mysql_regexp_replace 
+----------------------
  ---XYZ---
  ---XYZ---
  ---XYZ---
@@ -18984,23 +18984,23 @@ SELECT regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3;
  ---XYZ---
 (6 rows)
 
--- select regexp_replace (stub function, explain)
+-- select mysql_regexp_replace (stub function, explain)
 --Testcase 1568:
 EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'y', 'K', 3, 0, 'i') FROM s3;
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_replace(str1, 'y', 'K', 3, 0, 'i') FROM s3;
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_replace(str1, 'y'::text, 'K'::text, 3, 0, 'i'::text))
+   Output: (mysql_regexp_replace(str1, 'y'::text, 'K'::text, 3, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_replace(str1, 'y'::text, 'K'::text, 3, 0, 'i'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'y'::text, 'K'::text, 3, 0, 'i'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_replace (stub function, result)
+-- select mysql_regexp_replace (stub function, result)
 --Testcase 1569:
-SELECT regexp_replace(str1, 'y', 'K', 3, 0, 'i') FROM s3;
- regexp_replace 
-----------------
+SELECT mysql_regexp_replace(str1, 'y', 'K', 3, 0, 'i') FROM s3;
+ mysql_regexp_replace 
+----------------------
  ---XKZ---
  ---XKZ---
  ---XKZ---
@@ -19009,23 +19009,23 @@ SELECT regexp_replace(str1, 'y', 'K', 3, 0, 'i') FROM s3;
  ---XKZ---
 (6 rows)
 
--- select regexp_replace (stub function, explain)
+-- select mysql_regexp_replace (stub function, explain)
 --Testcase 1570:
 EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'y', NULL, 3, 3, 'i') FROM s3;
-                                                   QUERY PLAN                                                   
-----------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_replace(str1, 'y', NULL, 3, 3, 'i') FROM s3;
+                                                      QUERY PLAN                                                      
+----------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_replace(str1, 'y'::text, NULL::text, 3, 3, 'i'::text))
+   Output: (mysql_regexp_replace(str1, 'y'::text, NULL::text, 3, 3, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_replace(str1, 'y'::text, NULL::text, 3, 3, 'i'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'y'::text, NULL::text, 3, 3, 'i'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_replace (stub function, result)
+-- select mysql_regexp_replace (stub function, result)
 --Testcase 1571:
-SELECT regexp_replace(str1, 'y', NULL, 3, 3, 'i') FROM s3;
- regexp_replace 
-----------------
+SELECT mysql_regexp_replace(str1, 'y', NULL, 3, 3, 'i') FROM s3;
+ mysql_regexp_replace 
+----------------------
  
  
  
@@ -19034,94 +19034,94 @@ SELECT regexp_replace(str1, 'y', NULL, 3, 3, 'i') FROM s3;
  
 (6 rows)
 
--- select regexp_replace (stub function, not pushdown constraints, explain)
+-- select mysql_regexp_replace (stub function, not pushdown constraints, explain)
 --Testcase 1572:
 EXPLAIN VERBOSE
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE to_hex(value2) = '64';
-                                                     QUERY PLAN                                                     
---------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE to_hex(value2) = '64';
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=40)
-   Output: value1, (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Output: value1, (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), value2 FROM public.s3mysql
+     Remote SQL: SELECT value1, public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), value2 FROM public.s3mysql
 (5 rows)
 
--- select regexp_replace (stub function, not pushdown constraints, result)
+-- select mysql_regexp_replace (stub function, not pushdown constraints, result)
 --Testcase 1573:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE to_hex(value2) = '64';
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE to_hex(value2) = '64';
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
 (3 rows)
 
--- select regexp_replace (stub function, pushdown constraints, explain)
+-- select mysql_regexp_replace (stub function, pushdown constraints, explain)
 --Testcase 1574:
 EXPLAIN VERBOSE
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE value2 != 200;
-                                                             QUERY PLAN                                                             
-------------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE value2 != 200;
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=40)
-   Output: value1, (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Output: value1, (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql WHERE ((value2 <> 200))
+     Remote SQL: SELECT value1, public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
 
--- select regexp_replace (stub function, pushdown constraints, result)
+-- select mysql_regexp_replace (stub function, pushdown constraints, result)
 --Testcase 1575:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE value2 != 200;
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE value2 != 200;
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
 (3 rows)
 
--- select regexp_replace with non pushdown func and explicit constant (explain)
+-- select mysql_regexp_replace with non pushdown func and explicit constant (explain)
 --Testcase 1576:
 EXPLAIN VERBOSE
-SELECT regexp_replace(str1, 'Y', 'y', 3, 3), pi(), 4.1 FROM s3;
-                                                                  QUERY PLAN                                                                  
-----------------------------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3, 3), pi(), 4.1 FROM s3;
+                                                                     QUERY PLAN                                                                     
+----------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=72)
-   Output: (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3)), '3.141592653589793'::double precision, 4.1
+   Output: (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
 
--- select regexp_replace with non pushdown func and explicit constant (result)
+-- select mysql_regexp_replace with non pushdown func and explicit constant (result)
 --Testcase 1577:
-SELECT regexp_replace(str1, 'Y', 'y', 3, 3), pi(), 4.1 FROM s3;
- regexp_replace |        pi         | ?column? 
-----------------+-------------------+----------
- ---XYZ---      | 3.141592653589793 |      4.1
- ---XYZ---      | 3.141592653589793 |      4.1
- ---XYZ---      | 3.141592653589793 |      4.1
- ---XYZ---      | 3.141592653589793 |      4.1
- ---XYZ---      | 3.141592653589793 |      4.1
- ---XYZ---      | 3.141592653589793 |      4.1
+SELECT mysql_regexp_replace(str1, 'Y', 'y', 3, 3), pi(), 4.1 FROM s3;
+ mysql_regexp_replace |        pi         | ?column? 
+----------------------+-------------------+----------
+ ---XYZ---            | 3.141592653589793 |      4.1
+ ---XYZ---            | 3.141592653589793 |      4.1
+ ---XYZ---            | 3.141592653589793 |      4.1
+ ---XYZ---            | 3.141592653589793 |      4.1
+ ---XYZ---            | 3.141592653589793 |      4.1
+ ---XYZ---            | 3.141592653589793 |      4.1
 (6 rows)
 
--- select regexp_replace with order by (explain)
+-- select mysql_regexp_replace with order by (explain)
 --Testcase 1578:
 EXPLAIN VERBOSE
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY regexp_replace(str1, 'Y', 'y', 3, 3);
-                                                                                         QUERY PLAN                                                                                         
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3);
+                                                                                               QUERY PLAN                                                                                               
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=40)
-   Output: value1, (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Output: value1, (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
    Node: pgspider_svr / Status: Alive
      Sort push-down: yes
-     Remote SQL: SELECT value1, public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql ORDER BY public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) ASC NULLS LAST
+     Remote SQL: SELECT value1, public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql ORDER BY public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) ASC NULLS LAST
 (5 rows)
 
--- select regexp_replace with order by (result)
+-- select mysql_regexp_replace with order by (result)
 --Testcase 1579:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY regexp_replace(str1, 'Y', 'y', 3, 3);
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3);
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
@@ -19130,11 +19130,11 @@ SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY regexp_repl
     3.3 | ---XYZ---
 (6 rows)
 
--- select regexp_replace with order by index (result)
+-- select mysql_regexp_replace with order by index (result)
 --Testcase 1580:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 2,1;
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 2,1;
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
@@ -19143,11 +19143,11 @@ SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 2,1;
     3.3 | ---XYZ---
 (6 rows)
 
--- select regexp_replace with order by index (result)
+-- select mysql_regexp_replace with order by index (result)
 --Testcase 1581:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 1,2;
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 1,2;
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
@@ -19156,33 +19156,33 @@ SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 ORDER BY 1,2;
     3.3 | ---XYZ---
 (6 rows)
 
--- select regexp_replace with group by (explain)
+-- select mysql_regexp_replace with group by (explain)
 --Testcase 1582:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY regexp_replace(str1, 'Y', 'y', 3, 3);
-                                                          QUERY PLAN                                                          
-------------------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3);
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=108.53..208.66 rows=1 width=40)
-   Output: (count(value1)), (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
+   Output: (count(value1)), (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql GROUP BY 2
+     Remote SQL: SELECT count(value1), public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) FROM public.s3mysql GROUP BY 2
 (6 rows)
 
--- select regexp_replace with group by (result)
+-- select mysql_regexp_replace with group by (result)
 --Testcase 1583:
-SELECT count(value1), regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY regexp_replace(str1, 'Y', 'y', 3, 3);
- count | regexp_replace 
--------+----------------
+SELECT count(value1), mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3);
+ count | mysql_regexp_replace 
+-------+----------------------
      6 | ---XYZ---
 (1 row)
 
--- select regexp_replace with group by index (result)
+-- select mysql_regexp_replace with group by index (result)
 --Testcase 1584:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY 2,1;
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY 2,1;
+ value1 | mysql_regexp_replace 
+--------+----------------------
     0.1 | ---XYZ---
     0.2 | ---XYZ---
     0.3 | ---XYZ---
@@ -19191,109 +19191,59 @@ SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY 2,1;
     3.3 | ---XYZ---
 (6 rows)
 
--- select regexp_replace with group by having (explain)
+-- select mysql_regexp_replace with group by having (explain)
 --Testcase 1585:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY regexp_replace(str1, 'Y', 'y', 3, 3), str1 HAVING regexp_replace(str1, 'Y', 'y', 3, 3) IS NOT NULL;
-                                                                                                      QUERY PLAN                                                                                                      
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3), str1 HAVING mysql_regexp_replace(str1, 'Y', 'y', 3, 3) IS NOT NULL;
+                                                                                                            QUERY PLAN                                                                                                            
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..266.93 rows=1 width=72)
-   Output: (count(value1)), (regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3)), str1
-   Filter: ((regexp_replace(s3.str1, 'Y'::text, 'y'::text, 3, 3)) IS NOT NULL)
+   Output: (count(value1)), (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3)), str1
+   Filter: ((mysql_regexp_replace(s3.str1, 'Y'::text, 'y'::text, 3, 3)) IS NOT NULL)
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), str1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) IS NOT NULL))
+     Remote SQL: SELECT count(value1), public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3), str1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3) IS NOT NULL))
 (7 rows)
 
--- select regexp_replace with group by having (result)
+-- select mysql_regexp_replace with group by having (result)
 --Testcase 1586:
-SELECT count(value1), regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY regexp_replace(str1, 'Y', 'y', 3, 3), str1 HAVING regexp_replace(str1, 'Y', 'y', 3, 3) IS NOT NULL;
- count | regexp_replace 
--------+----------------
+SELECT count(value1), mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY mysql_regexp_replace(str1, 'Y', 'y', 3, 3), str1 HAVING mysql_regexp_replace(str1, 'Y', 'y', 3, 3) IS NOT NULL;
+ count | mysql_regexp_replace 
+-------+----------------------
      6 | ---XYZ---
 (1 row)
 
--- select regexp_replace with group by index having (result)
+-- select mysql_regexp_replace with group by index having (result)
 --Testcase 1587:
-SELECT value1, regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
- value1 | regexp_replace 
---------+----------------
+SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 GROUP BY 1,2 HAVING value1 > 1;
+ value1 | mysql_regexp_replace 
+--------+----------------------
     1.1 | ---XYZ---
     2.2 | ---XYZ---
     3.3 | ---XYZ---
 (3 rows)
 
 --
--- test regexp_substr()
+-- test mysql_regexp_substr()
 --
--- select regexp_substr (stub function, explain)
+-- select mysql_regexp_substr (stub function, explain)
 --Testcase 1588:
 EXPLAIN VERBOSE
-SELECT regexp_substr(str1, 'XYZ') FROM s3;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_substr(str1, 'XYZ'::text))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str1, 'XYZ'::text) FROM public.s3mysql
-(4 rows)
-
--- select regexp_substr (stub function, result)
---Testcase 1589:
-SELECT regexp_substr(str1, 'XYZ') FROM s3;
- regexp_substr 
----------------
- XYZ
- XYZ
- XYZ
- XYZ
- XYZ
- XYZ
-(6 rows)
-
--- select regexp_substr (stub function, explain)
---Testcase 1590:
-EXPLAIN VERBOSE
-SELECT regexp_substr(str1, 'XYZ', 3) FROM s3;
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_substr(str1, 'XYZ'::text, 3))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str1, 'XYZ'::text, 3) FROM public.s3mysql
-(4 rows)
-
--- select regexp_substr (stub function, result)
---Testcase 1591:
-SELECT regexp_substr(str1, 'XYZ', 3) FROM s3;
- regexp_substr 
----------------
- XYZ
- XYZ
- XYZ
- XYZ
- XYZ
- XYZ
-(6 rows)
-
--- select regexp_substr (stub function, explain)
---Testcase 1592:
-EXPLAIN VERBOSE
-SELECT regexp_substr(str2, 'XYZ', 4, 0) FROM s3;
+SELECT mysql_regexp_substr(str1, 'XYZ') FROM s3;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_substr(str2, 'XYZ'::text, 4, 0))
+   Output: (mysql_regexp_substr(str1, 'XYZ'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str2, 'XYZ'::text, 4, 0) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_substr(str1, 'XYZ'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_substr (stub function, result)
---Testcase 1593:
-SELECT regexp_substr(str2, 'XYZ', 4, 0) FROM s3;
- regexp_substr 
----------------
+-- select mysql_regexp_substr (stub function, result)
+--Testcase 1589:
+SELECT mysql_regexp_substr(str1, 'XYZ') FROM s3;
+ mysql_regexp_substr 
+---------------------
  XYZ
  XYZ
  XYZ
@@ -19302,23 +19252,73 @@ SELECT regexp_substr(str2, 'XYZ', 4, 0) FROM s3;
  XYZ
 (6 rows)
 
--- select regexp_substr (stub function, explain)
+-- select mysql_regexp_substr (stub function, explain)
+--Testcase 1590:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_substr(str1, 'XYZ', 3) FROM s3;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
+   Output: (mysql_regexp_substr(str1, 'XYZ'::text, 3))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_substr(str1, 'XYZ'::text, 3) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_substr (stub function, result)
+--Testcase 1591:
+SELECT mysql_regexp_substr(str1, 'XYZ', 3) FROM s3;
+ mysql_regexp_substr 
+---------------------
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+(6 rows)
+
+-- select mysql_regexp_substr (stub function, explain)
+--Testcase 1592:
+EXPLAIN VERBOSE
+SELECT mysql_regexp_substr(str2, 'XYZ', 4, 0) FROM s3;
+                                           QUERY PLAN                                           
+------------------------------------------------------------------------------------------------
+ Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
+   Output: (mysql_regexp_substr(str2, 'XYZ'::text, 4, 0))
+   Node: pgspider_svr / Status: Alive
+     Remote SQL: SELECT public.mysql_regexp_substr(str2, 'XYZ'::text, 4, 0) FROM public.s3mysql
+(4 rows)
+
+-- select mysql_regexp_substr (stub function, result)
+--Testcase 1593:
+SELECT mysql_regexp_substr(str2, 'XYZ', 4, 0) FROM s3;
+ mysql_regexp_substr 
+---------------------
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+ XYZ
+(6 rows)
+
+-- select mysql_regexp_substr (stub function, explain)
 --Testcase 1594:
 EXPLAIN VERBOSE
-SELECT regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3;
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
+   Output: (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_substr (stub function, result)
+-- select mysql_regexp_substr (stub function, result)
 --Testcase 1595:
-SELECT regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3;
- regexp_substr 
----------------
+SELECT mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3;
+ mysql_regexp_substr 
+---------------------
  XYZ
  XYZ
  XYZ
@@ -19327,23 +19327,23 @@ SELECT regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3;
  XYZ
 (6 rows)
 
--- select regexp_substr (stub function, explain)
+-- select mysql_regexp_substr (stub function, explain)
 --Testcase 1596:
 EXPLAIN VERBOSE
-SELECT regexp_substr(str1, NULL, 4, 0, 'i') FROM s3;
-                                             QUERY PLAN                                             
-----------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_substr(str1, NULL, 4, 0, 'i') FROM s3;
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=32)
-   Output: (regexp_substr(str1, NULL::text, 4, 0, 'i'::text))
+   Output: (mysql_regexp_substr(str1, NULL::text, 4, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str1, NULL::text, 4, 0, 'i'::text) FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_substr(str1, NULL::text, 4, 0, 'i'::text) FROM public.s3mysql
 (4 rows)
 
--- select regexp_substr (stub function, result)
+-- select mysql_regexp_substr (stub function, result)
 --Testcase 1597:
-SELECT regexp_substr(str1, NULL, 4, 0, 'i') FROM s3;
- regexp_substr 
----------------
+SELECT mysql_regexp_substr(str1, NULL, 4, 0, 'i') FROM s3;
+ mysql_regexp_substr 
+---------------------
  
  
  
@@ -19352,94 +19352,94 @@ SELECT regexp_substr(str1, NULL, 4, 0, 'i') FROM s3;
  
 (6 rows)
 
--- select regexp_substr (stub function, not pushdown constraints, explain)
+-- select mysql_regexp_substr (stub function, not pushdown constraints, explain)
 --Testcase 1598:
 EXPLAIN VERBOSE
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE to_hex(value2) = '64';
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE to_hex(value2) = '64';
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..233.44 rows=17 width=40)
-   Output: value1, (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
+   Output: value1, (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
    Filter: (to_hex(s3.value2) = '64'::text)
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), value2 FROM public.s3mysql
+     Remote SQL: SELECT value1, public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), value2 FROM public.s3mysql
 (5 rows)
 
--- select regexp_substr (stub function, not pushdown constraints, result)
+-- select mysql_regexp_substr (stub function, not pushdown constraints, result)
 --Testcase 1599:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE to_hex(value2) = '64';
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE to_hex(value2) = '64';
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
 (3 rows)
 
--- select regexp_substr (stub function, pushdown constraints, explain)
+-- select mysql_regexp_substr (stub function, pushdown constraints, explain)
 --Testcase 1600:
 EXPLAIN VERBOSE
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE value2 != 200;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE value2 != 200;
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1069.58 rows=3396 width=40)
-   Output: value1, (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
+   Output: value1, (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT value1, public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql WHERE ((value2 <> 200))
+     Remote SQL: SELECT value1, public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql WHERE ((value2 <> 200))
 (4 rows)
 
--- select regexp_substr (stub function, pushdown constraints, result)
+-- select mysql_regexp_substr (stub function, pushdown constraints, result)
 --Testcase 1601:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE value2 != 200;
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE value2 != 200;
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
 (3 rows)
 
--- select regexp_substr with non pushdown func and explicit constant (explain)
+-- select mysql_regexp_substr with non pushdown func and explicit constant (explain)
 --Testcase 1602:
 EXPLAIN VERBOSE
-SELECT regexp_substr(str1, 'xyz', 4, 0, 'i'), pi(), 4.1 FROM s3;
-                                                                  QUERY PLAN                                                                   
------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT mysql_regexp_substr(str1, 'xyz', 4, 0, 'i'), pi(), 4.1 FROM s3;
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=100.00..1065.64 rows=3413 width=72)
-   Output: (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text)), '3.141592653589793'::double precision, 4.1
+   Output: (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text)), '3.141592653589793'::double precision, 4.1
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
+     Remote SQL: SELECT public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), 3.141592653589793::double precision, 4.1 FROM public.s3mysql
 (4 rows)
 
--- select regexp_substr with non pushdown func and explicit constant (result)
+-- select mysql_regexp_substr with non pushdown func and explicit constant (result)
 --Testcase 1603:
-SELECT regexp_substr(str1, 'xyz', 4, 0, 'i'), pi(), 4.1 FROM s3;
- regexp_substr |        pi         | ?column? 
----------------+-------------------+----------
- XYZ           | 3.141592653589793 |      4.1
- XYZ           | 3.141592653589793 |      4.1
- XYZ           | 3.141592653589793 |      4.1
- XYZ           | 3.141592653589793 |      4.1
- XYZ           | 3.141592653589793 |      4.1
- XYZ           | 3.141592653589793 |      4.1
+SELECT mysql_regexp_substr(str1, 'xyz', 4, 0, 'i'), pi(), 4.1 FROM s3;
+ mysql_regexp_substr |        pi         | ?column? 
+---------------------+-------------------+----------
+ XYZ                 | 3.141592653589793 |      4.1
+ XYZ                 | 3.141592653589793 |      4.1
+ XYZ                 | 3.141592653589793 |      4.1
+ XYZ                 | 3.141592653589793 |      4.1
+ XYZ                 | 3.141592653589793 |      4.1
+ XYZ                 | 3.141592653589793 |      4.1
 (6 rows)
 
--- select regexp_substr with order by (explain)
+-- select mysql_regexp_substr with order by (explain)
 --Testcase 1604:
 EXPLAIN VERBOSE
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY regexp_substr(str1, 'xyz', 4, 0, 'i');
-                                                                                          QUERY PLAN                                                                                          
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i');
+                                                                                                QUERY PLAN                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=0.00..0.25 rows=1 width=40)
-   Output: value1, (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
+   Output: value1, (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
      Sort push-down: yes
-     Remote SQL: SELECT value1, public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql ORDER BY public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) ASC NULLS LAST
+     Remote SQL: SELECT value1, public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql ORDER BY public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) ASC NULLS LAST
 (5 rows)
 
--- select regexp_substr with order by (result)
+-- select mysql_regexp_substr with order by (result)
 --Testcase 1605:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY regexp_substr(str1, 'xyz', 4, 0, 'i');
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i');
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
@@ -19448,11 +19448,11 @@ SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY regexp_sub
     3.3 | XYZ
 (6 rows)
 
--- select regexp_substr with order by index (result)
+-- select mysql_regexp_substr with order by index (result)
 --Testcase 1606:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 2,1;
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 2,1;
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
@@ -19461,11 +19461,11 @@ SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 2,1;
     3.3 | XYZ
 (6 rows)
 
--- select regexp_substr with order by index (result)
+-- select mysql_regexp_substr with order by index (result)
 --Testcase 1607:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 1,2;
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 1,2;
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
@@ -19474,33 +19474,33 @@ SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 ORDER BY 1,2;
     3.3 | XYZ
 (6 rows)
 
--- select regexp_substr with group by (explain)
+-- select mysql_regexp_substr with group by (explain)
 --Testcase 1608:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY regexp_substr(str1, 'xyz', 4, 0, 'i');
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i');
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=108.53..208.66 rows=1 width=40)
-   Output: (count(value1)), (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
+   Output: (count(value1)), (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql GROUP BY 2
+     Remote SQL: SELECT count(value1), public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) FROM public.s3mysql GROUP BY 2
 (6 rows)
 
--- select regexp_substr with group by (result)
+-- select mysql_regexp_substr with group by (result)
 --Testcase 1609:
-SELECT count(value1), regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY regexp_substr(str1, 'xyz', 4, 0, 'i');
- count | regexp_substr 
--------+---------------
+SELECT count(value1), mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i');
+ count | mysql_regexp_substr 
+-------+---------------------
      6 | XYZ
 (1 row)
 
--- select regexp_substr with group by index (result)
+-- select mysql_regexp_substr with group by index (result)
 --Testcase 1610:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY 2,1;
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY 2,1;
+ value1 | mysql_regexp_substr 
+--------+---------------------
     0.1 | XYZ
     0.2 | XYZ
     0.3 | XYZ
@@ -19509,34 +19509,34 @@ SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY 2,1;
     3.3 | XYZ
 (6 rows)
 
--- select regexp_substr with group by having (explain)
+-- select mysql_regexp_substr with group by having (explain)
 --Testcase 1611:
 EXPLAIN VERBOSE
-SELECT count(value1), regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY regexp_substr(str1, 'xyz', 4, 0, 'i'), str1 HAVING regexp_substr(str1, 'xyz', 4, 0, 'i') IS NOT NULL;
-                                                                                                       QUERY PLAN                                                                                                       
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT count(value1), mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i'), str1 HAVING mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') IS NOT NULL;
+                                                                                                             QUERY PLAN                                                                                                             
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..266.93 rows=1 width=72)
-   Output: (count(value1)), (regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text)), str1
-   Filter: ((regexp_substr(s3.str1, 'xyz'::text, 4, 0, 'i'::text)) IS NOT NULL)
+   Output: (count(value1)), (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text)), str1
+   Filter: ((mysql_regexp_substr(s3.str1, 'xyz'::text, 4, 0, 'i'::text)) IS NOT NULL)
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT count(value1), public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), str1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) IS NOT NULL))
+     Remote SQL: SELECT count(value1), public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text), str1 FROM public.s3mysql GROUP BY 2, 3 HAVING ((public.mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text) IS NOT NULL))
 (7 rows)
 
--- select regexp_substr with group by having (result)
+-- select mysql_regexp_substr with group by having (result)
 --Testcase 1612:
-SELECT count(value1), regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY regexp_substr(str1, 'xyz', 4, 0, 'i'), str1 HAVING regexp_substr(str1, 'xyz', 4, 0, 'i') IS NOT NULL;
- count | regexp_substr 
--------+---------------
+SELECT count(value1), mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY mysql_regexp_substr(str1, 'xyz', 4, 0, 'i'), str1 HAVING mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') IS NOT NULL;
+ count | mysql_regexp_substr 
+-------+---------------------
      6 | XYZ
 (1 row)
 
--- select regexp_substr with group by index having (result)
+-- select mysql_regexp_substr with group by index having (result)
 --Testcase 1613:
-SELECT value1, regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY 1,2 HAVING value1 > 1;
- value1 | regexp_substr 
---------+---------------
+SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 GROUP BY 1,2 HAVING value1 > 1;
+ value1 | mysql_regexp_substr 
+--------+---------------------
     1.1 | XYZ
     2.2 | XYZ
     3.3 | XYZ
@@ -51974,452 +51974,261 @@ SELECT json_valid(json_build_array(c1, 'a', c2)) as json_valid1 FROM s8;
 --Testcase 4274:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
-                                                                                                                   QUERY PLAN                                                                                                                   
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..2789.20 rows=3413 width=96)
-   Output: (json_value(c1, '$.a'::text)), (json_value(c1, '$[1]'::text)), ((json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text), public.json_value(c1, '$[1]'::text), public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text)::numeric FROM public.s8mysql
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, result)
 --Testcase 4275:
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
- json_value |      json_value      | json_value 
-------------+----------------------+------------
-            | [3, 4]               |       50.0
-            |                      |       50.0
-            |                      |       50.0
- 10         |                      |       50.0
- 1          |                      |       50.0
-            | [{"k": "10"}, "def"] |       50.0
-(6 rows)
-
+ERROR:  syntax error at or near ","
+LINE 1: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, not pushdown constraints, explain)
 --Testcase 4276:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
-                                                                                                                     QUERY PLAN                                                                                                                     
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..242.03 rows=17 width=96)
-   Output: (json_value(c1, '$.a'::text)), (json_value(c1, '$[1]'::text)), ((json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Filter: (to_hex(s8.id) = '2'::text)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text), public.json_value(c1, '$[1]'::text), public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text)::numeric, id FROM public.s8mysql
-(5 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, not pushdown constraints, result)
 --Testcase 4277:
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
- json_value | json_value | json_value 
-------------+------------+------------
-            |            |       50.0
-(1 row)
-
+ERROR:  syntax error at or near ","
+LINE 1: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, pushdown constraints, explain)
 --Testcase 4278:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
-                                                                                                                            QUERY PLAN                                                                                                                            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..2784.56 rows=3396 width=96)
-   Output: (json_value(c1, '$.a'::text)), (json_value(c1, '$[1]'::text)), ((json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text), public.json_value(c1, '$[1]'::text), public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text)::numeric FROM public.s8mysql WHERE ((id <> 0))
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, pushdown constraints, result)
 --Testcase 4279:
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
- json_value |      json_value      | json_value 
-------------+----------------------+------------
-            |                      |       50.0
-            |                      |       50.0
- 10         |                      |       50.0
- 1          |                      |       50.0
-            | [{"k": "10"}, "def"] |       50.0
-(5 rows)
-
+ERROR:  syntax error at or near ","
+LINE 1: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, json_value in constraints, explain)
 --Testcase 4280:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value(c1, '$.a', 'default 0 on empty')::int > 1;
-                                                                                                                                                              QUERY PLAN                                                                                                                                                              
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1904.93 rows=1138 width=96)
-   Output: (json_value(c1, '$.a'::text)), (json_value(c1, '$[1]'::text)), ((json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text), public.json_value(c1, '$[1]'::text), public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text)::numeric FROM public.s8mysql WHERE ((public.json_value(c1, '$.a'::text, 'default 0 on empty'::text)::integer > 1))
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, json_value in constraints, result)
 --Testcase 4281:
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value(c1, '$.a', 'default 0 on empty')::int > 1;
- json_value | json_value | json_value 
-------------+------------+------------
- 10         |            |       50.0
-(1 row)
-
+ERROR:  syntax error at or near ","
+LINE 1: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, json_value in constraints, explain)
 --Testcase 4282:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
-                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                          
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1036.15 rows=17 width=96)
-   Output: (json_value(c1, '$.a'::text)), (json_value(c1, '$[1]'::text)), ((json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text), public.json_value(c1, '$[1]'::text), public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text)::numeric FROM public.s8mysql WHERE ((public.json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 2)'::text)::numeric = 49.95))
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, json_value in constraints, result)
 --Testcase 4283:
 SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
- json_value |      json_value      | json_value 
-------------+----------------------+------------
-            | [3, 4]               |       50.0
-            |                      |       50.0
-            |                      |       50.0
- 10         |                      |       50.0
- 1          |                      |       50.0
-            | [{"k": "10"}, "def"] |       50.0
-(6 rows)
-
+ERROR:  syntax error at or near ","
+LINE 1: ...e('{"item": "shoes", "price": "49.95"}', '$.price', 'returni...
+                                                             ^
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4284:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a')::date FROM s8;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1082.70 rows=3413 width=4)
-   Output: ((json_value(c1, '$.a'::text))::date)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text)::date FROM public.s8mysql
-(4 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT json_value(c1, '$.a')::date FROM s8;
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value (stub function, abnormal cast, result)
 --Testcase 4285:
 SELECT json_value(c1, '$.a')::date FROM s8; -- should fail
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  invalid input syntax for type date: "10"
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.json_value(c1, '$.a'::text)::date FROM public.s8mysql
-
-ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value(c1, '$.a')::date FROM s8;
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4286:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a', 'returning date')::date FROM s8;
-                                                 QUERY PLAN                                                  
--------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1082.70 rows=3413 width=4)
-   Output: ((json_value(c1, '$.a'::text, 'returning date'::text))::date)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text, 'returning date'::text)::date FROM public.s8mysql
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: SELECT json_value(c1, '$.a', 'returning date')::date FROM s8...
+                                   ^
 -- select json_value (stub function, abnormal cast, result)
 --Testcase 4287:
 SELECT json_value(c1, '$.a', 'returning date')::date FROM s8; --empty result
- json_value 
-------------
- 
- 
- 
- 
- 
- 
-(6 rows)
-
+ERROR:  syntax error at or near ","
+LINE 1: SELECT json_value(c1, '$.a', 'returning date')::date FROM s8...
+                                   ^
 -- select json_value (stub function, abnormal cast, explain)
 --Testcase 4288:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
-                                                             QUERY PLAN                                                              
--------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1082.70 rows=3413 width=4)
-   Output: ((json_value(c1, '$.a'::text, 'returning date'::text, 'error on error'::text))::date)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$.a'::text, 'returning date'::text, 'error on error'::text)::date FROM public.s8mysql
-(4 rows)
-
+ERROR:  syntax error at or near ","
+LINE 2: SELECT json_value(c1, '$.a', 'returning date', 'error on err...
+                                   ^
 -- select json_value (stub function, abnormal cast, result)
 --Testcase 4289:
 SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  failed to execute the MySQL query: 
-DATE value is out of range in 'json_value'
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.json_value(c1, '$.a'::text, 'returning date'::text, 'error on error'::text)::date FROM public.s8mysql
-
-ERROR:  PGSpider fail to iterate tuple from child thread
+ERROR:  syntax error at or near ","
+LINE 1: SELECT json_value(c1, '$.a', 'returning date', 'error on err...
+                                   ^
 -- select json_value with normal cast
 --Testcase 4290:
 SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, json_value('{"a": "2000-01-01"}', '$.a')::date , json_value('{"a": 1234}', '$.a')::bigint, json_value('{"a": "b"}', '$.a')::text FROM s8;
-     json_value      | json_value | json_value | json_value 
----------------------+------------+------------+------------
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
- 2000-01-01 00:00:00 | 2000-01-01 |       1234 | b
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, ...
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with normal cast
 --Testcase 4291:
 SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamptz, json_value('{"a": "12:10:20.123456"}', '$.a')::time , json_value('{"a": "12:10:20.123456"}', '$.a')::timetz FROM s8;
-       json_value       |   json_value    |     json_value     
-------------------------+-----------------+--------------------
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamptz...
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with type modifier (explain)
 --Testcase 4292:
 EXPLAIN VERBOSE
 SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
-                                                                                                                                                                                                                       QUERY PLAN                                                                                                                                                                                                                        
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..3727.78 rows=3413 width=36)
-   Output: ((json_value('{"a": "2000-01-01 12:02:01.123456"}'::json, '$.a'::text))::timestamp(3) without time zone), ((json_value('{"a": "2000-01-01 12:02:01.123456"}'::json, '$.a'::text))::timestamp(3) with time zone), ((json_value('{"a": "12:10:20.123456"}'::json, '$.a'::text))::time(3) without time zone), ((json_value('{"a": "12:10:20.123456"}'::json, '$.a'::text))::time(3) with time zone)
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value('{"a": "2000-01-01 12:02:01.123456"}'::json, '$.a'::text)::timestamp(3) without time zone, public.json_value('{"a": "2000-01-01 12:02:01.123456"}'::json, '$.a'::text)::timestamp(3) with time zone, public.json_value('{"a": "12:10:20.123456"}'::json, '$.a'::text)::time(3) without time zone, public.json_value('{"a": "12:10:20.123456"}'::json, '$.a'::text)::time(3) with time zone FROM public.s8mysql
-(4 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$....
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with type modifier (result)
 --Testcase 4293:
 SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
-       json_value        |         json_value         |  json_value  |   json_value    
--------------------------+----------------------------+--------------+-----------------
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123 | 12:10:20.123+00
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$....
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with type modifier (explain)
 --Testcase 4294:
 EXPLAIN VERBOSE
 SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
-                                                                                                          QUERY PLAN                                                                                                           
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..3702.18 rows=3413 width=48)
-   Output: ((json_value('{"a": 100}'::json, '$.a'::text))::numeric(10,2)), ((json_value('{"a": 100}'::json, '$.a'::text))::numeric(10,2)), ((json_unquote(json_value('{"a": "1.123456"}'::json, '$.a'::text)))::numeric(10,3))
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value('{"a": 100}'::json, '$.a'::text)::numeric(10,2), public.json_unquote(public.json_value('{"a": "1.123456"}'::json, '$.a'::text))::numeric(10,3) FROM public.s8mysql
-(4 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json...
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with type modifier (result)
 --Testcase 4295:
 SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
- json_value | json_value | json_unquote 
-------------+------------+--------------
-     100.00 |     100.00 |        1.123
-     100.00 |     100.00 |        1.123
-     100.00 |     100.00 |        1.123
-     100.00 |     100.00 |        1.123
-     100.00 |     100.00 |        1.123
-     100.00 |     100.00 |        1.123
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json...
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value as nest function with agg (pushdown, explain)
 --Testcase 4296:
 EXPLAIN VERBOSE
 SELECT sum(id), json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
-                                                                      QUERY PLAN                                                                      
-------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=100.00..144.42 rows=1 width=12)
-   Output: (sum(id)), ((json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price'::text))::integer)
-   Node: pgspider_svr / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.s8)
-     Remote SQL: SELECT sum(id), public.json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price'::text)::integer FROM public.s8mysql
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT sum(id), json_value(json_build_object('item', 'shoe',...
+                        ^
+HINT:  Try casting the argument to jsonb
 -- select json_value as nest function with agg (pushdown, result)
 --Testcase 4297:
 SELECT sum(id), json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
- sum | json_value 
------+------------
-  15 |         15
-(1 row)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT sum(id), json_value(json_build_object('item', 'shoe',...
+                        ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with non pushdown func and explicit constant (EXPLAIN)
 --Testcase 4298:
 EXPLAIN VERBOSE
 SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Foreign Scan on public.s8  (cost=100.00..1065.64 rows=3413 width=72)
-   Output: (json_value(c1, '$[1]'::text)), '3.141592653589793'::double precision, 4.1
-   Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.json_value(c1, '$[1]'::text), 3.141592653589793::double precision, 4.1 FROM public.s8mysql
-(4 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with non pushdown func and explicit constant (result)
 --Testcase 4299:
 SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
-      json_value      |        pi         | ?column? 
-----------------------+-------------------+----------
- [3, 4]               | 3.141592653589793 |      4.1
-                      | 3.141592653589793 |      4.1
-                      | 3.141592653589793 |      4.1
-                      | 3.141592653589793 |      4.1
-                      | 3.141592653589793 |      4.1
- [{"k": "10"}, "def"] | 3.141592653589793 |      4.1
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
+               ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with order by index (result)
 --Testcase 4300:
 SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 2, 1;
- id | json_value 
-----+------------
-  4 | 1
-  3 | 10
-  0 | 
-  1 | 
-  2 | 
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 2, 1;
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with order by index (result)
 --Testcase 4301:
 SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 1, 2;
- id | json_value 
-----+------------
-  0 | 
-  1 | 
-  2 | 
-  3 | 10
-  4 | 1
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 1, 2;
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by (EXPLAIN)
 --Testcase 4302:
 EXPLAIN VERBOSE
 SELECT count(id), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a');
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=108.53..208.66 rows=1 width=40)
-   Output: (count(id)), (json_value(c1, '$.a'::text))
-   Node: pgspider_svr / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.s8)
-     Remote SQL: SELECT count(id), public.json_value(c1, '$.a'::text) FROM public.s8mysql GROUP BY 2
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT count(id), json_value(c1, '$.a') FROM s8 group by jso...
+                          ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by (result)
 --Testcase 4303:
 SELECT count(id), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a');
- count | json_value 
--------+------------
-     4 | 
-     1 | 10
-     1 | 1
-(3 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT count(id), json_value(c1, '$.a') FROM s8 group by jso...
+                          ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by index (result)
 --Testcase 4304:
 SELECT id, json_value(c1, '$.a') FROM s8 group by 2, 1;
- id | json_value 
-----+------------
-  0 | 
-  1 | 
-  2 | 
-  3 | 10
-  4 | 1
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT id, json_value(c1, '$.a') FROM s8 group by 2, 1;
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by index (result)
 --Testcase 4305:
 SELECT id, json_value(c1, '$.a') FROM s8 group by 1, 2;
- id | json_value 
-----+------------
-  0 | 
-  1 | 
-  2 | 
-  3 | 10
-  4 | 1
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT id, json_value(c1, '$.a') FROM s8 group by 1, 2;
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by having (EXPLAIN)
 --Testcase 4306:
 EXPLAIN VERBOSE
 SELECT count(c2), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a') HAVING count(c2) > 0;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=108.53..208.66 rows=1 width=40)
-   Output: (count(c2)), (json_value(c1, '$.a'::text))
-   Filter: ((count(s8.c2)) > 0)
-   Node: pgspider_svr / Status: Alive
-     Agg push-down: yes
-     Relations: Aggregate on (public.s8)
-     Remote SQL: SELECT count(c2), public.json_value(c1, '$.a'::text) FROM public.s8mysql GROUP BY 2
-(7 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 2: SELECT count(c2), json_value(c1, '$.a') FROM s8 group by jso...
+                          ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by having (result)
 --Testcase 4307:
 SELECT count(c2), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a') HAVING count(c2) > 0;
- count | json_value 
--------+------------
-     4 | 
-     1 | 10
-     1 | 1
-(3 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT count(c2), json_value(c1, '$.a') FROM s8 group by jso...
+                          ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by index having (result)
 --Testcase 4308:
 SELECT c2, json_value(c1, '$.a') FROM s8 group by 2, 1 HAVING count(c2) > 0;
- c2 | json_value 
-----+------------
-  1 | 
-  2 | 
-  3 | 
-  4 | 10
-  5 | 1
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT c2, json_value(c1, '$.a') FROM s8 group by 2, 1 HAVIN...
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value with group by index having (result)
 --Testcase 4309:
 SELECT c2, json_value(c1, '$.a') FROM s8 group by 1, 2 HAVING count(c2) > 0;
- c2 | json_value 
-----+------------
-  1 | 
-  2 | 
-  3 | 
-  4 | 10
-  5 | 1
-  5 | 
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT c2, json_value(c1, '$.a') FROM s8 group by 1, 2 HAVIN...
+                   ^
+HINT:  Try casting the argument to jsonb
 -- select json_value and as
 --Testcase 4310:
 SELECT json_value(c1, '$[1]') as json_value1 FROM s8;
-     json_value1      
-----------------------
- [3, 4]
- 
- 
- 
- 
- [{"k": "10"}, "def"]
-(6 rows)
-
+ERROR:  JSON_VALUE() is not yet implemented for the json type
+LINE 1: SELECT json_value(c1, '$[1]') as json_value1 FROM s8;
+               ^
+HINT:  Try casting the argument to jsonb
 -- select member_of (builtin function, explain)
 --Testcase 4311:
 EXPLAIN VERBOSE

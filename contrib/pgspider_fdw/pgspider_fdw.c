@@ -19,6 +19,7 @@
 #include "access/sysattr.h"
 #include "access/table.h"
 #include "catalog/pg_class.h"
+#include "catalog/pg_opfamily.h"
 #include "commands/defrem.h"
 #include "commands/explain.h"
 #include "commands/vacuum.h"
@@ -102,9 +103,9 @@ enum FdwModifyPrivateIndex
 	FdwModifyPrivateUpdateSql,
 	/* Integer list of target attribute numbers for INSERT/UPDATE */
 	FdwModifyPrivateTargetAttnums,
-	/* Length till the end of VALUES clause (as an integer Value node) */
+	/* Length till the end of VALUES clause (as an Integer node) */
 	FdwModifyPrivateLen,
-	/* has-returning flag (as an integer Value node) */
+	/* has-returning flag (as a Boolean node) */
 	FdwModifyPrivateHasReturning,
 	/* Integer list of attribute numbers retrieved by RETURNING */
 	FdwModifyPrivateRetrievedAttrs
@@ -123,11 +124,11 @@ enum FdwDirectModifyPrivateIndex
 {
 	/* SQL statement to execute remotely (as a String node) */
 	FdwDirectModifyPrivateUpdateSql,
-	/* has-returning flag (as an integer Value node) */
+	/* has-returning flag (as a Boolean node) */
 	FdwDirectModifyPrivateHasReturning,
 	/* Integer list of attribute numbers retrieved by RETURNING */
 	FdwDirectModifyPrivateRetrievedAttrs,
-	/* set-processed flag (as an integer Value node) */
+	/* set-processed flag (as a Boolean node) */
 	FdwDirectModifyPrivateSetProcessed
 };
 
@@ -281,9 +282,9 @@ typedef struct PGSpiderFdwAnalyzeState
  */
 enum FdwPathPrivateIndex
 {
-	/* has-final-sort flag (as an integer Value node) */
+	/* has-final-sort flag (as a Boolean node) */
 	FdwPathPrivateHasFinalSort,
-	/* has-limit flag (as an integer Value node) */
+	/* has-limit flag (as a Boolean node) */
 	FdwPathPrivateHasLimit
 };
 
@@ -304,7 +305,8 @@ typedef struct
 typedef struct ConversionLocation
 {
 	AttrNumber	cur_attno;		/* attribute number being processed, or 0 */
-	ForeignScanState *fsstate;	/* plan node being processed */
+	Relation	rel;			/* foreign table being processed, or NULL */
+	ForeignScanState *fsstate;	/* plan node being processed, or NULL */
 } ConversionLocation;
 
 /* Callback argument for ec_member_matches_foreign */
@@ -932,11 +934,6 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 		foreach(lc, root->query_pathkeys)
 		{
 			PathKey    *pathkey = (PathKey *) lfirst(lc);
-			EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
-			Expr	   *em_expr;
-
-			/* Get the equivalence class member expression for the pathkey_ec */
-			em_expr = pgspider_find_em_expr_for_rel(pathkey_ec, rel);
 
 			/*
 			 * The planner and executor don't have any clever strategy for
@@ -944,15 +941,8 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 			 * getting it to be sorted by all of those pathkeys. We'll just
 			 * end up resorting the entire data set.  So, unless we can push
 			 * down all of the query pathkeys, forget it.
-			 *
-			 * For Function Expression, pgspider_is_foreign_expr would detect
-			 * volatile expressions.
-			 * For Non-Function Expression, pgspider_is_foreign_expr would detect
-			 * as well, but checking ec_has_volatile here saves some cycles.
 			 */
-			if (!(em_expr) ||
-				(!IsA(em_expr, FuncExpr) && pathkey_ec->ec_has_volatile) ||
-				!pgspider_is_foreign_expr(root, rel, em_expr))
+			if (!pgspider_is_foreign_pathkey(root, rel, pathkey))
 			{
 				query_pathkeys_ok = false;
 				break;
@@ -999,16 +989,19 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 	foreach(lc, useful_eclass_list)
 	{
 		EquivalenceClass *cur_ec = lfirst(lc);
-		Expr	   *em_expr;
 		PathKey    *pathkey;
 
 		/* If redundant with what we did above, skip it. */
 		if (cur_ec == query_ec)
 			continue;
 
+		/* Can't push down the sort if the EC's opfamily is not shippable. */
+		if (!pgspider_is_shippable(linitial_oid(cur_ec->ec_opfamilies),
+						  OperatorFamilyRelationId, fpinfo))
+			continue;
+
 		/* If no pushable expression for this rel, skip it. */
-		em_expr = pgspider_find_em_expr_for_rel(cur_ec, rel);
-		if (em_expr == NULL || !pgspider_is_foreign_expr(root, rel, em_expr))
+		if (pgspider_find_em_for_rel(root, cur_ec, rel) == NULL)
 			continue;
 
 		/* Looks like we can generate a pathkey, so let's do it. */
@@ -1267,10 +1260,10 @@ pgspiderGetForeignPlan(PlannerInfo *root,
 	 */
 	if (best_path->fdw_private)
 	{
-		has_final_sort = intVal(list_nth(best_path->fdw_private,
-										 FdwPathPrivateHasFinalSort));
-		has_limit = intVal(list_nth(best_path->fdw_private,
-									FdwPathPrivateHasLimit));
+		has_final_sort = boolVal(list_nth(best_path->fdw_private,
+										  FdwPathPrivateHasFinalSort));
+		has_limit = boolVal(list_nth(best_path->fdw_private,
+									 FdwPathPrivateHasLimit));
 	}
 
 	if (IS_SIMPLE_REL(foreignrel) && fpinfo->is_tlist_func_pushdown == false)
@@ -1709,6 +1702,18 @@ pgspiderReScanForeignScan(ForeignScanState *node)
 		return;
 
 	/*
+	 * If the node is async-capable, and an asynchronous fetch for it has been
+	 * begun, the asynchronous fetch might not have yet completed.  Check if
+	 * the node is async-capable, and an asynchronous fetch for it is still in
+	 * progress; if so, complete the asynchronous fetch before restarting the
+	 * scan.
+	 */
+	if (fsstate->async_capable &&
+		fsstate->conn_state->pendingAreq &&
+		fsstate->conn_state->pendingAreq->requestee == (PlanState *) node)
+		fetch_more_data(node);
+
+	/*
 	 * If any internal parameters affecting this node have changed, we'd
 	 * better destroy and recreate the cursor.  Otherwise, rewinding it should
 	 * be good enough.  If we've only fetched zero or one batch, we needn't
@@ -1936,7 +1941,7 @@ pgspiderPlanForeignModify(PlannerInfo *root,
 	return list_make5(makeString(sql.data),
 					  targetAttrs,
 					  makeInteger(values_end_len),
-					  makeInteger((retrieved_attrs != NIL)),
+					  makeBoolean((retrieved_attrs != NIL)),
 					  retrieved_attrs);
 }
 
@@ -1973,8 +1978,8 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 									 FdwModifyPrivateTargetAttnums);
 	values_end_len = intVal(list_nth(fdw_private,
 									 FdwModifyPrivateLen));
-	has_returning = intVal(list_nth(fdw_private,
-									FdwModifyPrivateHasReturning));
+	has_returning = boolVal(list_nth(fdw_private,
+									 FdwModifyPrivateHasReturning));
 	retrieved_attrs = (List *) list_nth(fdw_private,
 										FdwModifyPrivateRetrievedAttrs);
 
@@ -2060,8 +2065,8 @@ pgspiderExecForeignBatchInsert(EState *estate,
  *		Determine the maximum number of tuples that can be inserted in bulk
  *
  * Returns the batch size specified for server or table. When batching is not
- * allowed (e.g. for tables with AFTER ROW triggers or with RETURNING clause),
- * returns 1.
+ * allowed (e.g. for tables with BEFORE/AFTER ROW triggers or with RETURNING
+ * clause), returns 1.
  */
 static int
 pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo)
@@ -2090,10 +2095,19 @@ pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo)
 	else
 		batch_size = get_batch_size_option(resultRelInfo->ri_RelationDesc);
 
-	/* Disable batching when we have to use RETURNING. */
+	/*
+	 * Disable batching when we have to use RETURNING or there are any
+	 * BEFORE/AFTER ROW INSERT triggers on the foreign table.
+	 *
+	 * When there are any BEFORE ROW INSERT triggers on the table, we can't
+	 * support it, because such triggers might query the table we're inserting
+	 * into and act differently if the tuples that have already been processed
+	 * and prepared for insertion are not there.
+	 */
 	if (resultRelInfo->ri_projectReturning != NULL ||
 		(resultRelInfo->ri_TrigDesc &&
-		 resultRelInfo->ri_TrigDesc->trig_insert_after_row))
+		 (resultRelInfo->ri_TrigDesc->trig_insert_before_row ||
+		  resultRelInfo->ri_TrigDesc->trig_insert_after_row)))
 		return 1;
 
 	/*
@@ -2625,9 +2639,9 @@ pgspiderPlanDirectModify(PlannerInfo *root,
 	 * Items in the list must match enum FdwDirectModifyPrivateIndex, above.
 	 */
 	fscan->fdw_private = list_make4(makeString(sql.data),
-									makeInteger((retrieved_attrs != NIL)),
+									makeBoolean((retrieved_attrs != NIL)),
 									retrieved_attrs,
-									makeInteger(plan->canSetTag));
+									makeBoolean(plan->canSetTag));
 
 	/*
 	 * Update the foreign-join-related fields.
@@ -2725,12 +2739,12 @@ pgspiderBeginDirectModify(ForeignScanState *node, int eflags)
 	/* Get private info created by planner functions. */
 	dmstate->query = strVal(list_nth(fsplan->fdw_private,
 									 FdwDirectModifyPrivateUpdateSql));
-	dmstate->has_returning = intVal(list_nth(fsplan->fdw_private,
-											 FdwDirectModifyPrivateHasReturning));
+	dmstate->has_returning = boolVal(list_nth(fsplan->fdw_private,
+											  FdwDirectModifyPrivateHasReturning));
 	dmstate->retrieved_attrs = (List *) list_nth(fsplan->fdw_private,
 												 FdwDirectModifyPrivateRetrievedAttrs);
-	dmstate->set_processed = intVal(list_nth(fsplan->fdw_private,
-											 FdwDirectModifyPrivateSetProcessed));
+	dmstate->set_processed = boolVal(list_nth(fsplan->fdw_private,
+											  FdwDirectModifyPrivateSetProcessed));
 
 	/* Create context for per-tuple temp workspace. */
 	dmstate->temp_cxt = AllocSetContextCreate(estate->es_query_cxt,
@@ -2914,7 +2928,7 @@ pgspiderExplainForeignScan(ForeignScanState *node, ExplainState *es)
 				{
 					char	   *namespace;
 
-					namespace = get_namespace_name(get_rel_namespace(rte->relid));
+					namespace = get_namespace_name_or_temp(get_rel_namespace(rte->relid));
 					appendStringInfo(relations, "%s.%s",
 									 quote_identifier(namespace),
 									 quote_identifier(relname));
@@ -5216,7 +5230,7 @@ analyze_row_processor(PGresult *res, int row, PGSpiderFdwAnalyzeState * astate)
 		if (astate->rowstoskip <= 0)
 		{
 			/* Choose a random reservoir element to replace. */
-			pos = (int) (targrows * sampler_random_fract(astate->rstate.randstate));
+			pos = (int) (targrows * sampler_random_fract(&astate->rstate.randstate));
 			Assert(pos >= 0 && pos < targrows);
 			heap_freetuple(astate->rows[pos]);
 		}
@@ -5378,79 +5392,64 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 							   "SELECT cc.relname, "
 							   "  cc.attname, "
 							   "  cc.formattype, "
-							   "  cc.attnotnull, ");
+							   "  cc.attnotnull, "
+							   "  cc.pggetexpr, ");
 
 		/* Generated columns are supported since Postgres 12 */
 		if (pg_server_version >= 120000)
 			appendStringInfoString(&buf,
-								   "  cc.attgenerated, "
-								   "  cc.pggetexpr, ");
+								   "  cc.attgenerated, ");
 		else
 			appendStringInfoString(&buf,
-								   "  NULL, "
-								   "  cc.pggetexpr, ");
+								   "  NULL, ");
 
 		if (import_collate)
 			appendStringInfoString(&buf,
 								   "  cc.collname, "
-								   "  cc.collnspnspname, "
-								   "  cc.attnum "
-								   "  FROM ( "
-								   "    SELECT relname, "
-								   "      attname, "
-								   "      format_type(atttypid, atttypmod) AS formattype, "
-								   "      attnotnull, ");
+								   "  cc.collnspnspname ");
 		else 
 			appendStringInfoString(&buf,
-								   "  NULL, NULL, "
-								   "  cc.attnum "
+								   "  NULL, NULL ");
+
+		appendStringInfoString(&buf,
 								   "  FROM ( "
 								   "    SELECT relname, "
 								   "      attname, "
 								   "      format_type(atttypid, atttypmod) AS formattype, "
-								   "      attnotnull, ");
+								   "      attnotnull, "
+								   "	  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
 
-
-		/* Generated columns are supported since Postgres 12 */
 		if (pg_server_version >= 120000)
 			appendStringInfoString(&buf,
-								   "  attgenerated, "
-								   "  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
+								   "  attgenerated, ");
 		else
 			appendStringInfoString(&buf,
-								   "  NULL, "
-								   "  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
-		
+								   "  NULL, ");
 
 		if (import_collate)
 			appendStringInfoString(&buf,
 								   "  collname, "
-								   "  collnsp.nspname AS collnspnspname, "
-								   "  a.attnum "
-								   "FROM pg_class c "
-								   "  JOIN pg_namespace n ON "
-								   "    relnamespace = n.oid "
-								   "  LEFT JOIN pg_attribute a ON "
-								   "    attrelid = c.oid AND attnum > 0 "
-								   "      AND NOT attisdropped "
-								   "  LEFT JOIN pg_attrdef ad ON "
-								   "    adrelid = c.oid AND adnum = attnum "
+								   "  collnsp.nspname AS collnspnspname ");
+		else
+			appendStringInfoString(&buf,
+								   "  NULL, NULL ");
+
+		appendStringInfoString(&buf,
+							   "FROM pg_class c "
+							   "  JOIN pg_namespace n ON "
+							   "    relnamespace = n.oid "
+							   "  LEFT JOIN pg_attribute a ON "
+							   "    attrelid = c.oid AND attnum > 0 "
+							   "      AND NOT attisdropped "
+							   "  LEFT JOIN pg_attrdef ad ON "
+							   "    adrelid = c.oid AND adnum = attnum ");
+
+		if (import_collate)
+			appendStringInfoString(&buf,
 								   "  LEFT JOIN pg_collation coll ON "
 								   "    coll.oid = attcollation "
 								   "  LEFT JOIN pg_namespace collnsp ON "
 								   "    collnsp.oid = collnamespace ");
-		else
-			appendStringInfoString(&buf,
-								   "  NULL, NULL, "
-								   "  a.attnum "
-								   "FROM pg_class c "
-								   "  JOIN pg_namespace n ON "
-								   "    relnamespace = n.oid "
-								   "  LEFT JOIN pg_attribute a ON "
-								   "    attrelid = c.oid AND attnum > 0 "
-								   "      AND NOT attisdropped "
-								   "  LEFT JOIN pg_attrdef ad ON "
-								   "    adrelid = c.oid AND adnum = attnum ");
 
 		appendStringInfoString(&buf,
 							   "WHERE c.relkind IN ("
@@ -5492,6 +5491,8 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 			appendStringInfoChar(&buf, ')');
 		}
 
+		appendStringInfoString(&buf, " ORDER BY c.relname, a.attnum");
+
 		/* Append a closing parenthesis and alias name for first statement. */
 		appendStringInfoString(&buf, " ) cc ");
 
@@ -5529,7 +5530,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
                                "          FROM regex)");
 
 		/* Append ORDER BY at the end of query to ensure output ordering */
-		appendStringInfoString(&buf, " ORDER BY cc.relname, cc.attnum");
+		appendStringInfoString(&buf, " ORDER BY cc.relname");
 
 		/* Fetch the data */
 		res = pgspiderfdw_exec_query(conn, buf.data, NULL);
@@ -5566,9 +5567,9 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 				attname = PQgetvalue(res, i, 1);
 				typename = PQgetvalue(res, i, 2);
 				attnotnull = PQgetvalue(res, i, 3);
-				attgenerated = PQgetisnull(res, i, 4) ? (char *) NULL :
+				attdefault = PQgetisnull(res, i, 4) ? (char *) NULL :
 					PQgetvalue(res, i, 4);
-				attdefault = PQgetisnull(res, i, 5) ? (char *) NULL :
+				attgenerated = PQgetisnull(res, i, 5) ? (char *) NULL :
 					PQgetvalue(res, i, 5);
 				collname = PQgetisnull(res, i, 6) ? (char *) NULL :
 					PQgetvalue(res, i, 6);
@@ -6696,13 +6697,22 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	foreach(lc, root->sort_pathkeys)
 	{
 		PathKey    *pathkey = (PathKey *) lfirst(lc);
+		EquivalenceMember *em;
 		EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
 		Expr	   *sort_expr;
 
 		/* Get the sort expression for the pathkey_ec */
-		sort_expr = pgspider_find_em_expr_for_input_target(root,
-														   pathkey_ec,
-														   input_rel->reltarget);
+		em = pgspider_find_em_for_rel_target(root,
+											 pathkey_ec,
+											 input_rel);
+		/*
+		 * The EC must contain a shippable EM that is computed in input_rel's
+		 * reltarget, else we can't push down the sort.
+		 */
+		if (em == NULL)
+			return;
+
+		sort_expr = em->em_expr;
 
 		/*
 		 * For Function Expression, pgspider_is_foreign_expr would detect
@@ -6713,9 +6723,13 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		if (!(IsA(sort_expr, FuncExpr)) && pathkey_ec->ec_has_volatile)
 			return;
 
-		/* If it's unsafe to remote, we cannot push down the final sort */
-		if (!pgspider_is_foreign_expr(root, input_rel, sort_expr))
+		/*
+		 * Can't push down the sort if pathkey's opfamily is not shippable.
+		 */
+		if (!pgspider_is_shippable(pathkey->pk_opfamily, OperatorFamilyRelationId,
+						  fpinfo))
 			return;
+
 	}
 
 	/* Safe to push down */
@@ -6734,7 +6748,7 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * Build the fdw_private list that will be used by pgspiderGetForeignPlan.
 	 * Items in the list must match order in enum FdwPathPrivateIndex.
 	 */
-	fdw_private = list_make2(makeInteger(true), makeInteger(false));
+	fdw_private = list_make2(makeBoolean(true), makeBoolean(false));
 
 	/* Create foreign ordering path */
 	ordered_path = create_foreign_upper_path(root,
@@ -6965,8 +6979,8 @@ add_foreign_final_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * Build the fdw_private list that will be used by pgspiderGetForeignPlan.
 	 * Items in the list must match order in enum FdwPathPrivateIndex.
 	 */
-	fdw_private = list_make2(makeInteger(has_final_sort),
-							 makeInteger(extra->limit_needed));
+	fdw_private = list_make2(makeBoolean(has_final_sort),
+							 makeBoolean(extra->limit_needed));
 
 	/*
 	 * Create foreign final path; this gets rid of a no-longer-needed outer
@@ -7167,6 +7181,8 @@ produce_tuple_asynchronously(AsyncRequest *areq, bool fetch)
 		ExecAsyncRequestDone(areq, result);
 		return;
 	}
+
+	/* We must have run out of tuples */
 	Assert(fsstate->next_tuple >= fsstate->num_tuples);
 
 	/* Fetch some more tuples, if we've not detected EOF yet */
@@ -7226,7 +7242,7 @@ void
 pgspider_process_pending_request(AsyncRequest *areq)
 {
 	ForeignScanState *node = (ForeignScanState *) areq->requestee;
-	PGSpiderFdwScanState *fsstate PG_USED_FOR_ASSERTS_ONLY = (PGSpiderFdwScanState *) node->fdw_state;
+	PGSpiderFdwScanState *fsstate = (PGSpiderFdwScanState *) node->fdw_state;
 
 	/* The request would have been pending for a callback */
 	Assert(areq->callback_pending);
@@ -7282,7 +7298,12 @@ complete_pending_request(AsyncRequest *areq)
  * rel is the local representation of the foreign table, attinmeta is
  * conversion data for the rel's tupdesc, and retrieved_attrs is an
  * integer list of the table column numbers present in the PGresult.
+ * fsstate is the ForeignScan plan node's execution state.
  * temp_context is a working context that can be reset after each tuple.
+ *
+ * Note: either rel or fsstate, but not both, can be NULL.  rel is NULL
+ * if we're processing a remote join, while fsstate is NULL in a non-query
+ * context such as ANALYZE, or if we're processing a non-scan query node.
  */
 static HeapTuple
 make_tuple_from_result_row(PGresult *res,
@@ -7313,6 +7334,10 @@ make_tuple_from_result_row(PGresult *res,
 	 */
 	oldcontext = MemoryContextSwitchTo(temp_context);
 
+	/*
+	 * Get the tuple descriptor for the row.  Use the rel's tupdesc if rel is
+	 * provided, otherwise look to the scan node's ScanTupleSlot.
+	 */
 	if (rel)
 		tupdesc = RelationGetDescr(rel);
 	else
@@ -7330,6 +7355,7 @@ make_tuple_from_result_row(PGresult *res,
 	 * Set up and install callback to report where conversion error occurs.
 	 */
 	errpos.cur_attno = 0;
+	errpos.rel = rel;
 	errpos.fsstate = fsstate;
 	errcallback.callback = conversion_error_callback;
 	errcallback.arg = (void *) &errpos;
@@ -7434,60 +7460,87 @@ make_tuple_from_result_row(PGresult *res,
  *
  * Note that this function mustn't do any catalog lookups, since we are in
  * an already-failed transaction.  Fortunately, we can get the needed info
- * from the query's rangetable instead.
+ * from the relation or the query's rangetable instead.
  */
 static void
 conversion_error_callback(void *arg)
 {
 	ConversionLocation *errpos = (ConversionLocation *) arg;
+	Relation	rel = errpos->rel;
 	ForeignScanState *fsstate = errpos->fsstate;
-	ForeignScan *fsplan = castNode(ForeignScan, fsstate->ss.ps.plan);
-	int			varno = 0;
-	AttrNumber	colno = 0;
 	const char *attname = NULL;
 	const char *relname = NULL;
 	bool		is_wholerow = false;
 
-	if (fsplan->scan.scanrelid > 0)
+	/*
+	 * If we're in a scan node, always use aliases from the rangetable, for
+	 * consistency between the simple-relation and remote-join cases.  Look at
+	 * the relation's tupdesc only if we're not in a scan node.
+	 */
+	if (fsstate)
 	{
-		/* error occurred in a scan against a foreign table */
-		varno = fsplan->scan.scanrelid;
-		colno = errpos->cur_attno;
-	}
-	else
-	{
-		/* error occurred in a scan against a foreign join */
-		TargetEntry *tle;
+		/* ForeignScan case */
+		ForeignScan *fsplan = castNode(ForeignScan, fsstate->ss.ps.plan);
+		int			varno = 0;
+		AttrNumber	colno = 0;
 
-		tle = list_nth_node(TargetEntry, fsplan->fdw_scan_tlist,
-							errpos->cur_attno - 1);
-
-		/*
-		 * Target list can have Vars and expressions.  For Vars, we can get
-		 * some information, however for expressions we can't.  Thus for
-		 * expressions, just show generic context message.
-		 */
-		if (IsA(tle->expr, Var))
+		if (fsplan->scan.scanrelid > 0)
 		{
-			Var		   *var = (Var *) tle->expr;
+			/* error occurred in a scan against a foreign table */
+			varno = fsplan->scan.scanrelid;
+			colno = errpos->cur_attno;
+		}
+		else
+		{
+			/* error occurred in a scan against a foreign join */
+			TargetEntry *tle;
 
-			varno = var->varno;
-			colno = var->varattno;
+			tle = list_nth_node(TargetEntry, fsplan->fdw_scan_tlist,
+								errpos->cur_attno - 1);
+
+			/*
+			 * Target list can have Vars and expressions.  For Vars, we can
+			 * get some information, however for expressions we can't.  Thus
+			 * for expressions, just show generic context message.
+			 */
+			if (IsA(tle->expr, Var))
+			{
+				Var		   *var = (Var *) tle->expr;
+
+				varno = var->varno;
+				colno = var->varattno;
+			}
+		}
+
+		if (varno > 0)
+		{
+			EState	   *estate = fsstate->ss.ps.state;
+			RangeTblEntry *rte = exec_rt_fetch(varno, estate);
+
+			relname = rte->eref->aliasname;
+
+			if (colno == 0)
+				is_wholerow = true;
+			else if (colno > 0 && colno <= list_length(rte->eref->colnames))
+				attname = strVal(list_nth(rte->eref->colnames, colno - 1));
+			else if (colno == SelfItemPointerAttributeNumber)
+				attname = "ctid";
 		}
 	}
-
-	if (varno > 0)
+	else if (rel)
 	{
-		EState	   *estate = fsstate->ss.ps.state;
-		RangeTblEntry *rte = exec_rt_fetch(varno, estate);
+		/* Non-ForeignScan case (we should always have a rel here) */
+		TupleDesc	tupdesc = RelationGetDescr(rel);
 
-		relname = rte->eref->aliasname;
+		relname = RelationGetRelationName(rel);
+		if (errpos->cur_attno > 0 && errpos->cur_attno <= tupdesc->natts)
+		{
+			Form_pg_attribute attr = TupleDescAttr(tupdesc,
+												   errpos->cur_attno - 1);
 
-		if (colno == 0)
-			is_wholerow = true;
-		else if (colno > 0 && colno <= list_length(rte->eref->colnames))
-			attname = strVal(list_nth(rte->eref->colnames, colno - 1));
-		else if (colno == SelfItemPointerAttributeNumber)
+			attname = NameStr(attr->attname);
+		}
+		else if (errpos->cur_attno == SelfItemPointerAttributeNumber)
 			attname = "ctid";
 	}
 
@@ -7501,47 +7554,64 @@ conversion_error_callback(void *arg)
 }
 
 /*
- * Find an equivalence class member expression, all of whose Vars, come from
- * the indicated relation.
+ * Given an EquivalenceClass and a foreign relation, find an EC member
+ * that can be used to sort the relation remotely according to a pathkey
+ * using this EC.
+ *
+ * If there is more than one suitable candidate, return an arbitrary
+ * one of them.  If there is none, return NULL.
+ *
+ * This checks that the EC member expression uses only Vars from the given
+ * rel and is shippable.  Caller must separately verify that the pathkey's
+ * ordering operator is shippable.
  */
-Expr *
-pgspider_find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel)
+EquivalenceMember *
+pgspider_find_em_for_rel(PlannerInfo *root, EquivalenceClass *ec, RelOptInfo *rel)
 {
-	ListCell   *lc_em;
+	ListCell   *lc;
 
-	foreach(lc_em, ec->ec_members)
+	foreach(lc, ec->ec_members)
 	{
-		EquivalenceMember *em = lfirst(lc_em);
+		EquivalenceMember *em = (EquivalenceMember *) lfirst(lc);
 
 		/* Ignore checking equivalence class member for stub function */
 		if (IsA(em->em_expr, FuncExpr))
-			return em->em_expr;
-
-		if (bms_is_subset(em->em_relids, rel->relids) &&
-			!bms_is_empty(em->em_relids))
 		{
-			/*
-			 * If there is more than one equivalence member whose Vars are
-			 * taken entirely from this relation, we'll be content to choose
-			 * any one of those.
-			 */
-			return em->em_expr;
+			FuncExpr   *func = (FuncExpr *) em->em_expr;
+
+			if (!pgspider_is_builtin(func->funcid, InvalidOid))
+				return em;
 		}
+
+		/*
+		 * Note we require !bms_is_empty, else we'd accept constant
+		 * expressions which are not suitable for the purpose.
+		 */
+		if (bms_is_subset(em->em_relids, rel->relids) &&
+			!bms_is_empty(em->em_relids) &&
+			pgspider_is_foreign_expr(root, rel, em->em_expr))
+			return em;
 	}
 
-	/* We didn't find any suitable equivalence class expression */
 	return NULL;
 }
 
 /*
- * Find an equivalence class member expression to be computed as a sort column
- * in the given target.
+ * Find an EquivalenceClass member that is to be computed as a sort column
+ * in the given rel's reltarget, and is shippable.
+ *
+ * If there is more than one suitable candidate, return an arbitrary
+ * one of them.  If there is none, return NULL.
+ *
+ * This checks that the EC member expression uses only Vars from the given
+ * rel and is shippable.  Caller must separately verify that the pathkey's
+ * ordering operator is shippable.
  */
-Expr *
-pgspider_find_em_expr_for_input_target(PlannerInfo *root,
-									   EquivalenceClass *ec,
-									   PathTarget *target)
+EquivalenceMember *
+pgspider_find_em_for_rel_target(PlannerInfo *root, EquivalenceClass *ec,
+					   RelOptInfo *rel)
 {
+	PathTarget *target = rel->reltarget;
 	ListCell   *lc1;
 	int			i;
 
@@ -7584,15 +7654,18 @@ pgspider_find_em_expr_for_input_target(PlannerInfo *root,
 			while (em_expr && IsA(em_expr, RelabelType))
 				em_expr = ((RelabelType *) em_expr)->arg;
 
-			if (equal(em_expr, expr))
-				return em->em_expr;
+			if (!equal(em_expr, expr))
+				continue;
+
+			/* Check that expression (including relabels!) is shippable */
+			if (pgspider_is_foreign_expr(root, rel, em->em_expr))
+				return em;
 		}
 
 		i++;
 	}
 
-	elog(ERROR, "could not find pathkey item to sort");
-	return NULL;				/* keep compiler quiet */
+	return NULL;
 }
 
 /*
