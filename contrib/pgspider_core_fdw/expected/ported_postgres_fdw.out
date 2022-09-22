@@ -350,6 +350,13 @@ SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work again
 --Testcase 44:
 ALTER FOREIGN TABLE ft2 OPTIONS (use_remote_estimate 'true');
 -- ===================================================================
+-- test error case for create publication on foreign table
+-- ===================================================================
+--Testcase 1186:
+CREATE PUBLICATION testpub_ftbl FOR TABLE ft1;  -- should fail
+ERROR:  cannot add relation "ft1" to publication
+DETAIL:  This operation is not supported for foreign tables.
+-- ===================================================================
 -- simple queries
 -- ===================================================================
 -- single table without alias
@@ -450,12 +457,12 @@ SELECT * FROM ft1 WHERE false;
 -- with WHERE clause
 --Testcase 52:
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE t1.c1 = 101 AND t1.c6 = '1' AND t1.c7 >= '1';
-                                                                    QUERY PLAN                                                                    
---------------------------------------------------------------------------------------------------------------------------------------------------
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c7 >= '1'::bpchar)) AND (("C 1" = 101)) AND ((c6 = '1'::text))
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c7 >= '1')) AND (("C 1" = 101)) AND ((c6 = '1'))
 (4 rows)
 
 --Testcase 53:
@@ -914,12 +921,12 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c1 = (ARRAY[c1,c2,3])[1]
 
 --Testcase 91:
 EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM ft1 t1 WHERE c6 = E'foo''s\\bar';  -- check special chars
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c6 = E'foo''s\\bar'::text))
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c6 = E'foo''s\\bar'))
 (4 rows)
 
 --Testcase 92:
@@ -1338,6 +1345,114 @@ SELECT * FROM ft1 t1 WHERE t1.c1 === t1.c2 order by t1.c2 limit 1;
 ----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
   1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
 (1 row)
+
+-- Test CASE pushdown
+--Testcase 1187:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT c1,c2,c3 FROM ft2 WHERE CASE WHEN c1 > 990 THEN c1 END < 1000 ORDER BY c1;
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft2
+   Output: c1, c2, c3
+   Node: postgres_srv / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1" WHERE (((CASE WHEN ("C 1" > 990) THEN "C 1" ELSE NULL::integer END) < 1000)) ORDER BY "C 1" ASC NULLS LAST
+(5 rows)
+
+--Testcase 1188:
+SELECT c1,c2,c3 FROM ft2 WHERE CASE WHEN c1 > 990 THEN c1 END < 1000 ORDER BY c1;
+ c1  | c2 |  c3   
+-----+----+-------
+ 991 |  1 | 00991
+ 992 |  2 | 00992
+ 993 |  3 | 00993
+ 994 |  4 | 00994
+ 995 |  5 | 00995
+ 996 |  6 | 00996
+ 997 |  7 | 00997
+ 998 |  8 | 00998
+ 999 |  9 | 00999
+(9 rows)
+
+-- Nested CASE
+--Testcase 1189:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT c1,c2,c3 FROM ft2 WHERE CASE CASE WHEN c2 > 0 THEN c2 END WHEN 100 THEN 601 WHEN c2 THEN c2 ELSE 0 END > 600 ORDER BY c1;
+                                                                                                 QUERY PLAN                                                                                                  
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft2
+   Output: c1, c2, c3
+   Node: postgres_srv / Status: Alive
+     Sort push-down: yes
+     Remote SQL: SELECT "C 1", c2, c3 FROM "S 1"."T 1" WHERE (((CASE (CASE WHEN (c2 > 0) THEN c2 ELSE NULL::integer END) WHEN 100 THEN 601 WHEN c2 THEN c2 ELSE 0 END) > 600)) ORDER BY "C 1" ASC NULLS LAST
+(5 rows)
+
+--Testcase 1190:
+SELECT c1,c2,c3 FROM ft2 WHERE CASE CASE WHEN c2 > 0 THEN c2 END WHEN 100 THEN 601 WHEN c2 THEN c2 ELSE 0 END > 600 ORDER BY c1;
+ c1 | c2 | c3 
+----+----+----
+(0 rows)
+
+-- CASE arg WHEN
+--Testcase 1191:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE c1 > (CASE mod(c1, 4) WHEN 0 THEN 1 WHEN 2 THEN 50 ELSE 100 END);
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" > (CASE mod("C 1", 4) WHEN 0 THEN 1 WHEN 2 THEN 50 ELSE 100 END)))
+(4 rows)
+
+-- CASE cannot be pushed down because of unshippable arg clause
+--Testcase 1192:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE c1 > (CASE random()::integer WHEN 0 THEN 1 WHEN 2 THEN 50 ELSE 100 END);
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Filter: (ft1.c1 > CASE (random())::integer WHEN 0 THEN 1 WHEN 2 THEN 50 ELSE 100 END)
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(5 rows)
+
+-- these are shippable
+--Testcase 1193:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE CASE c6 WHEN 'foo' THEN true ELSE c3 < 'bar' END;
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((CASE c6 WHEN 'foo'::text THEN true ELSE (c3 < 'bar') END))
+(4 rows)
+
+--Testcase 1194:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE CASE c3 WHEN c6 THEN true ELSE c3 < 'bar' END;
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((CASE c3 WHEN c6 THEN true ELSE (c3 < 'bar') END))
+(4 rows)
+
+-- but this is not because of collation
+--Testcase 1195:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE CASE c3 COLLATE "C" WHEN c6 THEN true ELSE c3 < 'bar' END;
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Filter: CASE (ft1.c3)::text WHEN ft1.c6 THEN true ELSE (ft1.c3 < 'bar'::text) END
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(5 rows)
 
 -- ===================================================================
 -- JOIN queries
@@ -3918,6 +4033,22 @@ select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6
            Remote SQL: SELECT "C 1", c2 FROM "S 1"."T 1" WHERE (("C 1" < 100)) AND ((c2 = 6))
 (7 rows)
 
+-- This should not be pushed either.
+--Testcase 1196:
+explain (verbose, costs off)
+select * from ft2 order by c1 using operator(public.<^);
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Sort
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Sort Key: ft2.c1 USING <^
+   ->  Foreign Scan on public.ft2
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+         Node: postgres_srv / Status: Alive
+           Sort push-down: no
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(8 rows)
+
 -- Update local stats on ft2
 ANALYZE ft2;
 WARNING:  skipping "ft2" --- cannot analyze this foreign table
@@ -3936,7 +4067,7 @@ alter extension pgspider_core_fdw add operator public.=^(int, int);
 alter extension pgspider_core_fdw add operator public.>^(int, int);
 --Testcase 318:
 alter server postgres_srv options (set extensions 'postgres_fdw');
--- Now this will be pushed as sort operator is part of the extension.
+-- PGSpider can not push down this operator
 --Testcase 319:
 explain (verbose, costs off)
 select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6 and c1 < 100 group by c2;
@@ -3957,6 +4088,22 @@ select array_agg(c1 order by c1 using operator(public.<^)) from ft2 where c2 = 6
 --------------------------------
  {6,16,26,36,46,56,66,76,86,96}
 (1 row)
+
+-- This should not be pushed too.
+--Testcase 1197:
+explain (verbose, costs off)
+select * from ft2 order by c1 using operator(public.<^);
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Sort
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Sort Key: ft2.c1 USING <^
+   ->  Foreign Scan on public.ft2
+         Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+         Node: postgres_srv / Status: Alive
+           Sort push-down: no
+           Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(8 rows)
 
 -- Remove from extension
 --Testcase 321:
@@ -4211,14 +4358,14 @@ ORDER BY ref_0."C 1";
                Output: ref_1.c3, ref_0.c2
                Node: postgres_srv / Status: Alive
                  Sort push-down: no
-                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'::text))
+                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'))
    ->  Materialize
          Output: ref_3.c3
          ->  Foreign Scan on public.ft2 ref_3
                Output: ref_3.c3
                Node: postgres_srv / Status: Alive
                  Sort push-down: no
-                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'::text))
+                 Remote SQL: SELECT c3 FROM "S 1"."T 1" WHERE ((c3 = '00001'))
 (19 rows)
 
 --Testcase 349:
@@ -4939,12 +5086,12 @@ SELECT tableoid::regclass, * FROM ft1 t1 LIMIT 1;
 --Testcase 416:
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1 t1 WHERE t1.ctid = '(0,2)';
-                                                  QUERY PLAN                                                   
----------------------------------------------------------------------------------------------------------------
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.ft1 t1
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1" WHERE ((ctid = '(0,2)'::tid))
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8, ctid FROM "S 1"."T 1" WHERE ((ctid = '(0,2)'))
 (4 rows)
 
 --Testcase 417:
@@ -5051,6 +5198,69 @@ ERROR:  PGSpider fail to iterate tuple from child thread
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
 ERROR:  invalid input syntax for type integer: "foo"
 CONTEXT:  processing expression at position 2 in select list
+ERROR:  PGSpider fail to iterate tuple from child thread
+ANALYZE ft1; -- ERROR
+WARNING:  skipping "ft1" --- cannot analyze this foreign table
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE user_enum;
+-- ===================================================================
+-- local type can be different from remote type in some cases,
+-- in particular if similarly-named operators do equivalent things
+-- ===================================================================
+ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE text;
+ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE text;
+--Testcase 1198:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE c8 = 'foo' LIMIT 1;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Node: postgres_srv / Status: Alive
+     Limit push-down: yes
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c8 = 'foo')) LIMIT 1::bigint
+(5 rows)
+
+--Testcase 1199:
+SELECT * FROM ft1 WHERE c8 = 'foo' LIMIT 1;
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
+--Testcase 1200:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ft1 WHERE 'foo' = c8 LIMIT 1;
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
+   Node: postgres_srv / Status: Alive
+     Limit push-down: yes
+     Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (('foo' = c8)) LIMIT 1::bigint
+(5 rows)
+
+--Testcase 1201:
+SELECT * FROM ft1 WHERE 'foo' = c8 LIMIT 1;
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     | c8  |   __spd_url    
+----+----+-------+------------------------------+--------------------------+----+------------+-----+----------------
+  1 |  1 | 00001 | Fri Jan 02 00:00:00 1970 PST | Fri Jan 02 00:00:00 1970 | 1  | 1          | foo | /postgres_srv/
+(1 row)
+
+-- we declared c8 to be text locally, but it's still the same type on
+-- the remote which will balk if we try to do anything incompatible
+-- with that remote type
+--Testcase 1202:
+SELECT * FROM ft1 WHERE c8 LIKE 'foo' LIMIT 1; -- ERROR
+ERROR:  operator does not exist: public.user_enum ~~ unknown
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c8 ~~ 'foo')) LIMIT 1::bigint
+ERROR:  PGSpider fail to iterate tuple from child thread
+--Testcase 1203:
+SELECT * FROM ft1 WHERE c8::text LIKE 'foo' LIMIT 1; -- ERROR; cast not pushed down
+ERROR:  operator does not exist: public.user_enum ~~ unknown
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c8 ~~ 'foo')) LIMIT 1::bigint
 ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 436:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
@@ -5225,8 +5435,10 @@ LINE 1: ERROR OUT;
 \! sleep 2
 --Testcase 1183:
 ROLLBACK TO s;
+ERROR:  Child thread pending timeout.
 --Testcase 1184:
 -- this case can has non-stable result because c1 CURSOR can be done before has any pending request.
+--Testcase 1204:
 FETCH 1000 FROM c1; -- should fail
 ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 1185:
@@ -5250,49 +5462,49 @@ create foreign table ft3__postgres_srv__0 (f1 text collate "C", f2 text, f3 varc
 -- can be sent to remote
 --Testcase 446:
 explain (verbose, costs off) select * from ft3 where f1 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'::text))
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'))
 (4 rows)
 
 --Testcase 447:
 explain (verbose, costs off) select * from ft3 where f1 COLLATE "C" = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'::text))
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'))
 (4 rows)
 
 --Testcase 448:
 explain (verbose, costs off) select * from ft3 where f2 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f2 = 'foo'::text))
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f2 = 'foo'))
 (4 rows)
 
 --Testcase 449:
 explain (verbose, costs off) select * from ft3 where f3 = 'foo';
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.ft3
    Output: f1, f2, f3, __spd_url
    Node: postgres_srv / Status: Alive
-     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f3 = 'foo'::text))
+     Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f3 = 'foo'))
 (4 rows)
 
 --Testcase 450:
 explain (verbose, costs off) select * from ft3 f, loct3 l
   where f.f3 = l.f3 and l.f1 = 'foo';
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Hash Join
    Output: f.f1, f.f2, f.f3, f.__spd_url, l.f1, l.f2, l.f3
    Hash Cond: ((f.f3)::text = (l.f3)::text)
@@ -5304,7 +5516,7 @@ explain (verbose, costs off) select * from ft3 f, loct3 l
          Output: l.f1, l.f2, l.f3
          ->  Foreign Scan on public.loct3 l
                Output: l.f1, l.f2, l.f3
-               Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'::text))
+               Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'))
 (12 rows)
 
 -- can't be sent to remote
@@ -5355,8 +5567,8 @@ explain (verbose, costs off) select * from ft3 where f2 = 'foo' COLLATE "C";
 --Testcase 455:
 explain (verbose, costs off) select * from ft3 f, loct3 l
   where f.f3 = l.f3 COLLATE "POSIX" and l.f1 = 'foo';
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Hash Join
    Output: f.f1, f.f2, f.f3, f.__spd_url, l.f1, l.f2, l.f3
    Hash Cond: ((f.f3)::text = (l.f3)::text)
@@ -5368,7 +5580,7 @@ explain (verbose, costs off) select * from ft3 f, loct3 l
          Output: l.f1, l.f2, l.f3
          ->  Foreign Scan on public.loct3 l
                Output: l.f1, l.f2, l.f3
-               Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'::text))
+               Remote SQL: SELECT f1, f2, f3 FROM public.loct3 WHERE ((f1 = 'foo'))
 (12 rows)
 
 -- ===================================================================
@@ -5408,11 +5620,11 @@ INSERT INTO ft2__postgres_srv__0 (c1,c2,c3) VALUES (1104,204,'ddd'), (1105,205,'
 --Testcase 460:
 EXPLAIN (verbose, costs off)
 UPDATE ft2__postgres_srv__0 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 10 = 3;              -- can be pushed down
-                                                      QUERY PLAN                                                      
-----------------------------------------------------------------------------------------------------------------------
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
  Update on public.ft2__postgres_srv__0
    ->  Foreign Update on public.ft2__postgres_srv__0
-         Remote SQL: UPDATE "S 1"."T 1" SET c2 = (c2 + 300), c3 = (c3 || '_update3'::text) WHERE ((("C 1" % 10) = 3))
+         Remote SQL: UPDATE "S 1"."T 1" SET c2 = (c2 + 300), c3 = (c3 || '_update3') WHERE ((("C 1" % 10) = 3))
 (3 rows)
 
 --Testcase 461:
@@ -5420,12 +5632,12 @@ UPDATE ft2__postgres_srv__0 SET c2 = c2 + 300, c3 = c3 || '_update3' WHERE c1 % 
 --Testcase 462:
 EXPLAIN (verbose, costs off)
 UPDATE ft2__postgres_srv__0 SET c2 = c2 + 400, c3 = c3 || '_update7' WHERE c1 % 10 = 7 RETURNING *;  -- can be pushed down
-                                                                            QUERY PLAN                                                                            
-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
  Update on public.ft2__postgres_srv__0
    Output: c1, c2, c3, c4, c5, c6, c7, c8
    ->  Foreign Update on public.ft2__postgres_srv__0
-         Remote SQL: UPDATE "S 1"."T 1" SET c2 = (c2 + 400), c3 = (c3 || '_update7'::text) WHERE ((("C 1" % 10) = 7)) RETURNING "C 1", c2, c3, c4, c5, c6, c7, c8
+         Remote SQL: UPDATE "S 1"."T 1" SET c2 = (c2 + 400), c3 = (c3 || '_update7') WHERE ((("C 1" % 10) = 7)) RETURNING "C 1", c2, c3, c4, c5, c6, c7, c8
 (4 rows)
 
 --Testcase 463:
@@ -7638,24 +7850,27 @@ CREATE FOREIGN TABLE foreign_tbl (a int, b int, __spd_url text)
 CREATE FOREIGN TABLE foreign_tbl__postgres_srv__0 (a int, b int)
   SERVER postgres_srv OPTIONS(table_name 'child_tbl');
 --Testcase 568:
-CREATE TABLE parent_tbl (a int, b int) PARTITION BY RANGE(a);
+CREATE TABLE parent_tbl (a int, b int, __spd_url text) PARTITION BY RANGE(a);
 --Testcase 569:
 ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
-ERROR:  table "foreign_tbl" contains column "__spd_url" not found in parent "parent_tbl"
-DETAIL:  The new partition may contain only the columns present in parent.
+-- Detach and re-attach once, to stress the concurrent detach case.
+ALTER TABLE parent_tbl DETACH PARTITION foreign_tbl CONCURRENTLY;
+ALTER TABLE parent_tbl ATTACH PARTITION foreign_tbl FOR VALUES FROM (0) TO (100);
 --Testcase 570:
 CREATE VIEW rw_view AS SELECT * FROM parent_tbl
   WHERE a < b WITH CHECK OPTION;
 --Testcase 571:
 \d+ rw_view
-                           View "public.rw_view"
- Column |  Type   | Collation | Nullable | Default | Storage | Description 
---------+---------+-----------+----------+---------+---------+-------------
- a      | integer |           |          |         | plain   | 
- b      | integer |           |          |         | plain   | 
+                             View "public.rw_view"
+  Column   |  Type   | Collation | Nullable | Default | Storage  | Description 
+-----------+---------+-----------+----------+---------+----------+-------------
+ a         | integer |           |          |         | plain    | 
+ b         | integer |           |          |         | plain    | 
+ __spd_url | text    |           |          |         | extended | 
 View definition:
  SELECT parent_tbl.a,
-    parent_tbl.b
+    parent_tbl.b,
+    parent_tbl.__spd_url
    FROM parent_tbl
   WHERE parent_tbl.a < parent_tbl.b;
 Options: check_option=cascaded
@@ -7770,6 +7985,7 @@ insert into grem1__postgres_srv__0 (a) values (1), (2);
          Output: "*VALUES*".column1, NULL::integer
 (5 rows)
 
+--Testcase 1205:
 insert into grem1__postgres_srv__0 (a) values (1), (2);
 --Testcase 589:
 explain (verbose, costs off)
@@ -7783,6 +7999,7 @@ update grem1__postgres_srv__0 set a = 22 where a = 2;
          Remote SQL: SELECT a, b, ctid FROM public.gloc1 WHERE ((a = 2)) FOR UPDATE
 (5 rows)
 
+--Testcase 1206:
 update grem1__postgres_srv__0 set a = 22 where a = 2;
 --Testcase 590:
 select * from grem1;
@@ -7792,6 +8009,7 @@ select * from grem1;
  22 | 44 | /postgres_srv/
 (2 rows)
 
+--Testcase 1207:
 select * from grem1__postgres_srv__0;
  a  | b  
 ----+----
@@ -7799,9 +8017,11 @@ select * from grem1__postgres_srv__0;
  22 | 44
 (2 rows)
 
+--Testcase 1208:
 delete from grem1__postgres_srv__0;
 -- test copy from
 copy grem1__postgres_srv__0 from stdin;
+--Testcase 1209:
 select * from grem1;
  a | b |   __spd_url    
 ---+---+----------------
@@ -7809,6 +8029,7 @@ select * from grem1;
  2 | 4 | /postgres_srv/
 (2 rows)
 
+--Testcase 1210:
 select * from grem1__postgres_srv__0;
  a | b 
 ---+---
@@ -7816,9 +8037,11 @@ select * from grem1__postgres_srv__0;
  2 | 4
 (2 rows)
 
+--Testcase 1211:
 delete from grem1__postgres_srv__0;
 -- test batch insert
 alter server postgres_srv options (add batch_size '10');
+--Testcase 1212:
 explain (verbose, costs off)
 insert into grem1__postgres_srv__0 (a) values (1), (2);
                             QUERY PLAN                             
@@ -7830,7 +8053,9 @@ insert into grem1__postgres_srv__0 (a) values (1), (2);
          Output: "*VALUES*".column1, NULL::integer
 (5 rows)
 
+--Testcase 1213:
 insert into grem1__postgres_srv__0 (a) values (1), (2);
+--Testcase 1214:
 select * from grem1;
  a | b |   __spd_url    
 ---+---+----------------
@@ -7838,6 +8063,7 @@ select * from grem1;
  2 | 4 | /postgres_srv/
 (2 rows)
 
+--Testcase 1215:
 select * from grem1__postgres_srv__0;
  a | b 
 ---+---
@@ -7845,6 +8071,7 @@ select * from grem1__postgres_srv__0;
  2 | 4
 (2 rows)
 
+--Testcase 1216:
 delete from grem1__postgres_srv__0;
 alter server postgres_srv options (drop batch_size);
 -- ===================================================================
@@ -8303,6 +8530,7 @@ DROP TRIGGER trig_row_after ON rem1__postgres_srv__0;
 DROP TRIGGER trig_local_before ON rem1__postgres_srv__0;
 ERROR:  trigger "trig_local_before" for table "rem1__postgres_srv__0" does not exist
 -- Test direct foreign table modification functionality
+--Testcase 1217:
 EXPLAIN (verbose, costs off)
 DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
                       QUERY PLAN                      
@@ -8312,6 +8540,7 @@ DELETE FROM rem1__postgres_srv__0;                 -- can be pushed down
          Remote SQL: DELETE FROM public.loc1_1
 (3 rows)
 
+--Testcase 1218:
 EXPLAIN (verbose, costs off)
 DELETE FROM rem1__postgres_srv__0 WHERE false;     -- currently can't be pushed down
                        QUERY PLAN                        
@@ -9704,13 +9933,13 @@ select tableoid::regclass, * FROM locp;
 update utrtest__postgres_srv__0 set a = 2 where b = 'foo' returning *;
 ERROR:  new row for relation "loct_2" violates check constraint "loct_2_a_check"
 DETAIL:  Failing row contains (2, foo).
-CONTEXT:  remote SQL command: UPDATE public.loct_2 SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
-remote SQL command: UPDATE public.utrtest SET a = 2 WHERE ((b = 'foo'::text)) RETURNING a, b
+CONTEXT:  remote SQL command: UPDATE public.loct_2 SET a = 2 WHERE ((b = 'foo')) RETURNING a, b
+remote SQL command: UPDATE public.utrtest SET a = 2 WHERE ((b = 'foo')) RETURNING a, b
 -- But the reverse is allowed
 --Testcase 874:
 update utrtest__postgres_srv__0 set a = 1 where b = 'qux' returning *;
 ERROR:  cannot route tuples into foreign table to be updated "remp"
-CONTEXT:  remote SQL command: UPDATE public.utrtest SET a = 1 WHERE ((b = 'qux'::text)) RETURNING a, b
+CONTEXT:  remote SQL command: UPDATE public.utrtest SET a = 1 WHERE ((b = 'qux')) RETURNING a, b
 --Testcase 875:
 select tableoid::regclass, * FROM utrtest;
  tableoid | a |  b  
@@ -11224,7 +11453,7 @@ $d$;
 CREATE USER MAPPING FOR public SERVER loopback_nopw;
 CREATE USER MAPPING FOR CURRENT_USER SERVER loopback_nopw;
 
-CREATE FOREIGN TABLE ft1_nopw (
+CREATE FOREIGN TABLE pg_temp.ft1_nopw (
 	c1 int NOT NULL,
 	c2 int NOT NULL,
 	c3 text,
@@ -11603,6 +11832,39 @@ SELECT COUNT(*) FROM ftable;
      2
 (1 row)
 
+-- Disable batch inserting into foreign tables with BEFORE ROW INSERT triggers
+-- even if the batch_size option is enabled.
+ALTER FOREIGN TABLE ftable OPTIONS ( SET batch_size '10' );
+--Testcase 1219:
+CREATE TRIGGER trig_row_before BEFORE INSERT ON ftable
+FOR EACH ROW EXECUTE PROCEDURE trigger_data(23,'skidoo');
+--Testcase 1220:
+EXPLAIN (VERBOSE, COSTS OFF) INSERT INTO ftable VALUES (3), (4);
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Insert on public.ftable
+   Remote SQL: INSERT INTO public.batch_table(x) VALUES ($1)
+   Batch Size: 1
+   ->  Values Scan on "*VALUES*"
+         Output: "*VALUES*".column1
+(5 rows)
+
+--Testcase 1221:
+INSERT INTO ftable VALUES (3), (4);
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW INSERT ON ftable
+NOTICE:  NEW: (3)
+NOTICE:  trig_row_before(23, skidoo) BEFORE ROW INSERT ON ftable
+NOTICE:  NEW: (4)
+--Testcase 1222:
+SELECT COUNT(*) FROM ftable;
+ count 
+-------
+     4
+(1 row)
+
+-- Clean up
+--Testcase 1223:
+DROP TRIGGER trig_row_before ON ftable;
 --Testcase 1123:
 DROP FOREIGN TABLE ftable;
 --Testcase 1124:
@@ -11786,6 +12048,13 @@ INSERT INTO result_tbl SELECT * FROM async_pt WHERE b === 505;
 SELECT * FROM result_tbl ORDER BY a;
 DELETE FROM result_tbl;
 
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO result_tbl SELECT a, b, 'AAA' || c FROM async_pt WHERE b === 505;
+INSERT INTO result_tbl SELECT a, b, 'AAA' || c FROM async_pt WHERE b === 505;
+
+SELECT * FROM result_tbl ORDER BY a;
+DELETE FROM result_tbl;
+
 -- Check case where multiple partitions use the same connection
 CREATE TABLE base_tbl3 (a int, b int, c text);
 CREATE FOREIGN TABLE async_p3 PARTITION OF async_pt FOR VALUES FROM (3000) TO (4000)
@@ -11823,6 +12092,13 @@ CREATE TABLE join_tbl (a1 int, b1 int, c1 text, a2 int, b2 int, c2 text);
 EXPLAIN (VERBOSE, COSTS OFF)
 INSERT INTO join_tbl SELECT * FROM async_pt t1, async_pt t2 WHERE t1.a = t2.a AND t1.b = t2.b AND t1.b % 100 = 0;
 INSERT INTO join_tbl SELECT * FROM async_pt t1, async_pt t2 WHERE t1.a = t2.a AND t1.b = t2.b AND t1.b % 100 = 0;
+
+SELECT * FROM join_tbl ORDER BY a1;
+DELETE FROM join_tbl;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO join_tbl SELECT t1.a, t1.b, 'AAA' || t1.c, t2.a, t2.b, 'AAA' || t2.c FROM async_pt t1, async_pt t2 WHERE t1.a = t2.a AND t1.b = t2.b AND t1.b % 100 = 0;
+INSERT INTO join_tbl SELECT t1.a, t1.b, 'AAA' || t1.c, t2.a, t2.b, 'AAA' || t2.c FROM async_pt t1, async_pt t2 WHERE t1.a = t2.a AND t1.b = t2.b AND t1.b % 100 = 0;
 
 SELECT * FROM join_tbl ORDER BY a1;
 DELETE FROM join_tbl;
@@ -11897,6 +12173,46 @@ DROP TABLE local_tbl;
 DROP INDEX base_tbl1_idx;
 DROP INDEX base_tbl2_idx;
 DROP INDEX async_p3_idx;
+
+-- UNION queries
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO result_tbl
+(SELECT a, b, 'AAA' || c FROM async_p1 ORDER BY a LIMIT 10)
+UNION
+(SELECT a, b, 'AAA' || c FROM async_p2 WHERE b < 10);
+INSERT INTO result_tbl
+(SELECT a, b, 'AAA' || c FROM async_p1 ORDER BY a LIMIT 10)
+UNION
+(SELECT a, b, 'AAA' || c FROM async_p2 WHERE b < 10);
+
+SELECT * FROM result_tbl ORDER BY a;
+DELETE FROM result_tbl;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO result_tbl
+(SELECT a, b, 'AAA' || c FROM async_p1 ORDER BY a LIMIT 10)
+UNION ALL
+(SELECT a, b, 'AAA' || c FROM async_p2 WHERE b < 10);
+INSERT INTO result_tbl
+(SELECT a, b, 'AAA' || c FROM async_p1 ORDER BY a LIMIT 10)
+UNION ALL
+(SELECT a, b, 'AAA' || c FROM async_p2 WHERE b < 10);
+
+SELECT * FROM result_tbl ORDER BY a;
+DELETE FROM result_tbl;
+
+-- Disable async execution if we use gating Result nodes for pseudoconstant
+-- quals
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM async_pt WHERE CURRENT_USER = SESSION_USER;
+
+EXPLAIN (VERBOSE, COSTS OFF)
+(SELECT * FROM async_p1 WHERE CURRENT_USER = SESSION_USER)
+UNION ALL
+(SELECT * FROM async_p2 WHERE CURRENT_USER = SESSION_USER);
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM ((SELECT * FROM async_p1 WHERE b < 10) UNION ALL (SELECT * FROM async_p2 WHERE b < 10)) s WHERE CURRENT_USER = SESSION_USER;
 
 -- Test that pending requests are processed properly
 SET enable_mergejoin TO false;
@@ -11980,28 +12296,198 @@ DROP TABLE base_tbl2;
 DROP TABLE result_tbl;
 DROP TABLE join_tbl;
 
+-- Test that an asynchronous fetch is processed before restarting the scan in
+-- ReScanForeignScan
+CREATE TABLE base_tbl (a int, b int);
+INSERT INTO base_tbl VALUES (1, 11), (2, 22), (3, 33);
+CREATE FOREIGN TABLE foreign_tbl (b int)
+  SERVER loopback OPTIONS (table_name 'base_tbl');
+CREATE FOREIGN TABLE foreign_tbl2 () INHERITS (foreign_tbl)
+  SERVER loopback OPTIONS (table_name 'base_tbl');
+
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT a FROM base_tbl WHERE a IN (SELECT a FROM foreign_tbl);
+SELECT a FROM base_tbl WHERE a IN (SELECT a FROM foreign_tbl);
+
+-- Clean up
+DROP FOREIGN TABLE foreign_tbl CASCADE;
+DROP TABLE base_tbl;
+
 ALTER SERVER loopback OPTIONS (DROP async_capable);
 ALTER SERVER loopback2 OPTIONS (DROP async_capable);
 */
 -- ===================================================================
--- test invalid server and foreign table options
+-- test invalid server, foreign table and foreign data wrapper options
 -- ===================================================================
 -- Invalid fdw_startup_cost option
+--Testcase 1224:
 CREATE SERVER inv_scst FOREIGN DATA WRAPPER postgres_fdw
 	OPTIONS(fdw_startup_cost '100$%$#$#');
 ERROR:  invalid value for floating point option "fdw_startup_cost": 100$%$#$#
 -- Invalid fdw_tuple_cost option
+--Testcase 1225:
 CREATE SERVER inv_scst FOREIGN DATA WRAPPER postgres_fdw
 	OPTIONS(fdw_tuple_cost '100$%$#$#');
 ERROR:  invalid value for floating point option "fdw_tuple_cost": 100$%$#$#
 -- Invalid fetch_size option
+--Testcase 1226:
 CREATE FOREIGN TABLE inv_fsz (c1 int )
 	SERVER postgres_srv OPTIONS (fetch_size '100$%$#$#');
 ERROR:  invalid value for integer option "fetch_size": 100$%$#$#
 -- Invalid batch_size option
+--Testcase 1227:
 CREATE FOREIGN TABLE inv_bsz (c1 int )
 	SERVER postgres_srv OPTIONS (batch_size '100$%$#$#');
 ERROR:  invalid value for integer option "batch_size": 100$%$#$#
+-- Skip this test, pgspider does not support application_name and parallel_commit
+/*
+-- No option is allowed to be specified at foreign data wrapper level
+ALTER FOREIGN DATA WRAPPER postgres_fdw OPTIONS (nonexistent 'fdw');
+
+-- ===================================================================
+-- test postgres_fdw.application_name GUC
+-- ===================================================================
+--- Turn debug_discard_caches off for this test to make sure that
+--- the remote connection is alive when checking its application_name.
+SET debug_discard_caches = 0;
+
+-- Specify escape sequences in application_name option of a server
+-- object so as to test that they are replaced with status information
+-- expectedly.
+--
+-- Since pg_stat_activity.application_name may be truncated to less than
+-- NAMEDATALEN characters, note that substring() needs to be used
+-- at the condition of test query to make sure that the string consisting
+-- of database name and process ID is also less than that.
+ALTER SERVER postgres_srv2 OPTIONS (application_name 'fdw_%d%p');
+SELECT 1 FROM ft6 LIMIT 1;
+SELECT pg_terminate_backend(pid, 180000) FROM pg_stat_activity
+  WHERE application_name =
+    substring('fdw_' || current_database() || pg_backend_pid() for
+      current_setting('max_identifier_length')::int);
+
+-- postgres_fdw.application_name overrides application_name option
+-- of a server object if both settings are present.
+SET postgres_fdw.application_name TO 'fdw_%a%u%%';
+SELECT 1 FROM ft6 LIMIT 1;
+SELECT pg_terminate_backend(pid, 180000) FROM pg_stat_activity
+  WHERE application_name =
+    substring('fdw_' || current_setting('application_name') ||
+      CURRENT_USER || '%' for current_setting('max_identifier_length')::int);
+
+-- Test %c (session ID) and %C (cluster name) escape sequences.
+SET postgres_fdw.application_name TO 'fdw_%C%c';
+SELECT 1 FROM ft6 LIMIT 1;
+SELECT pg_terminate_backend(pid, 180000) FROM pg_stat_activity
+  WHERE application_name =
+    substring('fdw_' || current_setting('cluster_name') ||
+      to_hex(trunc(EXTRACT(EPOCH FROM (SELECT backend_start FROM
+      pg_stat_get_activity(pg_backend_pid()))))::integer) || '.' ||
+      to_hex(pg_backend_pid())
+      for current_setting('max_identifier_length')::int);
+
+--Clean up
+RESET postgres_fdw.application_name;
+RESET debug_discard_caches;
+*/
+-- ===================================================================
+-- test parallel commit
+-- ===================================================================
+ALTER SERVER postgres_srv OPTIONS (ADD parallel_commit 'true');
+ALTER SERVER postgres_srv2 OPTIONS (ADD parallel_commit 'true');
+--Testcase 1228:
+CREATE FOREIGN TABLE prem1 (f1 int, f2 text)
+  SERVER postgres_srv OPTIONS (table_name 'ploc1');
+--Testcase 1229:
+CREATE FOREIGN TABLE prem2 (f1 int, f2 text)
+  SERVER postgres_srv2 OPTIONS (table_name 'ploc2');
+BEGIN;
+--Testcase 1230:
+INSERT INTO prem1 VALUES (101, 'foo');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+--Testcase 1231:
+INSERT INTO prem2 VALUES (201, 'bar');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+COMMIT;
+--Testcase 1232:
+SELECT * FROM prem1;
+ f1  | f2  
+-----+-----
+ 101 | foo
+(1 row)
+
+--Testcase 1233:
+SELECT * FROM prem2;
+ f1  | f2  
+-----+-----
+ 201 | bar
+(1 row)
+
+BEGIN;
+SAVEPOINT s;
+--Testcase 1234:
+INSERT INTO prem1 VALUES (102, 'foofoo');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+--Testcase 1235:
+INSERT INTO prem2 VALUES (202, 'barbar');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+RELEASE SAVEPOINT s;
+COMMIT;
+--Testcase 1236:
+SELECT * FROM prem1;
+ f1  |   f2   
+-----+--------
+ 101 | foo
+ 102 | foofoo
+(2 rows)
+
+--Testcase 1237:
+SELECT * FROM prem2;
+ f1  |   f2   
+-----+--------
+ 201 | bar
+ 202 | barbar
+(2 rows)
+
+-- This tests executing DEALLOCATE ALL against foreign servers in parallel
+-- during pre-commit
+BEGIN;
+SAVEPOINT s;
+--Testcase 1238:
+INSERT INTO prem1 VALUES (103, 'baz');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+--Testcase 1239:
+INSERT INTO prem2 VALUES (203, 'qux');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+ROLLBACK TO SAVEPOINT s;
+RELEASE SAVEPOINT s;
+--Testcase 1240:
+INSERT INTO prem1 VALUES (104, 'bazbaz');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+--Testcase 1241:
+INSERT INTO prem2 VALUES (204, 'quxqux');
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+COMMIT;
+--Testcase 1242:
+SELECT * FROM prem1;
+ f1  |   f2   
+-----+--------
+ 101 | foo
+ 102 | foofoo
+ 104 | bazbaz
+(3 rows)
+
+--Testcase 1243:
+SELECT * FROM prem2;
+ f1  |   f2   
+-----+--------
+ 201 | bar
+ 202 | barbar
+ 204 | quxqux
+(3 rows)
+
+ALTER SERVER postgres_srv OPTIONS (DROP parallel_commit);
+ALTER SERVER postgres_srv2 OPTIONS (DROP parallel_commit);
 --Testcase 1146:
 SELECT dblink_disconnect();
  dblink_disconnect 

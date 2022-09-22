@@ -783,7 +783,7 @@ EXPLAIN VERBOSE
 SELECT value1, abs(1-value1) FROM s3 order by abs(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (abs(('1'::double precision - value1)))
    Sort Key: (abs(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -1187,9 +1187,9 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
                                           QUERY PLAN                                           
 -----------------------------------------------------------------------------------------------
- Limit  (cost=3464.20..3464.20 rows=1 width=24)
+ Limit  (cost=3532.45..3532.46 rows=1 width=24)
    Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
-   ->  Sort  (cost=3464.20..3472.73 rows=3413 width=24)
+   ->  Sort  (cost=3532.45..3540.99 rows=3413 width=24)
          Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
          Sort Key: (abs(s3.value3))
          ->  Foreign Scan on public.s3  (cost=10.00..3447.13 rows=3413 width=24)
@@ -1239,7 +1239,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(abs(value3)),min(value1) FROM s3 GROUP BY value3 HAVING sqrt(abs(value3)) > 0 ORDER BY 1,2;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Sort  (cost=1154.33..1154.83 rows=200 width=24)
+ Sort  (cost=1160.83..1161.33 rows=200 width=24)
    Output: (sqrt(abs(value3))), (min(value1)), value3
    Sort Key: (sqrt(abs(s3.value3))), (min(s3.value1))
    ->  HashAggregate  (cost=1143.69..1146.69 rows=200 width=24)
@@ -6978,7 +6978,7 @@ EXPLAIN VERBOSE
 SELECT value1, acos(1-value1) FROM s3 order by acos(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (acos(('1'::double precision - value1)))
    Sort Key: (acos(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -7262,7 +7262,7 @@ EXPLAIN VERBOSE
 SELECT value1, asin(1-value1) FROM s3 order by asin(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (asin(('1'::double precision - value1)))
    Sort Key: (asin(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -7546,7 +7546,7 @@ EXPLAIN VERBOSE
 SELECT value1, atan(1-value1) FROM s3 order by atan(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (atan(('1'::double precision - value1)))
    Sort Key: (atan(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -7823,7 +7823,7 @@ EXPLAIN VERBOSE
 SELECT value1, atan2(1-value1, 1-value2) FROM s3 order by atan2(1-value1, 1-value2);
                                              QUERY PLAN                                              
 -----------------------------------------------------------------------------------------------------
- Sort  (cost=3647.42..3655.95 rows=3413 width=16)
+ Sort  (cost=3662.90..3671.43 rows=3413 width=16)
    Output: value1, (atan2(('1'::double precision - value1), ((1 - value2))::double precision))
    Sort Key: (atan2(('1'::double precision - s3.value1), ((1 - s3.value2))::double precision))
    ->  Foreign Scan on public.s3  (cost=10.00..3447.13 rows=3413 width=16)
@@ -8057,7 +8057,7 @@ EXPLAIN VERBOSE
 SELECT value1, ceil(1-value1) FROM s3 order by ceil(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (ceil(('1'::double precision - value1)))
    Sort Key: (ceil(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -8341,7 +8341,7 @@ EXPLAIN VERBOSE
 SELECT value1, cos(1-value1) FROM s3 order by cos(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (cos(('1'::double precision - value1)))
    Sort Key: (cos(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -8600,7 +8600,7 @@ EXPLAIN VERBOSE
 SELECT value1, exp(1-value1) FROM s3 order by exp(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (exp(('1'::double precision - value1)))
    Sort Key: (exp(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -8865,7 +8865,7 @@ EXPLAIN VERBOSE
 SELECT value1, floor(1-value1) FROM s3 order by floor(1-value1);
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (floor(('1'::double precision - value1)))
    Sort Key: (floor(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -9149,7 +9149,7 @@ EXPLAIN VERBOSE
 SELECT value1, ln(1-value1) FROM s3 order by ln(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (ln(('1'::double precision - value1)))
    Sort Key: (ln(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -9414,7 +9414,7 @@ EXPLAIN VERBOSE
 SELECT value1, pow(1-value1, 2) FROM s3 order by pow(1-value1, 2);
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (pow(('1'::double precision - value1), '2'::double precision))
    Sort Key: (pow(('1'::double precision - s3.value1), '2'::double precision))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -9698,7 +9698,7 @@ EXPLAIN VERBOSE
 SELECT value1, round(1-value1) FROM s3 order by round(1-value1);
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (round(('1'::double precision - value1)))
    Sort Key: (round(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -9982,7 +9982,7 @@ EXPLAIN VERBOSE
 SELECT value1, sin(1-value1) FROM s3 order by sin(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (sin(('1'::double precision - value1)))
    Sort Key: (sin(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)
@@ -10241,7 +10241,7 @@ EXPLAIN VERBOSE
 SELECT value1, tan(1-value1) FROM s3 order by tan(1-value1);
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=3630.35..3638.89 rows=3413 width=16)
+ Sort  (cost=3645.83..3654.36 rows=3413 width=16)
    Output: value1, (tan(('1'::double precision - value1)))
    Sort Key: (tan(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=10.00..3430.07 rows=3413 width=16)

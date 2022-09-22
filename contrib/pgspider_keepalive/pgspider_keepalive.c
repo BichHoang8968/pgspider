@@ -75,6 +75,7 @@ static HTAB *keepshNodeHash;
 /* shared child and parent flag */
 static bool join_flag;
 static pthread_mutex_t hash_mutex = PTHREAD_MUTEX_INITIALIZER;
+static shmem_request_hook_type prev_shmem_request_hook = NULL;
 
 static void create_alive_list(StringInfoData *buf, NODEINFO * *nodeInfo, char ***fdwname, int *svrnum);
 static void create_child_info(NODEINFO * nodeInfo, pthread_t **threads, int svrnum);
@@ -544,7 +545,6 @@ worker_pgspider_keepalive(Datum main_arg)
 	 * Reset some signals that are accepted by postmaster but not here
 	 */
 	pqsignal(SIGALRM, SIG_IGN);	/* Alarm clock (POSIX).  */
-	pqsignal(SIGUSR1, SIG_IGN);	/* User-defined signal 1 (POSIX).  */
 	pqsignal(SIGUSR2, SIG_IGN);	/* User-defined signal 2 (POSIX).  */
 	pqsignal(SIGINT, SIG_IGN);	/* Interrupt (ANSI).  */
 	pqsignal(SIGFPE, SIG_IGN);	/* Floating-point exception (ANSI).  */
@@ -624,6 +624,9 @@ InitSharedMemoryKeepalives()
 {
 	Size		size = hash_estimate_size(max_child_nodes, sizeof(NODEINFO));
 
+	if (prev_shmem_request_hook)
+		prev_shmem_request_hook();
+
 	RequestAddinShmemSpace(size);
 }
 
@@ -693,7 +696,10 @@ _PG_init(void)
 							NULL,
 							NULL);
 	/* Alloc shared memory */
-	InitSharedMemoryKeepalives();
+	prev_shmem_request_hook = shmem_request_hook;
+	shmem_request_hook = InitSharedMemoryKeepalives;
+	shmem_startup_prev = shmem_startup_hook;
+	shmem_startup_hook = InitKeepaliveShm;
 	/* set up common data for all our workers */
 	memset(&worker, 0, sizeof(worker));
 	worker.bgw_flags = BGWORKER_SHMEM_ACCESS |
@@ -708,8 +714,5 @@ _PG_init(void)
 	/*
 	 * Now fill in worker-specific data, and do the actual registrations.
 	 */
-	shmem_startup_prev = shmem_startup_hook;
-	shmem_startup_hook = InitKeepaliveShm;
-
 	RegisterBackgroundWorker(&worker);
 }

@@ -7,12 +7,12 @@ def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
 def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'master'
-def BRANCH_MYSQL_FDW = 'master'
-def BRANCH_SQLITE_FDW = 'master'
-def BRANCH_GRIDDB_FDW = 'master'
-def BRANCH_INFLUXDB_FDW = 'master'
-def BRANCH_PARQUET_S3_FDW = 'master'
+def BRANCH_TINYBRACE_FDW = 'port15beta2'
+def BRANCH_MYSQL_FDW = 'port15beta2'
+def BRANCH_SQLITE_FDW = 'port15beta2'
+def BRANCH_GRIDDB_FDW = 'port15beta2'
+def BRANCH_INFLUXDB_FDW = 'port15beta2'
+def BRANCH_PARQUET_S3_FDW = 'port15beta2'
 
 pipeline {
     agent {
