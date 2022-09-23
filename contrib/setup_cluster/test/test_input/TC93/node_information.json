@@ -1,0 +1,24 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.toshiba.mwcloud.gs.sql.Driver",
+		"dburl": "jdbc:gs://239.0.0.1:41999/griddbfdwTestSetcluster/public",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/gridstore-jdbc-5.0.0.jar",
+		"maxheapsize": "600",
+		"username": "admin",
+		"password": "testadmin"
+	}
+]

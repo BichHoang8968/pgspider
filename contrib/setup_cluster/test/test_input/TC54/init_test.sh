@@ -1,9 +1,6 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14819
 PGS1_DB=setcluster3_db1
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster3_db2
 
@@ -64,4 +61,5 @@ cd $DATA_PATH
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "create user postgres with encrypted password 'postgres';"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "grant all privileges on database postgres to postgres;"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG1_DIR/bin/psql -p $PG1_PORT postgres -c "ALTER USER postgres WITH SUPERUSER;"
 $PG1_DIR/bin/psql postgres -p $PG1_PORT  -U postgres < ./init_postgres.sql

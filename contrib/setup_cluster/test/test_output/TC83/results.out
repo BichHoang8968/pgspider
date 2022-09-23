@@ -1,0 +1,204 @@
+select * from tbl_postgre;
+     c1      |    c2     |       c3       | __spd_url 
+-------------+-----------+----------------+-----------
+ Caichao     |     25452 | 54562563.21514 | /db2/
+ two         |      1222 |    -2563.21514 | /db2/
+ threse      |    242322 |         563.87 | /db2/
+ simple      | -28391322 |        82563.8 | /db2/
+ nothing     |    989839 |         8657.2 | /db2/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db2/
+ four        |       124 |        463.244 | /db2/
+ five        |      8675 |     -29863.212 | /db2/
+ six         |      8685 |            563 | /db2/
+ MalaysiaNY  |     54645 |    3.321241209 | /db2/
+(10 rows)
+
+select * from tmp_test_setcluster;
+        c1         |      c2      |      c3       | __spd_url 
+-------------------+--------------+---------------+-----------
+ Cáichảofile1      | 922337203807 | 21292.1212312 | /db3/
+ กระทะfile2        | -33720385808 |   19212.12123 | /db3/
+ 友達と会うfile3   |        21123 |    -4000.6153 | /db3/
+ simplefile4       |    -21212312 |     5000.1651 | /db3/
+ nothingfile5      |        12123 |    -6000.1894 | /db3/
+ oneonefile6       |     98972321 |     7000.1984 | /db3/
+ 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db3/
+ ごきげんようfile8 |       -83781 |    9000.32184 | /db3/
+ сковородаfile9    |         1213 |   -12000.9213 | /db3/
+ ハンサムfile10    |          123 |   83123.12312 | /db3/
+(10 rows)
+
+select * from tbl_grid;
+        c1         |     c2      |     c3     | __spd_url 
+-------------------+-------------+------------+-----------
+ Cáichảogrid1      | 19337203807 |  21292.121 | /db4/
+ กระทะgrid2        | -5720385808 |   19212.03 | /db4/
+ 友達と会うgrid3   |        5123 |    -4000.6 | /db4/
+ simplegrid4       |     -292312 |   5000.151 | /db4/
+ nothinggrid5      |        6123 |    -6000.4 | /db4/
+ oneonegrid6       |     8472321 |    7000.14 | /db4/
+ 0YJ_gG7l000grid7  |        3412 |   -8000.61 | /db4/
+ ごきげんようgrid8 |      -84781 |   95000.32 | /db4/
+ сковородаgrid9    |       13213 | -19500.922 | /db4/
+ ハンサムgrid10    |       12523 |  80123.125 | /db4/
+(10 rows)
+
+select * from tbl_influx;
+                time                 |    c1    |      c2      |      c3      | __spd_url 
+-------------------------------------+----------+--------------+--------------+-----------
+ 1709-05-31 09:06:03.145224+07:06:40 | influx5  |           33 |   -6000.1894 | /db6/
+ 2008-10-07 16:33:56.854776+07       | influx6  |        32321 |    7000.1984 | /db6/
+ 2016-11-10 22:13:20+07              | influx2  | -36854775808 |    435.12123 | /db6/
+ 2019-12-20 04:26:40+07              | influx4  |       -10812 |    5000.1651 | /db6/
+ 2020-01-12 05:13:20+07              | influx8  |        -4781 |   9000.32184 | /db6/
+ 2020-01-13 11:46:40+07              | influx7  |        42112 |   -8000.6871 | /db6/
+ 2051-09-20 09:46:40+07              | influx1  |    854775807 |  453.1212312 | /db6/
+ 2083-05-29 11:33:20+07              | influx3  |          123 | -4000.614353 | /db6/
+ 2224-04-02 09:27:16.854776+07       | influx10 |          123 |       634.32 | /db6/
+ 2255-12-10 11:13:56.854776+07       | influx9  |        52713 |   -3234.9213 | /db6/
+(10 rows)
+
+select * from tbl_mysql;
+        c1        |   c2   |     c3      | __spd_url 
+------------------+--------+-------------+-----------
+ my1              |   4352 |     2563.54 | /db5/
+ my2              |  57672 | -9563.21514 | /db5/
+ 友達と会う my3   | 942322 |      443.87 | /db5/
+ simple my 4      |  -9322 |       963.8 | /db5/
+ nothing my5      |   4839 |        97.2 | /db5/
+ my6              |  -4892 |      7442.8 | /db5/
+ ごきげんよう my7 |   8124 |    5653.884 | /db5/
+ сковорода my8    |     75 |   -763.5465 | /db5/
+ ハンサム my9     |   1095 |       434.2 | /db5/
+ MalaysiaNY my10  |   1645 |      2343.9 | /db5/
+(10 rows)
+
+select * from tbl_sqlite;
+          c1          |    c2    |     c3      | __spd_url 
+----------------------+----------+-------------+-----------
+ sqlite1              |    32352 |       563.9 | /db14/
+ sqlite2              |     9576 |  -57563.059 | /db14/
+ 友達と会う sqlite3   |    36322 |     433.835 | /db14/
+ simple sqlite4       |   -43522 |   3423.1242 | /db14/
+ nothing sqlite5      |     4759 |     92347.2 | /db14/
+ sqlite6              |   -34392 |      442.83 | /db14/
+ ごきげんよう sqlite7 | 34324124 | 534253.0995 | /db14/
+ сковорода sqlite8    |     7325 |   -17363.55 | /db14/
+ ハンサム sqlite9     |      325 |      984.24 | /db14/
+ MalaysiaNY sqlite10  |     9645 |     233.932 | /db14/
+(10 rows)
+
+select * from tbl_tiny;
+         c1         |   c2   |    c3     | __spd_url 
+--------------------+--------+-----------+-----------
+ tiny1              |     85 |  3563.349 | /db7/
+ tiny2              |    576 | -553.3854 | /db7/
+ 友達と会う tiny3   |    322 |   75643.5 | /db7/
+ simple tiny4       |  -8682 |  423.1242 | /db7/
+ nothing tiny5      |     59 |       6.2 | /db7/
+ tiny6              |   -232 | 232.42423 | /db7/
+ ごきげんよう tiny7 | 945674 |     50.05 | /db7/
+ сковорода tiny8    |    445 |   -6763.5 | /db7/
+ ハンサム tiny9     |    355 |    14.205 | /db7/
+ MalaysiaNY tiny10  |    645 |    256733 | /db7/
+(10 rows)
+
+select * from tbl_parquetminio;
+     c1      |  c2   |     c3      | __spd_url 
+-------------+-------+-------------+-----------
+ Caichao     | 25452 | 54562563.21 | /db10/
+ two         |  8675 |      563.87 | /db10/
+ 0YJ_gG7l000 |   124 |           1 | /db10/
+ MalaysiaNY  |  4532 |       3.321 | /db10/
+ five        |     5 |      563.87 | /db10/
+(5 rows)
+
+select * from tbl_parquetlocal;
+     c1      |  c2   |     c3      | __spd_url 
+-------------+-------+-------------+-----------
+ Caichao     | 25452 | 54562563.21 | /db9/
+ two         |  8675 |      563.87 | /db9/
+ 0YJ_gG7l000 |   124 |           1 | /db9/
+ MalaysiaNY  |  4532 |       3.321 | /db9/
+ five        |     5 |      563.87 | /db9/
+(5 rows)
+
+select * from tbl_oracle;
+     c1      |    c2     |       c3       | __spd_url 
+-------------+-----------+----------------+-----------
+ Caichao     |     25452 | 54562563.21514 | /db8/
+ two         |      1222 |    -2563.21514 | /db8/
+ simple      | -28391322 |        82563.8 | /db8/
+ nothing     |    989839 |         8657.2 | /db8/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db8/
+(5 rows)
+
+select * from tbl_sqlumdash;
+          c1          |    c2    |     c3      | __spd_url 
+----------------------+----------+-------------+-----------
+ sqlite1              |    32352 |       563.9 | /db13/
+ sqlite2              |     9576 |  -57563.059 | /db13/
+ 友達と会う sqlite3   |    36322 |     433.835 | /db13/
+ simple sqlite4       |   -43522 |   3423.1242 | /db13/
+ nothing sqlite5      |     4759 |     92347.2 | /db13/
+ sqlite6              |   -34392 |      442.83 | /db13/
+ ごきげんよう sqlite7 | 34324124 | 534253.0995 | /db13/
+ сковорода sqlite8    |     7325 |   -17363.55 | /db13/
+ ハンサム sqlite9     |      325 |      984.24 | /db13/
+ MalaysiaNY sqlite10  |     9645 |     233.932 | /db13/
+(10 rows)
+
+select * from tbl_odbcmysql;
+       c1        |   c2   |     c3      | __spd_url 
+-----------------+--------+-------------+-----------
+ my1             |   4352 |     2563.54 | /db11/
+ my2             |  57672 | -9563.21514 | /db11/
+ ????? my3       | 942322 |      443.87 | /db11/
+ simple my 4     |  -9322 |       963.8 | /db11/
+ nothing my5     |   4839 |        97.2 | /db11/
+ my6             |  -4892 |      7442.8 | /db11/
+ ?????? my7      |   8124 |    5653.884 | /db11/
+ ????????? my8   |     75 |   -763.5465 | /db11/
+ ???? my9        |   1095 |       434.2 | /db11/
+ MalaysiaNY my10 |   1645 |      2343.9 | /db11/
+(10 rows)
+
+select * from tbl_odbcpostgres;
+     c1      |    c2     |      c3       | __spd_url 
+-------------+-----------+---------------+-----------
+ Caichao     |     25452 | 5.4562564e+07 | /db12/
+ two         |      1222 |     -2563.215 | /db12/
+ threse      |    242322 |        563.87 | /db12/
+ simple      | -28391322 |       82563.8 | /db12/
+ nothing     |    989839 |        8657.2 | /db12/
+ 0YJ_gG7l000 |     -9892 |         332.8 | /db12/
+ four        |       124 |       463.244 | /db12/
+ five        |      8675 |    -29863.213 | /db12/
+ six         |      8685 |           563 | /db12/
+ MalaysiaNY  |     54645 |     3.3212411 | /db12/
+(10 rows)
+
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
+                      ^

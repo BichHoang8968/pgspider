@@ -1,3 +1,4 @@
+select * from tbl_postgre;
      c1      |    c2     |       c3       | __spd_url 
 -------------+-----------+----------------+-----------
  Caichao     |     25452 | 54562563.21514 | /db2/
@@ -12,6 +13,7 @@
  MalaysiaNY  |     54645 |    3.321241209 | /db2/
 (10 rows)
 
+select * from tmp_test_setcluster;
         c1         |      c2      |      c3       | __spd_url 
 -------------------+--------------+---------------+-----------
  Cáichảofile1      | 922337203807 | 21292.1212312 | /db3/
@@ -26,6 +28,7 @@
  ハンサムfile10    |          123 |   83123.12312 | /db3/
 (10 rows)
 
+select * from tbl_grid;
         c1         |     c2      |     c3     | __spd_url 
 -------------------+-------------+------------+-----------
  Cáichảogrid1      | 19337203807 |  21292.121 | /db4/
@@ -40,6 +43,7 @@
  ハンサムgrid10    |       12523 |  80123.125 | /db4/
 (10 rows)
 
+select * from tbl_influx;
                 time                 |    c1    |      c2      |      c3      | __spd_url 
 -------------------------------------+----------+--------------+--------------+-----------
  1709-05-31 09:06:03.145224+07:06:40 | influx5  |           33 |   -6000.1894 | /db6/
@@ -54,6 +58,7 @@
  2255-12-10 11:13:56.854776+07       | influx9  |        52713 |   -3234.9213 | /db6/
 (10 rows)
 
+select * from tbl_mysql;
         c1        |   c2   |     c3      | __spd_url 
 ------------------+--------+-------------+-----------
  my1              |   4352 |     2563.54 | /db5/
@@ -68,6 +73,7 @@
  MalaysiaNY my10  |   1645 |      2343.9 | /db5/
 (10 rows)
 
+select * from tbl_sqlite;
           c1          |    c2    |     c3      | __spd_url 
 ----------------------+----------+-------------+-----------
  sqlite1              |    32352 |       563.9 | /db8/
@@ -82,6 +88,7 @@
  MalaysiaNY sqlite10  |     9645 |     233.932 | /db8/
 (10 rows)
 
+select * from tbl_tiny;
          c1         |   c2   |    c3     | __spd_url 
 --------------------+--------+-----------+-----------
  tiny1              |     85 |  3563.349 | /db7/
@@ -96,3 +103,51 @@
  MalaysiaNY tiny10  |    645 |    256733 | /db7/
 (10 rows)
 
+select * from tbl_parquetminio;
+ERROR:  relation "tbl_parquetminio" does not exist
+LINE 1: select * from tbl_parquetminio;
+                      ^
+select * from tbl_parquetlocal;
+ERROR:  relation "tbl_parquetlocal" does not exist
+LINE 1: select * from tbl_parquetlocal;
+                      ^
+select * from tbl_oracle;
+ERROR:  relation "tbl_oracle" does not exist
+LINE 1: select * from tbl_oracle;
+                      ^
+select * from tbl_sqlumdash;
+ERROR:  relation "tbl_sqlumdash" does not exist
+LINE 1: select * from tbl_sqlumdash;
+                      ^
+select * from tbl_odbcmysql;
+ERROR:  relation "tbl_odbcmysql" does not exist
+LINE 1: select * from tbl_odbcmysql;
+                      ^
+select * from tbl_odbcpostgres;
+ERROR:  relation "tbl_odbcpostgres" does not exist
+LINE 1: select * from tbl_odbcpostgres;
+                      ^
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
+                      ^

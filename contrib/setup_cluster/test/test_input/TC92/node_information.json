@@ -1,0 +1,25 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "org.postgresql.Driver",
+		"dburl": "jdbc:postgresql://localhost:5432/jdbcpostgres",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/postgresql-42.3.5.jar",
+		"maxheapsize": "600",
+		"username": "postgres",
+		"password": "postgres",
+		"dbname": "jdbcpostgres"
+	}
+]

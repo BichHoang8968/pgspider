@@ -1,14 +1,57 @@
+select * from tbl_postgre;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tmp_test_setcluster;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tbl_grid;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tbl_influx;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tbl_mysql;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tbl_sqlite;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
+select * from tbl_tiny;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_parquetminio;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_parquetlocal;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_oracle;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_sqlumdash;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_odbcmysql;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_odbcpostgres;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_dynamodb;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_mongo;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_jdbcmysql;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_jdbcpostgres;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_jdbcgrid;
+psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+select * from tbl_postgrest;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?

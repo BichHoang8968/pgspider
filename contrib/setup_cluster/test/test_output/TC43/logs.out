@@ -1,5 +1,4 @@
-File:install_util.c Function:create_connection L:115 Msg:Error:connection to server at "127.0.0.1", port 4813 failed: FATAL:  password authentication failed for user "tsdv"
-
+File:install_util.c Function:create_connection L:84 Msg:Error: user name is not specified. Please confirm 'username_admin' in pgspider node information
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

@@ -1,0 +1,9 @@
+PGS1_DB=setcluster2_db1
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH$SLDCS_LIB_PATH
+
+CUR_PATH=$(pwd)
+cd ${PGS1_DIR}/bin
+./pg_ctl -D ../${PGS1_DB} restart > /dev/null 2>&1
+
+cd $CUR_PATH
+./setup_cluster

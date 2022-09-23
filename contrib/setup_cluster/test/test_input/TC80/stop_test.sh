@@ -1,39 +1,26 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14813
 PGS1_DB=setcluster1_db1
-#PGS2_DIR=/home/jenkins/PGSpider/install
 PGS2_PORT=14814
 PGS2_DB=setcluster1_db4
-#PGS3_DIR=/home/jenkins/PGSpider/install
 PGS3_PORT=14815
 PGS3_DB=setcluster1_db5
-#PGS4_DIR=/home/jenkins/PGSpider/install
 PGS4_PORT=14816
 PGS4_DB=setcluster1_db7
-#PGS5_DIR=/home/jenkins/PGSpider/install
 PGS5_PORT=14817
 PGS5_DB=setcluster1_db10
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster1_db2
-#PG2_DIR=/home/jenkins/postgresql-14beta2/install
 PG2_PORT=15437
 PG2_DB=setcluster1_db3
-#PG3_DIR=/home/jenkins/postgresql-14beta2/install
 PG3_PORT=15438
 PG3_DB=setcluster1_db6
-#PG4_DIR=/home/jenkins/postgresql-14beta2/install
 PG4_PORT=15439
 PG4_DB=setcluster1_db8
-#PG5_DIR=/home/jenkins/postgresql-14beta2/install
 PG5_PORT=15440
 PG5_DB=setcluster1_db9
-#PG6_DIR=/home/jenkins/postgresql-14beta2/install
 PG6_PORT=15441
 PG6_DB=setcluster1_db11
-#PG7_DIR=/home/jenkins/postgresql-14beta2/install
 PG7_PORT=15442
 PG7_DB=setcluster1_db12
 

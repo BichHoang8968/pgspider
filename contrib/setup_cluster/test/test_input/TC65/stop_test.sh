@@ -1,9 +1,6 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14819
 PGS1_DB=setcluster3_db1
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster3_db2
 

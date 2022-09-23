@@ -1,6 +1,4 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14820
 PGS1_DB=setcluster4_db1
 
 CURR_PATH=$(pwd)

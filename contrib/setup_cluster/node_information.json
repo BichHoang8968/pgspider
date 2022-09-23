@@ -106,5 +106,105 @@
 		"username": "root",
 		"password": "Mysql_1234",
 		"dbname": "test"
+	},
+	{
+		"nodename": "dbparquetlocal",
+		"fdw": "parquet_s3_fdw",
+		"dirpath": "/tmp/data_local/data/simple",
+		"sorted": "one"
+	},
+	{
+		"nodename": "dbparquetminio",
+		"fdw": "parquet_s3_fdw",
+		"useminio": "true",
+		"endpoint": "127.0.0.1:9000",
+		"region": "ap-southeast-2",
+		"username": "minioadmin",
+		"password": "minioadmin",
+		"dirpath": "s3://data/simple",
+		"sorted": "one"
+	},
+	{
+		"nodename": "dbmongo",
+		"fdw": "mongo_fdw",
+		"ip": "127.0.0.1",
+		"port": 27017,
+		"username": "edb",
+		"password": "edb",
+		"dbname": "mongo_fdw_regress"
+	},
+	{
+		"nodename": "dboracle",
+		"fdw": "oracle_fdw",
+		"username": "SCOTT",
+		"password": "tiger",
+		"case": "lower",
+		"dbserver": "",
+		"isolation_level": "read_committed",
+		"nchar": "true",
+		"dbname": "SCOTT"
+	},
+	{
+		"nodename": "dbodbcmysql",
+		"fdw": "odbc_fdw",
+		"ip": "127.0.0.1",
+		"port": "3306",
+		"dbdrivername": "MySQL ODBC 8.0 Unicode Driver",
+		"username": "root",
+		"password": "Mysql_1234",
+		"dbname": "odbc_fdw_post"
+	},
+	{
+		"nodename": "dbodbcpostgres",
+		"fdw": "odbc_fdw",
+		"ip": "127.0.0.1",
+		"port": "5444",
+		"dbdrivername": "PostgreSQL",
+		"username": "",
+		"password": "",
+		"dbname": "odbc_fdw_post"
+	},
+	{
+		"nodename": "dbpostgrest",
+		"fdw": "postgrest_fdw",
+		"ip": "127.0.0.1",
+		"port": "3000",
+		"username": "postgres",
+		"password": "postgres"
+	},
+	{
+		"nodename": "dbjdbcmysql",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.mysql.jdbc.Driver",
+		"dburl": "jdbc:mysql://localhost:3306/mysql_db",
+		"querytimeout": "15",
+		"driverpathjar": "/home/user/workplace/JDBC/jdbc_lib/mysql-connector-java-8.0.25.jar",
+		"maxheapsize": "600",
+		"username": "root",
+		"password": "Mysql_1234",
+		"dbname": "mysql_db"
+	},
+	{
+		"nodename": "dbjdbcpostgres",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "org.postgresql.Driver",
+		"dburl": "jdbc:postgresql://localhost:5444/testdb",
+		"querytimeout": "15",
+		"driverpathjar": "/home/user/workplace/JDBC/jdbc_lib/postgresql-42.2.23.jar",
+		"maxheapsize": "600",
+		"username": "postgres",
+		"password": "postgres",
+		"dbname": "testdb"
+	},
+	{
+		"nodename": "dbjdbcgriddb",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.toshiba.mwcloud.gs.sql.Driver",
+		"dburl": "jdbc:gs://239.0.0.1:41999/griddbfdwTestCluster/public",
+		"querytimeout": "15",
+		"driverpathjar": "/home/user/workplace/JDBC/jdbc_lib/gridstore-jdbc-4.6.0.jar",
+		"maxheapsize": "600",
+		"username": "admin",
+		"password": "testadmin"
 	}
 ]
