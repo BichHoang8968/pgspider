@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <ctype.h>
 #include "libpq-fe.h"
 #ifdef _MSC_VER
 #include <io.h>
@@ -30,11 +31,13 @@
 #define PORT_NUMBER_MAX_LENGTH 5
 #define PORT_NUMBER_MIN 1
 #define PORT_NUMBER_MAX 65535
+#define NUMBER_MAX_LENGTH 5
 
 static ReturnCode parse_conf(json_t * element, nodes * nodes_data);
 static nodes * create_node();
 static nodes * add_node(nodes * head, nodes * node);
 static nodes * search_nodes(char *nodename, nodes * node);
+static void verify_nodedata(nodes * node_data);
 
 typedef struct child_node_list
 {
@@ -150,7 +153,7 @@ drop_all_fdws_with_connect(nodes * nodes_data, child_node_list * child_node, int
 	parent_node = search_nodes(child_node->node_name, nodes_data);
 	/* Already checked in set_pgspider_node_admin. */
 	assert(parent_node != NULL);
-	assert(strcmp(parent_node->fdw, "pgspider_fdw") == 0);
+	assert(strcasecmp(parent_node->fdw, "pgspider_fdw") == 0);
 
 	rc = create_connection(&conn, parent_node, 1, timeout);
 	if (rc == SETUP_OK)
@@ -208,9 +211,9 @@ set_child_ip(PGconn *conn, nodes * node_data)
 {
 	char		query[QUERY_LEN];
 
-	if (node_data->ip == NULL)
+	if (strcmp(node_data->ip, "") == 0)
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->nodename, node_data->fdw);
-	else if (strcmp(node_data->fdw, "influxdb_fdw") == 0)
+	else if (strcasecmp(node_data->fdw, "influxdb_fdw") == 0)
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','127.0.0.1');", node_data->nodename, node_data->fdw);
 	else
 		sprintf(query, "INSERT INTO pg_spd_node_info VALUES(0,'%s','%s','%s');", node_data->nodename, node_data->fdw, node_data->ip);
@@ -239,10 +242,39 @@ import_schema(PGconn *conn, nodes * node_data)
 	if (rc != SETUP_OK)
 		return rc;
 
-	if (strcmp(node_data->fdw, "mysql_fdw") == 0)
-		sprintf(query, "IMPORT FOREIGN SCHEMA %s FROM server %s INTO temp_schema;", node_data->dbname, node_data->nodename);
+	if (strcasecmp(node_data->fdw, "mysql_fdw") == 0 ||
+		strcasecmp(node_data->fdw, "mongo_fdw") == 0 ||
+		(strcasecmp(node_data->fdw, "jdbc_fdw") == 0 &&
+		 strcmp(node_data->dbdrivername, MYSQL_DRIVER_OF_JDBC) == 0) ||
+		(strcasecmp(node_data->fdw, "odbc_fdw") == 0 &&
+		 strcasecmp(node_data->dbserver, MYSQL_DBSERVER_OF_ODBC) == 0))
+	{
+		sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema;", node_data->dbname, node_data->nodename);
+	}
+	else if (strcasecmp(node_data->fdw, "parquet_s3_fdw") == 0)
+	{
+		if (strlen(node_data->sorted) > 0)
+		{
+			sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema OPTIONS (sorted '%s');", node_data->dirpath, node_data->nodename, node_data->sorted);
+		}
+		else
+		{
+			sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema", node_data->dirpath, node_data->nodename);
+		}
+	}
+	else if (strcasecmp(node_data->fdw, "oracle_fdw") == 0)
+	{
+		if (strlen(node_data->case_opt) > 0)
+		{
+			sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema OPTIONS (case '%s');", node_data->dbname, node_data->nodename, node_data->case_opt);
+		}
+		else
+		{
+			sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema;", node_data->dbname, node_data->nodename);
+		}
+	}
 	else
-		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM server %s INTO temp_schema;", node_data->nodename);
+		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM SERVER %s INTO temp_schema;", node_data->nodename);
 
 	rc = query_execute(conn, query);
 	if (rc != SETUP_OK)
@@ -513,7 +545,7 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		if (rc != SETUP_OK)
 			break;
 		/* griddb fdw does not add table name option. we add here. */
-		if (strcmp(fdw, "griddb_fdw") == 0)
+		if (strcasecmp(fdw, "griddb_fdw") == 0)
 		{
 			sprintf(alter_query, "ALTER FOREIGN TABLE \"%s\" OPTIONS (table_name '%s');", newtable, PQgetvalue(res, i, 0));
 			rc = query_execute(conn, alter_query);
@@ -596,6 +628,211 @@ create_node()
 	return tempnode;
 }
 
+/* Verify the data of node in node_information
+ * If option not provided, initialize value "" to avoid error.
+ *
+ * @param[in] node_data - information of a node 
+ *
+ */
+static void
+verify_nodedata(nodes * node_data)
+{
+	const char *double_quote = "";
+
+	if (node_data->nodename == NULL)
+	{
+		node_data->nodename = malloc_nodedata(double_quote);
+	}
+	if (node_data->fdw == NULL)
+	{
+		node_data->fdw = malloc_nodedata(double_quote);
+	}
+	if (node_data->ip == NULL)
+	{
+		node_data->ip = malloc_nodedata(double_quote);
+	}
+	if (node_data->port == NULL)
+	{
+		node_data->port = malloc_nodedata(double_quote);
+	}
+	if (node_data->user == NULL)
+	{
+		node_data->user = malloc_nodedata(double_quote);
+	}
+	if (node_data->pass == NULL)
+	{
+		node_data->pass = malloc_nodedata(double_quote);
+	}
+	if (node_data->user_admin == NULL)
+	{
+		node_data->user_admin = malloc_nodedata(double_quote);
+	}
+	if (node_data->pass_admin == NULL)
+	{
+		node_data->pass_admin = malloc_nodedata(double_quote);
+	}
+	if (node_data->dbname == NULL)
+	{
+		node_data->dbname = malloc_nodedata(double_quote);
+	}
+	if (node_data->table == NULL)
+	{
+		node_data->table = malloc_nodedata(double_quote);
+	}
+	if (node_data->clustername == NULL)
+	{
+		node_data->clustername = malloc_nodedata(double_quote);
+	}
+	if (node_data->notification_member == NULL)
+	{
+		node_data->notification_member = malloc_nodedata(double_quote);
+	}
+	if (node_data->dbpath == NULL)
+	{
+		node_data->dbpath = malloc_nodedata(double_quote);
+	}
+	if (node_data->dirpath == NULL)
+	{
+		node_data->dirpath = malloc_nodedata(double_quote);
+	}
+	if (node_data->column == NULL)
+	{
+		node_data->column = malloc_nodedata(double_quote);
+	}
+	if (node_data->servername == NULL)
+	{
+		node_data->servername = malloc_nodedata(double_quote);
+	}
+	if (node_data->endpoint == NULL)
+	{
+		node_data->endpoint = malloc_nodedata(double_quote);
+	}
+	if (node_data->useminio == NULL)
+	{
+		node_data->useminio = malloc_nodedata(double_quote);
+	}
+	if (node_data->region == NULL)
+	{
+		node_data->region = malloc_nodedata(double_quote);
+	}
+	if (node_data->sorted == NULL)
+	{
+		node_data->sorted = malloc_nodedata(double_quote);
+	}
+	if (node_data->dbserver == NULL)
+	{
+		node_data->dbserver = malloc_nodedata(double_quote);
+	}
+	if (node_data->isolation_level == NULL)
+	{
+		node_data->isolation_level = malloc_nodedata(double_quote);
+	}
+	if (node_data->nchar == NULL)
+	{
+		node_data->nchar = malloc_nodedata(double_quote);
+	}
+	if (node_data->case_opt == NULL)
+	{
+		node_data->case_opt = malloc_nodedata(double_quote);
+	}
+	if (node_data->dbdrivername == NULL)
+	{
+		node_data->dbdrivername = malloc_nodedata(double_quote);
+	}
+	if (node_data->querytimeout == NULL)
+	{
+		node_data->querytimeout = malloc_nodedata(double_quote);
+	}
+	if (node_data->dburl == NULL)
+	{
+		node_data->dburl = malloc_nodedata(double_quote);
+	}
+	if (node_data->driverpathjar == NULL)
+	{
+		node_data->driverpathjar = malloc_nodedata(double_quote);
+	}
+	if (node_data->maxheapsize == NULL)
+	{
+		node_data->maxheapsize = malloc_nodedata(double_quote);
+	}
+	if (node_data->use_remote_estimate == NULL)
+	{
+		node_data->use_remote_estimate = malloc_nodedata(double_quote);
+	}
+	if (node_data->enable_join_pushdown == NULL)
+	{
+		node_data->enable_join_pushdown = malloc_nodedata(double_quote);
+	}
+	if (node_data->authentication_database == NULL)
+	{
+		node_data->authentication_database = malloc_nodedata(double_quote);
+	}
+	if (node_data->replica_set == NULL)
+	{
+		node_data->replica_set = malloc_nodedata(double_quote);
+	}
+	if (node_data->read_preference == NULL)
+	{
+		node_data->read_preference = malloc_nodedata(double_quote);
+	}
+	if (node_data->ssl == NULL)
+	{
+		node_data->ssl = malloc_nodedata(double_quote);
+	}
+	if (node_data->pem_file == NULL)
+	{
+		node_data->pem_file = malloc_nodedata(double_quote);
+	}
+	if (node_data->pem_pwd == NULL)
+	{
+		node_data->pem_pwd = malloc_nodedata(double_quote);
+	}
+	if (node_data->ca_file == NULL)
+	{
+		node_data->ca_file = malloc_nodedata(double_quote);
+	}
+	if (node_data->ca_dir == NULL)
+	{
+		node_data->ca_dir = malloc_nodedata(double_quote);
+	}
+	if (node_data->crl_file == NULL)
+	{
+		node_data->crl_file = malloc_nodedata(double_quote);
+	}
+	if (node_data->weak_cert_validation == NULL)
+	{
+		node_data->weak_cert_validation = malloc_nodedata(double_quote);
+	}
+	if (node_data->storage_type == NULL)
+	{
+		node_data->storage_type = malloc_nodedata(double_quote);
+	}
+	if (node_data->filename == NULL)
+	{
+		node_data->filename = malloc_nodedata(double_quote);
+	}
+	if (node_data->dirname == NULL)
+	{
+		node_data->dirname = malloc_nodedata(double_quote);
+	}
+	if (node_data->format == NULL)
+	{
+		node_data->format = malloc_nodedata(double_quote);
+	}
+	if (node_data->schemaless == NULL)
+	{
+		node_data->schemaless = malloc_nodedata(double_quote);
+	}
+	if (node_data->key_columns == NULL)
+	{
+		node_data->key_columns = malloc_nodedata(double_quote);
+	}
+	if (node_data->key == NULL)
+	{
+		node_data->key = malloc_nodedata(double_quote);
+	}
+}
+
 /*
  * Append a node with value into linked list
  * If the list is empty, the added node is head node
@@ -652,7 +889,7 @@ search_nodes(char *nodename, nodes * node)
 
 	while (tempnode)
 	{
-		if (tempnode->nodename != NULL && strcmp(nodename, tempnode->nodename) == 0)
+		if (strcmp(nodename, tempnode->nodename) == 0)
 			return tempnode;
 		tempnode = tempnode->next;
 	}
@@ -681,7 +918,6 @@ free_nodedata(nodes * node)
 		pnext = node;
 		free(node->nodename);
 		free(node->fdw);
-		free(node->nodename);
 		free(node->ip);
 		free(node->port);
 		free(node->user);
@@ -693,6 +929,38 @@ free_nodedata(nodes * node)
 		free(node->dirpath);
 		free(node->column);
 		free(node->servername);
+		free(node->useminio);
+		free(node->region);
+		free(node->sorted);
+		free(node->dbserver);
+		free(node->isolation_level);
+		free(node->nchar);
+		free(node->case_opt);
+		free(node->endpoint);
+		free(node->dbdrivername);
+		free(node->dburl);
+		free(node->querytimeout);
+		free(node->driverpathjar);
+		free(node->maxheapsize);
+		free(node->use_remote_estimate);
+		free(node->enable_join_pushdown);
+		free(node->authentication_database);
+		free(node->replica_set);
+		free(node->read_preference);
+		free(node->ssl);
+		free(node->pem_file);
+		free(node->pem_pwd);
+		free(node->ca_file);
+		free(node->ca_dir);
+		free(node->crl_file);
+		free(node->weak_cert_validation);
+		free(node->storage_type);
+		free(node->filename);
+		free(node->dirname);
+		free(node->format);
+		free(node->schemaless);
+		free(node->key_columns);
+		free(node->key);
 
 		node = node->next;
 		free(pnext);
@@ -765,6 +1033,17 @@ parse_conf(json_t * element, nodes * nodes_data)
 					}
 					sprintf(data, "%d", (int) json_integer_value(value));
 				}
+				else if ((strcasecmp(key, "querytimeout") == 0 || strcasecmp(key, "maxheapsize") == 0) &&
+					json_typeof(value) == JSON_INTEGER)
+				{
+					data = malloc(sizeof(char) * NUMBER_MAX_LENGTH + 1);
+					if (data == NULL)
+					{
+						PRINT_ERROR("Error: out of memory\n");
+						return SETUP_NOMEM;
+					}
+					sprintf(data, "%d", (int) json_integer_value(value));
+				}
 				else if (json_string_value(value) == NULL)
 				{
 					PRINT_ERROR("Error: %s parameter is invalid.\n", key);
@@ -807,12 +1086,83 @@ parse_conf(json_t * element, nodes * nodes_data)
 					nodes_data->clustername = data;
 				else if (strcasecmp(key, "notification_member") == 0)
 					nodes_data->notification_member = data;
+				else if (strcasecmp(key, "useminio") == 0)
+					nodes_data->useminio = data;
+				else if (strcasecmp(key, "region") == 0)
+					nodes_data->region = data;
+				else if (strcasecmp(key, "sorted") == 0)
+					nodes_data->sorted = data;
+				else if (strcasecmp(key, "dbserver") == 0)
+					nodes_data->dbserver = data;
+				else if (strcasecmp(key, "isolation_level") == 0)
+					nodes_data->isolation_level = data;
+				else if (strcasecmp(key, "nchar") == 0)
+					nodes_data->nchar = data;
+				else if (strcasecmp(key, "case") == 0)
+					nodes_data->case_opt = data;
+				else if (strcasecmp(key, "endpoint") == 0)
+					nodes_data->endpoint = data;
+				else if (strcasecmp(key, "dbdrivername") == 0)
+					nodes_data->dbdrivername = data;
+				else if (strcasecmp(key, "dburl") == 0)
+					nodes_data->dburl = data;
+				else if (strcasecmp(key, "querytimeout") == 0)
+					nodes_data->querytimeout = data;
+				else if (strcasecmp(key, "driverpathjar") == 0)
+					nodes_data->driverpathjar = data;
+				else if (strcasecmp(key, "maxheapsize") == 0)
+					nodes_data->maxheapsize = data;
+				else if (strcasecmp(key, "use_remote_estimate") == 0)
+					nodes_data->use_remote_estimate = data;
+				else if (strcasecmp(key, "enable_join_pushdown") == 0)
+					nodes_data->enable_join_pushdown = data;
+				else if (strcasecmp(key, "authentication_database") == 0)
+					nodes_data->authentication_database = data;
+				else if (strcasecmp(key, "replica_set") == 0)
+					nodes_data->replica_set = data;
+				else if (strcasecmp(key, "read_preference") == 0)
+					nodes_data->read_preference = data;
+				else if (strcasecmp(key, "ssl") == 0)
+					nodes_data->ssl = data;
+				else if (strcasecmp(key, "pem_file") == 0)
+					nodes_data->pem_file = data;
+				else if (strcasecmp(key, "pem_pwd") == 0)
+					nodes_data->pem_pwd = data;
+				else if (strcasecmp(key, "ca_file") == 0)
+					nodes_data->ca_file = data;
+				else if (strcasecmp(key, "ca_dir") == 0)
+					nodes_data->ca_dir = data;
+				else if (strcasecmp(key, "crl_file") == 0)
+					nodes_data->crl_file = data;
+				else if (strcasecmp(key, "weak_cert_validation") == 0)
+					nodes_data->weak_cert_validation = data;
+				else if (strcasecmp(key, "storage_type") == 0)
+					nodes_data->storage_type = data;
+				else if (strcasecmp(key, "filename") == 0)
+					nodes_data->filename = data;
+				else if (strcasecmp(key, "dirname") == 0)
+					nodes_data->dirname = data;
+				else if (strcasecmp(key, "format") == 0)
+					nodes_data->format = data;
+				else if (strcasecmp(key, "schemaless") == 0)
+					nodes_data->schemaless = data;
+				else if (strcasecmp(key, "key_columns") == 0)
+					nodes_data->key_columns = data;
+				else if (strcasecmp(key, "key") == 0)
+					nodes_data->key = data;
 				else
 				{
 					PRINT_ERROR("Error: %s is not fdw parameter. \n", key);
 					return SETUP_INVALID_CONTENT;
 				}
 			}
+			/*
+			 * If user not provide options in node_information, application
+			 * will crash in some cases like: print, compare them.
+			 * To avoid unwanted behavior, Set default value ""
+			 * for options not provided.
+			 */
+			verify_nodedata(nodes_data);
 			break;
 		default:
 			PRINT_ERROR("Error: JSON element format is wrong. Only object appear here. \n");
@@ -958,9 +1308,12 @@ detect_loop(child_node_list * parent_node, nodes * child_list, nodes * nodes_dat
 		if (!child_data)
 			return SETUP_INVALID_CONTENT;
 
-		/* Parent node and child node are PGSpider and have the same configuration */
-		if (strcmp(parent_data->fdw, child_data->fdw) == 0
-			&& strcmp(parent_data->fdw, "pgspider_fdw") == 0
+		/*
+		 * Parent node and child node are PGSpider and have the same
+		 * configuration
+		 */
+		if (strcasecmp(parent_data->fdw, child_data->fdw) == 0
+			&& strcasecmp(parent_data->fdw, "pgspider_fdw") == 0
 			&& strcmp(parent_data->ip, child_data->ip) == 0
 			&& strcmp(parent_data->port, child_data->port) == 0
 			&& strcmp(parent_data->dbname, child_data->dbname) == 0)
@@ -988,6 +1341,23 @@ verify_structure(nodes * nodes_data, child_node_list * node_list)
 	nodes	   *child_list = NULL;
 	ReturnCode	rc = SETUP_OK;
 	int			i;
+	static bool isFirstNode = true;
+
+	if (isFirstNode)
+	{
+		nodes *first_node = NULL;
+
+		first_node = search_nodes(node_list->node_name, nodes_data);
+		if (first_node == NULL)
+			return SETUP_INVALID_CONTENT;
+		else if (strcasecmp(first_node->fdw, "pgspider_fdw") != 0)
+		{
+			PRINT_ERROR("Error: root node %s is not pgspider fdw. Currently, root node is %s\n", first_node->nodename, first_node->fdw);
+			return SETUP_INVALID_CONTENT;
+		}
+
+		isFirstNode = false;
+	}
 
 	p = node_list->children;
 	if (p != NULL)
@@ -1087,7 +1457,7 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 	if (parent_node == NULL)
 		return SETUP_INVALID_CONTENT;
 
-	if (strcmp(parent_node->fdw, "pgspider_fdw") != 0)
+	if (strcasecmp(parent_node->fdw, "pgspider_fdw") != 0)
 	{
 		if (child_node->child_nums != 0)
 		{
@@ -1151,9 +1521,9 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 			goto err_set_pgspider_node_admin;
 		}
 
-		if (child_node_data->fdw == NULL)
+		if (strcmp(child_node_data->fdw, "") == 0)
 		{
-			PRINT_ERROR("Error: Invalid JSON text. Can not find 'FDW'\n");
+			PRINT_ERROR("Error: Cannot find extension. Fdw is invalid. Fdw: \"\"\n");
 			rc = SETUP_INVALID_CONTENT;
 			goto err_set_pgspider_node_admin;
 		}
@@ -1167,9 +1537,9 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 		{
 			char	   *missing_content = NULL;
 
-			if (child_node_data->dirpath == NULL)
+			if (strcmp(child_node_data->dirpath, "") == 0)
 				missing_content = "dirpath";
-			else if (child_node_data->table == NULL)
+			else if (strcmp(child_node_data->table, "") == 0)
 				missing_content = "table";
 
 			if (missing_content != NULL)
@@ -1180,6 +1550,47 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 			}
 
 			rc = load_filefdw_admin(conn, child_node_data, child_node->node_name, parent_node->user);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+		}
+
+		/*
+		 * import_schema for jdbc_fdw at here. Because jdbc_fdw always
+		 * requires super-user to connect databases.
+		 */
+		else if (strcasecmp(child_node_data->fdw, "jdbc_fdw") == 0)
+		{
+			char		query[QUERY_LEN] = {0};
+
+			rc = node_set(child_node_data, conn);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+			rc = import_schema(conn, child_node_data);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+
+			/* Set foreign server in parent node  */
+			rc = node_set_spdcore(parent_node, conn);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+
+			/* Change the owner of a temp_schema to normal-user */
+			sprintf(query, "ALTER SCHEMA temp_schema OWNER TO %s;", nodes_data->user);
+			rc = query_execute(conn, query);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+
+			/* Give a permission for using foreign-server and user-mapping */
+			sprintf(query, "GRANT %s TO %s;", nodes_data->user_admin, nodes_data->user);
+			rc = query_execute(conn, query);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node_admin;
+
+			/* Set table data for keep alive. */
+			rc = set_child_ip(conn, child_node_data);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node_admin;
 		}
@@ -1236,7 +1647,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 	/* Already checked in set_pgspider_node_admin. */
 	assert(parent_node != NULL);
 
-	if (strcmp(parent_node->fdw, "pgspider_fdw") != 0)
+	if (strcasecmp(parent_node->fdw, "pgspider_fdw") != 0)
 		return SETUP_OK;
 
 	/* Connect to PGSpider with normal user. */
@@ -1267,7 +1678,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 		child_node_data = search_nodes(p[i].node_name, nodes_data);
 		/* Already checked in set_pgspider_node_admin. */
 		assert(child_node_data != NULL);
-		assert(child_node_data->fdw != NULL);
+		assert(strcmp(child_node_data->fdw, "") != 0);
 
 		if (strcasecmp(child_node_data->fdw, "file_fdw") == 0)
 		{
@@ -1275,7 +1686,8 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node;
 		}
-		else
+		/* Jdbc_fdw already import_schema in set_pgspider_node_admin. */
+		else if (strcasecmp(child_node_data->fdw, "jdbc_fdw") != 0)
 		{
 			rc = node_set(child_node_data, conn);
 			if (rc != SETUP_OK)

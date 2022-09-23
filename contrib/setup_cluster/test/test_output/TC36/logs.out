@@ -1,3 +1,4 @@
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -6,11 +7,17 @@ NOTICE:  extension "tinybrace_fdw" does not exist, skipping
 NOTICE:  extension "mysql_fdw" does not exist, skipping
 NOTICE:  extension "griddb_fdw" does not exist, skipping
 NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
+NOTICE:  extension "mongo_fdw" does not exist, skipping
+NOTICE:  extension "oracle_fdw" does not exist, skipping
+NOTICE:  extension "postgrest_fdw" does not exist, skipping
+NOTICE:  extension "odbc_fdw" does not exist, skipping
+NOTICE:  extension "jdbc_fdw" does not exist, skipping
+NOTICE:  extension "dynamodb_fdw" does not exist, skipping
+NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
+NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-File:install_util.c Function:query_execute L:148 Msg:CREATE EXTENSION IF NOT EXISTS ; failed :ERROR:  syntax error at or near ";"
-LINE 1: CREATE EXTENSION IF NOT EXISTS ;
-                                       ^
-
+File:install_main.c Function:set_pgspider_node_admin L:1526 Msg:Error: Cannot find extension. Fdw is invalid. Fdw: ""
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

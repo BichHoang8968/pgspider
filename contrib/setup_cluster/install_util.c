@@ -32,8 +32,7 @@ typedef struct timespec MyTimer;
 	(end.tv_sec - start.tv_sec)
 #endif
 
-void
-err_msg(const char *file, const char *function, int line, const char *fmt,...) __attribute__ ((format (printf, 4, 5)));
+void		err_msg(const char *file, const char *function, int line, const char *fmt,...) __attribute__((format(printf, 4, 5)));
 
 void
 err_msg(const char *file, const char *function, int line, const char *fmt,...)
@@ -80,7 +79,7 @@ create_connection(PGconn **pConn, nodes * node, char isAdmin, int timeout)
 		item_name = "username_admin";
 	}
 
-	if (user == NULL)
+	if (strcmp(user, "") == 0)
 	{
 		PRINT_ERROR("Error: user name is not specified. Please confirm \'%s\' in pgspider node information\n", item_name);
 		return SETUP_INVALID_CONTENT;

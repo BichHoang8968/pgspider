@@ -1,3 +1,4 @@
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -6,9 +7,22 @@ NOTICE:  extension "tinybrace_fdw" does not exist, skipping
 NOTICE:  extension "mysql_fdw" does not exist, skipping
 NOTICE:  extension "griddb_fdw" does not exist, skipping
 NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
+NOTICE:  extension "mongo_fdw" does not exist, skipping
+NOTICE:  extension "oracle_fdw" does not exist, skipping
+NOTICE:  extension "postgrest_fdw" does not exist, skipping
+NOTICE:  extension "odbc_fdw" does not exist, skipping
+NOTICE:  extension "jdbc_fdw" does not exist, skipping
+NOTICE:  extension "dynamodb_fdw" does not exist, skipping
+NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
+NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -17,8 +31,21 @@ NOTICE:  extension "tinybrace_fdw" does not exist, skipping
 NOTICE:  extension "mysql_fdw" does not exist, skipping
 NOTICE:  extension "griddb_fdw" does not exist, skipping
 NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
+NOTICE:  extension "mongo_fdw" does not exist, skipping
+NOTICE:  extension "oracle_fdw" does not exist, skipping
+NOTICE:  extension "postgrest_fdw" does not exist, skipping
+NOTICE:  extension "odbc_fdw" does not exist, skipping
+NOTICE:  extension "jdbc_fdw" does not exist, skipping
+NOTICE:  extension "dynamodb_fdw" does not exist, skipping
+NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
+NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -27,8 +54,20 @@ NOTICE:  extension "tinybrace_fdw" does not exist, skipping
 NOTICE:  extension "mysql_fdw" does not exist, skipping
 NOTICE:  extension "griddb_fdw" does not exist, skipping
 NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
+NOTICE:  extension "mongo_fdw" does not exist, skipping
+NOTICE:  extension "oracle_fdw" does not exist, skipping
+NOTICE:  extension "postgrest_fdw" does not exist, skipping
+NOTICE:  extension "odbc_fdw" does not exist, skipping
+NOTICE:  extension "jdbc_fdw" does not exist, skipping
+NOTICE:  extension "dynamodb_fdw" does not exist, skipping
+NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
+NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
+WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping

@@ -1,14 +1,9 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14818
 PGS1_DB=setcluster2_db1
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster2_db2
-#TINYBRACE_HOME=/usr/local/tinybrace
-#GRIDDB_CLIENT=/home/jenkins/GridDB/griddb
-#GRIDDB_HOME=/home/jenkins/GridDB/griddb-4.6.0
+
 DATA_PATH=$INIT_DATA_PATH
 export http_proxy=
 if [[ "--start" == $1 ]]
@@ -102,6 +97,7 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "grant all privileges on database p
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 
 cd $DATA_PATH
 rm /tmp/test_setcluster/*
@@ -115,12 +111,13 @@ rm /tmp/tbl_grid.data
 cp tbl_grid.data /tmp/
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${GRIDDB_CLIENT}/bin
 gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
-./griddb_init 239.0.0.1 31999 griddbfdwTestSetcluster admin testadmin /tmp/tbl_grid.data
+./griddb_init 239.0.0.1 31999 griddbfdwTestSetcluster admin testadmin /tmp/tbl_grid.data 1
 
 # postgres should be already started
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "create user postgres with encrypted password 'postgres';"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "grant all privileges on database postgres to postgres;"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG1_DIR/bin/psql -p $PG1_PORT postgres -c "ALTER USER postgres WITH SUPERUSER;"
 $PG1_DIR/bin/psql postgres -p $PG1_PORT  -U postgres < ./init_postgres.sql
 # Setup InfluxDB
 influx -import -path=./tbl_influx.data -precision=ns

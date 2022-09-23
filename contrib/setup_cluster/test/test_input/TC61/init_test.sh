@@ -1,33 +1,22 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14813
 PGS1_DB=setcluster11_db1
-#PGS2_DIR=/home/jenkins/PGSpider/install
 PGS2_PORT=14814
 PGS2_DB=setcluster11_db4
-#PGS3_DIR=/home/jenkins/PGSpider/install
 PGS3_PORT=14815
 PGS3_DB=setcluster11_db7
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster11_db2
-#PG2_DIR=/home/jenkins/postgresql-14beta2/install
 PG2_PORT=15437
 PG2_DB=setcluster11_db3
-#PG3_DIR=/home/jenkins/postgresql-14beta2/install
 PG3_PORT=15438
 PG3_DB=setcluster11_db5
-#PG4_DIR=/home/jenkins/postgresql-14beta2/install
 PG4_PORT=15439
 PG4_DB=setcluster11_db6
-#PG5_DIR=/home/jenkins/postgresql-14beta2/install
 PG5_PORT=15440
 PG5_DB=setcluster11_db8
-#PG6_DIR=/home/jenkins/postgresql-14beta2/install
 PG6_PORT=15441
 PG6_DB=setcluster11_db9
-#PG7_DIR=/home/jenkins/postgresql-14beta2/install
 PG7_PORT=15442
 PG7_DB=setcluster11_db10
 
@@ -225,18 +214,21 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "grant all privileges on database p
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 #PGSpider should be already started
 $PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "create user pgspider with password 'pgspider';"
 $PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "grant all privileges on database pgspider to pgspider;"
 $PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS2_DIR/bin/psql -p $PGS2_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 #PGSpider should be already started
 $PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "create user pgspider with password 'pgspider';"
 $PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "grant all privileges on database pgspider to pgspider;"
 $PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS3_DIR/bin/psql -p $PGS3_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 
 cd $DATA_PATH
 
@@ -245,34 +237,41 @@ cd $DATA_PATH
 $PG1_DIR/bin/psql -p $PG1_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG1_DIR/bin/psql -p $PG1_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG1_DIR/bin/psql -p $PG1_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG1_DIR/bin/psql postgres4 -p $PG1_PORT  -U postgres < ./init_postgres.sql
 
 $PG2_DIR/bin/psql -p $PG2_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG2_DIR/bin/psql -p $PG2_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG2_DIR/bin/psql -p $PG2_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG2_DIR/bin/psql -p $PG2_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG2_DIR/bin/psql postgres4 -p $PG2_PORT  -U postgres < ./init_postgres.sql
 
 $PG3_DIR/bin/psql -p $PG3_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG3_DIR/bin/psql -p $PG3_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG3_DIR/bin/psql -p $PG3_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG3_DIR/bin/psql -p $PG3_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG3_DIR/bin/psql postgres4 -p $PG3_PORT  -U postgres < ./init_postgres.sql
 
 $PG4_DIR/bin/psql -p $PG4_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG4_DIR/bin/psql -p $PG4_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG4_DIR/bin/psql -p $PG4_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG4_DIR/bin/psql -p $PG4_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG4_DIR/bin/psql postgres4 -p $PG4_PORT  -U postgres < ./init_postgres.sql
 
 $PG5_DIR/bin/psql -p $PG5_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG5_DIR/bin/psql -p $PG5_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG5_DIR/bin/psql -p $PG5_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG5_DIR/bin/psql -p $PG5_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG5_DIR/bin/psql postgres4 -p $PG5_PORT  -U postgres < ./init_postgres.sql
 
 $PG6_DIR/bin/psql -p $PG6_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG6_DIR/bin/psql -p $PG6_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG6_DIR/bin/psql -p $PG6_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG6_DIR/bin/psql -p $PG6_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG6_DIR/bin/psql postgres4 -p $PG6_PORT  -U postgres < ./init_postgres.sql
 
 $PG7_DIR/bin/psql -p $PG7_PORT postgres4 -c "create user postgres with encrypted password 'postgres';"
 $PG7_DIR/bin/psql -p $PG7_PORT postgres4 -c "grant all privileges on database postgres to postgres;"
 $PG7_DIR/bin/psql -p $PG7_PORT postgres4 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$PG7_DIR/bin/psql -p $PG7_PORT postgres4 -c "ALTER USER postgres WITH SUPERUSER;"
 $PG7_DIR/bin/psql postgres4 -p $PG7_PORT  -U postgres < ./init_postgres.sql

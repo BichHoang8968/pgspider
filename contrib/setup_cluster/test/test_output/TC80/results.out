@@ -1,3 +1,4 @@
+select * from tbl_postgre;
      c1      |    c2     |       c3       |   __spd_url    
 -------------+-----------+----------------+----------------
  Caichao     |     25452 | 54562563.21514 | /db2/
@@ -20,6 +21,25 @@
  five        |      8675 |     -29863.212 | /db3/
  six         |      8685 |            563 | /db3/
  MalaysiaNY  |     54645 |    3.321241209 | /db3/
+ Caichao     |     25452 | 54562563.21514 | /db4/db5/db8/
+ two         |      1222 |    -2563.21514 | /db4/db5/db8/
+ threse      |    242322 |         563.87 | /db4/db5/db8/
+ simple      | -28391322 |        82563.8 | /db4/db5/db8/
+ nothing     |    989839 |         8657.2 | /db4/db5/db8/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db8/
+ four        |       124 |        463.244 | /db4/db5/db8/
+ five        |      8675 |     -29863.212 | /db4/db5/db8/
+ six         |      8685 |            563 | /db4/db5/db8/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db8/
+ Caichao     |     25452 | 54562563.21514 | /db4/db5/db9/
+ two         |      1222 |    -2563.21514 | /db4/db5/db9/
+ threse      |    242322 |         563.87 | /db4/db5/db9/
+ simple      | -28391322 |        82563.8 | /db4/db5/db9/
+ nothing     |    989839 |         8657.2 | /db4/db5/db9/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db9/
+ four        |       124 |        463.244 | /db4/db5/db9/
+ five        |      8675 |     -29863.212 | /db4/db5/db9/
+ six         |      8685 |            563 | /db4/db5/db9/
  Caichao     |     25452 | 54562563.21514 | /db4/db6/
  two         |      1222 |    -2563.21514 | /db4/db6/
  threse      |    242322 |         563.87 | /db4/db6/
@@ -30,6 +50,7 @@
  five        |      8675 |     -29863.212 | /db4/db6/
  six         |      8685 |            563 | /db4/db6/
  MalaysiaNY  |     54645 |    3.321241209 | /db4/db6/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db9/
  Caichao     |     25452 | 54562563.21514 | /db4/db7/db11/
  two         |      1222 |    -2563.21514 | /db4/db7/db11/
  threse      |    242322 |         563.87 | /db4/db7/db11/
@@ -50,84 +71,118 @@
  five        |      8675 |     -29863.212 | /db4/db7/db12/
  six         |      8685 |            563 | /db4/db7/db12/
  MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db12/
- Caichao     |     25452 | 54562563.21514 | /db4/db5/db8/
- two         |      1222 |    -2563.21514 | /db4/db5/db8/
- threse      |    242322 |         563.87 | /db4/db5/db8/
- simple      | -28391322 |        82563.8 | /db4/db5/db8/
- nothing     |    989839 |         8657.2 | /db4/db5/db8/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db8/
- four        |       124 |        463.244 | /db4/db5/db8/
- five        |      8675 |     -29863.212 | /db4/db5/db8/
- six         |      8685 |            563 | /db4/db5/db8/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db8/
- Caichao     |     25452 | 54562563.21514 | /db4/db5/db9/
- two         |      1222 |    -2563.21514 | /db4/db5/db9/
- threse      |    242322 |         563.87 | /db4/db5/db9/
- simple      | -28391322 |        82563.8 | /db4/db5/db9/
- nothing     |    989839 |         8657.2 | /db4/db5/db9/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db9/
- four        |       124 |        463.244 | /db4/db5/db9/
- five        |      8675 |     -29863.212 | /db4/db5/db9/
- six         |      8685 |            563 | /db4/db5/db9/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db9/
 (70 rows)
 
+select * from tmp_test_setcluster;
         c1         |      c2      |      c3       | __spd_url  
 -------------------+--------------+---------------+------------
  Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db13/
- Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db14/
- กระทะfile2        | -33720385808 |   19212.12123 | /db4/db14/
- Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db14/
- กระทะfile2        | -33720385808 |   19212.12123 | /db4/db13/
- 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db13/
- 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db14/
- simplefile4       |    -21212312 |     5000.1651 | /db4/db14/
- กระทะfile2        | -33720385808 |   19212.12123 | /db4/db14/
- simplefile4       |    -21212312 |     5000.1651 | /db4/db13/
- nothingfile5      |        12123 |    -6000.1894 | /db4/db13/
- nothingfile5      |        12123 |    -6000.1894 | /db4/db14/
- oneonefile6       |     98972321 |     7000.1984 | /db4/db14/
- 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db14/
- oneonefile6       |     98972321 |     7000.1984 | /db4/db13/
- 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db13/
- 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db14/
- ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db14/
- simplefile4       |    -21212312 |     5000.1651 | /db4/db14/
- ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db13/
- сковородаfile9    |         1213 |   -12000.9213 | /db4/db13/
- сковородаfile9    |         1213 |   -12000.9213 | /db4/db14/
- ハンサムfile10    |          123 |   83123.12312 | /db4/db14/
- nothingfile5      |        12123 |    -6000.1894 | /db4/db14/
- ハンサムfile10    |          123 |   83123.12312 | /db4/db13/
- oneonefile6       |     98972321 |     7000.1984 | /db4/db14/
- 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db14/
- ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db14/
- сковородаfile9    |         1213 |   -12000.9213 | /db4/db14/
- ハンサムfile10    |          123 |   83123.12312 | /db4/db14/
  Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db13/
+ Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db14/
+ Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/db14/
  กระทะfile2        | -33720385808 |   19212.12123 | /db4/db13/
  友達と会うfile3   |        21123 |    -4000.6153 | /db4/db13/
+ กระทะfile2        | -33720385808 |   19212.12123 | /db4/db13/
+ กระทะfile2        | -33720385808 |   19212.12123 | /db4/db14/
+ กระทะfile2        | -33720385808 |   19212.12123 | /db4/db14/
  simplefile4       |    -21212312 |     5000.1651 | /db4/db13/
  nothingfile5      |        12123 |    -6000.1894 | /db4/db13/
+ 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db13/
+ 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db14/
+ 友達と会うfile3   |        21123 |    -4000.6153 | /db4/db14/
  oneonefile6       |     98972321 |     7000.1984 | /db4/db13/
  0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db13/
+ simplefile4       |    -21212312 |     5000.1651 | /db4/db13/
+ simplefile4       |    -21212312 |     5000.1651 | /db4/db14/
+ simplefile4       |    -21212312 |     5000.1651 | /db4/db14/
+ ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db13/
+ сковородаfile9    |         1213 |   -12000.9213 | /db4/db13/
+ nothingfile5      |        12123 |    -6000.1894 | /db4/db13/
+ nothingfile5      |        12123 |    -6000.1894 | /db4/db14/
+ nothingfile5      |        12123 |    -6000.1894 | /db4/db14/
+ ハンサムfile10    |          123 |   83123.12312 | /db4/db13/
+ oneonefile6       |     98972321 |     7000.1984 | /db4/db13/
+ 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db13/
+ oneonefile6       |     98972321 |     7000.1984 | /db4/db14/
+ oneonefile6       |     98972321 |     7000.1984 | /db4/db14/
  ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db13/
  сковородаfile9    |         1213 |   -12000.9213 | /db4/db13/
  ハンサムfile10    |          123 |   83123.12312 | /db4/db13/
+ 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db14/
+ 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/db14/
+ ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db14/
+ сковородаfile9    |         1213 |   -12000.9213 | /db4/db14/
+ ハンサムfile10    |          123 |   83123.12312 | /db4/db14/
+ ごきげんようfile8 |       -83781 |    9000.32184 | /db4/db14/
+ сковородаfile9    |         1213 |   -12000.9213 | /db4/db14/
+ ハンサムfile10    |          123 |   83123.12312 | /db4/db14/
 (40 rows)
 
+select * from tbl_grid;
 ERROR:  relation "tbl_grid" does not exist
 LINE 1: select * from tbl_grid;
                       ^
+select * from tbl_influx;
 ERROR:  relation "tbl_influx" does not exist
 LINE 1: select * from tbl_influx;
                       ^
+select * from tbl_mysql;
 ERROR:  relation "tbl_mysql" does not exist
 LINE 1: select * from tbl_mysql;
                       ^
+select * from tbl_sqlite;
 ERROR:  relation "tbl_sqlite" does not exist
 LINE 1: select * from tbl_sqlite;
                       ^
+select * from tbl_tiny;
 ERROR:  relation "tbl_tiny" does not exist
 LINE 1: select * from tbl_tiny;
+                      ^
+select * from tbl_parquetminio;
+ERROR:  relation "tbl_parquetminio" does not exist
+LINE 1: select * from tbl_parquetminio;
+                      ^
+select * from tbl_parquetlocal;
+ERROR:  relation "tbl_parquetlocal" does not exist
+LINE 1: select * from tbl_parquetlocal;
+                      ^
+select * from tbl_oracle;
+ERROR:  relation "tbl_oracle" does not exist
+LINE 1: select * from tbl_oracle;
+                      ^
+select * from tbl_sqlumdash;
+ERROR:  relation "tbl_sqlumdash" does not exist
+LINE 1: select * from tbl_sqlumdash;
+                      ^
+select * from tbl_odbcmysql;
+ERROR:  relation "tbl_odbcmysql" does not exist
+LINE 1: select * from tbl_odbcmysql;
+                      ^
+select * from tbl_odbcpostgres;
+ERROR:  relation "tbl_odbcpostgres" does not exist
+LINE 1: select * from tbl_odbcpostgres;
+                      ^
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
                       ^

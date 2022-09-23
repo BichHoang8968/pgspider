@@ -1,4 +1,4 @@
-File:install_main.c Function:set_pgspider_node_admin L:1094 Msg:Error: root node db1 is not pgspider fdw, postgres_fdw
+File:install_main.c Function:verify_structure L:1355 Msg:Error: root node db1 is not pgspider fdw. Currently, root node is postgres_fdw
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

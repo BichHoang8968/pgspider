@@ -1,9 +1,6 @@
 #PGSpider nodes
-# PGS1_DIR=/home/jenkins/PGSpider/install
-# PGS1_PORT=14821
 PGS1_DB=setcluster5_db1
-# GRIDDB_CLIENT=/home/jenkins/GridDB/griddb
-# GRIDDB_HOME=/home/jenkins/GridDB/griddb-4.6.0
+
 DATA_PATH=$INIT_DATA_PATH
 export http_proxy=
 if [[ "--start" == $1 ]]
@@ -55,6 +52,7 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "grant all privileges on database p
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 
 cd $DATA_PATH
 # Initialize data for GridDB
@@ -63,4 +61,4 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${GRIDDB_CLIENT}/bin
 rm /tmp/tbl_grid.data
 cp tbl_grid.data /tmp/
 gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
-./griddb_init 239.0.0.1 31999 griddbfdwTestSetcluster admin testadmin /tmp/tbl_grid.data
+./griddb_init 239.0.0.1 31999 griddbfdwTestSetcluster admin testadmin /tmp/tbl_grid.data 1

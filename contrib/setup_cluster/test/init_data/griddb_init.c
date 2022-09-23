@@ -313,7 +313,7 @@ int griddb_preparation (const char *addr,
                         const char *cluster_name,
                         const char *user,
                         const char *passwd,
-			char *file_path)
+			char *file_path, char *jdbc)
 {
   static const GSBool update = GS_TRUE;
   GSColumnInfo* columnInfoList;
@@ -334,15 +334,31 @@ int griddb_preparation (const char *addr,
   /* Create a GridStore instance */
   gsGetGridStore(gsGetDefaultFactory(), props, prop_count, &store);
 
-  table_info TEST_TB_T1;
+  if (strcmp(jdbc, "0") == 0)
+  {
+    table_info TEST_TB_T2;
 
-  set_tableInfo(store, "tbl_grid", &TEST_TB_T1,
+    set_tableInfo(store, "tbl_jdbcgrid", &TEST_TB_T2,
                   3,
                   "c1", GS_TYPE_STRING, GS_TYPE_OPTION_NOT_NULL,
                   "c2", GS_TYPE_LONG, GS_TYPE_OPTION_NULLABLE,
                   "c3", GS_TYPE_FLOAT, GS_TYPE_OPTION_NULLABLE
                   );
-  insertRecordsFromTSV (store, &TEST_TB_T1, file_path);
+    insertRecordsFromTSV (store, &TEST_TB_T2, file_path);
+  }
+  else 
+  {
+     table_info TEST_TB_T1;
+
+    set_tableInfo(store, "tbl_grid", &TEST_TB_T1,
+                    3,
+                    "c1", GS_TYPE_STRING, GS_TYPE_OPTION_NOT_NULL,
+                    "c2", GS_TYPE_LONG, GS_TYPE_OPTION_NULLABLE,
+                    "c3", GS_TYPE_FLOAT, GS_TYPE_OPTION_NULLABLE
+                    );
+    insertRecordsFromTSV (store, &TEST_TB_T1, file_path);
+  }
+
   /* Release the resource */
   gsCloseGridStore(&store, GS_TRUE);
 }
@@ -350,10 +366,10 @@ int griddb_preparation (const char *addr,
 /* Main function */
 void main(int argc, char *argv[])
 {
-  if(argc != 7) {
+  if(argc != 8) {
     printf("Wrong syntax!!!\nExpected: ./griddb_init $HOST $PORT $CLUSTER $USER $PASSWORDS $FILE_PATH\n");
     return;
   }
-  // argv[1]=HOST, argv[2]=PORT, argv[3]=CLUSTER, argv[4]=USER, argv[5]=PASSWORDS
-  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+  // argv[1]=HOST, argv[2]=PORT, argv[3]=CLUSTER, argv[4]=USER, argv[5]=PASSWORDS, argv[6]=FILE_PATH, argv[7]="JDBC" FLAG
+  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6], argv[7]);
 }

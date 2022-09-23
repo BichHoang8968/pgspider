@@ -1,45 +1,16 @@
+select * from tbl_postgre;
      c1      |    c2     |       c3       |   __spd_url    
 -------------+-----------+----------------+----------------
  Caichao     |     25452 | 54562563.21514 | /db2/
- Caichao     |     25452 | 54562563.21514 | /db3/
  two         |      1222 |    -2563.21514 | /db2/
  threse      |    242322 |         563.87 | /db2/
  simple      | -28391322 |        82563.8 | /db2/
- two         |      1222 |    -2563.21514 | /db3/
  nothing     |    989839 |         8657.2 | /db2/
  0YJ_gG7l000 |     -9892 |          332.8 | /db2/
  four        |       124 |        463.244 | /db2/
- threse      |    242322 |         563.87 | /db3/
  five        |      8675 |     -29863.212 | /db2/
  six         |      8685 |            563 | /db2/
  MalaysiaNY  |     54645 |    3.321241209 | /db2/
- simple      | -28391322 |        82563.8 | /db3/
- nothing     |    989839 |         8657.2 | /db3/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db3/
- four        |       124 |        463.244 | /db3/
- five        |      8675 |     -29863.212 | /db3/
- six         |      8685 |            563 | /db3/
- MalaysiaNY  |     54645 |    3.321241209 | /db3/
- Caichao     |     25452 | 54562563.21514 | /db4/db6/
- two         |      1222 |    -2563.21514 | /db4/db6/
- threse      |    242322 |         563.87 | /db4/db6/
- simple      | -28391322 |        82563.8 | /db4/db6/
- nothing     |    989839 |         8657.2 | /db4/db6/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db6/
- four        |       124 |        463.244 | /db4/db6/
- five        |      8675 |     -29863.212 | /db4/db6/
- six         |      8685 |            563 | /db4/db6/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db6/
- Caichao     |     25452 | 54562563.21514 | /db4/db5/db8/
- two         |      1222 |    -2563.21514 | /db4/db5/db8/
- threse      |    242322 |         563.87 | /db4/db5/db8/
- simple      | -28391322 |        82563.8 | /db4/db5/db8/
- nothing     |    989839 |         8657.2 | /db4/db5/db8/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db8/
- four        |       124 |        463.244 | /db4/db5/db8/
- five        |      8675 |     -29863.212 | /db4/db5/db8/
- six         |      8685 |            563 | /db4/db5/db8/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db8/
  Caichao     |     25452 | 54562563.21514 | /db4/db5/db9/
  two         |      1222 |    -2563.21514 | /db4/db5/db9/
  threse      |    242322 |         563.87 | /db4/db5/db9/
@@ -50,16 +21,16 @@
  five        |      8675 |     -29863.212 | /db4/db5/db9/
  six         |      8685 |            563 | /db4/db5/db9/
  MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db9/
- Caichao     |     25452 | 54562563.21514 | /db4/db7/db12/
- two         |      1222 |    -2563.21514 | /db4/db7/db12/
- threse      |    242322 |         563.87 | /db4/db7/db12/
- simple      | -28391322 |        82563.8 | /db4/db7/db12/
- nothing     |    989839 |         8657.2 | /db4/db7/db12/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db12/
- four        |       124 |        463.244 | /db4/db7/db12/
- five        |      8675 |     -29863.212 | /db4/db7/db12/
- six         |      8685 |            563 | /db4/db7/db12/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db12/
+ Caichao     |     25452 | 54562563.21514 | /db4/db5/db8/
+ two         |      1222 |    -2563.21514 | /db4/db5/db8/
+ threse      |    242322 |         563.87 | /db4/db5/db8/
+ simple      | -28391322 |        82563.8 | /db4/db5/db8/
+ nothing     |    989839 |         8657.2 | /db4/db5/db8/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/db8/
+ four        |       124 |        463.244 | /db4/db5/db8/
+ five        |      8675 |     -29863.212 | /db4/db5/db8/
+ six         |      8685 |            563 | /db4/db5/db8/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/db8/
  Caichao     |     25452 | 54562563.21514 | /db4/db7/db11/
  two         |      1222 |    -2563.21514 | /db4/db7/db11/
  threse      |    242322 |         563.87 | /db4/db7/db11/
@@ -70,23 +41,107 @@
  five        |      8675 |     -29863.212 | /db4/db7/db11/
  six         |      8685 |            563 | /db4/db7/db11/
  MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db11/
+ Caichao     |     25452 | 54562563.21514 | /db4/db7/db12/
+ two         |      1222 |    -2563.21514 | /db4/db7/db12/
+ threse      |    242322 |         563.87 | /db4/db7/db12/
+ simple      | -28391322 |        82563.8 | /db4/db7/db12/
+ nothing     |    989839 |         8657.2 | /db4/db7/db12/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db12/
+ four        |       124 |        463.244 | /db4/db7/db12/
+ five        |      8675 |     -29863.212 | /db4/db7/db12/
+ six         |      8685 |            563 | /db4/db7/db12/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db12/
+ Caichao     |     25452 | 54562563.21514 | /db4/db6/
+ two         |      1222 |    -2563.21514 | /db4/db6/
+ threse      |    242322 |         563.87 | /db4/db6/
+ simple      | -28391322 |        82563.8 | /db4/db6/
+ nothing     |    989839 |         8657.2 | /db4/db6/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db6/
+ four        |       124 |        463.244 | /db4/db6/
+ five        |      8675 |     -29863.212 | /db4/db6/
+ six         |      8685 |            563 | /db4/db6/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db6/
+ Caichao     |     25452 | 54562563.21514 | /db3/
+ two         |      1222 |    -2563.21514 | /db3/
+ threse      |    242322 |         563.87 | /db3/
+ simple      | -28391322 |        82563.8 | /db3/
+ nothing     |    989839 |         8657.2 | /db3/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db3/
+ four        |       124 |        463.244 | /db3/
+ five        |      8675 |     -29863.212 | /db3/
+ six         |      8685 |            563 | /db3/
+ MalaysiaNY  |     54645 |    3.321241209 | /db3/
 (70 rows)
 
+select * from tmp_test_setcluster;
 ERROR:  relation "tmp_test_setcluster" does not exist
 LINE 1: select * from tmp_test_setcluster;
                       ^
+select * from tbl_grid;
 ERROR:  relation "tbl_grid" does not exist
 LINE 1: select * from tbl_grid;
                       ^
+select * from tbl_influx;
 ERROR:  relation "tbl_influx" does not exist
 LINE 1: select * from tbl_influx;
                       ^
+select * from tbl_mysql;
 ERROR:  relation "tbl_mysql" does not exist
 LINE 1: select * from tbl_mysql;
                       ^
+select * from tbl_sqlite;
 ERROR:  relation "tbl_sqlite" does not exist
 LINE 1: select * from tbl_sqlite;
                       ^
+select * from tbl_tiny;
 ERROR:  relation "tbl_tiny" does not exist
 LINE 1: select * from tbl_tiny;
+                      ^
+select * from tbl_parquetminio;
+ERROR:  relation "tbl_parquetminio" does not exist
+LINE 1: select * from tbl_parquetminio;
+                      ^
+select * from tbl_parquetlocal;
+ERROR:  relation "tbl_parquetlocal" does not exist
+LINE 1: select * from tbl_parquetlocal;
+                      ^
+select * from tbl_oracle;
+ERROR:  relation "tbl_oracle" does not exist
+LINE 1: select * from tbl_oracle;
+                      ^
+select * from tbl_sqlumdash;
+ERROR:  relation "tbl_sqlumdash" does not exist
+LINE 1: select * from tbl_sqlumdash;
+                      ^
+select * from tbl_odbcmysql;
+ERROR:  relation "tbl_odbcmysql" does not exist
+LINE 1: select * from tbl_odbcmysql;
+                      ^
+select * from tbl_odbcpostgres;
+ERROR:  relation "tbl_odbcpostgres" does not exist
+LINE 1: select * from tbl_odbcpostgres;
+                      ^
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
                       ^

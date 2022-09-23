@@ -1,0 +1,74 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "mongo_fdw",
+		"ip": "127.0.0.1",
+		"port": 27017,
+		"username": "edb",
+		"password": "edb",
+		"dbname": "setup_cluster",
+		"use_remote_estimate": "true",
+		"enable_join_pushdown": "false"
+	},
+	{
+		"nodename": "db3",
+		"fdw": "postgrest_fdw",
+		"ip": "127.0.0.1",
+		"port": "3000",
+		"username": "postgres",
+		"password": "postgres"
+	},
+	{
+		"nodename": "db4",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.mysql.jdbc.Driver",
+		"dburl": "jdbc:mysql://localhost:3306/test_setclusterjdbc",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/mysql-connector-java-8.0.29.jar",
+		"maxheapsize": "600",
+		"username": "root",
+		"password": "Mysql_1234",
+		"dbname": "test_setclusterjdbc"
+	},
+	{
+		"nodename": "db5",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "org.postgresql.Driver",
+		"dburl": "jdbc:postgresql://localhost:5432/jdbcpostgres",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/postgresql-42.3.5.jar",
+		"maxheapsize": "600",
+		"username": "postgres",
+		"password": "postgres",
+		"dbname": "jdbcpostgres"
+	},
+	{
+		"nodename": "db6",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.toshiba.mwcloud.gs.sql.Driver",
+		"dburl": "jdbc:gs://239.0.0.1:41999/griddbfdwTestCluster/public",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/gridstore-jdbc-5.0.0.jar",
+		"maxheapsize": "600",
+		"username": "admin",
+		"password": "testadmin"
+	},
+	{
+		"nodename": "db7",
+		"fdw": "dynamodb_fdw",
+		"username": "admin",
+		"password": "testadmin",
+		"endpoint": "http://localhost:8000"
+	}
+]

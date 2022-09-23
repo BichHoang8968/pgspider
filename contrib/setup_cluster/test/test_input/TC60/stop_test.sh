@@ -1,30 +1,20 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14813
 PGS1_DB=setcluster10_db1
-#PGS2_DIR=/home/jenkins/PGSpider/install
 PGS2_PORT=14814
 PGS2_DB=setcluster10_db3
-#PGS3_DIR=/home/jenkins/PGSpider/install
 PGS3_PORT=14815
 PGS3_DB=setcluster10_db4
 #Postgres nodes
-#PG1_DIR=/home/jenkins/postgresql-14beta2/install
 PG1_PORT=5432
 PG1_DB=setcluster10_db2
-#PG2_DIR=/home/jenkins/postgresql-14beta2/install
 PG2_PORT=15437
 PG2_DB=setcluster10_db5
-#PG3_DIR=/home/jenkins/postgresql-14beta2/install
 PG3_PORT=15438
 PG3_DB=setcluster10_db6
-#PG4_DIR=/home/jenkins/postgresql-14beta2/install
 PG4_PORT=15439
 PG4_DB=setcluster10_db7
-#PG5_DIR=/home/jenkins/postgresql-14beta2/install
 PG5_PORT=15440
 PG5_DB=setcluster10_db8
-
 
 CURR_PATH=$(pwd)
 

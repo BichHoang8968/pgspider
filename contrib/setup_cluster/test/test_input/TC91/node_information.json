@@ -1,0 +1,25 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "jdbc_fdw",
+		"dbdrivername": "com.mysql.jdbc.Driver",
+		"dburl": "jdbc:mysql://localhost:3306/test_setclusterjdbc",
+		"querytimeout": "15",
+		"driverpathjar": "JDBC_LIB_PATH/mysql-connector-java-8.0.29.jar",
+		"maxheapsize": "600",
+		"username": "root",
+		"password": "Mysql_1234",
+		"dbname": "test_setclusterjdbc"
+	}
+]

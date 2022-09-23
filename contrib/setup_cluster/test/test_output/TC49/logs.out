@@ -1,4 +1,4 @@
-File:install_main.c Function:main L:1582 Msg:Error: Can not open file ./node_structure.json 
+File:install_main.c Function:main L:1994 Msg:Error: Can not open file ./node_structure.json 
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

@@ -1,6 +1,4 @@
 #PGSpider nodes
-#PGS1_DIR=/home/jenkins/PGSpider/install
-#PGS1_PORT=14824
 PGS1_DB=setcluster8_db1
 
 DATA_PATH=$INIT_DATA_PATH
@@ -33,6 +31,7 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "grant all privileges on database p
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO pgspider;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
+$PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
 
 # Setup SQLite
 cd $DATA_PATH
