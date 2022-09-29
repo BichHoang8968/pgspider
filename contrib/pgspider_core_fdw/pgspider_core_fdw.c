@@ -157,6 +157,7 @@ PG_MODULE_MAGIC;
 typedef enum
 {
 	SPD_FS_STATE_INIT,
+	SPD_FS_STATE_WAIT_BEGIN,
 	SPD_FS_STATE_BEGIN,
 	SPD_FS_STATE_ITERATE,
 	SPD_FS_STATE_PRE_END,
@@ -2782,7 +2783,7 @@ static void
 spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildInfo,
 						  pthread_rwlock_t * scan_mutex, bool *is_first)
 {
-	fssthrdInfo->state = SPD_FS_STATE_BEGIN;
+	fssthrdInfo->state = SPD_FS_STATE_WAIT_BEGIN;
 
 	SPD_WRITE_LOCK_TRY(scan_mutex);
 
@@ -2800,6 +2801,7 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 				 * We need to make postgres_fdw_options variable initial one
 				 * time
 				 */
+				fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 				SPD_LOCK_TRY(&postgres_fdw_mutex);
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
@@ -2811,13 +2813,14 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 				/*
 				 * In case child node is mysql_fdw, the main query need to
 				 * wait sub-query finished before call BeginForeignScan. If
-				 * main query: requestStartScan flag is true. If sub query:
-				 * requestStartScan flag is false. In case subquery, we will
+				 * main query: requestStartScan flag is false. If sub query:
+				 * requestStartScan flag is true. In case subquery, we will
 				 * call BeginForeignScan immediately. In case main query, we
 				 * will wait subquery finished before call BeginForeignScan.
 				 */
 				if (*is_first && fssthrdInfo->requestStartScan)
 				{
+					fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 					*is_first = false;
 					fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 															  fssthrdInfo->eflags);
@@ -2825,6 +2828,7 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 			}
 			else
 			{
+				fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
 														  fssthrdInfo->eflags);
 			}
@@ -3335,8 +3339,7 @@ RESCAN:
 	 * back to RESCAN. If it receives request to end scan if error occurs,
 	 * exit the transaction.
 	 */
-	while (!fssthrdInfo->requestStartScan &&
-		   fssthrdInfo->state == SPD_FS_STATE_BEGIN)
+	while (!fssthrdInfo->requestStartScan)
 	{
 		spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_SUB_QUERY);
 		usleep(1);
@@ -3344,7 +3347,7 @@ RESCAN:
 		if (fssthrdInfo->requestEndScan)
 			goto THREAD_END;
 
-		if (fssthrdInfo->requestRescan)
+		if (fssthrdInfo->requestRescan && fssthrdInfo->state == SPD_FS_STATE_BEGIN)
 		{
 			fssthrdInfo->state = SPD_FS_STATE_ITERATE;
 			goto RESCAN;
@@ -3354,18 +3357,27 @@ RESCAN:
 	/*
 	 * In case child node is mysql_fdw, the main query need to wait sub-query
 	 * finished before call BeginForeignScan. If main query: requestStartScan
-	 * flag is true. If sub query: requestStartScan flag is false. In case
+	 * flag is false. If sub query: requestStartScan flag is true. In case
 	 * subquery, we will call BeginForeignScan immediately. In case main
 	 * query, we will wait subquery finished before call BeginForeignScan.
 	 */
-	if (!pChildInfo->pseudo_agg)
+	if (fssthrdInfo->state == SPD_FS_STATE_WAIT_BEGIN)
 	{
-		if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0 &&
-			is_first && fssthrdInfo->requestStartScan)
+		if (!pChildInfo->pseudo_agg)
 		{
-			is_first = false;
-			fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-													  fssthrdInfo->eflags);
+			if (strcmp(fssthrdInfo->fdw->fdwname, MYSQL_FDW_NAME) == 0 &&
+				is_first && fssthrdInfo->requestStartScan)
+			{
+				fssthrdInfo->state = SPD_FS_STATE_BEGIN;
+				is_first = false;
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														fssthrdInfo->eflags);
+				if (fssthrdInfo->requestRescan)
+				{
+					fssthrdInfo->state = SPD_FS_STATE_ITERATE;
+					goto RESCAN;
+				}
+			}
 		}
 	}
 
@@ -10475,6 +10487,13 @@ spd_ReScanForeignScan(ForeignScanState *node)
 			fssThrdInfo[node_incr].requestRescan = true;
 			fdw_private->isFirst = true;
 			fdw_private->startNodeId = 0;
+
+			/*
+			 * If main thread is waiting for child thread finishes, need to set requestStartScan
+			 * to true to allow main thread starts running
+			 */
+			if (!fssThrdInfo[node_incr].requestStartScan)
+				fssThrdInfo[node_incr].requestStartScan = true;
 		}
 	}
 
