@@ -1265,6 +1265,8 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeM
 			{
 				if (slot->tts_isnull[i])
 					continue;
+				if(TupleDescAttr(slot->tts_tupleDescriptor, i)->attisdropped)
+					continue;
 				que->tuples[idx]->tts_values[i] = datumCopy(slot->tts_values[i],
 															attrs[i].attbyval, attrs[i].attlen);
 			}

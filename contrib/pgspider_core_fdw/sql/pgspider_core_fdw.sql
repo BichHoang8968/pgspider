@@ -758,6 +758,19 @@ EXPLAIN VERBOSE
 SELECT c1-c2, c2-c3, c3-c4, c3-c5, c5-c6 FROM tbl02 WHERE __spd_url != '$';
 --Testcase 292:
 SELECT c1-c2, c2-c3, c3-c4, c3-c5, c5-c6 FROM tbl02 WHERE __spd_url != '$';
+
+-- Test for drop/add __spd_url column
+--Testcase 298:
+SELECT * FROM test1 ORDER BY i, __spd_url;
+--Testcase 299:
+ALTER FOREIGN TABLE test1 DROP COLUMN __spd_url;
+--Testcase 300:
+SELECT * FROM test1 ORDER BY i;
+--Testcase 301:
+ALTER FOREIGN TABLE test1 ADD COLUMN __spd_url text;
+--Testcase 302:
+SELECT * FROM test1 ORDER BY i, __spd_url;;
+
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:
