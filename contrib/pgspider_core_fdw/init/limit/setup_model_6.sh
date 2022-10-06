@@ -47,11 +47,13 @@ cd $CURR_PATH
 $POSTGRES_HOME/bin/psql -p $PG1_PORT postgres -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p $PG1_PORT postgres -c "grant all privileges on database postgres to postgres;"
 $POSTGRES_HOME/bin/psql -p $PG1_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql -p $PG1_PORT postgres -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;"
 $POSTGRES_HOME/bin/psql postgres -p $PG1_PORT -U postgres < ./postgres_1.dat
 
 $POSTGRES_HOME/bin/psql -p $PG2_PORT postgres -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p $PG2_PORT postgres -c "grant all privileges on database postgres to postgres;"
 $POSTGRES_HOME/bin/psql -p $PG2_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql -p $PG2_PORT postgres -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;"
 $POSTGRES_HOME/bin/psql postgres -p $PG2_PORT -U postgres < ./postgres_2.dat
 
 

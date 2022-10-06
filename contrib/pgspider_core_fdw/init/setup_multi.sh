@@ -142,6 +142,7 @@ influx -import -path=./influx.data -precision=ns
 ${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "create user postgres with encrypted password 'postgres';"
 ${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "grant all privileges on database postgres to postgres;"
 ${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+${POSTGRES_HOME}/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;"
 ${POSTGRES_HOME}/bin/psql postgres -p 15432  -U postgres < post.dat
 
 # Setup PGSpider1 and PGSpider2

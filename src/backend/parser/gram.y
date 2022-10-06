@@ -162,6 +162,8 @@ typedef struct KeyActions
 #define CAS_NOT_VALID				0x10
 #define CAS_NO_INHERIT				0x20
 
+/* Foreign-data wrapper for Multi-Tenant table */
+#define PGSPIDER_CORE_FDW_NAME "pgspider_core_fdw"
 
 #define parser_yyerror(msg)  scanner_yyerror(msg, yyscanner)
 #define parser_errposition(pos)  scanner_errposition(pos, yyscanner)
@@ -817,7 +819,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOGGED
 
 	MAPPING MATCH MATCHED MATERIALIZED MAXVALUE MERGE METHOD
-	MINUTE_P MINVALUE MODE MONTH_P MOVE
+	MINUTE_P MINVALUE MODE MONTH_P MOVE MULTI
 
 	NAME_P NAMES NATIONAL NATURAL NCHAR NESTED NEW NEXT NFC NFD NFKC NFKD NO
 	NONE NORMALIZE NORMALIZED
@@ -846,7 +848,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	START STATEMENT STATISTICS STDIN STDOUT STORAGE STORED STRICT_P STRING STRIP_P
 	SUBSCRIPTION SUBSTRING SUPPORT SYMMETRIC SYSID SYSTEM_P
 
-	TABLE TABLES TABLESAMPLE TABLESPACE TEMP TEMPLATE TEMPORARY TEXT_P THEN
+	TABLE TABLES TABLESAMPLE TABLESPACE TEMP TEMPLATE TEMPORARY TENANT TEXT_P THEN
 	TIES TIME TIMESTAMP TO TRAILING TRANSACTION TRANSFORM
 	TREAT TRIGGER TRIM TRUE_P
 	TRUNCATE TRUSTED TYPE_P TYPES_P
@@ -2108,7 +2110,7 @@ DiscardStmt:
 
 /*****************************************************************************
  *
- *	ALTER [ TABLE | INDEX | SEQUENCE | VIEW | MATERIALIZED VIEW | FOREIGN TABLE ] variations
+ *	ALTER [ TABLE | INDEX | SEQUENCE | VIEW | MATERIALIZED VIEW | FOREIGN TABLE  | MULTI TENANT TABLE] variations
  *
  * Note: we accept all subcommands for each of the variants, and sort
  * out what's really legal at execution time.
@@ -2336,6 +2338,24 @@ AlterTableStmt:
 					n->objtype = OBJECT_FOREIGN_TABLE;
 					n->missing_ok = true;
 					$$ = (Node *) n;
+				}
+		|	ALTER MULTI TENANT TABLE relation_expr alter_table_cmds
+				{
+					AlterTableStmt *n = makeNode(AlterTableStmt);
+					n->relation = $5;
+					n->cmds = $6;
+					n->objtype = OBJECT_FOREIGN_TABLE;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+		|	ALTER MULTI TENANT TABLE IF_P EXISTS relation_expr alter_table_cmds
+				{
+					AlterTableStmt *n = makeNode(AlterTableStmt);
+					n->relation = $7;
+					n->cmds = $8;
+					n->objtype = OBJECT_FOREIGN_TABLE;
+					n->missing_ok = true;
+					$$ = (Node *)n;
 				}
 		;
 
@@ -5401,6 +5421,7 @@ generic_option_arg:
  *
  *		QUERY:
  *             CREATE SERVER name [TYPE] [VERSION] [OPTIONS]
+ *             CREATE MULTI TENANT name [TYPE] [VERSION] [OPTIONS]
  *
  *****************************************************************************/
 
@@ -5430,6 +5451,29 @@ CreateForeignServerStmt: CREATE SERVER name opt_type opt_foreign_server_version
 					n->if_not_exists = true;
 					$$ = (Node *) n;
 				}
+				| CREATE MULTI TENANT name opt_type opt_foreign_server_version create_generic_options
+				{
+					CreateForeignServerStmt *n = makeNode(CreateForeignServerStmt);
+
+					n->servername = $4;
+					n->servertype = $5;
+					n->version = $6;
+					n->fdwname = PGSPIDER_CORE_FDW_NAME;
+					n->options = $7;
+					n->if_not_exists = false;
+					$$ = (Node *) n;
+				}
+				| CREATE MULTI TENANT IF_P NOT EXISTS name opt_type opt_foreign_server_version create_generic_options
+				{
+					CreateForeignServerStmt *n = makeNode(CreateForeignServerStmt);
+					n->servername = $7;
+					n->servertype = $8;
+					n->version = $9;
+					n->fdwname = PGSPIDER_CORE_FDW_NAME;
+					n->options = $10;
+					n->if_not_exists = true;
+					$$ = (Node *) n;
+				}
 		;
 
 opt_type:
@@ -5452,6 +5496,7 @@ opt_foreign_server_version:
  *
  *		QUERY :
  *				ALTER SERVER name [VERSION] [OPTIONS]
+ *              ALTER MULTI TENANT name [VERSION] [OPTIONS]
  *
  ****************************************************************************/
 
@@ -5482,6 +5527,30 @@ AlterForeignServerStmt: ALTER SERVER name foreign_server_version alter_generic_o
 					n->options = $4;
 					$$ = (Node *) n;
 				}
+			| ALTER MULTI TENANT name foreign_server_version alter_generic_options
+				{
+					AlterForeignServerStmt *n = makeNode(AlterForeignServerStmt);
+					n->servername = $4;
+					n->version = $5;
+					n->options = $6;
+					n->has_version = true;
+					$$ = (Node *) n;
+				}
+			| ALTER MULTI TENANT name foreign_server_version
+				{
+					AlterForeignServerStmt *n = makeNode(AlterForeignServerStmt);
+					n->servername = $4;
+					n->version = $5;
+					n->has_version = true;
+					$$ = (Node *) n;
+				}
+			| ALTER MULTI TENANT name alter_generic_options
+				{
+					AlterForeignServerStmt *n = makeNode(AlterForeignServerStmt);
+					n->servername = $4;
+					n->options = $5;
+					$$ = (Node *) n;
+				} 
 		;
 
 /*****************************************************************************
@@ -5578,6 +5647,88 @@ CreateForeignTableStmt:
 					n->options = $15;
 					$$ = (Node *) n;
 				}
+		| CREATE MULTI TENANT TABLE qualified_name
+			'(' OptTableElementList ')'
+			OptInherit MULTI TENANT name create_generic_options
+				{
+					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
+					$5->relpersistence = RELPERSISTENCE_PERMANENT;
+					n->base.relation = $5;
+					n->base.tableElts = $7;
+					n->base.inhRelations = $9;
+					n->base.ofTypename = NULL;
+					n->base.constraints = NIL;
+					n->base.options = NIL;
+					n->base.oncommit = ONCOMMIT_NOOP;
+					n->base.tablespacename = NULL;
+					n->base.if_not_exists = false;
+					/* FDW-specific data */
+					n->servername = $12;
+					n->options = $13;
+					$$ = (Node *) n;
+				}
+		| CREATE MULTI TENANT TABLE IF_P NOT EXISTS qualified_name
+			'(' OptTableElementList ')'
+			OptInherit MULTI TENANT name create_generic_options
+				{
+					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
+					$8->relpersistence = RELPERSISTENCE_PERMANENT;
+					n->base.relation = $8;
+					n->base.tableElts = $10;
+					n->base.inhRelations = $12;
+					n->base.ofTypename = NULL;
+					n->base.constraints = NIL;
+					n->base.options = NIL;
+					n->base.oncommit = ONCOMMIT_NOOP;
+					n->base.tablespacename = NULL;
+					n->base.if_not_exists = true;
+					/* FDW-specific data */
+					n->servername = $15;
+					n->options = $16;
+					$$ = (Node *) n;
+				}
+		| CREATE MULTI TENANT TABLE qualified_name
+			PARTITION OF qualified_name OptTypedTableElementList PartitionBoundSpec
+			MULTI TENANT name create_generic_options
+				{
+					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
+					$5->relpersistence = RELPERSISTENCE_PERMANENT;
+					n->base.relation = $5;
+					n->base.inhRelations = list_make1($8);
+					n->base.tableElts = $9;
+					n->base.partbound = $10;
+					n->base.ofTypename = NULL;
+					n->base.constraints = NIL;
+					n->base.options = NIL;
+					n->base.oncommit = ONCOMMIT_NOOP;
+					n->base.tablespacename = NULL;
+					n->base.if_not_exists = false;
+					/* FDW-specific data */
+					n->servername = $13;
+					n->options = $14;
+					$$ = (Node *) n;
+				}
+		| CREATE MULTI TENANT TABLE IF_P NOT EXISTS qualified_name
+			PARTITION OF qualified_name OptTypedTableElementList PartitionBoundSpec
+			MULTI TENANT name create_generic_options
+				{
+					CreateForeignTableStmt *n = makeNode(CreateForeignTableStmt);
+					$8->relpersistence = RELPERSISTENCE_PERMANENT;
+					n->base.relation = $8;
+					n->base.inhRelations = list_make1($11);
+					n->base.tableElts = $12;
+					n->base.partbound = $13;
+					n->base.ofTypename = NULL;
+					n->base.constraints = NIL;
+					n->base.options = NIL;
+					n->base.oncommit = ONCOMMIT_NOOP;
+					n->base.tablespacename = NULL;
+					n->base.if_not_exists = true;
+					/* FDW-specific data */
+					n->servername = $16;
+					n->options = $17;
+					$$ = (Node *) n;
+				}
 		;
 
 /*****************************************************************************
@@ -5655,6 +5806,24 @@ CreateUserMappingStmt: CREATE USER MAPPING FOR auth_ident SERVER name create_gen
 					n->if_not_exists = true;
 					$$ = (Node *) n;
 				}
+				| CREATE USER MAPPING FOR auth_ident MULTI TENANT name create_generic_options
+				{
+					CreateUserMappingStmt *n = makeNode(CreateUserMappingStmt);
+					n->user = $5;
+					n->servername = $8;
+					n->options = $9;
+					n->if_not_exists = false;
+					$$ = (Node *) n;
+				}
+				| CREATE USER MAPPING IF_P NOT EXISTS FOR auth_ident MULTI TENANT name create_generic_options
+				{
+					CreateUserMappingStmt *n = makeNode(CreateUserMappingStmt);
+					n->user = $8;
+					n->servername = $11;
+					n->options = $12;
+					n->if_not_exists = true;
+					$$ = (Node *) n;
+				}
 		;
 
 /* User mapping authorization identifier */
@@ -5689,6 +5858,22 @@ DropUserMappingStmt: DROP USER MAPPING FOR auth_ident SERVER name
 					n->missing_ok = true;
 					$$ = (Node *) n;
 				}
+				|	DROP USER MAPPING FOR auth_ident MULTI TENANT name
+				{
+					DropUserMappingStmt *n = makeNode(DropUserMappingStmt);
+					n->user = $5;
+					n->servername = $8;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+				|  DROP USER MAPPING IF_P EXISTS FOR auth_ident MULTI TENANT name
+				{
+					DropUserMappingStmt *n = makeNode(DropUserMappingStmt);
+					n->user = $7;
+					n->servername = $10;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
 		;
 
 /*****************************************************************************
@@ -5705,6 +5890,14 @@ AlterUserMappingStmt: ALTER USER MAPPING FOR auth_ident SERVER name alter_generi
 					n->user = $5;
 					n->servername = $7;
 					n->options = $8;
+					$$ = (Node *) n;
+				}
+				| ALTER USER MAPPING FOR auth_ident MULTI TENANT name alter_generic_options
+				{
+					AlterUserMappingStmt *n = makeNode(AlterUserMappingStmt);
+					n->user = $5;
+					n->servername = $8;
+					n->options = $9;
 					$$ = (Node *) n;
 				}
 		;
@@ -6864,6 +7057,7 @@ object_type_any_name:
 			| SEQUENCE								{ $$ = OBJECT_SEQUENCE; }
 			| VIEW									{ $$ = OBJECT_VIEW; }
 			| MATERIALIZED VIEW						{ $$ = OBJECT_MATVIEW; }
+			| MULTI TENANT TABLE					{ $$ = OBJECT_FOREIGN_TABLE; }
 			| INDEX									{ $$ = OBJECT_INDEX; }
 			| FOREIGN TABLE							{ $$ = OBJECT_FOREIGN_TABLE; }
 			| COLLATION								{ $$ = OBJECT_COLLATION; }
@@ -6894,6 +7088,7 @@ drop_type_name:
 			| EVENT TRIGGER							{ $$ = OBJECT_EVENT_TRIGGER; }
 			| EXTENSION								{ $$ = OBJECT_EXTENSION; }
 			| FOREIGN DATA_P WRAPPER				{ $$ = OBJECT_FDW; }
+			| MULTI TENANT							{ $$ = OBJECT_FOREIGN_SERVER; }
 			| opt_procedural LANGUAGE				{ $$ = OBJECT_LANGUAGE; }
 			| PUBLICATION							{ $$ = OBJECT_PUBLICATION; }
 			| SCHEMA								{ $$ = OBJECT_SCHEMA; }
@@ -9371,6 +9566,15 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->missing_ok = false;
 					$$ = (Node *) n;
 				}
+			| ALTER MULTI TENANT name RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_SERVER;
+					n->object = (Node *) makeString($4);
+					n->newname = $7;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
 			| ALTER SUBSCRIPTION name RENAME TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
@@ -9513,6 +9717,26 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->missing_ok = true;
 					$$ = (Node *) n;
 				}
+			| ALTER MULTI TENANT TABLE relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_TABLE;
+					n->relation = $5;
+					n->subname = NULL;
+					n->newname = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MULTI TENANT TABLE IF_P EXISTS relation_expr RENAME TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_FOREIGN_TABLE;
+					n->relation = $7;
+					n->subname = NULL;
+					n->newname = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
 			| ALTER TABLE relation_expr RENAME opt_column name TO name
 				{
 					RenameStmt *n = makeNode(RenameStmt);
@@ -9630,6 +9854,28 @@ RenameStmt: ALTER AGGREGATE aggregate_with_argtypes RENAME TO name
 					n->newname = $11;
 					n->missing_ok = true;
 					$$ = (Node *) n;
+				}
+			| ALTER MULTI TENANT TABLE relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_FOREIGN_TABLE;
+					n->relation = $5;
+					n->subname = $8;
+					n->newname = $10;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MULTI TENANT TABLE IF_P EXISTS relation_expr RENAME opt_column name TO name
+				{
+					RenameStmt *n = makeNode(RenameStmt);
+					n->renameType = OBJECT_COLUMN;
+					n->relationType = OBJECT_FOREIGN_TABLE;
+					n->relation = $7;
+					n->subname = $10;
+					n->newname = $12;
+					n->missing_ok = true;
+					$$ = (Node *)n;
 				}
 			| ALTER RULE name ON qualified_name RENAME TO name
 				{
@@ -10116,6 +10362,24 @@ AlterObjectSchemaStmt:
 					n->missing_ok = true;
 					$$ = (Node *) n;
 				}
+			| ALTER MULTI TENANT TABLE relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_FOREIGN_TABLE;
+					n->relation = $5;
+					n->newschema = $8;
+					n->missing_ok = false;
+					$$ = (Node *)n;
+				}
+			| ALTER MULTI TENANT TABLE IF_P EXISTS relation_expr SET SCHEMA name
+				{
+					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
+					n->objectType = OBJECT_FOREIGN_TABLE;
+					n->relation = $7;
+					n->newschema = $10;
+					n->missing_ok = true;
+					$$ = (Node *)n;
+				}
 			| ALTER TYPE_P any_name SET SCHEMA name
 				{
 					AlterObjectSchemaStmt *n = makeNode(AlterObjectSchemaStmt);
@@ -10377,6 +10641,14 @@ AlterOwnerStmt: ALTER AGGREGATE aggregate_with_argtypes OWNER TO RoleSpec
 					n->object = (Node *) makeString($3);
 					n->newowner = $6;
 					$$ = (Node *) n;
+				}
+			| ALTER MULTI TENANT name OWNER TO RoleSpec
+				{
+					AlterOwnerStmt *n = makeNode(AlterOwnerStmt);
+					n->objectType = OBJECT_FOREIGN_SERVER;
+					n->object = (Node *) makeString($4);
+					n->newowner = $7;
+					$$ = (Node *)n;
 				}
 			| ALTER EVENT TRIGGER name OWNER TO RoleSpec
 				{
@@ -17856,6 +18128,7 @@ unreserved_keyword:
 			| MODE
 			| MONTH_P
 			| MOVE
+			| MULTI
 			| NAME_P
 			| NAMES
 			| NESTED
@@ -17980,6 +18253,7 @@ unreserved_keyword:
 			| TEMP
 			| TEMPLATE
 			| TEMPORARY
+			| TENANT
 			| TEXT_P
 			| TIES
 			| TRANSACTION
@@ -18461,6 +18735,7 @@ bare_label_keyword:
 			| MINVALUE
 			| MODE
 			| MOVE
+			| MULTI
 			| NAME_P
 			| NAMES
 			| NATIONAL
@@ -18614,6 +18889,7 @@ bare_label_keyword:
 			| TEMP
 			| TEMPLATE
 			| TEMPORARY
+			| TENANT
 			| TEXT_P
 			| THEN
 			| TIES

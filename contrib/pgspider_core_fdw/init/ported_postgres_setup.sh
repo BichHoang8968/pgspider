@@ -31,4 +31,5 @@ $POSTGRES_HOME/bin/createdb -p 15432 postdb
 $POSTGRES_HOME/bin/psql -p 15432 postdb -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p 15432 postdb -c "grant all privileges on database postgres to postgres;"
 $POSTGRES_HOME/bin/psql -p 15432 postdb -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql -p 15432 postgres -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;"
 $POSTGRES_HOME/bin/psql postdb -p 15432  -U postgres < ported_postgres.dat

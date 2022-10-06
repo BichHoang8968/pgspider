@@ -1223,6 +1223,10 @@ static const pgsql_thing_t words_after_create[] = {
 	{"LANGUAGE", Query_for_list_of_languages},
 	{"LARGE OBJECT", NULL, NULL, NULL, NULL, THING_NO_CREATE | THING_NO_DROP},
 	{"MATERIALIZED VIEW", NULL, NULL, &Query_for_list_of_matviews},
+#ifdef PGSPIDER
+	{"MULTI TENANT", NULL, NULL, NULL},
+	{"MULTI TENANT TABLE", NULL, NULL, NULL},
+#endif
 	{"OPERATOR", NULL, NULL, NULL}, /* Querying for this is probably not such
 									 * a good idea. */
 	{"OR REPLACE", NULL, NULL, NULL, NULL, THING_NO_DROP | THING_NO_ALTER},
@@ -1760,6 +1764,19 @@ psql_completion(const char *text, int start, int end)
 	else if (previous_words_count == 0)
 		COMPLETE_WITH_LIST(sql_commands);
 
+#ifdef PGSPIDER
+/* MULTI TENANT */
+	else if (TailMatches("MULTI"))
+		COMPLETE_WITH("TENANT");
+
+	/*
+	 * avoid complete "TABLE" when [CREATE|ALTER]...[MULTI TENANT TABLE|USER
+	 * MAPPING]
+	 */
+	else if (TailMatches(MatchAny, MatchAny, "MULTI", "TENANT"))
+		COMPLETE_WITH_QUERY(Query_for_list_of_servers);
+#endif
+
 /* CREATE */
 	/* complete with something you can create */
 	else if (TailMatches("CREATE"))
@@ -1957,6 +1974,14 @@ psql_completion(const char *text, int start, int end)
 					  "INHERIT", "NO INHERIT", "OPTIONS", "OWNER TO",
 					  "RENAME", "SET", "VALIDATE CONSTRAINT");
 
+#ifdef PGSPIDER
+	/* ALTER MULTI TENANT TABLE <name> */
+	else if (Matches("ALTER", "MULTI", "TENANT", "TABLE", MatchAny))
+		COMPLETE_WITH("ADD", "ALTER", "DISABLE TRIGGER", "DROP", "ENABLE",
+					  "INHERIT", "NO INHERIT", "OPTIONS", "OWNER TO",
+					  "RENAME", "SET", "VALIDATE CONSTRAINT");
+#endif
+
 	/* ALTER INDEX */
 	else if (Matches("ALTER", "INDEX"))
 		COMPLETE_WITH_SCHEMA_QUERY_PLUS(Query_for_list_of_indexes,
@@ -2120,6 +2145,14 @@ psql_completion(const char *text, int start, int end)
 	/* ALTER SERVER <name> VERSION <version> */
 	else if (Matches("ALTER", "SERVER", MatchAny, "VERSION", MatchAny))
 		COMPLETE_WITH("OPTIONS");
+#ifdef PGSPIDER
+	/* ALTER MULTI TENANT <name> */
+	else if (Matches("ALTER", "MULTI", "TENANT", MatchAnyExcept("TABLE")))
+		COMPLETE_WITH("VERSION", "OPTIONS", "OWNER TO", "RENAME TO");
+	/* ALTER MULTI TENANT <name> VERSION <version> */
+	else if (Matches("ALTER", "MULTI", "TENANT", MatchAny, "VERSION", MatchAny))
+		COMPLETE_WITH("OPTIONS");
+#endif
 	/* ALTER SYSTEM SET, RESET, RESET ALL */
 	else if (Matches("ALTER", "SYSTEM"))
 		COMPLETE_WITH("SET", "RESET");
@@ -3053,6 +3086,12 @@ psql_completion(const char *text, int start, int end)
 	else if (Matches("CREATE", "SERVER", MatchAny))
 		COMPLETE_WITH("TYPE", "VERSION", "FOREIGN DATA WRAPPER");
 
+#ifdef PGSPIDER
+/* MULTI TENANT <name> */
+	else if (Matches("CREATE", "MULTI", "TENANT", MatchAnyExcept("TABLE")))
+		COMPLETE_WITH("TYPE", "VERSION", "OPTIONS");
+#endif
+
 /* CREATE STATISTICS <name> */
 	else if (Matches("CREATE", "STATISTICS", MatchAny))
 		COMPLETE_WITH("(", "ON");
@@ -3506,6 +3545,9 @@ psql_completion(const char *text, int start, int end)
 			 Matches("DROP", "EVENT", "TRIGGER", MatchAny) ||
 			 Matches("DROP", "FOREIGN", "DATA", "WRAPPER", MatchAny) ||
 			 Matches("DROP", "FOREIGN", "TABLE", MatchAny) ||
+#ifdef PGSPIDER
+			 Matches("DROP", "MULTI", "TENANT", "TABLE", MatchAny) ||
+#endif
 			 Matches("DROP", "TEXT", "SEARCH", "CONFIGURATION|DICTIONARY|PARSER|TEMPLATE", MatchAny))
 		COMPLETE_WITH("CASCADE", "RESTRICT");
 
@@ -3539,6 +3581,22 @@ psql_completion(const char *text, int start, int end)
 		COMPLETE_WITH_SCHEMA_QUERY(Query_for_list_of_matviews);
 	else if (Matches("DROP", "MATERIALIZED", "VIEW", MatchAny))
 		COMPLETE_WITH("CASCADE", "RESTRICT");
+
+#ifdef PGSPIDER
+	/* DROP MULTI TENANT */
+	else if (Matches("DROP", "MULTI"))
+		COMPLETE_WITH("TENANT");
+	else if (Matches("DROP", "MULTI", "TENANT", MatchAnyExcept("TABLE")))
+		COMPLETE_WITH("CASCADE", "RESTRICT");
+#endif
+
+#ifdef PGSPIDER
+	/* DROP MULTI TENANT */
+	else if (Matches("DROP", "MULTI"))
+		COMPLETE_WITH("TENANT");
+	else if (Matches("DROP", "MULTI", "TENANT", MatchAnyExcept("TABLE")))
+		COMPLETE_WITH("CASCADE", "RESTRICT");
+#endif
 
 	/* DROP OWNED BY */
 	else if (Matches("DROP", "OWNED"))
@@ -3712,6 +3770,13 @@ psql_completion(const char *text, int start, int end)
 	else if (TailMatches("FOREIGN", "TABLE") &&
 			 !TailMatches("CREATE", MatchAny, MatchAny))
 		COMPLETE_WITH_SCHEMA_QUERY(Query_for_list_of_foreign_tables);
+
+#ifdef PGSPIDER
+/* MULTI TENANT TABLE */
+	else if (TailMatches("MULTI", "TENANT", "TABLE") &&
+			 !TailMatches("CREATE", MatchAny, MatchAny, MatchAny))
+		COMPLETE_WITH_SCHEMA_QUERY(Query_for_list_of_foreign_tables);
+#endif
 
 /* FOREIGN SERVER */
 	else if (TailMatches("FOREIGN", "SERVER"))
@@ -4422,9 +4487,17 @@ psql_completion(const char *text, int start, int end)
 	else if (Matches("ALTER|DROP", "USER", "MAPPING", "FOR"))
 		COMPLETE_WITH_QUERY(Query_for_list_of_user_mappings);
 	else if (Matches("CREATE|ALTER|DROP", "USER", "MAPPING", "FOR", MatchAny))
+#ifdef PGSPIDER
+		COMPLETE_WITH("SERVER", "MULTI TENANT");
+#else
 		COMPLETE_WITH("SERVER");
+#endif
 	else if (Matches("CREATE|ALTER", "USER", "MAPPING", "FOR", MatchAny, "SERVER", MatchAny))
 		COMPLETE_WITH("OPTIONS");
+#ifdef PGSPIDER
+	else if (Matches("CREATE|ALTER", "USER", "MAPPING", "FOR", MatchAny, "MULTI", "TENANT", MatchAny))
+		COMPLETE_WITH("OPTIONS");
+#endif
 
 /*
  * VACUUM [ ( option [, ...] ) ] [ table_and_columns [, ...] ]
@@ -4716,6 +4789,11 @@ psql_completion(const char *text, int start, int end)
 	else
 	{
 		const pgsql_thing_t *wac;
+
+#ifdef PGSPIDER
+		if (pg_strcasecmp(prev_wd, "TENANT") == 0 && pg_strcasecmp(prev2_wd, "MULTI") == 0)
+			COMPLETE_WITH_QUERY_PLUS(Query_for_list_of_servers, "TABLE");
+#endif
 
 		for (wac = words_after_create; wac->name != NULL; wac++)
 		{
