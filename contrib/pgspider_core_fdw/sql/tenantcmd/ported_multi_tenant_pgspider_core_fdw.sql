@@ -4,11 +4,11 @@ DELETE FROM pg_spd_node_info;
 --Testcase 183:
 CREATE EXTENSION pgspider_core_fdw;
 --Testcase 184:
-CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE MULTI TENANT pgspider_svr OPTIONS (host '127.0.0.1',port '50849');
 --Testcase 185:
-CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public MULTI TENANT pgspider_svr OPTIONS(user 'postgres',password 'postgres');
 --Testcase 186:
-CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE test1 (i int,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 187:
 CREATE EXTENSION postgres_fdw;
 --Testcase 188:
@@ -25,7 +25,7 @@ CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
 --Testcase 193:
 CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
 --Testcase 194:
-CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE filetbl (i int,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 2:
 SELECT * FROM filetbl;
 
@@ -155,7 +155,7 @@ SELECT * FROM test1 IN ('/mysql_svr/') UNION ALL SELECT * FROM test1 IN ('/sqlit
 SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') UNION ALL SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') ORDER BY i,__spd_url;
 
 --Testcase 209:
-CREATE FOREIGN TABLE test1_1 (i int,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE test1_1 (i int,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 210:
 CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
 --Testcase 211:
@@ -315,7 +315,7 @@ END; $$;
 DEALLOCATE stmt;
 
 --Testcase 225:
-CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE t1 (i int, t text,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 226:
 CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
 --Testcase 76:
@@ -442,7 +442,7 @@ DEALLOCATE stmt;
 EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
 
 --Testcase 238:
-CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE t3 (t text, t2 text, i int,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 239:
 CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 
@@ -598,7 +598,7 @@ BEGIN
 END; $$;
 
 --Testcase 246:
-CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE mysqlt (t text, t2 text, i int,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 247:
 CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
 --Testcase 248:
@@ -614,7 +614,7 @@ BEGIN
 END; $$;
 
 --Testcase 250:
-CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE post_large (i int, t text,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 251:
 CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
 --Testcase 252:
@@ -642,7 +642,7 @@ BEGIN
 END; $$;
 
 --Testcase 254:
-CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE t2 (i int, t text, a text,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 255:
 CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
 --Testcase 159:
@@ -734,7 +734,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 
 -- Test CoerceViaIO type
 --Testcase 282:
-CREATE FOREIGN TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) MULTI TENANT pgspider_svr;
 --Testcase 283:
 CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS(table 'tbl01');
 --Testcase 284:
@@ -744,11 +744,11 @@ SELECT c1 || 'time1', c2 || 'time2' FROM tbl01 GROUP BY c1, c2;
 --Testcase 286:
 DROP FOREIGN TABLE tbl01__sqlite_svr__0;
 --Testcase 287:
-DROP FOREIGN TABLE tbl01;
+DROP MULTI TENANT TABLE tbl01;
 
 -- Test select operator expressions which contain different data type, with WHERE clause contains __spd_url
 --Testcase 288:
-CREATE FOREIGN TABLE tbl02 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric,__spd_url text) SERVER pgspider_svr;
+CREATE MULTI TENANT TABLE tbl02 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric,__spd_url text) MULTI TENANT pgspider_svr;
 --Testcase 289:
 CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS(table 'tbl02');
 --Testcase 290:
@@ -774,15 +774,15 @@ SELECT * FROM test1 ORDER BY i, __spd_url;
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:
-DROP FOREIGN TABLE tbl02;
+DROP MULTI TENANT TABLE tbl02;
 --Testcase 265:
-DROP FOREIGN TABLE test1;
+DROP MULTI TENANT TABLE test1;
 --Testcase 266:
-DROP FOREIGN TABLE t1;
+DROP MULTI TENANT TABLE t1;
 --Testcase 267:
-DROP FOREIGN TABLE t2;
+DROP MULTI TENANT TABLE t2;
 --Testcase 268:
-DROP SERVER pgspider_svr CASCADE;
+DROP MULTI TENANT pgspider_svr CASCADE;
 --Testcase 269:
 DROP EXTENSION pgspider_core_fdw CASCADE;
 

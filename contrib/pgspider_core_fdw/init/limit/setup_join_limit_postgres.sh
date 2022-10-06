@@ -31,5 +31,6 @@ cd $CURR_PATH
 $POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "grant all privileges on database postgres to postgres;"
 $POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql -p $PG_PORT postgres -c "GRANT ALL PRIVILEGES ON SCHEMA public TO postgres;"
 $POSTGRES_HOME/bin/psql postgres -p $PG_PORT -U postgres $DB_NAME < ./postgres_join_limit.dat
 

@@ -704,9 +704,18 @@ helpSQL(const char *topic, unsigned short int pager)
 
 					initPQExpBuffer(&buffer);
 					QL_HELP[i].syntaxfunc(&buffer);
+#ifndef PGSPIDER
 					url = psprintf("https://www.postgresql.org/docs/%s/%s.html",
 								   strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION,
 								   QL_HELP[i].docbook_id);
+#else
+					if (strstr(QL_HELP[i].docbook_id, "multitenant") != NULL)
+						url = psprintf("https://github.com/pgspider/pgspider");
+					else
+						url = psprintf("https://www.postgresql.org/docs/%s/%s.html",
+									   strstr(PG_VERSION, "devel") ? "devel" : PG_MAJORVERSION,
+									   QL_HELP[i].docbook_id);
+#endif
 					/* # of newlines in format must match constant above! */
 					fprintf(output, _("Command:     %s\n"
 									  "Description: %s\n"
