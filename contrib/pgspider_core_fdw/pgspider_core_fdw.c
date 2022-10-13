@@ -4118,6 +4118,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		Oid			rel_oid = 0;
 		PlannerInfo *child_root = NULL;
 		char		ip[NAMEDATALEN] = {0};
+		MemoryContext oldcontext = CurrentMemoryContext;
 
 		rel_oid = childinfo[i].oid;
 		if (rel_oid == 0)
@@ -4195,6 +4196,8 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 				{
 					spd_aliveError(fs);
 				}
+
+				MemoryContextSwitchTo(oldcontext);
 				FlushErrorState();
 			}
 			PG_END_TRY();
@@ -6668,6 +6671,7 @@ spd_ExplainForeignScan(ForeignScanState *node,
 	{
 		ForeignServer *fs;
 		ChildInfo  *pChildInfo = &fdw_private->childinfo[i];
+		MemoryContext oldcontext = CurrentMemoryContext;
 
 		fs = GetForeignServer(pChildInfo->server_oid);
 		fdwroutine = GetFdwRoutineByServerId(pChildInfo->server_oid);
@@ -6706,6 +6710,8 @@ spd_ExplainForeignScan(ForeignScanState *node,
 			 */
 			pChildInfo->child_node_status = ServerStatusDead;
 			elog(WARNING, "ExplainForeignScan of child[%d] failed.", i);
+
+			MemoryContextSwitchTo(oldcontext);
 			FlushErrorState();
 		}
 		PG_END_TRY();
@@ -6745,6 +6751,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 	for (i = 0; i < fdw_private->node_num; i++)
 	{
 		ChildInfo  *pChildInfo = &fdw_private->childinfo[i];
+		MemoryContext oldcontext = CurrentMemoryContext;
 
 		/* Skip dead node. */
 		if (pChildInfo->child_node_status != ServerStatusAlive)
@@ -6838,13 +6845,15 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			pChildInfo->child_node_status = ServerStatusDead;
 
 			elog(WARNING, "GetForeignPaths of child[%d] failed.", i);
-			FlushErrorState();
 			if (throwErrorIfDead)
 			{
 				ForeignServer *fs = GetForeignServer(pChildInfo->server_oid);
 
 				spd_aliveError(fs);
 			}
+
+			MemoryContextSwitchTo(oldcontext);
+			FlushErrorState();
 		}
 		PG_END_TRY();
 	}
@@ -7187,6 +7196,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 		List	   *temptlist;
 		ChildInfo  *pChildInfo = &childinfo[i];
 		RelOptInfo *rel_child;
+		MemoryContext oldcontext = CurrentMemoryContext;
 
 		/* Skip dead node. */
 		if (pChildInfo->baserel == NULL)
@@ -7365,13 +7375,15 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 			 */
 			pChildInfo->child_node_status = ServerStatusDead;
 			elog(WARNING, "GetForeignPlan of child[%d] failed.", i);
-			FlushErrorState();
 			if (throwErrorIfDead)
 			{
 				ForeignServer *fs = GetForeignServer(pChildInfo->server_oid);
 
 				spd_aliveError(fs);
 			}
+
+			MemoryContextSwitchTo(oldcontext);
+			FlushErrorState();
 		}
 		PG_END_TRY();
 

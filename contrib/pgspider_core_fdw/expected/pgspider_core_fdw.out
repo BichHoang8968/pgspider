@@ -2711,6 +2711,32 @@ WARNING:  GetForeignRelSize of child[0] failed.
      4
 (1 row)
 
+-- Expect two warning messages of one mysql child node because of JOIN query.
+-- The other mysql child returns result.
+--Testcase 298:
+SELECT * FROM t3 x1 JOIN t3 x2 ON x1.t = x2.t;
+WARNING:  GetForeignRelSize of child[0] failed.
+WARNING:  GetForeignRelSize of child[0] failed.
+  t  | t2  | i |  __spd_url  |  t  | t2  | i |  __spd_url  
+-----+-----+---+-------------+-----+-----+---+-------------
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa |     | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa |     | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/ | aaa |     | 1 | /mysql_svr/
+ aaa |     | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa |     | 1 | /mysql_svr/
+ aaa | bbb | 1 | /mysql_svr/ | aaa | bbb | 1 | /mysql_svr/
+(16 rows)
+
 Set pgspider_core_fdw.throw_error_ifdead to true;
 --Testcase 243:
 DROP FOREIGN TABLE t3;

@@ -572,6 +572,11 @@ SELECT count(t) FROM t3;
 --Testcase 156:
 SELECT count(t) FROM t3;
 
+-- Expect two warning messages of one mysql child node because of JOIN query.
+-- The other mysql child returns result.
+--Testcase 298:
+SELECT * FROM t3 x1 JOIN t3 x2 ON x1.t = x2.t;
+
 Set pgspider_core_fdw.throw_error_ifdead to true;
 
 --Testcase 243:
