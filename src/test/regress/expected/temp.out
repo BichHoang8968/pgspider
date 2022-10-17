@@ -53,9 +53,7 @@ CREATE TEMP TABLE temptest(col int) ON COMMIT DELETE ROWS;
 CREATE INDEX ON temptest(bit_length(''));
 BEGIN;
 INSERT INTO temptest VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO temptest VALUES (2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM temptest;
  col 
 -----
@@ -89,9 +87,7 @@ DROP TABLE temptest;
 BEGIN;
 CREATE TEMP TABLE temptest(col int) ON COMMIT DROP;
 INSERT INTO temptest VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO temptest VALUES (2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM temptest;
  col 
 -----
@@ -128,9 +124,7 @@ CREATE TEMP TABLE temptest1(col int PRIMARY KEY);
 CREATE TEMP TABLE temptest2(col int REFERENCES temptest1)
   ON COMMIT DELETE ROWS;
 INSERT INTO temptest1 VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO temptest2 VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM temptest1;
  col 
@@ -231,7 +225,6 @@ create temp table temp_parted_oncommit_1
   partition of temp_parted_oncommit
   for values in (1) on commit delete rows;
 insert into temp_parted_oncommit values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 -- partitions are emptied by the previous commit
 select * from temp_parted_oncommit;
@@ -253,7 +246,6 @@ create temp table temp_parted_oncommit_test2
   partition of temp_parted_oncommit_test
   for values in (2) on commit drop;
 insert into temp_parted_oncommit_test values (1), (2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 -- no relations remain in this case.
 select relname from pg_class where relname ~ '^temp_parted_oncommit_test';
@@ -273,7 +265,6 @@ create temp table temp_parted_oncommit_test2
   partition of temp_parted_oncommit_test
   for values in (2) on commit drop;
 insert into temp_parted_oncommit_test values (1), (2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 -- Data from the remaining partition is still here as its rows are
 -- preserved.
@@ -300,7 +291,6 @@ create temp table temp_inh_oncommit_test (a int) on commit drop;
 create temp table temp_inh_oncommit_test1 ()
   inherits(temp_inh_oncommit_test) on commit delete rows;
 insert into temp_inh_oncommit_test1 values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 -- no relations remain in this case
 select relname from pg_class where relname ~ '^temp_inh_oncommit_test';
@@ -314,9 +304,7 @@ create temp table temp_inh_oncommit_test (a int) on commit delete rows;
 create temp table temp_inh_oncommit_test1 ()
   inherits(temp_inh_oncommit_test) on commit drop;
 insert into temp_inh_oncommit_test1 values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into temp_inh_oncommit_test values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 select * from temp_inh_oncommit_test;
  a 
@@ -378,7 +366,6 @@ prepare transaction 'twophase_tab';
 ERROR:  cannot PREPARE a transaction that has operated on temporary objects
 begin;
 insert into twophase_tab values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 prepare transaction 'twophase_tab';
 ERROR:  cannot PREPARE a transaction that has operated on temporary objects
 begin;

@@ -1181,14 +1181,6 @@ exec_simple_query(const char *query_string)
 		/* Make sure we are in a transaction command */
 		start_xact_command();
 
-#ifdef PGSPIDER
-		if (!SpdIsInAutoCommitMode() && (commandTag == CMDTAG_INSERT ||
-									 commandTag == CMDTAG_UPDATE ||
-									 commandTag == CMDTAG_DELETE))
-			elog(WARNING, "Modification query is executing in non-autocommit mode. "
-						  "PGSpider might get inconsistent data.");
-#endif
-
 		/*
 		 * If using an implicit transaction block, and we're not already in a
 		 * transaction block, start an implicit block to force this statement

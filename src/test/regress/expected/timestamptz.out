@@ -9,15 +9,10 @@ CREATE TABLE TIMESTAMPTZ_TBL (d1 timestamp(2) with time zone);
 -- related values shouldn't either.
 BEGIN;
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('today');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('yesterday');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('tomorrow');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('tomorrow EST');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('tomorrow zulu');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT count(*) AS One FROM TIMESTAMPTZ_TBL WHERE d1 = timestamp with time zone 'today';
  one 
 -----
@@ -61,7 +56,6 @@ SELECT pg_sleep(0.1);
 
 BEGIN;
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT pg_sleep(0.1);
  pg_sleep 
 ----------
@@ -69,7 +63,6 @@ SELECT pg_sleep(0.1);
 (1 row)
 
 INSERT INTO TIMESTAMPTZ_TBL VALUES ('now');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT pg_sleep(0.1);
  pg_sleep 
 ----------

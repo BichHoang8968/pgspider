@@ -49,51 +49,37 @@ UPDATE trunc_stats_test1 SET id = id + 10 WHERE id IN (1, 2);
 DELETE FROM trunc_stats_test1 WHERE id = 3;
 BEGIN;
 UPDATE trunc_stats_test1 SET id = id + 100;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 TRUNCATE trunc_stats_test1;
 INSERT INTO trunc_stats_test1 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 -- use a savepoint: 1 insert, 1 live
 BEGIN;
 INSERT INTO trunc_stats_test2 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO trunc_stats_test2 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SAVEPOINT p1;
 INSERT INTO trunc_stats_test2 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 TRUNCATE trunc_stats_test2;
 INSERT INTO trunc_stats_test2 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 RELEASE SAVEPOINT p1;
 COMMIT;
 -- rollback a savepoint: this should count 4 inserts and have 2
 -- live tuples after commit (and 2 dead ones due to aborted subxact)
 BEGIN;
 INSERT INTO trunc_stats_test3 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO trunc_stats_test3 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SAVEPOINT p1;
 INSERT INTO trunc_stats_test3 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO trunc_stats_test3 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 TRUNCATE trunc_stats_test3;
 INSERT INTO trunc_stats_test3 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK TO SAVEPOINT p1;
 COMMIT;
 -- rollback a truncate: this should count 2 inserts and produce 2 dead tuples
 BEGIN;
 INSERT INTO trunc_stats_test4 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO trunc_stats_test4 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 TRUNCATE trunc_stats_test4;
 INSERT INTO trunc_stats_test4 DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 -- do a seqscan
 SELECT count(*) FROM tenk2;
@@ -410,7 +396,6 @@ SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_xact_oid);
 
 BEGIN;
 INSERT INTO drop_stats_test_xact DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_xact_oid);
  pg_stat_get_xact_tuples_inserted 
 ----------------------------------
@@ -458,7 +443,6 @@ SELECT pg_stat_get_tuples_inserted(:drop_stats_test_xact_oid);
 
 BEGIN;
 INSERT INTO drop_stats_test_xact DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_xact_oid);
  pg_stat_get_xact_tuples_inserted 
 ----------------------------------
@@ -500,10 +484,8 @@ SELECT pg_stat_get_live_tuples(:drop_stats_test_subxact_oid);
 
 BEGIN;
 INSERT INTO drop_stats_test_subxact DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SAVEPOINT sp1;
 INSERT INTO drop_stats_test_subxact DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT pg_stat_get_xact_tuples_inserted(:drop_stats_test_subxact_oid);
  pg_stat_get_xact_tuples_inserted 
 ----------------------------------

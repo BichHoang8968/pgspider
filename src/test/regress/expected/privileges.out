@@ -423,7 +423,6 @@ RESET SESSION AUTHORIZATION;
 ALTER ROLE regress_priv_user1 NOINHERIT;
 SET SESSION AUTHORIZATION regress_priv_user1;
 DELETE FROM atest3;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  permission denied for table atest3
 ROLLBACK;
 -- views
@@ -2010,9 +2009,7 @@ TABLE information_schema.applicable_roles ORDER BY role_name COLLATE "C";
 (2 rows)
 
 INSERT INTO datdba_only DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SAVEPOINT q; DELETE FROM datdba_only; ROLLBACK TO q;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  permission denied for table datdba_only
 SET SESSION AUTHORIZATION regress_priv_user2;
 TABLE information_schema.enabled_roles;
@@ -2022,7 +2019,6 @@ TABLE information_schema.enabled_roles;
 (1 row)
 
 INSERT INTO datdba_only DEFAULT VALUES;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  permission denied for table datdba_only
 ROLLBACK;
 -- test default ACLs

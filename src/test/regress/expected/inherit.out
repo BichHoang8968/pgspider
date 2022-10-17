@@ -2588,11 +2588,8 @@ DETAIL:  Failing row contains (20, 5, 5).
 -- within partition update without child check constraint violation
 BEGIN;
 UPDATE errtst_parent SET data = data + 1 WHERE partid = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_parent SET data = data + 1 WHERE partid = 10;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_parent SET data = data + 1 WHERE partid = 20;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 -- within partition update with child check constraint violation
 UPDATE errtst_parent SET data = data + 10 WHERE partid = 0;
@@ -2607,11 +2604,8 @@ DETAIL:  Failing row contains (20, 1, 15).
 -- direct leaf partition update, without partition id violation
 BEGIN;
 UPDATE errtst_child_fastdef SET partid = 1 WHERE partid = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_child_plaindef SET partid = 11 WHERE partid = 10;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_child_reorder SET partid = 21 WHERE partid = 20;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 -- direct leaf partition update, with partition id violation
 UPDATE errtst_child_fastdef SET partid = partid + 10 WHERE partid = 0;
@@ -2626,11 +2620,8 @@ DETAIL:  Failing row contains (5, 1, 30).
 -- partition move, without child check constraint violation
 BEGIN;
 UPDATE errtst_parent SET partid = 10, data = data + 1 WHERE partid = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_parent SET partid = 20, data = data + 1 WHERE partid = 10;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE errtst_parent SET partid = 0, data = data + 1 WHERE partid = 20;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 -- partition move, with child check constraint violation
 UPDATE errtst_parent SET partid = 10, data = data + 10 WHERE partid = 0;

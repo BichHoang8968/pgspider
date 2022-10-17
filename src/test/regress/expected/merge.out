@@ -888,7 +888,6 @@ CREATE TRIGGER merge_ard AFTER DELETE ON target FOR EACH ROW EXECUTE PROCEDURE m
 -- now the classic UPSERT, with a DELETE
 BEGIN;
 UPDATE target SET balance = 0 WHERE tid = 3;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  BEFORE UPDATE STATEMENT trigger
 NOTICE:  BEFORE UPDATE ROW trigger row: (3,30) -> (3,0)
 NOTICE:  AFTER UPDATE ROW trigger row: (3,30) -> (3,0)
@@ -1252,7 +1251,6 @@ LINE 5:     UPDATE SET balance = balance + delta
 ROLLBACK;
 BEGIN;
 INSERT INTO sq_source (sid, balance, delta) VALUES (-1, -1, -10);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 MERGE INTO sq_target t
 USING v
 ON tid = sid
@@ -1274,7 +1272,6 @@ ROLLBACK;
 -- CTEs
 BEGIN;
 INSERT INTO sq_source (sid, balance, delta) VALUES (-1, -1, -10);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 WITH targq AS (
 	SELECT * FROM v
 )
@@ -1291,7 +1288,6 @@ ROLLBACK;
 -- RETURNING
 BEGIN;
 INSERT INTO sq_source (sid, balance, delta) VALUES (-1, -1, -10);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 MERGE INTO sq_target t
 USING v
 ON tid = sid

@@ -1065,9 +1065,7 @@ DETAIL:  Key (fk)=(10) is not present in table "pktable".
 BEGIN;
 SET CONSTRAINTS ALL DEFERRED;
 INSERT INTO fktable VALUES (10, 15);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO pktable VALUES (15, 0); -- make the FK insert valid
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 DROP TABLE fktable, pktable;
 -- deferrable, initially deferred
@@ -1082,16 +1080,13 @@ CREATE TABLE fktable (
 -- default to deferred, should succeed
 BEGIN;
 INSERT INTO fktable VALUES (100, 200);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO pktable VALUES (200, 500); -- make the FK insert valid
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 -- default to deferred, explicitly make immediate
 BEGIN;
 SET CONSTRAINTS ALL IMMEDIATE;
 -- should fail
 INSERT INTO fktable VALUES (500, 1000);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
 DETAIL:  Key (fk)=(1000) is not present in table "pktable".
 COMMIT;
@@ -1112,7 +1107,6 @@ BEGIN;
 SET CONSTRAINTS ALL DEFERRED;
 -- should succeed, for now
 INSERT INTO fktable VALUES (1000, 2000);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should cause transaction abort, due to preceding error
 SET CONSTRAINTS ALL IMMEDIATE;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
@@ -1133,7 +1127,6 @@ CREATE TABLE fktable (
 BEGIN;
 -- no error here
 INSERT INTO fktable VALUES (100, 200);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- error here on commit
 COMMIT;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
@@ -1222,10 +1215,8 @@ INSERT INTO pktable VALUES (5, 10);
 BEGIN;
 -- doesn't match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- don't change FK
 UPDATE fktable SET id = id + 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should catch error from initial INSERT
 COMMIT;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
@@ -1234,12 +1225,10 @@ DETAIL:  Key (fk)=(20) is not present in table "pktable".
 BEGIN;
 -- doesn't match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- UPDATE will be in a subxact
 SAVEPOINT savept1;
 -- don't change FK
 UPDATE fktable SET id = id + 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should catch error from initial INSERT
 COMMIT;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
@@ -1249,11 +1238,9 @@ BEGIN;
 SAVEPOINT savept1;
 -- doesn't match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 RELEASE SAVEPOINT savept1;
 -- don't change FK
 UPDATE fktable SET id = id + 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- should catch error from initial INSERT
 COMMIT;
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
@@ -1261,12 +1248,10 @@ DETAIL:  Key (fk)=(20) is not present in table "pktable".
 BEGIN;
 -- doesn't match PK, but no error yet
 INSERT INTO fktable VALUES (0, 20);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- UPDATE will be in a subxact
 SAVEPOINT savept1;
 -- don't change FK
 UPDATE fktable SET id = id + 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- Roll back the UPDATE
 ROLLBACK TO savept1;
 -- should catch error from initial INSERT
@@ -1281,14 +1266,12 @@ ALTER TABLE fktable ALTER CONSTRAINT fktable_fk_fkey DEFERRABLE INITIALLY IMMEDI
 BEGIN;
 -- doesn't match FK, should throw error now
 UPDATE pktable SET id = 10 WHERE id = 5;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  update or delete on table "pktable" violates foreign key constraint "fktable_fk_fkey" on table "fktable"
 DETAIL:  Key (id)=(5) is still referenced from table "fktable".
 COMMIT;
 BEGIN;
 -- doesn't match PK, should throw error now
 INSERT INTO fktable VALUES (0, 20);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_fk_fkey"
 DETAIL:  Key (fk)=(20) is not present in table "pktable".
 COMMIT;
@@ -1347,7 +1330,6 @@ SELECT * FROM tasks;
 -- could fail with only 2 changes to make, if row was already updated
 BEGIN;
 UPDATE tasks set id=id WHERE id=2;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM tasks;
  id | owner | worker | checked_by 
 ----+-------+--------+------------
@@ -1357,7 +1339,6 @@ SELECT * FROM tasks;
 (3 rows)
 
 DELETE FROM users WHERE id = 2;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM tasks;
  id | owner | worker | checked_by 
 ----+-------+--------+------------
@@ -1382,7 +1363,6 @@ values
     (1, 1);
 begin;
     update selfref set a = 123 where a = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
     select a, b from selfref;
   a  |  b  
 -----+-----
@@ -1391,7 +1371,6 @@ WARNING:  Modification query is executing in non-autocommit mode. PGSpider might
 (2 rows)
 
     update selfref set a = 456 where a = 123;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
     select a, b from selfref;
   a  |  b  
 -----+-----
@@ -1528,18 +1507,14 @@ create table fktable2(f1 int references pktable2 deferrable initially deferred);
 insert into pktable2 values(1);
 begin;
 insert into fktable2 values(1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 savepoint x;
 delete from fktable2;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 rollback to x;
 commit;
 begin;
 insert into fktable2 values(2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 savepoint x;
 delete from fktable2;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 rollback to x;
 commit; -- fail
 ERROR:  insert or update on table "fktable2" violates foreign key constraint "fktable2_f1_fkey"
@@ -1549,13 +1524,11 @@ DETAIL:  Key (f1)=(2) is not present in table "pktable2".
 --
 begin;
 insert into fktable2 values(2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 alter table fktable2 drop constraint fktable2_f1_fkey;
 ERROR:  cannot ALTER TABLE "fktable2" because it has pending trigger events
 commit;
 begin;
 delete from pktable2 where f1 = 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 alter table fktable2 drop constraint fktable2_f1_fkey;
 ERROR:  cannot ALTER TABLE "pktable2" because it has pending trigger events
 commit;
@@ -1806,7 +1779,6 @@ ALTER TABLE fk_partitioned_fk ADD FOREIGN KEY (a, b)
   ON DELETE SET NULL (a);
 BEGIN;
 DELETE FROM fk_notpartitioned_pk WHERE b = 142857;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM fk_partitioned_fk WHERE a IS NOT NULL OR b IS NOT NULL ORDER BY a NULLS LAST;
   a   |   b    
 ------+--------
@@ -1822,15 +1794,10 @@ ALTER TABLE fk_partitioned_fk ADD FOREIGN KEY (a, b)
   ON DELETE SET DEFAULT (a);
 BEGIN;
 DELETE FROM fk_partitioned_fk;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM fk_notpartitioned_pk;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fk_notpartitioned_pk VALUES (500, 100000), (2501, 100000);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fk_partitioned_fk VALUES (500, 100000);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM fk_notpartitioned_pk WHERE a = 500;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT * FROM fk_partitioned_fk ORDER BY a;
   a   |   b    
 ------+--------
@@ -2154,16 +2121,12 @@ create schema fkpart3
 begin;
 set constraints fkpart3.fkey deferred;
 insert into fkpart3.fk_part values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 insert into fkpart3.pkey values (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 begin;
 set constraints fkpart3.fkey deferred;
 delete from fkpart3.pkey;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 delete from fkpart3.fk_part;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 commit;
 drop schema fkpart0, fkpart1, fkpart2, fkpart3 cascade;
 NOTICE:  drop cascades to 10 other objects
@@ -2408,23 +2371,18 @@ DETAIL:  Key (a)=(1) is not present in table "pk".
 BEGIN;
 SET CONSTRAINTS fk_a_fkey DEFERRED;
 INSERT INTO fk VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;							-- should fail
 ERROR:  insert or update on table "fk" violates foreign key constraint "fk_a_fkey"
 DETAIL:  Key (a)=(1) is not present in table "pk".
 BEGIN;
 SET CONSTRAINTS fk_a_fkey DEFERRED;
 INSERT INTO fk VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO pk VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;							-- OK
 BEGIN;
 SET CONSTRAINTS fk_a_fkey DEFERRED;
 DELETE FROM pk WHERE a = 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM fk WHERE a = 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;							-- OK
 -- Verify constraint deferrability when changed by ALTER
 -- Partitioned table at referencing end
@@ -2440,9 +2398,7 @@ INSERT INTO pt VALUES(1,2,3);
 INSERT INTO ref VALUES(1,2,3);
 BEGIN;
 DELETE FROM pt;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM ref;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ABORT;
 DROP TABLE pt, ref;
 -- Multi-level partitioning at referencing end
@@ -2465,9 +2421,7 @@ ALTER TABLE ref ALTER CONSTRAINT ref_f1_f2_fkey
   DEFERRABLE INITIALLY DEFERRED;
 BEGIN;
 DELETE FROM pt;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM ref;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ABORT;
 DROP TABLE pt, ref;
 -- Partitioned table at referenced end
@@ -2483,9 +2437,7 @@ INSERT INTO pt VALUES(1,2,3);
 INSERT INTO ref VALUES(1,2,3);
 BEGIN;
 DELETE FROM pt;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM ref;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ABORT;
 DROP TABLE pt, ref;
 -- Multi-level partitioning at at referenced end
@@ -2507,9 +2459,7 @@ INSERT INTO pt VALUES(1,2,3);
 INSERT INTO ref VALUES(1,2,3);
 BEGIN;
 DELETE FROM pt;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM ref;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ABORT;
 DROP TABLE pt, ref;
 DROP SCHEMA fkpart9 CASCADE;
@@ -2636,7 +2586,6 @@ CREATE SCHEMA fkpart8
 INSERT INTO fkpart8.tbl1 VALUES(1);
 BEGIN;
 INSERT INTO fkpart8.tbl2 VALUES(1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ALTER TABLE fkpart8.tbl2 DROP CONSTRAINT tbl2_f1_fkey;
 ERROR:  cannot ALTER TABLE "tbl2_p1" because it has pending trigger events
 COMMIT;
@@ -2687,45 +2636,31 @@ INSERT INTO fkpart10.tbl3 VALUES (-2), (-1), (0);
 INSERT INTO fkpart10.tbl4 VALUES (-2), (-1);
 BEGIN;
 DELETE FROM fkpart10.tbl1 WHERE f1 = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE fkpart10.tbl1 SET f1 = 2 WHERE f1 = 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fkpart10.tbl1 VALUES (0), (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 -- test that cross-partition updates correctly enforces the foreign key
 -- restriction (specifically testing INITIAILLY DEFERRED)
 BEGIN;
 UPDATE fkpart10.tbl1 SET f1 = 3 WHERE f1 = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE fkpart10.tbl3 SET f1 = f1 * -1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fkpart10.tbl1 VALUES (4);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 ERROR:  update or delete on table "tbl1" violates foreign key constraint "tbl2_f1_fkey" on table "tbl2"
 DETAIL:  Key (f1)=(0) is still referenced from table "tbl2".
 BEGIN;
 UPDATE fkpart10.tbl3 SET f1 = f1 * -1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE fkpart10.tbl3 SET f1 = f1 + 3;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE fkpart10.tbl1 SET f1 = 3 WHERE f1 = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fkpart10.tbl1 VALUES (0);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 ERROR:  update or delete on table "tbl3" violates foreign key constraint "tbl4_f1_fkey" on table "tbl4"
 DETAIL:  Key (f1)=(-2) is still referenced from table "tbl4".
 BEGIN;
 UPDATE fkpart10.tbl3 SET f1 = f1 * -1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 UPDATE fkpart10.tbl1 SET f1 = 3 WHERE f1 = 0;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fkpart10.tbl1 VALUES (0);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO fkpart10.tbl3 VALUES (-2), (-1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 -- test where the updated table now has both an IMMEDIATE and a DEFERRED
 -- constraint pointing into it
@@ -2733,7 +2668,6 @@ CREATE TABLE fkpart10.tbl5(f1 int REFERENCES fkpart10.tbl3);
 INSERT INTO fkpart10.tbl5 VALUES (-2), (-1);
 BEGIN;
 UPDATE fkpart10.tbl3 SET f1 = f1 * -3;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  update or delete on table "tbl3" violates foreign key constraint "tbl5_f1_fkey" on table "tbl5"
 DETAIL:  Key (f1)=(-2) is still referenced from table "tbl5".
 COMMIT;
@@ -2744,7 +2678,6 @@ DELETE FROM fkpart10.tbl5;
 INSERT INTO fkpart10.tbl5 VALUES (0);
 BEGIN;
 UPDATE fkpart10.tbl3 SET f1 = f1 * -3;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 ERROR:  update or delete on table "tbl3" violates foreign key constraint "tbl4_f1_fkey" on table "tbl4"
 DETAIL:  Key (f1)=(-2) is still referenced from table "tbl4".

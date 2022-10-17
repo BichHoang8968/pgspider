@@ -91,6 +91,15 @@ preprocess_targetlist(PlannerInfo *root)
 	else
 		Assert(command_type == CMD_SELECT);
 
+#ifdef PGSPIDER
+	if (!SpdIsInAutoCommitMode() && target_relation &&
+		(command_type == CMD_INSERT || command_type == CMD_UPDATE || command_type == CMD_DELETE))
+	{
+		if (target_relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+			elog(WARNING, "Modification query is executing in non-autocommit mode. "
+							"PGSpider might get inconsistent data.");
+	}
+#endif
 	/*
 	 * In an INSERT, the executor expects the targetlist to match the exact
 	 * order of the target table's attributes, including entries for

@@ -63,7 +63,6 @@ alter table bigger_than_it_looks set (autovacuum_enabled = 'false');
 alter table bigger_than_it_looks set (parallel_workers = 2);
 analyze bigger_than_it_looks;
 update pg_class set reltuples = 1000 where relname = 'bigger_than_it_looks';
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- Make a relation whose size we underestimate and that also has a
 -- kind of skew that breaks our batching scheme.  We want stats to say
 -- 2 rows, but actually there are 20,000 rows with the same key.
@@ -74,11 +73,9 @@ analyze extremely_skewed;
 insert into extremely_skewed
   select 42 as id, 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
   from generate_series(1, 20000);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 update pg_class
   set reltuples = 2, relpages = pg_relation_size('extremely_skewed') / 8192
   where relname = 'extremely_skewed';
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- Make a relation with a couple of enormous tuples.
 create table wide as select generate_series(1, 2) as id, rpad('', 320000, 'x') as t;
 alter table wide set (parallel_workers = 2);
@@ -917,23 +914,14 @@ SET LOCAL from_collapse_limit = 1; -- allows easy changing of join order
 CREATE TABLE hjtest_1 (a text, b int, id int, c bool);
 CREATE TABLE hjtest_2 (a bool, id int, b text, c int);
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 2, 1, false); -- matches
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 2, false); -- fails id join condition
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 20, 1, false); -- fails < 50
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_1(a, b, id, c) VALUES ('text', 1, 1, false); -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 2); -- matches
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 3, 'another', 7); -- fails id join condition
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 90);  -- fails < 55
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'another', 3); -- fails (SELECT hjtest_1.b * 5) = (SELECT hjtest_2.c*5)
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO hjtest_2(a, id, b, c) VALUES (true, 1, 'text', 1); --  fails hjtest_1.a <> hjtest_2.b;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 EXPLAIN (COSTS OFF, VERBOSE)
 SELECT hjtest_1.a a1, hjtest_2.a a2,hjtest_1.tableoid::regclass t1, hjtest_2.tableoid::regclass t2
 FROM hjtest_1, hjtest_2

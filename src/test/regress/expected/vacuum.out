@@ -80,9 +80,7 @@ INSERT INTO vactst SELECT generate_series(1, 300);
 DELETE FROM vactst WHERE i % 7 = 0; -- delete a few rows outside
 BEGIN;
 INSERT INTO vactst SELECT generate_series(301, 400);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DELETE FROM vactst WHERE i % 5 <> 0; -- delete a few rows inside
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ANALYZE vactst;
 COMMIT;
 VACUUM FULL pg_am;

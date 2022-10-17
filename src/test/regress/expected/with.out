@@ -2531,7 +2531,6 @@ CREATE RULE bug6051_3_ins AS ON INSERT TO bug6051_3 DO INSTEAD
 BEGIN; SET LOCAL force_parallel_mode = on;
 WITH t1 AS ( DELETE FROM bug6051_3 RETURNING * )
   INSERT INTO bug6051_3 SELECT * FROM t1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  i 
 ---
  1

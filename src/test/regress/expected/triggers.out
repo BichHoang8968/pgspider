@@ -985,7 +985,6 @@ INSERT INTO serializable_update_tab SELECT a, repeat('xyzxz', 100), 'new'
 BEGIN;
 SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
 UPDATE serializable_update_tab SET description = 'no no', id = 1 WHERE id = 1;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT description FROM serializable_update_tab WHERE id = 1;
     description     
@@ -2518,15 +2517,12 @@ create constraint trigger parted_trig_two after insert on parted_constr
 -- is fired at commit time.
 begin;
 insert into parted_constr values (1, 'aardvark');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  aardvark <- woof!
 NOTICE:  trigger parted_trig on parted1_constr AFTER INSERT for ROW: (a,b)=(1,aardvark)
 insert into parted1_constr values (2, 'aardwolf');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  aardwolf <- woof!
 NOTICE:  trigger parted_trig on parted1_constr AFTER INSERT for ROW: (a,b)=(2,aardwolf)
 insert into parted_constr_ancestor values (3, 'aasvogel');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  aasvogel <- woof!
 NOTICE:  trigger parted_trig on parted1_constr AFTER INSERT for ROW: (a,b)=(3,aasvogel)
 commit;
@@ -2537,10 +2533,8 @@ NOTICE:  trigger parted_trig_two on parted1_constr AFTER INSERT for ROW: (a,b)=(
 begin;
 set constraints parted_trig deferred;
 insert into parted_constr values (1, 'aardvark');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  aardvark <- woof!
 insert into parted1_constr values (2, 'aardwolf'), (3, 'aasvogel');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  aardwolf <- woof!
 NOTICE:  aasvogel <- woof!
 commit;
