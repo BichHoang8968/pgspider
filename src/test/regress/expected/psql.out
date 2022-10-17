@@ -5212,7 +5212,6 @@ reset work_mem;
 CREATE TABLE ac_test (a int);
 \set AUTOCOMMIT off
 INSERT INTO ac_test VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM ac_test;
  a 
@@ -5222,7 +5221,6 @@ SELECT * FROM ac_test;
 
 COMMIT;
 INSERT INTO ac_test VALUES (2);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 SELECT * FROM ac_test;
  a 
@@ -5233,7 +5231,6 @@ SELECT * FROM ac_test;
 COMMIT;
 BEGIN;
 INSERT INTO ac_test VALUES (3);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM ac_test;
  a 
@@ -5245,7 +5242,6 @@ SELECT * FROM ac_test;
 COMMIT;
 BEGIN;
 INSERT INTO ac_test VALUES (4);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 SELECT * FROM ac_test;
  a 
@@ -5266,14 +5262,11 @@ LINE 1: SELECT * FROM ac_test;
 CREATE TABLE oer_test (a int);
 BEGIN;
 INSERT INTO oer_test VALUES (1);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 INSERT INTO oer_test VALUES ('foo');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  invalid input syntax for type integer: "foo"
 LINE 1: INSERT INTO oer_test VALUES ('foo');
                                      ^
 INSERT INTO oer_test VALUES (3);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM oer_test;
  a 
@@ -5284,7 +5277,6 @@ SELECT * FROM oer_test;
 
 BEGIN;
 INSERT INTO oer_test VALUES (4);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ROLLBACK;
 SELECT * FROM oer_test;
  a 
@@ -5295,10 +5287,8 @@ SELECT * FROM oer_test;
 
 BEGIN;
 INSERT INTO oer_test VALUES (5);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT AND CHAIN;
 INSERT INTO oer_test VALUES (6);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM oer_test;
  a 
@@ -5386,14 +5376,11 @@ COPY psql_comics TO STDOUT \;
 TRUNCATE psql_comics \;
 DROP TABLE psql_comics \;
 SELECT 'ok' AS "done" ;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  begin 
 -------
  ok
 (1 row)
 
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 Calvin
 Susie
 Hobbes
@@ -5425,7 +5412,6 @@ ROLLBACK;
 CREATE TABLE foo(s TEXT) \;
 INSERT INTO foo(s) VALUES ('hello'), ('world') \;
 COMMIT;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 DROP TABLE foo \;
 ROLLBACK;
 -- table foo is still there
@@ -5446,7 +5432,6 @@ BEGIN \;
 CREATE TABLE foo(s TEXT) \;
 INSERT INTO foo(s) VALUES ('hello'), ('world') \;
 COMMIT;
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 BEGIN \;
 DROP TABLE foo \;
 ROLLBACK \;
@@ -5482,7 +5467,6 @@ SELECT psql_error('oops!');                     -- fails
 ERROR:  error oops!
 CONTEXT:  PL/pgSQL function psql_error(text) line 3 at RAISE
 INSERT INTO bla VALUES ('Calvin'), ('Hobbes');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM bla ORDER BY 1;
    s    
@@ -5493,13 +5477,11 @@ SELECT * FROM bla ORDER BY 1;
 
 BEGIN;
 INSERT INTO bla VALUES ('Susie');         -- succeeds
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- now with combined queries
 INSERT INTO bla VALUES ('Rosalyn') \;     -- will rollback
 SELECT 'before error' AS show \;          -- will show nevertheless!
   SELECT psql_error('boum!') \;           -- failure
   SELECT 'after error' AS noshow;         -- hidden by preceding error
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
      show     
 --------------
  before error
@@ -5509,11 +5491,9 @@ ERROR:  error boum!
 CONTEXT:  PL/pgSQL function psql_error(text) line 3 at RAISE
 INSERT INTO bla(s) VALUES ('Moe') \;      -- will rollback
   SELECT psql_error('bam!');
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 ERROR:  error bam!
 CONTEXT:  PL/pgSQL function psql_error(text) line 3 at RAISE
 INSERT INTO bla VALUES ('Miss Wormwood'); -- succeeds
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 COMMIT;
 SELECT * FROM bla ORDER BY 1;
        s       
@@ -5530,7 +5510,6 @@ SELECT * FROM bla ORDER BY 1;
 # AUTOCOMMIT: off
 -- implicit BEGIN
 INSERT INTO bla VALUES ('Dad');           -- succeeds
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT psql_error('bad!');                -- implicit partial rollback
 ERROR:  error bad!
 CONTEXT:  PL/pgSQL function psql_error(text) line 3 at RAISE
@@ -5538,7 +5517,6 @@ INSERT INTO bla VALUES ('Mum') \;         -- will rollback
 SELECT COUNT(*) AS "#mum"
 FROM bla WHERE s = 'Mum' \;               -- but be counted here
 SELECT psql_error('bad!');                -- implicit partial rollback
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
  #mum 
 ------
     1

@@ -354,7 +354,6 @@ default for type myint using hash as
   function    1   myinthash(myint);
 create table inttest (a myint);
 insert into inttest values(1::myint),(null);
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- try an array with enough elements to cause hashing
 select * from inttest where a in (1::myint,2::myint,3::myint,4::myint,5::myint,6::myint,7::myint,8::myint,9::myint, null);
  a 

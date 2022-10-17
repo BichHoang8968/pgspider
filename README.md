@@ -237,7 +237,7 @@ When a query to foreign tables fails, you can find why it fails by seeing a quer
 ## Limitation
 Limitation with modification and transaction:
 - Sometimes, PGSpider cannot read modified data in a transaction.
-- It is recommended to execute a modify query(INSERT/UPDATE/DELETE) in auto-commit mode. If not, a warning "Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data." is shown.
+- It is recommended to execute a modify query(INSERT/UPDATE/DELETE) with foreign table in auto-commit mode. If not, a warning "Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data." is shown.
 
 ## Contributing
 Opening issues and pull requests are welcome.

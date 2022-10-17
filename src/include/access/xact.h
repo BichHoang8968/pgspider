@@ -531,7 +531,7 @@ extern void SpdAtMakeNewTransaction(void);
 extern void SpdAtCommitTransaction(void);
 extern void RegisterSpdTransactionCallback(spdTransactionCallback callback, void *arg);
 extern void UnregisterSpdTransactionCallback(spdTransactionCallback callback, void *arg);
-extern bool SpdIsInAutoCommitMode();
+extern bool SpdIsInAutoCommitMode(void);
 #endif
 
 #endif							/* XACT_H */

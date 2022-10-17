@@ -55,7 +55,6 @@ BEGIN;
 -- The return value is a file descriptor-like value which remains valid for the
 -- transaction.
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- loread/lowrite names are wonky, different from other functions which are lo_*
 -- lowrite(fd integer, data bytea) returns integer
 -- the integer is the number of bytes written
@@ -114,7 +113,6 @@ COMMENT ON LARGE OBJECT :newloid IS 'I Wandered Lonely as a Cloud';
 -- Read out a portion
 BEGIN;
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- lo_lseek(fd integer, offset integer, whence integer) returns integer
 -- offset is in bytes, whence is one of three values:
 --  SEEK_SET (= 0) meaning relative to beginning
@@ -192,7 +190,6 @@ NOTICE:  could not open file, as expected
 -- Test truncation.
 BEGIN;
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT lo_truncate(fd, 11) FROM lotest_stash_values;
  lo_truncate 
 -------------
@@ -257,7 +254,6 @@ END;
 -- Test 64-bit large object functions.
 BEGIN;
 UPDATE lotest_stash_values SET fd = lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 SELECT lo_lseek64(fd, 4294967296, 0) FROM lotest_stash_values;
  lo_lseek64 
 ------------
@@ -350,7 +346,6 @@ TRUNCATE lotest_stash_values;
 INSERT INTO lotest_stash_values (loid) SELECT lo_import(:'filename');
 BEGIN;
 UPDATE lotest_stash_values SET fd=lo_open(loid, CAST(x'20000' | x'40000' AS integer));
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 -- verify length of large object
 SELECT lo_lseek(fd, 0, 2) FROM lotest_stash_values;
  lo_lseek 
