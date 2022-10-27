@@ -145,7 +145,7 @@ SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(v
    Sort Key: (abs(s3.value1)), (abs(s3.value2)), (abs(s3.value3)), (abs(s3.value4))
    ->  Foreign Scan on public.s3  (cost=200.00..526.49 rows=6792 width=24)
          Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
-         Filter: ((to_hex(s3.value2) <> '64'::text) AND (to_hex(s3.value2) <> '64'::text))
+         Filter: (to_hex(s3.value2) <> '64'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -402,7 +402,7 @@ SELECT log(value1), log(value2), log(0.5) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.98 rows=34 width=48)
    Output: (log(value1)), (log((value2)::double precision)), '-0.3010299956639812'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT log10(`value1`), log10(`value2`), (-0.3010299956639812), `value2` FROM `test`.`s32`
@@ -1525,7 +1525,7 @@ SELECT crc32(value1), crc32(value2), crc32(value3), crc32(value4), crc32(0.5) FR
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..433.23 rows=34 width=40)
    Output: (crc32(value1)), (crc32(value2)), (crc32(value3)), (crc32(value4)), (crc32(0.5))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT crc32(`value1`), crc32(`value2`), crc32(`value3`), crc32(`value4`), crc32(0.5), `value2` FROM `test`.`s32`
@@ -1943,7 +1943,7 @@ SELECT log10(value1), log10(value2), log10(0.5) FROM s3 WHERE to_hex(value2) = '
 --------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.98 rows=34 width=48)
    Output: (log10(value1)), (log10((value2)::double precision)), '-0.3010299956639812'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT log10(`value1`), log10(`value2`), (-0.3010299956639812), `value2` FROM `test`.`s32`
@@ -2368,7 +2368,7 @@ SELECT log2(value1), log2(value2), log2(value3 + 1), log2(value4), log2(0.5) FRO
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..433.48 rows=34 width=40)
    Output: (log2(value1)), (log2((value2)::double precision)), (log2((value3 + '1'::double precision))), (log2((value4)::double precision)), (log2('0.5'::double precision))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT log2(`value1`), log2(`value2`), log2((`value3` + 1)), log2(`value4`), log2(0.5), `value2` FROM `test`.`s32`
@@ -2968,7 +2968,7 @@ SELECT pow(value1, 2), pow(value2, 2), pow(value3, 2), pow(value4, 2) FROM s3 WH
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..560.45 rows=6792 width=32)
    Output: (pow(value1, '2'::double precision)), (pow((value2)::double precision, '2'::double precision)), (pow(value3, '2'::double precision)), (pow((value4)::double precision, '2'::double precision))
-   Filter: ((to_hex(s3.value2) <> '64'::text) AND (to_hex(s3.value2) <> '64'::text))
+   Filter: (to_hex(s3.value2) <> '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT pow(`value1`, 2), pow(`value2`, 2), pow(`value3`, 2), pow(`value4`, 2), `value2` FROM `test`.`s32`
@@ -3258,7 +3258,7 @@ SELECT rand(value1), rand(value2), rand(value3), rand(value4), rand(0.5) FROM s3
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..433.40 rows=34 width=40)
    Output: (rand(value1)), (rand((value2)::double precision)), (rand(value3)), (rand((value4)::double precision)), (rand('0.5'::double precision))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT rand(`value1`), rand(`value2`), rand(`value3`), rand(`value4`), rand(0.5), `value2` FROM `test`.`s32`
@@ -3677,7 +3677,7 @@ SELECT truncate(value1, 2), truncate(value2, 2), truncate(value3, 2), truncate(v
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..433.40 rows=34 width=40)
    Output: (truncate(value1, 2)), (truncate((value2)::double precision, 2)), (truncate(value3, 2)), (truncate((value4)::double precision, 2)), (truncate('5'::double precision, 2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT truncate(`value1`, 2), truncate(`value2`, 2), truncate(`value3`, 2), truncate(`value4`, 2), truncate(5, 2), `value2` FROM `test`.`s32`
@@ -4108,7 +4108,7 @@ SELECT round(value1), round(value2), round(value3), round(value4), round(0.5) FR
 ------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (round(value1)), (round((value2)::double precision)), (round(value3)), (round((value4)::double precision)), '1'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT round(`value1`), round(`value2`), round(`value3`), round(`value4`), 1, `value2` FROM `test`.`s32`
@@ -4531,7 +4531,7 @@ SELECT acos(value1), acos(value3), acos(0.5) FROM s3 WHERE to_hex(value2) = '64'
 ----------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.90 rows=34 width=24)
    Output: (acos(value1)), (acos(value3)), '1.0471975511965979'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT acos(`value1`), acos(`value3`), 1.0471975511965979, `value2` FROM `test`.`s32`
@@ -4948,7 +4948,7 @@ SELECT asin(value1), asin(value3), asin(0.5) FROM s3 WHERE to_hex(value2) = '64'
 ----------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.90 rows=34 width=24)
    Output: (asin(value1)), (asin(value3)), '0.5235987755982989'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT asin(`value1`), asin(`value3`), 0.5235987755982989, `value2` FROM `test`.`s32`
@@ -5366,7 +5366,7 @@ SELECT atan(value1), atan(value2), atan(value3), atan(value4), atan(0.5) FROM s3
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (atan(value1)), (atan((value2)::double precision)), (atan(value3)), (atan((value4)::double precision)), '0.4636476090008061'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT atan(`value1`), atan(`value2`), atan(`value3`), atan(`value4`), 0.4636476090008061, `value2` FROM `test`.`s32`
@@ -5795,7 +5795,7 @@ SELECT atan2(value1, 2), atan2(value2, 2), atan2(value3, 2), atan2(value4, 2), a
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (atan2(value1, '2'::double precision)), (atan2((value2)::double precision, '2'::double precision)), (atan2(value3, '2'::double precision)), (atan2((value4)::double precision, '2'::double precision)), '1.1902899496825317'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT atan2(`value1`, 2), atan2(`value2`, 2), atan2(`value3`, 2), atan2(`value4`, 2), 1.1902899496825317, `value2` FROM `test`.`s32`
@@ -6230,7 +6230,7 @@ SELECT atan(value1, 2), atan(value2, 2), atan(value3, 2), atan(value4, 2), atan(
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..433.40 rows=34 width=40)
    Output: (atan(value1, '2'::double precision)), (atan((value2)::double precision, '2'::double precision)), (atan(value3, '2'::double precision)), (atan((value4)::double precision, '2'::double precision)), (atan('5'::double precision, '2'::double precision))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT atan(`value1`, 2), atan(`value2`, 2), atan(`value3`, 2), atan(`value4`, 2), atan(5, 2), `value2` FROM `test`.`s32`
@@ -6662,7 +6662,7 @@ SELECT ceil(value1), ceil(value2), ceil(value3), ceil(value4), ceil(0.5) FROM s3
 --------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (ceil(value1)), (ceil((value2)::double precision)), (ceil(value3)), (ceil((value4)::double precision)), '1'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT ceil(`value1`), ceil(`value2`), ceil(`value3`), ceil(`value4`), 1, `value2` FROM `test`.`s32`
@@ -7083,7 +7083,7 @@ SELECT ceiling(value1), ceiling(value2), ceiling(value3), ceiling(value4), ceili
 --------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (ceiling(value1)), (ceiling((value2)::double precision)), (ceiling(value3)), (ceiling((value4)::double precision)), '1'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT ceiling(`value1`), ceiling(`value2`), ceiling(`value3`), ceiling(`value4`), 1, `value2` FROM `test`.`s32`
@@ -7500,7 +7500,7 @@ SELECT cos(value1), cos(value2), cos(value3), cos(value4), cos(0.5) FROM s3 WHER
 ------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (cos(value1)), (cos((value2)::double precision)), (cos(value3)), (cos((value4)::double precision)), '0.8775825618903728'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT cos(`value1`), cos(`value2`), cos(`value3`), cos(`value4`), 0.8775825618903728, `value2` FROM `test`.`s32`
@@ -7924,7 +7924,7 @@ SELECT cot(value1), cot(value2), cot(value3), cot(value4), cot(0.5) FROM s3 WHER
 -----------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (cot(value1)), (cot((value2)::double precision)), (cot(value3)), (cot((value4)::double precision)), '1.830487721712452'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT cot(`value1`), cot(`value2`), cot(`value3`), cot(`value4`), 1.830487721712452, `value2` FROM `test`.`s32`
@@ -8357,7 +8357,7 @@ SELECT degrees(value1), degrees(value2), degrees(value3), degrees(value4), degre
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (degrees(value1)), (degrees((value2)::double precision)), (degrees(value3)), (degrees((value4)::double precision)), '28.64788975654116'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT degrees(`value1`), degrees(`value2`), degrees(`value3`), degrees(`value4`), 28.64788975654116, `value2` FROM `test`.`s32`
@@ -8794,7 +8794,7 @@ SELECT div(value1::numeric, 2), div(value2::numeric, 2), div(value3::numeric, 2)
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.41 rows=34 width=160)
    Output: (div((value1)::numeric, '2'::numeric)), (div((value2)::numeric, '2'::numeric)), (div((value3)::numeric, '2'::numeric)), (div((value4)::numeric, '2'::numeric)), '2'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT (`value1` div 2), (`value2` div 2), (`value3` div 2), (`value4` div 2), 2, `value2` FROM `test`.`s32`
@@ -9227,7 +9227,7 @@ SELECT exp(value1), exp(value2), exp(value3), exp(value4), exp(0.5) FROM s3 WHER
 -------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (exp(value1)), (exp((value2)::double precision)), (exp(value3)), (exp((value4)::double precision)), 1.6487212707001281
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT exp(`value1`), exp(`value2`), exp(`value3`), exp(`value4`), 1.6487212707001281, `value2` FROM `test`.`s32`
@@ -9662,7 +9662,7 @@ SELECT floor(value1), floor(value2), floor(value3), floor(value4), floor(1.5) FR
 ------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (floor(value1)), (floor((value2)::double precision)), (floor(value3)), (floor((value4)::double precision)), '1'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT floor(`value1`), floor(`value2`), floor(`value3`), floor(`value4`), 1, `value2` FROM `test`.`s32`
@@ -10365,7 +10365,7 @@ SELECT ln(value1), ln(value2), ln(value3 + 10), ln(0.5) FROM s3 WHERE to_hex(val
 ----------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.15 rows=34 width=56)
    Output: (ln(value1)), (ln((value2)::double precision)), (ln((value3 + '10'::double precision))), '-0.6931471805599453'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT ln(`value1`), ln(`value2`), ln((`value3` + 10)), (-0.6931471805599453), `value2` FROM `test`.`s32`
@@ -10515,7 +10515,7 @@ SELECT mod(value1::numeric, 2), mod(value2::numeric, 2), mod(value3::numeric, 2)
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.41 rows=34 width=132)
    Output: (mod((value1)::numeric, '2'::numeric)), (mod((value2)::numeric, '2'::numeric)), (mod((value3)::numeric, '2'::numeric)), (mod((value4)::numeric, '2'::numeric)), 1
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT (`value1` mod 2), (`value2` mod 2), (`value3` mod 2), (`value4` mod 2), 1, `value2` FROM `test`.`s32`
@@ -10931,7 +10931,7 @@ SELECT power(value1, 2), power(value2, 2), power(value3, 2), power(value4, 2), p
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (power(value1, '2'::double precision)), (power((value2)::double precision, '2'::double precision)), (power(value3, '2'::double precision)), (power((value4)::double precision, '2'::double precision)), '25'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT power(`value1`, 2), power(`value2`, 2), power(`value3`, 2), power(`value4`, 2), 25, `value2` FROM `test`.`s32`
@@ -11368,7 +11368,7 @@ SELECT radians(value1), radians(value2), radians(value3), radians(value4), radia
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (radians(value1)), (radians((value2)::double precision)), (radians(value3)), (radians((value4)::double precision)), '0.008726646259971648'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT radians(`value1`), radians(`value2`), radians(`value3`), radians(`value4`), 0.008726646259971648, `value2` FROM `test`.`s32`
@@ -11800,7 +11800,7 @@ SELECT sign(value1), sign(value2), sign(value3), sign(value4), sign(0.5) FROM s3
 --------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=64)
    Output: (sign(value1)), (sign((value2)::double precision)), (sign(value3)), (sign((value4)::double precision)), '1'::numeric
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT sign(`value1`), sign(`value2`), sign(`value3`), sign(`value4`), 1, `value2` FROM `test`.`s32`
@@ -12199,7 +12199,7 @@ SELECT sin(value1), sin(value2), sin(value3), sin(value4), sin(0.5) FROM s3 WHER
 -----------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (sin(value1)), (sin((value2)::double precision)), (sin(value3)), (sin((value4)::double precision)), '0.479425538604203'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT sin(`value1`), sin(`value2`), sin(`value3`), sin(`value4`), 0.479425538604203, `value2` FROM `test`.`s32`
@@ -12625,7 +12625,7 @@ SELECT sqrt(value1), sqrt(value2), sqrt(0.5) FROM s3 WHERE to_hex(value2) = '64'
 ----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.98 rows=34 width=48)
    Output: (sqrt(value1)), (sqrt((value2)::double precision)), 0.70710678118654752
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT sqrt(`value1`), sqrt(`value2`), 0.70710678118654752, `value2` FROM `test`.`s32`
@@ -13054,7 +13054,7 @@ SELECT tan(value1), tan(value2), tan(value3), tan(value4), tan(0.5) FROM s3 WHER
 ------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..391.24 rows=34 width=40)
    Output: (tan(value1)), (tan((value2)::double precision)), (tan(value3)), (tan((value4)::double precision)), '0.5463024898437905'::double precision
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT tan(`value1`), tan(`value2`), tan(`value3`), tan(`value4`), 0.5463024898437905, `value2` FROM `test`.`s32`
@@ -13639,7 +13639,7 @@ SELECT convert(value1, 'decimal(1)'), convert(value2, 'decimal(10, 2)'), convert
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..7284.53 rows=6792 width=128)
    Output: (convert(value1, 'decimal(1)'::text)), (convert(value2, 'decimal(10, 2)'::text)), (convert(id, 'YEAR'::text)), ((convert(value4, 'binary(1)'::text))::bytea)
-   Filter: ((to_hex(s3.value2) <> '64'::text) AND (to_hex(s3.value2) <> '64'::text))
+   Filter: (to_hex(s3.value2) <> '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT convert(`value1`,decimal(1)), convert(`value2`,decimal(10, 2)), convert(`id`,YEAR), convert(`value4`,binary(1)), `value2` FROM `test`.`s32`
@@ -14728,7 +14728,7 @@ SELECT value1, mysql_char(value2) FROM s3 WHERE to_hex(value2) = '64';
 ---------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.31 rows=34 width=40)
    Output: value1, (mysql_char((value2)::bigint))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, char(`value2`), `value2` FROM `test`.`s32`
@@ -14981,11 +14981,11 @@ SELECT char_length(tag1), char_length(str1), char_length(str2) FROM s3;
 --Testcase 1032:
 EXPLAIN VERBOSE
 SELECT id, char_length(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=8)
    Output: id, (char_length(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `id`, char_length(`str1`), `value2` FROM `test`.`s32`
@@ -15221,7 +15221,7 @@ SELECT id, character_length(str1) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=8)
    Output: id, (character_length(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `id`, character_length(`str1`), `value2` FROM `test`.`s32`
@@ -16009,7 +16009,7 @@ SELECT value1, elt(1, str2, str1) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (elt(1, VARIADIC ARRAY[str2, str1]))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, elt(1, `str2`, `str1`), `value2` FROM `test`.`s32`
@@ -16319,7 +16319,7 @@ SELECT value1, export_set(5, str2, str1, ',', 2) FROM s3 WHERE to_hex(value2) = 
 ------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (export_set(5, str2, str1, ','::text, 2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, export_set(5, `str2`, `str1`, ',', 2), `value2` FROM `test`.`s32`
@@ -16574,7 +16574,7 @@ SELECT value1, field('---XYZ---', str2, str1) FROM s3 WHERE to_hex(value2) = '64
 -------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (field('---XYZ---'::text, VARIADIC ARRAY[str2, str1]))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, field('---XYZ---', `str2`, `str1`), `value2` FROM `test`.`s32`
@@ -16829,7 +16829,7 @@ SELECT value1, find_in_set('---XYZ---', str1) FROM s3 WHERE to_hex(value2) = '64
 ---------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (find_in_set('---XYZ---'::text, str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, find_in_set('---XYZ---', `str1`), `value2` FROM `test`.`s32`
@@ -17122,7 +17122,7 @@ SELECT value1, mysql_format(value1, 4) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (mysql_format(value1, 4))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, format(`value1`, 4), `value2` FROM `test`.`s32`
@@ -17425,7 +17425,7 @@ SELECT value1, from_base64(to_base64(str1)) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..407.73 rows=34 width=40)
    Output: value1, (from_base64(to_base64(str1)))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, from_base64(to_base64(`str1`)), `value2` FROM `test`.`s32`
@@ -17681,11 +17681,11 @@ SELECT hex(tag1), hex(value2), hex(value4), hex(str1), hex(str2) FROM s3 ORDER B
 --Testcase 1217:
 EXPLAIN VERBOSE
 SELECT value1, hex(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (hex(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, hex(`str1`), `value2` FROM `test`.`s32`
@@ -17940,7 +17940,7 @@ SELECT value1, insert(str1, 3, 4, str2) FROM s3 WHERE to_hex(value2) = '64';
 ---------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (insert(str1, 3, 4, str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, insert(`str1`, 3, 4, `str2`), `value2` FROM `test`.`s32`
@@ -18195,7 +18195,7 @@ SELECT value1, instr(str1, str2) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=16)
    Output: value1, (instr(str1, str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, instr(`str1`, `str2`), `value2` FROM `test`.`s32`
@@ -18451,11 +18451,11 @@ SELECT lcase(tag1), lcase(str1), lcase(str2) FROM s3 ORDER BY 1,2,3;
 --Testcase 1271:
 EXPLAIN VERBOSE
 SELECT value1, lcase(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (lcase(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, lcase(`str1`), `value2` FROM `test`.`s32`
@@ -18706,11 +18706,11 @@ SELECT left(str1, 5), left(str2, 5) FROM s3;
 --Testcase 1289:
 EXPLAIN VERBOSE
 SELECT value1, left(str1, 5) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, ("left"(str1, 5))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, left(`str1`, 5), `value2` FROM `test`.`s32`
@@ -18960,11 +18960,11 @@ SELECT length(str1), length(str2) FROM s3;
 --Testcase 1307:
 EXPLAIN VERBOSE
 SELECT value1, length(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=12)
    Output: value1, (length(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, length(`str1`), `value2` FROM `test`.`s32`
@@ -19218,7 +19218,7 @@ SELECT value1, locate(str1, str2) FROM s3 WHERE to_hex(value2) = '64';
 ---------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=16)
    Output: value1, (locate(str1, str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, locate(`str1`, `str2`), `value2` FROM `test`.`s32`
@@ -19469,11 +19469,11 @@ SELECT lower(str1), lower(str2) FROM s3;
 --Testcase 1343:
 EXPLAIN VERBOSE
 SELECT value1, lower(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (lower(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, lower(`str1`), `value2` FROM `test`.`s32`
@@ -19727,7 +19727,7 @@ SELECT value1, lpad(str1, 4, 'ABCD') FROM s3 WHERE to_hex(value2) = '64';
 -----------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (lpad(str1, 4, 'ABCD'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, lpad(`str1`, 4, 'ABCD'), `value2` FROM `test`.`s32`
@@ -19981,7 +19981,7 @@ SELECT value1, ltrim(str1, '-') FROM s3 WHERE to_hex(value2) = '64';
 ----------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (ltrim(str1, '-'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, trim(LEADING '-' FROM `str1`), `value2` FROM `test`.`s32`
@@ -20235,7 +20235,7 @@ SELECT value1, make_set(1 | 4, str1, str2) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (make_set('5'::bigint, VARIADIC ARRAY[str1, str2]))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, make_set(5, `str1`, `str2`), `value2` FROM `test`.`s32`
@@ -20490,7 +20490,7 @@ SELECT value1, mid(str2, 2, 4) FROM s3 WHERE to_hex(value2) = '64';
 ----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (mid(str2, '2'::bigint, '4'::bigint))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, mid(`str2`, 2, 4), `value2` FROM `test`.`s32`
@@ -20746,11 +20746,11 @@ SELECT oct(value2), oct(value4) FROM s3 ORDER BY 1,2;
 --Testcase 1433:
 EXPLAIN VERBOSE
 SELECT value1, oct(value4) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.31 rows=34 width=40)
    Output: value1, (oct((value4)::bigint))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, oct(`value4`), `value2` FROM `test`.`s32`
@@ -21012,7 +21012,7 @@ SELECT value1, octet_length(str1) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=12)
    Output: value1, (octet_length(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, octet_length(`str1`), `value2` FROM `test`.`s32`
@@ -21267,11 +21267,11 @@ SELECT ord(value1), ord(value2), ord(value3), ord(value4), ord(str1), ord(str2) 
 --Testcase 1469:
 EXPLAIN VERBOSE
 SELECT value1, ord(str2) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (ord(str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, ord(`str2`), `value2` FROM `test`.`s32`
@@ -21526,7 +21526,7 @@ SELECT value1, position('XYZ' IN str1) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=12)
    Output: value1, (POSITION(('XYZ'::text) IN (str1)))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, position('XYZ' IN `str1`), `value2` FROM `test`.`s32`
@@ -21778,11 +21778,11 @@ SELECT quote(str1), quote(str2) FROM s3;
 --Testcase 1505:
 EXPLAIN VERBOSE
 SELECT value1, quote(str2) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (quote(str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, quote(`str2`), `value2` FROM `test`.`s32`
@@ -22149,7 +22149,7 @@ SELECT value1, mysql_regexp_instr(str2, 'XYZ', 3, 0) FROM s3 WHERE to_hex(value2
 ----------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (mysql_regexp_instr(str2, 'XYZ'::text, 3, 0))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, regexp_instr(`str2`, 'XYZ', 3, 0), `value2` FROM `test`.`s32`
@@ -22432,7 +22432,7 @@ SELECT value1, mysql_regexp_like('   XyZ   ', str2, 'i') FROM s3 WHERE to_hex(va
 --------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (mysql_regexp_like('   XyZ   '::text, str2, 'i'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, regexp_like('   XyZ   ', `str2`, 'i'), `value2` FROM `test`.`s32`
@@ -22799,7 +22799,7 @@ SELECT value1, mysql_regexp_replace(str1, 'Y', 'y', 3, 3) FROM s3 WHERE to_hex(v
 ---------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (mysql_regexp_replace(str1, 'Y'::text, 'y'::text, 3, 3))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, regexp_replace(`str1`, 'Y', 'y', 3, 3), `value2` FROM `test`.`s32`
@@ -23166,7 +23166,7 @@ SELECT value1, mysql_regexp_substr(str1, 'xyz', 4, 0, 'i') FROM s3 WHERE to_hex(
 ----------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (mysql_regexp_substr(str1, 'xyz'::text, 4, 0, 'i'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, regexp_substr(`str1`, 'xyz', 4, 0, 'i'), `value2` FROM `test`.`s32`
@@ -23417,11 +23417,11 @@ SELECT repeat(str1, 3), repeat(str2, 3) FROM s3;
 --Testcase 1621:
 EXPLAIN VERBOSE
 SELECT value1, repeat(str1, 3) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (repeat(str1, 3))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, repeat(`str1`, 3), `value2` FROM `test`.`s32`
@@ -23675,7 +23675,7 @@ SELECT value1, replace(str1, 'XYZ', 'ABC') FROM s3 WHERE to_hex(value2) = '64';
 -----------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (replace(str1, 'XYZ'::text, 'ABC'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, replace(`str1`, 'XYZ', 'ABC'), `value2` FROM `test`.`s32`
@@ -23925,11 +23925,11 @@ SELECT reverse(str1), reverse(str2) FROM s3;
 --Testcase 1657:
 EXPLAIN VERBOSE
 SELECT value1, reverse(str1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (reverse(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, reverse(`str1`), `value2` FROM `test`.`s32`
@@ -24179,11 +24179,11 @@ SELECT right(str1, 4), right(str2, 4) FROM s3;
 --Testcase 1675:
 EXPLAIN VERBOSE
 SELECT value1, right(str1, 6) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, ("right"(str1, 6))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, right(`str1`, 6), `value2` FROM `test`.`s32`
@@ -24437,7 +24437,7 @@ SELECT value1, rpad(str1, 16, str2) FROM s3 WHERE to_hex(value2) = '64';
 -----------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (rpad(str1, 16, str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, rpad(`str1`, 16, `str2`), `value2` FROM `test`.`s32`
@@ -24691,7 +24691,7 @@ SELECT value1, rtrim(str1, '-') FROM s3 WHERE to_hex(value2) = '64';
 -----------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (rtrim(str1, '-'::text))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, trim(TRAILING '-' FROM `str1`), `value2` FROM `test`.`s32`
@@ -24941,11 +24941,11 @@ SELECT space(value2), space(value4) FROM s3;
 --Testcase 1729:
 EXPLAIN VERBOSE
 SELECT value1, space(id) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.31 rows=34 width=40)
    Output: value1, (space((id)::bigint))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, space(`id`), `value2` FROM `test`.`s32`
@@ -25234,7 +25234,7 @@ SELECT value1, strcmp(str1, str2) FROM s3 WHERE to_hex(value2) = '64';
 ---------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=12)
    Output: value1, (strcmp(str1, str2))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, strcmp(`str1`, `str2`), `value2` FROM `test`.`s32`
@@ -25489,7 +25489,7 @@ SELECT value1, substr(str2, 3, 4) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (substr(str2, 3, 4))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, substr(`str2`, 3, 4), `value2` FROM `test`.`s32`
@@ -25771,7 +25771,7 @@ SELECT value1, substring(str2, 3, 4) FROM s3 WHERE to_hex(value2) = '64';
 ----------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, ("substring"(str2, 3, 4))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, substring(`str2`, 3, 4), `value2` FROM `test`.`s32`
@@ -26025,7 +26025,7 @@ SELECT value1, substring_index(str1, '-', 5) FROM s3 WHERE to_hex(value2) = '64'
 ----------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (substring_index(str1, '-'::text, '5'::bigint))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, substring_index(`str1`, '-', 5), `value2` FROM `test`.`s32`
@@ -26285,7 +26285,7 @@ SELECT value1, to_base64(str1) FROM s3 WHERE to_hex(value2) = '64';
 ------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (to_base64(str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, to_base64(`str1`), `value2` FROM `test`.`s32`
@@ -26652,7 +26652,7 @@ SELECT value1, trim('-' FROM str1) FROM s3 WHERE to_hex(value2) = '64';
 -------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (TRIM(BOTH '-'::text FROM str1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, trim(BOTH '-' FROM `str1`), `value2` FROM `test`.`s32`
@@ -26909,11 +26909,11 @@ SELECT ucase(tag1) FROM s3 ORDER BY 1;
 --Testcase 1867:
 EXPLAIN VERBOSE
 SELECT value1, ucase(tag1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (ucase(tag1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, ucase(`tag1`), `value2` FROM `test`.`s32`
@@ -27175,7 +27175,7 @@ SELECT value1, unhex(hex(str2)) FROM s3 WHERE to_hex(value2) = '64';
 --------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..407.73 rows=34 width=40)
    Output: value1, (unhex(hex(str2)))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, unhex(hex(`str2`)), `value2` FROM `test`.`s32`
@@ -27431,11 +27431,11 @@ SELECT upper(tag1), upper(str1), upper(str2) FROM s3 ORDER BY 1,2,3;
 --Testcase 1903:
 EXPLAIN VERBOSE
 SELECT value1, upper(tag1) FROM s3 WHERE to_hex(value2) = '64';
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..390.81 rows=34 width=40)
    Output: value1, (upper(tag1))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, upper(`tag1`), `value2` FROM `test`.`s32`
@@ -27718,7 +27718,7 @@ SELECT value1, weight_string(str1, 'CHAR', 3) FROM s3 WHERE to_hex(value2) = '64
 -----------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s3  (cost=200.00..399.23 rows=34 width=40)
    Output: value1, (weight_string(str1, 'CHAR'::mysql_string_type, 3))
-   Filter: ((to_hex(s3.value2) = '64'::text) AND (to_hex(s3.value2) = '64'::text))
+   Filter: (to_hex(s3.value2) = '64'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT `value1`, weight_string(`str1` AS CHAR(3)), `value2` FROM `test`.`s32`
@@ -27987,7 +27987,7 @@ SELECT adddate(c2, 31), adddate(c2, INTERVAL '6 months 2 hours 30 minutes'), add
    Sort Key: (adddate((time_tbl.c2)::timestamp without time zone, 31)), (adddate((time_tbl.c2)::timestamp without time zone, '@ 6 mons 2 hours 30 mins'::interval)), (adddate('2021-01-02 00:00:00'::timestamp without time zone, '@ 6 mons 2 hours 30 mins'::interval)), (adddate('2021-01-02 00:00:00'::timestamp without time zone, 31))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.90 rows=34 width=24)
          Output: (adddate((c2)::timestamp without time zone, 31)), (adddate((c2)::timestamp without time zone, '@ 6 mons 2 hours 30 mins'::interval)), (adddate('2021-01-02 00:00:00'::timestamp without time zone, '@ 6 mons 2 hours 30 mins'::interval)), (adddate('2021-01-02 00:00:00'::timestamp without time zone, 31))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -28426,7 +28426,7 @@ SELECT addtime(c3, '1 12:59:10'), addtime(c3, INTERVAL '6 months 2 hours 30 minu
    Sort Key: (addtime(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (addtime(time_tbl.c3, '@ 6 mons 2 hours 30 mins'::interval)), (addtime(timediff(time_tbl.c3, '2008-01-01 00:00:00.000001'::timestamp without time zone), '@ 6 mons 2 hours 30 mins'::interval)), (addtime('@ 1 day 12 hours 59 mins 10 secs'::interval, '@ 6 mons 2 hours 30 mins'::interval))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.23 rows=34 width=48)
          Output: (addtime(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (addtime(c3, '@ 6 mons 2 hours 30 mins'::interval)), (addtime(timediff(c3, '2008-01-01 00:00:00.000001'::timestamp without time zone), '@ 6 mons 2 hours 30 mins'::interval)), (addtime('@ 1 day 12 hours 59 mins 10 secs'::interval, '@ 6 mons 2 hours 30 mins'::interval))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -28820,7 +28820,7 @@ SELECT convert_tz(c3,'+00:00','+10:00'), convert_tz(c3, 'GMT', 'MET'), convert_t
    Sort Key: (convert_tz(time_tbl.c3, '+00:00'::text, '+10:00'::text)), (convert_tz(time_tbl.c3, 'GMT'::text, 'MET'::text)), (convert_tz(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), 'GMT'::text, 'MET'::text)), (convert_tz('2021-01-01 12:00:00'::timestamp without time zone, '+00:00'::text, '+10:00'::text))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.23 rows=34 width=32)
          Output: (convert_tz(c3, '+00:00'::text, '+10:00'::text)), (convert_tz(c3, 'GMT'::text, 'MET'::text)), (convert_tz(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), 'GMT'::text, 'MET'::text)), (convert_tz('2021-01-01 12:00:00'::timestamp without time zone, '+00:00'::text, '+10:00'::text))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -29185,11 +29185,11 @@ SELECT curdate() FROM time_tbl;
 --Testcase 2025:
 EXPLAIN VERBOSE
 SELECT curdate() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=4)
    Output: (curdate())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT curdate(), `id` FROM `test`.`time_tbl2`
@@ -29604,11 +29604,11 @@ SELECT mysql_current_date() FROM time_tbl;
 --Testcase 2047:
 EXPLAIN VERBOSE
 SELECT mysql_current_date() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=4)
    Output: (mysql_current_date())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT current_date(), `id` FROM `test`.`time_tbl2`
@@ -29998,11 +29998,11 @@ SELECT curtime() FROM time_tbl;
 --Testcase 2069:
 EXPLAIN VERBOSE
 SELECT curtime() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (curtime())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT curtime(), `id` FROM `test`.`time_tbl2`
@@ -30412,11 +30412,11 @@ SELECT mysql_current_time() FROM time_tbl;
 --Testcase 2091:
 EXPLAIN VERBOSE
 SELECT mysql_current_time() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (mysql_current_time())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT current_time(), `id` FROM `test`.`time_tbl2`
@@ -30830,7 +30830,7 @@ SELECT mysql_current_timestamp() FROM time_tbl WHERE to_hex(id) > '0';
 ----------------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (mysql_current_timestamp())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT current_timestamp(), `id` FROM `test`.`time_tbl2`
@@ -31264,7 +31264,7 @@ SELECT date(c3), date(c2), date(date_sub(c3, '1 12:59:10')), date('2021-01-01 12
    Sort Key: (date(time_tbl.c3)), time_tbl.c2, (date(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval)))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..399.40 rows=34 width=16)
          Output: (date(c3)), c2, (date(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), '2021-01-01'::date
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -31665,7 +31665,7 @@ SELECT date_add(c2, '1 12:59:10'::interval), date_add('2021-01-02', '1-2'::inter
    Sort Key: (date_add((time_tbl.c2)::timestamp without time zone, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (date_add('2021-01-02 00:00:00'::timestamp without time zone, '@ 1 year 2 mons'::interval)), (date_add(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), '@ 1 year 2 mons'::interval)), (date_add('2021-01-02 00:00:00'::timestamp without time zone, '@ 1 year 2 mons'::interval))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=32)
          Output: (date_add((c2)::timestamp without time zone, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (date_add('2021-01-02 00:00:00'::timestamp without time zone, '@ 1 year 2 mons'::interval)), (date_add(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), '@ 1 year 2 mons'::interval)), (date_add('2021-01-02 00:00:00'::timestamp without time zone, '@ 1 year 2 mons'::interval))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -32065,7 +32065,7 @@ SELECT date_format(c3,'%H %k %I %r %T %S %w'), date_format(c3, '%W %M %Y'), date
    Sort Key: (date_format(time_tbl.c3, '%H %k %I %r %T %S %w'::text)), (date_format(time_tbl.c3, '%W %M %Y'::text)), (date_format((time_tbl.c2)::timestamp without time zone, '%X %V'::text)), (date_format('2009-10-04 22:23:00'::timestamp without time zone, '%W %M %Y'::text))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.81 rows=34 width=128)
          Output: (date_format(c3, '%H %k %I %r %T %S %w'::text)), (date_format(c3, '%W %M %Y'::text)), (date_format((c2)::timestamp without time zone, '%X %V'::text)), (date_format('2009-10-04 22:23:00'::timestamp without time zone, '%W %M %Y'::text))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -32460,7 +32460,7 @@ SELECT date_sub(c2, '1 12:59:10'), date_sub(c2, '1-1'), date_sub(date_sub(c3, '1
    Sort Key: (date_sub(time_tbl.c2, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (date_sub(time_tbl.c2, '@ 1 year 1 mon'::interval)), (date_sub(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), '@ 1 year 1 mon'::interval)), (date_sub('2021-01-01 12:00:00'::timestamp without time zone, '@ 1 year 1 mon'::interval))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.23 rows=34 width=24)
          Output: (date_sub(c2, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (date_sub(c2, '@ 1 year 1 mon'::interval)), (date_sub(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval), '@ 1 year 1 mon'::interval)), (date_sub('2021-01-01 12:00:00'::timestamp without time zone, '@ 1 year 1 mon'::interval))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -32860,7 +32860,7 @@ SELECT datediff(c3, c2), datediff(c2, '2004-10-19 10:23:54'::timestamp), datedif
    Sort Key: (datediff(time_tbl.c3, (time_tbl.c2)::timestamp without time zone)), (datediff((time_tbl.c2)::timestamp without time zone, '2004-10-19 10:23:54'::timestamp without time zone)), (datediff((time_tbl.c2)::timestamp without time zone, '2007-12-31 00:00:00'::timestamp without time zone)), (datediff('2007-12-31 23:59:59'::timestamp without time zone, '2007-12-30 00:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.98 rows=34 width=16)
          Output: (datediff(c3, (c2)::timestamp without time zone)), (datediff((c2)::timestamp without time zone, '2004-10-19 10:23:54'::timestamp without time zone)), (datediff((c2)::timestamp without time zone, '2007-12-31 00:00:00'::timestamp without time zone)), (datediff('2007-12-31 23:59:59'::timestamp without time zone, '2007-12-30 00:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -33283,7 +33283,7 @@ SELECT yearweek(c3), yearweek(c2), yearweek(date_sub(c3, '1 12:59:10')), yearwee
    Sort Key: (yearweek(time_tbl.c3)), (yearweek((time_tbl.c2)::timestamp without time zone)), (yearweek(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (yearweek('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (yearweek(c3)), (yearweek((c2)::timestamp without time zone)), (yearweek(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (yearweek('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -33680,7 +33680,7 @@ SELECT year(c3), year(c2), year(date_sub(c3, '1 12:59:10')), year('2021-01-01 12
    Sort Key: (year(time_tbl.c3)), (year((time_tbl.c2)::timestamp without time zone)), (year(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (year('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (year(c3)), (year((c2)::timestamp without time zone)), (year(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (year('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -34077,7 +34077,7 @@ SELECT weekofyear(c3), weekofyear(c2), weekofyear(date_sub(c3, '1 12:59:10')), w
    Sort Key: (weekofyear(time_tbl.c3)), (weekofyear((time_tbl.c2)::timestamp without time zone)), (weekofyear(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (weekofyear('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (weekofyear(c3)), (weekofyear((c2)::timestamp without time zone)), (weekofyear(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (weekofyear('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -34474,7 +34474,7 @@ SELECT weekday(c3), weekday(c2), weekday(date_sub(c3, '1 12:59:10')), weekday('2
    Sort Key: (weekday(time_tbl.c3)), (weekday((time_tbl.c2)::timestamp without time zone)), (weekday(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (weekday('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (weekday(c3)), (weekday((c2)::timestamp without time zone)), (weekday(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (weekday('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -34874,7 +34874,7 @@ SELECT week(c2, 7), week(c2, 1), week('2021-01-02'::date, 1), week('2021-01-02':
    Sort Key: (week((time_tbl.c2)::timestamp without time zone, 7)), (week((time_tbl.c2)::timestamp without time zone, 1)), (week('2021-01-02 00:00:00'::timestamp without time zone, 1)), (week('2021-01-02 00:00:00'::timestamp without time zone, 7))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.90 rows=34 width=16)
          Output: (week((c2)::timestamp without time zone, 7)), (week((c2)::timestamp without time zone, 1)), (week('2021-01-02 00:00:00'::timestamp without time zone, 1)), (week('2021-01-02 00:00:00'::timestamp without time zone, 7))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -35275,11 +35275,11 @@ SELECT utc_timestamp() FROM time_tbl;
 --Testcase 2409:
 EXPLAIN VERBOSE
 SELECT utc_timestamp() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (utc_timestamp())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT utc_timestamp(), `id` FROM `test`.`time_tbl2`
@@ -35688,11 +35688,11 @@ SELECT utc_time() FROM time_tbl;
 --Testcase 2431:
 EXPLAIN VERBOSE
 SELECT utc_time() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (utc_time())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT utc_time(), `id` FROM `test`.`time_tbl2`
@@ -36091,11 +36091,11 @@ SELECT utc_date() FROM time_tbl;
 --Testcase 2453:
 EXPLAIN VERBOSE
 SELECT utc_date() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=4)
    Output: (utc_date())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT utc_date(), `id` FROM `test`.`time_tbl2`
@@ -36516,7 +36516,7 @@ SELECT unix_timestamp(), unix_timestamp(c3), unix_timestamp(c2) FROM time_tbl WH
    Sort Key: (unix_timestamp()), (unix_timestamp(time_tbl.c3)), (unix_timestamp((time_tbl.c2)::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..2126.10 rows=2276 width=96)
          Output: (unix_timestamp()), (unix_timestamp(c3)), (unix_timestamp((c2)::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -36855,7 +36855,7 @@ SELECT to_seconds(id + 200719), to_seconds(c3), to_seconds(c2) FROM time_tbl WHE
    Sort Key: (to_seconds((time_tbl.id + 200719))), (to_seconds(time_tbl.c3)), (to_seconds((time_tbl.c2)::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..2131.79 rows=2276 width=24)
          Output: (to_seconds((id + 200719))), (to_seconds(c3)), (to_seconds((c2)::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -37226,7 +37226,7 @@ SELECT to_days(id + 200719), to_days(c2) FROM time_tbl WHERE to_hex(id) > '0' OR
    Sort Key: (to_days((time_tbl.id + 200719))), (to_days(time_tbl.c2))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..1557.10 rows=2276 width=8)
          Output: (to_days((id + 200719))), (to_days(c2))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -37606,7 +37606,7 @@ SELECT timestampdiff('DAY', c2, c3), timestampdiff('DAY', c3, c2), timestampdiff
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..424.98 rows=34 width=32)
    Output: (timestampdiff('DAY'::time_unit, (c2)::timestamp without time zone, c3)), (timestampdiff('DAY'::time_unit, c3, (c2)::timestamp without time zone)), (timestampdiff('DAY'::time_unit, (c2)::timestamp without time zone, '2080-01-01 00:00:00'::timestamp without time zone)), (timestampdiff('YEAR'::time_unit, c3, '2080-01-01 12:00:00'::timestamp without time zone))
-   Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+   Filter: (to_hex(time_tbl.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT timestampdiff(DAY, `c2`, `c3`), timestampdiff(DAY, `c3`, `c2`), timestampdiff(DAY, `c2`, '2080-01-01 00:00:00'), timestampdiff(YEAR, `c3`, '2080-01-01 12:00:00'), `id` FROM `test`.`time_tbl2`
@@ -37913,7 +37913,7 @@ SELECT timestampadd('MINUTE', 10, c3), timestampadd('YEAR', 5, c2) FROM time_tbl
    Sort Key: (timestampadd('MINUTE'::time_unit, 10, time_tbl.c3)), (timestampadd('YEAR'::time_unit, 5, (time_tbl.c2)::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.81 rows=34 width=16)
          Output: (timestampadd('MINUTE'::time_unit, 10, c3)), (timestampadd('YEAR'::time_unit, 5, (c2)::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -38215,7 +38215,7 @@ SELECT mysql_timestamp(c2), mysql_timestamp(c3), mysql_timestamp(c3, c1) FROM ti
    Sort Key: (mysql_timestamp((time_tbl.c2)::timestamp without time zone)), (mysql_timestamp(time_tbl.c3)), (mysql_timestamp(time_tbl.c3, time_tbl.c1))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..416.31 rows=34 width=24)
          Output: (mysql_timestamp((c2)::timestamp without time zone)), (mysql_timestamp(c3)), (mysql_timestamp(c3, c1))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -38538,7 +38538,7 @@ SELECT timediff(c1, '12:12:12.051555'::time), timediff(c3, '1997-01-01 12:00:00'
    Sort Key: (timediff(time_tbl.c1, '12:12:12.051555'::time without time zone)), (timediff(time_tbl.c3, '1997-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=32)
          Output: (timediff(c1, '12:12:12.051555'::time without time zone)), (timediff(c3, '1997-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -38851,7 +38851,7 @@ SELECT time_to_sec(c1), time_to_sec(mysql_time(c3)), time_to_sec('01:02:03.04050
    Sort Key: (time_to_sec(time_tbl.c1)), (time_to_sec(mysql_time(time_tbl.c3))), (time_to_sec('01:02:03.040505'::time without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.73 rows=34 width=12)
          Output: (time_to_sec(c1)), (time_to_sec(mysql_time(c3))), (time_to_sec('01:02:03.040505'::time without time zone))
-         Filter: ((to_hex(time_tbl.id) = '2'::text) AND (to_hex(time_tbl.id) = '2'::text))
+         Filter: (to_hex(time_tbl.id) = '2'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -39245,7 +39245,7 @@ SELECT time_format(c1, '%H %k %h %I %l'), time_format(mysql_time(c3), '%H %k %h 
    Sort Key: (time_format(time_tbl.c1, '%H %k %h %I %l'::text)), (time_format(mysql_time(time_tbl.c3), '%H %k %h %I %l'::text)), (time_format('01:02:03.040505'::time without time zone, '%H %k %h %I %l'::text))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..424.73 rows=34 width=96)
          Output: (time_format(c1, '%H %k %h %I %l'::text)), (time_format(mysql_time(c3), '%H %k %h %I %l'::text)), (time_format('01:02:03.040505'::time without time zone, '%H %k %h %I %l'::text))
-         Filter: ((to_hex(time_tbl.id) = '2'::text) AND (to_hex(time_tbl.id) = '2'::text))
+         Filter: (to_hex(time_tbl.id) = '2'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -39635,7 +39635,7 @@ SELECT mysql_time(c3), mysql_time(c2), mysql_time(date_sub(c3, '1 12:59:10')), m
    Sort Key: (mysql_time(time_tbl.c3)), (mysql_time((time_tbl.c2)::timestamp without time zone)), (mysql_time(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (mysql_time('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=32)
          Output: (mysql_time(c3)), (mysql_time((c2)::timestamp without time zone)), (mysql_time(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (mysql_time('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '0'::text) AND (to_hex(time_tbl.id) = '0'::text))
+         Filter: (to_hex(time_tbl.id) = '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -40019,7 +40019,7 @@ SELECT datediff(sysdate(), sysdate()) FROM time_tbl WHERE to_hex(id) > '0';
 -----------------------------------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..2120.41 rows=2276 width=4)
    Output: (datediff(sysdate(), sysdate()))
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT datediff(sysdate(), sysdate()), `id` FROM `test`.`time_tbl2`
@@ -40578,7 +40578,7 @@ SELECT subtime(c3, '1 12:59:10'), subtime(c3, INTERVAL '6 months 2 hours 30 minu
    Sort Key: (subtime(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (subtime(time_tbl.c3, '@ 6 mons 2 hours 30 mins'::interval)), (subtime(timediff(time_tbl.c3, '2008-01-01 00:00:00.000001'::timestamp without time zone), '@ 6 mons 2 hours 30 mins'::interval)), (subtime('@ 1 day 12 hours 59 mins 10 secs'::interval, '@ 6 mons 2 hours 30 mins'::interval))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.23 rows=34 width=48)
          Output: (subtime(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (subtime(c3, '@ 6 mons 2 hours 30 mins'::interval)), (subtime(timediff(c3, '2008-01-01 00:00:00.000001'::timestamp without time zone), '@ 6 mons 2 hours 30 mins'::interval)), (subtime('@ 1 day 12 hours 59 mins 10 secs'::interval, '@ 6 mons 2 hours 30 mins'::interval))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -40978,7 +40978,7 @@ SELECT subdate(c2, '1 12:59:10'), subdate(c3, INTERVAL '6 months 2 hours 30 minu
    Sort Key: (subdate((time_tbl.c2)::timestamp without time zone, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (subdate(time_tbl.c3, '@ 6 mons 2 hours 30 mins'::interval))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.81 rows=34 width=16)
          Output: (subdate((c2)::timestamp without time zone, '@ 1 day 12 hours 59 mins 10 secs'::interval)), (subdate(c3, '@ 6 mons 2 hours 30 mins'::interval))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -41386,7 +41386,7 @@ SELECT str_to_date(c1, '%H:%i:%s'), str_to_date(c2, '%Y-%m-%d'), str_to_date(c3,
    Sort Key: (str_to_date(time_tbl.c1, '%H:%i:%s'::text)), (str_to_date((time_tbl.c2)::timestamp without time zone, '%Y-%m-%d'::text)), (str_to_date(time_tbl.c3, '%Y-%m-%d %H:%i:%s'::text))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..416.31 rows=34 width=24)
          Output: (str_to_date(c1, '%H:%i:%s'::text)), (str_to_date((c2)::timestamp without time zone, '%Y-%m-%d'::text)), (str_to_date(c3, '%Y-%m-%d %H:%i:%s'::text))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -41723,7 +41723,7 @@ SELECT second(c1), second(c3) FROM time_tbl WHERE to_hex(id) > '0' ORDER BY 1,2;
    Sort Key: (second(time_tbl.c1)), (second(time_tbl.c3))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..1551.41 rows=2276 width=8)
          Output: (second(c1)), (second(c3))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -42121,14 +42121,14 @@ SELECT sec_to_time(id) FROM time_tbl ORDER BY 1;
 --Testcase 2834:
 EXPLAIN VERBOSE
 SELECT sec_to_time(id) FROM time_tbl WHERE to_hex(id) > '0' ORDER BY 1;
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Sort  (cost=1126.30..1131.99 rows=2276 width=8)
    Output: (sec_to_time(id))
    Sort Key: (sec_to_time(time_tbl.id))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
          Output: (sec_to_time(id))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -42522,7 +42522,7 @@ SELECT quarter(c3), quarter(c2), quarter(date_sub(c3, '1 12:59:10')), quarter('2
    Sort Key: (quarter(time_tbl.c3)), (quarter((time_tbl.c2)::timestamp without time zone)), (quarter(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (quarter('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=128)
          Output: (quarter(c3)), (quarter((c2)::timestamp without time zone)), (quarter(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (quarter('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -42919,7 +42919,7 @@ SELECT period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907) FROM time_tbl WHERE
    Sort Key: (period_diff(mysql_extract('YEAR_MONTH'::text, time_tbl.c3), 201907))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=4)
          Output: (period_diff(mysql_extract('YEAR_MONTH'::text, c3), 201907))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -43263,7 +43263,7 @@ SELECT period_add(mysql_extract('YEAR_MONTH', c3 ), 201907) FROM time_tbl WHERE 
    Sort Key: (period_add(mysql_extract('YEAR_MONTH'::text, time_tbl.c3), 201907))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=4)
          Output: (period_add(mysql_extract('YEAR_MONTH'::text, c3), 201907))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -43584,11 +43584,11 @@ SELECT mysql_now() FROM time_tbl;
 --Testcase 2930:
 EXPLAIN VERBOSE
 SELECT mysql_now() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (mysql_now())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT now(), `id` FROM `test`.`time_tbl2`
@@ -44021,7 +44021,7 @@ SELECT monthname(c3), monthname(c2), monthname(date_sub(c3, '1 12:59:10')), mont
    Sort Key: (monthname(time_tbl.c3)), (monthname((time_tbl.c2)::timestamp without time zone)), (monthname(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (monthname('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=128)
          Output: (monthname(c3)), (monthname((c2)::timestamp without time zone)), (monthname(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (monthname('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -44418,7 +44418,7 @@ SELECT month(c3), month(c2), month(date_sub(c3, '1 12:59:10')), month('2021-01-0
    Sort Key: (month(time_tbl.c3)), (month((time_tbl.c2)::timestamp without time zone)), (month(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (month('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (month(c3)), (month((c2)::timestamp without time zone)), (month(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (month('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -44815,7 +44815,7 @@ SELECT minute(c3), minute(c2), minute(date_sub(c3, '1 12:59:10')), minute('2021-
    Sort Key: (minute(time_tbl.c3)), (minute((time_tbl.c2)::timestamp without time zone)), (minute(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (minute('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (minute(c3)), (minute((c2)::timestamp without time zone)), (minute(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (minute('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -45213,7 +45213,7 @@ SELECT microsecond(c3), microsecond(c2), microsecond(date_sub(c3, '1 12:59:10.15
    Sort Key: (microsecond(time_tbl.c3)), (microsecond((time_tbl.c2)::timestamp without time zone)), (microsecond(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10.154 secs'::interval))), (microsecond('2021-01-01 12:00:00.986'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (microsecond(c3)), (microsecond((c2)::timestamp without time zone)), (microsecond(date_sub(c3, '@ 1 day 12 hours 59 mins 10.154 secs'::interval))), (microsecond('2021-01-01 12:00:00.986'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -45610,7 +45610,7 @@ SELECT maketime(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 15, 30) F
    Sort Key: (maketime(period_diff(mysql_extract('YEAR_MONTH'::text, time_tbl.c3), 201907), 15, 30))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..416.23 rows=34 width=8)
          Output: (maketime(period_diff(mysql_extract('YEAR_MONTH'::text, c3), 201907), 15, 30))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -45847,6 +45847,8 @@ SELECT max(c3), maketime(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 
 -- select maketime with group by index (result)
 --Testcase 3077:
 SELECT id, maketime(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 15, 30) FROM time_tbl group by 2,1 ORDER BY 1,2;
+WARNING:  problem in alloc set thread memory context: req size > alloc size for chunk 0x1699608 in block 0x167dde0
+WARNING:  problem in alloc set thread memory context: req size > alloc size for chunk 0x1699608 in block 0x167dde0
  id | maketime 
 ----+----------
   0 | 18:15:30
@@ -45948,7 +45950,7 @@ SELECT makedate(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 90) FROM 
    Sort Key: (makedate(period_diff(mysql_extract('YEAR_MONTH'::text, time_tbl.c3), 201907), 90))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..416.23 rows=34 width=4)
          Output: (makedate(period_diff(mysql_extract('YEAR_MONTH'::text, c3), 201907), 90))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -46262,7 +46264,7 @@ SELECT mysql_localtimestamp() FROM time_tbl WHERE to_hex(id) > '0';
 -------------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (mysql_localtimestamp())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT localtimestamp(), `id` FROM `test`.`time_tbl2`
@@ -46662,11 +46664,11 @@ SELECT mysql_localtime() FROM time_tbl;
 --Testcase 3128:
 EXPLAIN VERBOSE
 SELECT mysql_localtime() FROM time_tbl WHERE to_hex(id) > '0';
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
+                                   QUERY PLAN                                   
+--------------------------------------------------------------------------------
  Foreign Scan on public.time_tbl  (cost=200.00..982.41 rows=2276 width=8)
    Output: (mysql_localtime())
-   Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+   Filter: (to_hex(time_tbl.id) > '0'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT localtime(), `id` FROM `test`.`time_tbl2`
@@ -47089,7 +47091,7 @@ SELECT last_day(c3), last_day(c2), last_day(date_sub(c3, '1 12:59:10')), last_da
    Sort Key: (last_day(time_tbl.c3)), (last_day((time_tbl.c2)::timestamp without time zone)), (last_day(date_sub(time_tbl.c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (last_day('2021-01-01 12:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..433.31 rows=34 width=16)
          Output: (last_day(c3)), (last_day((c2)::timestamp without time zone)), (last_day(date_sub(c3, '@ 1 day 12 hours 59 mins 10 secs'::interval))), (last_day('2021-01-01 12:00:00'::timestamp without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -47486,7 +47488,7 @@ SELECT hour(c1), hour('23:00:00'::time) FROM time_tbl WHERE to_hex(id) = '1' ORD
    Sort Key: (hour(time_tbl.c1)), (hour('23:00:00'::time without time zone))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=8)
          Output: (hour(c1)), (hour('23:00:00'::time without time zone))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -47877,7 +47879,7 @@ SELECT get_format('date', 'usa'), date_format(c2, get_format('date', 'usa')), ge
    Sort Key: (get_format('date'::text, 'usa'::text)), (date_format((time_tbl.c2)::timestamp without time zone, get_format('date'::text, 'usa'::text))), (get_format('datetime'::text, 'jis'::text)), (date_format(time_tbl.c3, get_format('datetime'::text, 'jis'::text)))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..441.81 rows=34 width=128)
          Output: (get_format('date'::text, 'usa'::text)), (date_format((c2)::timestamp without time zone, get_format('date'::text, 'usa'::text))), (get_format('datetime'::text, 'jis'::text)), (date_format(c3, get_format('datetime'::text, 'jis'::text)))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -48241,7 +48243,7 @@ SELECT from_unixtime(1447430881), from_unixtime(id + 1447430881, '%Y %D %M %h:%i
    Sort Key: (from_unixtime('1447430881'::bigint)), (from_unixtime(((time_tbl.id + 1447430881))::bigint, '%Y %D %M %h:%i:%s %x'::text))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..1562.79 rows=2276 width=40)
          Output: (from_unixtime('1447430881'::bigint)), (from_unixtime(((id + 1447430881))::bigint, '%Y %D %M %h:%i:%s %x'::text))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -48595,7 +48597,7 @@ SELECT from_days(id + 200719) FROM time_tbl WHERE to_hex(id) > '0' ORDER BY 1;
    Sort Key: (from_days((time_tbl.id + 200719)))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..988.10 rows=2276 width=4)
          Output: (from_days((id + 200719)))
-         Filter: ((to_hex(time_tbl.id) > '0'::text) AND (to_hex(time_tbl.id) > '0'::text))
+         Filter: (to_hex(time_tbl.id) > '0'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -48969,7 +48971,7 @@ SELECT mysql_extract('YEAR', c2), mysql_extract('MICROSECOND', '2021-01-03 12:10
    Sort Key: (mysql_extract('YEAR'::text, (time_tbl.c2)::timestamp without time zone)), (mysql_extract('MICROSECOND'::text, '2021-01-03 12:10:30.123456'::timestamp without time zone)), (mysql_extract('DAY_MINUTE'::text, time_tbl.c3))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..416.31 rows=34 width=12)
          Output: (mysql_extract('YEAR'::text, (c2)::timestamp without time zone)), (mysql_extract('MICROSECOND'::text, '2021-01-03 12:10:30.123456'::timestamp without time zone)), (mysql_extract('DAY_MINUTE'::text, c3))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -49327,7 +49329,7 @@ SELECT dayofyear(c2), dayofyear('2021-01-01'::date) FROM time_tbl WHERE to_hex(i
    Sort Key: (dayofyear(time_tbl.c2)), (dayofyear('2021-01-01'::date))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=8)
          Output: (dayofyear(c2)), (dayofyear('2021-01-01'::date))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -49684,7 +49686,7 @@ SELECT dayofweek(c2), dayofweek('2021-01-01'::date) FROM time_tbl WHERE to_hex(i
    Sort Key: (dayofweek(time_tbl.c2)), (dayofweek('2021-01-01'::date))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=8)
          Output: (dayofweek(c2)), (dayofweek('2021-01-01'::date))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -50041,7 +50043,7 @@ SELECT dayofmonth(c2), dayofmonth('2021-01-01'::date) FROM time_tbl WHERE to_hex
    Sort Key: (dayofmonth(time_tbl.c2)), (dayofmonth('2021-01-01'::date))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=8)
          Output: (dayofmonth(c2)), (dayofmonth('2021-01-01'::date))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -50398,7 +50400,7 @@ SELECT dayname(c2), dayname('2021-01-01'::date) FROM time_tbl WHERE to_hex(id) =
    Sort Key: (dayname(time_tbl.c2)), (dayname('2021-01-01'::date))
    ->  Foreign Scan on public.time_tbl  (cost=200.00..407.73 rows=34 width=64)
          Output: (dayname(c2)), (dayname('2021-01-01'::date))
-         Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+         Filter: (to_hex(time_tbl.id) = '1'::text)
          Node: mysql_svr / Status: Alive
            Sort push-down: no
            Local server startup cost: 10
@@ -50742,7 +50744,7 @@ SELECT day(c2), day(c3), day('2021-01-01'::date), day('1997-01-31 12:00:00'::tim
          Sort Key: (day((time_tbl.c2)::timestamp without time zone)), (day(time_tbl.c3)), (day('2021-01-01 00:00:00'::timestamp without time zone))
          ->  Foreign Scan on public.time_tbl  (cost=200.00..416.31 rows=34 width=12)
                Output: (day((c2)::timestamp without time zone)), (day(c3)), (day('2021-01-01 00:00:00'::timestamp without time zone))
-               Filter: ((to_hex(time_tbl.id) = '1'::text) AND (to_hex(time_tbl.id) = '1'::text))
+               Filter: (to_hex(time_tbl.id) = '1'::text)
                Node: mysql_svr / Status: Alive
                  Sort push-down: no
                  Local server startup cost: 10
@@ -52388,7 +52390,7 @@ SELECT json_build_array(c1, c2), json_build_array(c1, c3), json_build_array(c1, 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.65 rows=34 width=160)
    Output: (json_build_array(c1, c2)), (json_build_array(c1, c3)), (json_build_array(c1, NULL::unknown)), (json_build_array(c1, true)), (json_build_array(c1, mysql_pi()))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_array(`c1`, `c2`), json_array(`c1`, `c3`), json_array(`c1`, NULL), json_array(`c1`, true), json_array(`c1`, pi()), `id` FROM `test`.`s82`
@@ -52692,7 +52694,7 @@ SELECT json_array_append(c1, '$[1], c2', '$[1], c3', '$[1], NULL', '$[1], TRUE',
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.23 rows=34 width=32)
    Output: (json_array_append(c1, VARIADIC '{"''$[1]'', c2","''$[1]'', c3","''$[1]'', NULL","''$[1]'', TRUE","''$[1]'', pi()"}'::path_value[]))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_array_append(`c1`, '$[1]', c2, '$[1]', c3, '$[1]', NULL, '$[1]', TRUE, '$[1]', pi()), `id` FROM `test`.`s82`
@@ -53174,7 +53176,7 @@ SELECT json_array_insert(c1, '$[1], c2', '$[1], c3', '$[1], NULL', '$[1], TRUE',
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.23 rows=34 width=32)
    Output: (json_array_insert(c1, VARIADIC '{"''$[1]'', c2","''$[1]'', c3","''$[1]'', NULL","''$[1]'', TRUE","''$[1]'', pi()"}'::path_value[]))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_array_insert(`c1`, '$[1]', c2, '$[1]', c3, '$[1]', NULL, '$[1]', TRUE, '$[1]', pi()), `id` FROM `test`.`s82`
@@ -53655,7 +53657,7 @@ SELECT json_contains(c1, '1', '$.a'), json_contains(c1, '{"a": 1}', '$.a'), json
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.23 rows=34 width=20)
    Output: (json_contains(c1, '1'::json, '$.a'::text)), (json_contains(c1, '{"a": 1}'::json, '$.a'::text)), (json_contains(c1, c1, '$.a'::text)), (json_contains(c1, '1'::text)), (json_contains('{"a": 1, "b": 2, "c": {"d": 4}}'::json, '1'::json, '$.a'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_contains(`c1`, CAST('1' AS JSON), '$.a'), json_contains(`c1`, CAST('{"a": 1}' AS JSON), '$.a'), json_contains(`c1`, `c1`, '$.a'), json_contains(`c1`, '1'), json_contains(CAST('{"a": 1, "b": 2, "c": {"d": 4}}' AS JSON), CAST('1' AS JSON), '$.a'), `id` FROM `test`.`s82`
@@ -54009,7 +54011,7 @@ SELECT json_contains_path(c1, 'one', '$.a', '$.e'), json_contains_path(c1, 'all'
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.73 rows=34 width=16)
    Output: (json_contains_path(c1, VARIADIC '{one,$.a,$.e}'::text[])), (json_contains_path(c1, VARIADIC '{all,$.a,$.x}'::text[])), (json_contains_path(c1, VARIADIC '{all,$.a}'::text[])), (json_contains_path('{"a": 1, "b": 2, "c": {"d": 4}}'::json, VARIADIC '{one,$.c.d}'::text[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_contains_path(`c1`, 'one', '$.a', '$.e'), json_contains_path(`c1`, 'all', '$.a', '$.x'), json_contains_path(`c1`, 'all', '$.a'), json_contains_path(CAST('{"a": 1, "b": 2, "c": {"d": 4}}' AS JSON), 'one', '$.c.d'), `id` FROM `test`.`s82`
@@ -54364,7 +54366,7 @@ SELECT json_depth(c1), json_depth(json_build_array(c1, c2)), json_depth('[10, {"
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.31 rows=34 width=20)
    Output: (json_depth(c1)), (json_depth(json_build_array(c1, c2))), (json_depth('[10, {"a": 20}]'::json)), (json_depth('1'::json)), (json_depth('true'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_depth(`c1`), json_depth(json_array(`c1`, `c2`)), json_depth(CAST('[10, {"a": 20}]' AS JSON)), json_depth(CAST('1' AS JSON)), json_depth(CAST('true' AS JSON)), `id` FROM `test`.`s82`
@@ -54701,7 +54703,7 @@ SELECT json_extract(c1, '$[1]'), json_extract(json_extract(c1, '$[1]', '$[0]')::
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..441.98 rows=34 width=160)
    Output: (json_extract(c1, VARIADIC '{$[1]}'::text[])), (json_extract((json_extract(c1, VARIADIC '{$[1],$[0]}'::text[]))::json, VARIADIC '{$[0]}'::text[])), (json_extract(c1, VARIADIC '{$.a}'::text[])), (json_extract(json_build_array(c1, c3), VARIADIC '{$[0]}'::text[])), (json_extract('{"id": 1, "b": {"c": 30}}'::json, VARIADIC '{$.id}'::text[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_extract(`c1`, '$[1]'), json_extract(json_extract(`c1`, '$[1]', '$[0]'), '$[0]'), json_extract(`c1`, '$.a'), json_extract(json_array(`c1`, `c3`), '$[0]'), json_extract(CAST('{"id": 1, "b": {"c": 30}}' AS JSON), '$.id'), `id` FROM `test`.`s82`
@@ -54853,12 +54855,12 @@ SELECT id, json_extract('{"a": "2000-01-01"}', '$.a')::timestamp, json_extract('
 SELECT json_extract('{"a": "2000-01-01"}', '$.a')::timestamptz, json_extract('{"a": "12:10:20.123456"}', '$.a')::time , json_extract('{"a": "12:10:20.123456"}', '$.a')::timetz FROM s8;
       json_extract      |  json_extract   |    json_extract    
 ------------------------+-----------------+--------------------
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
  2000-01-01 00:00:00+09 | 12:10:20.123456 | 12:10:20.123456+09
  2000-01-01 00:00:00+09 | 12:10:20.123456 | 12:10:20.123456+09
  2000-01-01 00:00:00+09 | 12:10:20.123456 | 12:10:20.123456+09
+ 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
+ 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
+ 2000-01-01 09:00:00+09 | 12:10:20.123456 | 12:10:20.123456+00
 (6 rows)
 
 -- select json_extract with type modifier (explain)
@@ -55152,7 +55154,7 @@ SELECT json_insert(c1, '$.a, c2', '$.b, c3', '$.c, NULL', '$, TRUE', '$, pi()') 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.23 rows=34 width=32)
    Output: (json_insert(c1, VARIADIC '{"''$.a'', c2","''$.b'', c3","''$.c'', NULL","''$'', TRUE","''$'', pi()"}'::path_value[]))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_insert(`c1`, '$.a', c2, '$.b', c3, '$.c', NULL, '$', TRUE, '$', pi()), `id` FROM `test`.`s82`
@@ -55634,7 +55636,7 @@ SELECT json_keys(c1), json_keys(c1, '$'), json_keys(json_build_object('a', c3)),
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.40 rows=34 width=160)
    Output: (json_keys(c1)), (json_keys(c1, '$'::text)), (json_keys(json_build_object('a', c3))), (json_keys(json_build_object('a', c3), '$.a'::text)), (json_keys('{"a": 1, "b": {"c": 30}}'::json, '$.a'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_keys(`c1`), json_keys(`c1`, '$'), json_keys(json_object('a', `c3`)), json_keys(json_object('a', `c3`), '$.a'), json_keys(CAST('{"a": 1, "b": {"c": 30}}' AS JSON), '$.a'), `id` FROM `test`.`s82`
@@ -55992,7 +55994,7 @@ SELECT json_length(c1), json_length(json_build_array(c1, 'a', c2)), json_length(
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..416.31 rows=34 width=12)
    Output: (json_length(c1)), (json_length(json_build_array(c1, 'a', c2))), (json_length('{"a": 1, "b": {"c": 30}}'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_length(`c1`), json_length(json_array(`c1`, 'a', `c2`)), json_length(CAST('{"a": 1, "b": {"c": 30}}' AS JSON)), `id` FROM `test`.`s82`
@@ -56353,7 +56355,7 @@ SELECT json_merge(c1, '[1, 2]'), json_merge(c1, '[1, 2]', '[true, false]'), json
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.81 rows=34 width=128)
    Output: (json_merge(VARIADIC ARRAY[c1, '[1, 2]'::json])), (json_merge(VARIADIC ARRAY[c1, '[1, 2]'::json, '[true, false]'::json])), (json_merge(VARIADIC ARRAY[json_build_array(c1, '[1, 2]'), '[true, false]'::json])), (json_merge(VARIADIC '{"[1, 2]","[true, false]"}'::json[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_merge(`c1`, CAST('[1, 2]' AS JSON)), json_merge(`c1`, CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), json_merge(json_array(`c1`, '[1, 2]'), CAST('[true, false]' AS JSON)), json_merge(CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), `id` FROM `test`.`s82`
@@ -56716,7 +56718,7 @@ SELECT json_merge_patch(c1, '[1, 2]'), json_merge_patch(c1, '[1, 2]', '[true, fa
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.81 rows=34 width=128)
    Output: (json_merge_patch(VARIADIC ARRAY[c1, '[1, 2]'::json])), (json_merge_patch(VARIADIC ARRAY[c1, '[1, 2]'::json, '[true, false]'::json])), (json_merge_patch(VARIADIC ARRAY[json_build_array(c1, '[1, 2]'), '[true, false]'::json])), (json_merge_patch(VARIADIC '{"[1, 2]","[true, false]"}'::json[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_merge_patch(`c1`, CAST('[1, 2]' AS JSON)), json_merge_patch(`c1`, CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), json_merge_patch(json_array(`c1`, '[1, 2]'), CAST('[true, false]' AS JSON)), json_merge_patch(CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), `id` FROM `test`.`s82`
@@ -57071,7 +57073,7 @@ SELECT json_merge_preserve(c1, '[1, 2]'), json_merge_preserve(c1, '[1, 2]', '[tr
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.81 rows=34 width=128)
    Output: (json_merge_preserve(VARIADIC ARRAY[c1, '[1, 2]'::json])), (json_merge_preserve(VARIADIC ARRAY[c1, '[1, 2]'::json, '[true, false]'::json])), (json_merge_preserve(VARIADIC ARRAY[json_build_array(c1, '[1, 2]'), '[true, false]'::json])), (json_merge_preserve(VARIADIC '{"[1, 2]","[true, false]"}'::json[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_merge_preserve(`c1`, CAST('[1, 2]' AS JSON)), json_merge_preserve(`c1`, CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), json_merge_preserve(json_array(`c1`, '[1, 2]'), CAST('[true, false]' AS JSON)), json_merge_preserve(CAST('[1, 2]' AS JSON), CAST('[true, false]' AS JSON)), `id` FROM `test`.`s82`
@@ -57435,7 +57437,7 @@ SELECT json_build_object('a', c1, 'b', c2, 'c', c3, 'd', 1, 'e', 'this is ''text
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.31 rows=34 width=32)
    Output: (json_build_object('a', c1, 'b', c2, 'c', c3, 'd', 1, 'e', 'this is ''text'' value', 'f', mysql_pi(), 'g', NULL::unknown, 'h', true))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_object('a', `c1`, 'b', `c2`, 'c', `c3`, 'd', 1, 'e', 'this is ''text'' value', 'f', pi(), 'g', NULL, 'h', true), `id` FROM `test`.`s82`
@@ -57769,7 +57771,7 @@ SELECT json_overlaps(c1, '[[1, 2], [3, 4], 5]'), json_overlaps(json_build_array(
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.31 rows=34 width=20)
    Output: (json_overlaps(c1, '[[1, 2], [3, 4], 5]'::json)), (json_overlaps(json_build_array(c1, '1'), '[[1, 2], [3, 4], 5]'::json)), (json_overlaps(c1, c1)), (json_overlaps('{"a":1,"b":10,"d":10}'::json, '{"c":1,"e":10,"f":1,"d":10}'::json)), (json_overlaps('[1,3,5,7]'::json, '[2,5,7]'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_overlaps(`c1`, CAST('[[1, 2], [3, 4], 5]' AS JSON)), json_overlaps(json_array(`c1`, '1'), CAST('[[1, 2], [3, 4], 5]' AS JSON)), json_overlaps(`c1`, `c1`), json_overlaps(CAST('{"a":1,"b":10,"d":10}' AS JSON), CAST('{"c":1,"e":10,"f":1,"d":10}' AS JSON)), json_overlaps(CAST('[1,3,5,7]' AS JSON), CAST('[2,5,7]' AS JSON)), `id` FROM `test`.`s82`
@@ -58203,7 +58205,7 @@ SELECT json_pretty(c1), json_pretty(json_build_array(c1, 1)), json_pretty('[1,3,
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.81 rows=34 width=128)
    Output: (json_pretty(c1)), (json_pretty(json_build_array(c1, 1))), (json_pretty('[1,3,5]'::json)), (json_pretty('["a",1,{"key1":"value1"},"5","77",{"key2":["value3","valuex","valuey"]},"j","2"]'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_pretty(`c1`), json_pretty(json_array(`c1`, 1)), json_pretty(CAST('[1,3,5]' AS JSON)), json_pretty(CAST('["a",1,{"key1":"value1"},"5","77",{"key2":["value3","valuex","valuey"]},"j","2"]' AS JSON)), `id` FROM `test`.`s82`
@@ -58918,7 +58920,7 @@ SELECT json_quote(c3), json_quote('null'), json_quote('"null"'), json_quote('[1,
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.73 rows=34 width=128)
    Output: (json_quote(c3)), (json_quote('null'::text)), (json_quote('"null"'::text)), (json_quote('[1, 2, 3]'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_quote(`c3`), json_quote('null'), json_quote('"null"'), json_quote('[1, 2, 3]'), `id` FROM `test`.`s82`
@@ -59273,7 +59275,7 @@ SELECT json_remove(c1, '$[1]'), json_remove(c1, '$[1]', '$[2]'), json_remove(jso
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.31 rows=34 width=160)
    Output: (json_remove(c1, VARIADIC '{$[1]}'::text[])), (json_remove(c1, VARIADIC '{$[1],$[2]}'::text[])), (json_remove(json_build_array(c1, '1'), VARIADIC '{$[1],$[2]}'::text[])), (json_remove('{ "a": 1, "b": [2, 3]}'::json, VARIADIC '{$.a}'::text[])), (json_remove('["a", ["b", "c"], "d"]'::json, VARIADIC '{$.a}'::text[]))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_remove(`c1`, '$[1]'), json_remove(`c1`, '$[1]', '$[2]'), json_remove(json_array(`c1`, '1'), '$[1]', '$[2]'), json_remove(CAST('{ "a": 1, "b": [2, 3]}' AS JSON), '$.a'), json_remove(CAST('["a", ["b", "c"], "d"]' AS JSON), '$.a'), `id` FROM `test`.`s82`
@@ -59632,7 +59634,7 @@ SELECT json_replace(c1, '$.a, c2', '$.b, c3', '$.c, NULL', '$, TRUE', '$, pi()')
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.23 rows=34 width=32)
    Output: (json_replace(c1, VARIADIC '{"''$.a'', c2","''$.b'', c3","''$.c'', NULL","''$'', TRUE","''$'', pi()"}'::path_value[]))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_replace(`c1`, '$.a', c2, '$.b', c3, '$.c', NULL, '$', TRUE, '$', pi()), `id` FROM `test`.`s82`
@@ -60109,7 +60111,7 @@ SELECT json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::j
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s9  (cost=200.00..441.73 rows=34 width=20)
    Output: (json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json)), (json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 9}'::json)), (json_schema_valid(c1, json_quote('null'::text))), (json_schema_valid(c1, '{}'::json)), (json_schema_valid(c1, '{"latitude": 63.444697,"longitude": 30}'::json))
-   Filter: ((to_hex(s9.id) = '1'::text) AND (to_hex(s9.id) = '1'::text))
+   Filter: (to_hex(s9.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_schema_valid(`c1`, CAST('{"latitude": 63.444697,"longitude": 10.445118}' AS JSON)), json_schema_valid(`c1`, CAST('{"latitude": 63.444697,"longitude": 9}' AS JSON)), json_schema_valid(`c1`, json_quote('null')), json_schema_valid(`c1`, CAST('{}' AS JSON)), json_schema_valid(`c1`, CAST('{"latitude": 63.444697,"longitude": 30}' AS JSON)), `id` FROM `test`.`s92`
@@ -60418,7 +60420,7 @@ SELECT json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s9  (cost=200.00..441.81 rows=34 width=160)
    Output: (json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10.445118}'::json)), (json_schema_validation_report(c1, '{"latitude": 63.444697,"longitude": 10.5}'::json)), (json_schema_validation_report(c1, json_quote('null'::text))), (json_schema_validation_report(c1, '{}'::json)), (json_schema_validation_report(json_build_object('latitude', 63, 'longitude', 30), '{"latitude": 63.444697,"longitude": 30}'::json))
-   Filter: ((to_hex(s9.id) = '1'::text) AND (to_hex(s9.id) = '1'::text))
+   Filter: (to_hex(s9.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_schema_validation_report(`c1`, CAST('{"latitude": 63.444697,"longitude": 10.445118}' AS JSON)), json_schema_validation_report(`c1`, CAST('{"latitude": 63.444697,"longitude": 10.5}' AS JSON)), json_schema_validation_report(`c1`, json_quote('null')), json_schema_validation_report(`c1`, CAST('{}' AS JSON)), json_schema_validation_report(json_object('latitude', 63, 'longitude', 30), CAST('{"latitude": 63.444697,"longitude": 30}' AS JSON)), `id` FROM `test`.`s92`
@@ -60733,7 +60735,7 @@ SELECT json_search(c1, 'one', 'abc'), json_search(json_build_array(c1, '1'), 'al
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.31 rows=34 width=160)
    Output: (json_search(c1, 'one'::text, 'abc'::text)), (json_search(json_build_array(c1, '1'), 'all'::text, 'abc'::text)), (json_search(c1, 'one'::text, '%a%'::text)), (json_search('{"a":1,"b":10,"d":10}'::json, 'all'::text, '%1%'::text)), (json_search('[1,3,5,7]'::json, 'one'::text, '[2,5,7]'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_search(`c1`, 'one', 'abc'), json_search(json_array(`c1`, '1'), 'all', 'abc'), json_search(`c1`, 'one', '%a%'), json_search(CAST('{"a":1,"b":10,"d":10}' AS JSON), 'all', '%1%'), json_search(CAST('[1,3,5,7]' AS JSON), 'one', '[2,5,7]'), `id` FROM `test`.`s82`
@@ -61088,7 +61090,7 @@ SELECT json_set(c1, '$.a, c2', '$.b, c3', '$.c, NULL', '$, TRUE', '$, pi()') FRO
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..399.23 rows=34 width=32)
    Output: (json_set(c1, VARIADIC '{"''$.a'', c2","''$.b'', c3","''$.c'', NULL","''$'', TRUE","''$'', pi()"}'::path_value[]))
-   Filter: ((to_hex(s8.id) = '1'::text) AND (to_hex(s8.id) = '1'::text))
+   Filter: (to_hex(s8.id) = '1'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_set(`c1`, '$.a', c2, '$.b', c3, '$.c', NULL, '$', TRUE, '$', pi()), `id` FROM `test`.`s82`
@@ -61626,7 +61628,7 @@ SELECT json_storage_size(c1), json_storage_size(json_build_array(c1, 'a', c2)), 
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..416.31 rows=34 width=12)
    Output: (json_storage_size(c1)), (json_storage_size(json_build_array(c1, 'a', c2))), (json_storage_size('{"a": 1, "b": {"c": 30}}'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_storage_size(`c1`), json_storage_size(json_array(`c1`, 'a', `c2`)), json_storage_size(CAST('{"a": 1, "b": {"c": 30}}' AS JSON)), `id` FROM `test`.`s82`
@@ -62245,7 +62247,7 @@ SELECT json_type(c1), json_type(json_build_array(c1, '1')), json_type(json_build
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..433.40 rows=34 width=160)
    Output: (json_type(c1)), (json_type(json_build_array(c1, '1'))), (json_type(json_build_object('a', '1', 'b', c2))), (json_type('{"a":1,"b":10,"d":10}'::json)), (json_type('[1,3,5,7]'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_type(`c1`), json_type(json_array(`c1`, '1')), json_type(json_object('a', '1', 'b', `c2`)), json_type(CAST('{"a":1,"b":10,"d":10}' AS JSON)), json_type(CAST('[1,3,5,7]' AS JSON)), `id` FROM `test`.`s82`
@@ -62604,7 +62606,7 @@ SELECT json_unquote(c3), json_unquote('null'), json_unquote('"null"'), json_unqu
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.73 rows=34 width=128)
    Output: (json_unquote(c3)), (json_unquote('null'::text)), (json_unquote('"null"'::text)), (json_unquote('[1, 2, 3]'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_unquote(`c3`), json_unquote('null'), json_unquote('"null"'), json_unquote('[1, 2, 3]'), `id` FROM `test`.`s82`
@@ -62997,7 +62999,7 @@ SELECT json_valid(c1), json_valid(json_build_array(c1, 'a', c2)), json_valid('{"
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..416.31 rows=34 width=12)
    Output: (json_valid(c1)), (json_valid(json_build_array(c1, 'a', c2))), (json_valid('{"a": 1, "b": {"c": 30}}'::text))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_valid(`c1`), json_valid(json_array(`c1`, 'a', `c2`)), json_valid('{"a": 1, "b": {"c": 30}}'), `id` FROM `test`.`s82`
@@ -63352,7 +63354,7 @@ SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_val
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..416.40 rows=34 width=96)
    Output: (mysql_json_value(c1, '$.a'::text)), (mysql_json_value(c1, '$[1]'::text)), ((mysql_json_value('{"item": "shoes", "price": "49.95"}'::json, '$.price'::text, 'returning decimal(10, 1)'::text))::numeric)
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT json_value(`c1`, '$.a'), json_value(`c1`, '$[1]'), json_value(CAST('{"item": "shoes", "price": "49.95"}' AS JSON), '$.price' returning decimal(10, 1)), `id` FROM `test`.`s82`
@@ -63541,12 +63543,12 @@ SELECT mysql_json_value('{"a": "2000-01-01"}', '$.a')::timestamp, mysql_json_val
 SELECT mysql_json_value('{"a": "2000-01-01"}', '$.a')::timestamptz, mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::time , mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::timetz FROM s8;
     mysql_json_value    | mysql_json_value |  mysql_json_value  
 ------------------------+------------------+--------------------
- 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
- 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
  2000-01-01 00:00:00+09 | 12:10:20.123456  | 12:10:20.123456+09
  2000-01-01 00:00:00+09 | 12:10:20.123456  | 12:10:20.123456+09
  2000-01-01 00:00:00+09 | 12:10:20.123456  | 12:10:20.123456+09
+ 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
+ 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
+ 2000-01-01 09:00:00+09 | 12:10:20.123456  | 12:10:20.123456+00
 (6 rows)
 
 -- select mysql_json_value with type modifier (explain)
@@ -63569,12 +63571,12 @@ SELECT mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp
 SELECT mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
     mysql_json_value     |      mysql_json_value      | mysql_json_value | mysql_json_value 
 -------------------------+----------------------------+------------------+------------------
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
- 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
  2000-01-01 12:02:01.123 | 2000-01-01 12:02:01.123+09 | 12:10:20.123     | 12:10:20.123+09
  2000-01-01 12:02:01.123 | 2000-01-01 12:02:01.123+09 | 12:10:20.123     | 12:10:20.123+09
  2000-01-01 12:02:01.123 | 2000-01-01 12:02:01.123+09 | 12:10:20.123     | 12:10:20.123+09
+ 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
+ 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
+ 2000-01-01 12:02:01.123 | 2000-01-01 21:02:01.123+09 | 12:10:20.123     | 12:10:20.123+00
 (6 rows)
 
 -- select mysql_json_value with type modifier (explain)
@@ -63862,7 +63864,7 @@ SELECT member_of(5, c1), member_of('ab'::text, c1), member_of('[3,4]'::json, c1)
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan on public.s8  (cost=200.00..424.81 rows=34 width=16)
    Output: (member_of(5, c1)), (member_of('ab'::text, c1)), (member_of('[3,4]'::json, c1)), (member_of(json_build_object('item', 'shoes'), '{"item": "shoes", "price": "49.95"}'::json))
-   Filter: ((to_hex(s8.id) = '2'::text) AND (to_hex(s8.id) = '2'::text))
+   Filter: (to_hex(s8.id) = '2'::text)
    Node: mysql_svr / Status: Alive
      Local server startup cost: 10
      Remote query: SELECT 5 MEMBER OF(`c1`) , 'ab' MEMBER OF(`c1`) , CAST('[3,4]' AS JSON) MEMBER OF(`c1`) , json_object('item', 'shoes') MEMBER OF(CAST('{"item": "shoes", "price": "49.95"}' AS JSON)) , `id` FROM `test`.`s82`

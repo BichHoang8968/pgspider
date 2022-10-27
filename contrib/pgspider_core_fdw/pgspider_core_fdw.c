@@ -7258,7 +7258,11 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 					/*
 					 * scan_clauses includes clauses that is given to child.
 					 */
-					*push_scan_clauses = fdw_private->base_remote_conds;
+					if (fdw_private->rinfo.remote_conds != NIL &&
+						list_difference(fdw_private->rinfo.remote_conds, fdw_private->base_remote_conds) == NIL)
+						*push_scan_clauses = fdw_private->rinfo.remote_conds;
+					else
+						*push_scan_clauses = fdw_private->base_remote_conds;
 				}
 				else if (IS_JOIN_REL(rel_child))
 				{
@@ -7357,7 +7361,11 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				/*
 				 * scan_clauses includes clauses that is given to child.
 				 */
-				*push_scan_clauses = fdw_private->base_remote_conds;
+				if (fdw_private->rinfo.remote_conds != NIL &&
+					list_difference(fdw_private->rinfo.remote_conds, fdw_private->base_remote_conds) == NIL)
+					*push_scan_clauses = fdw_private->rinfo.remote_conds;
+				else
+					*push_scan_clauses = fdw_private->base_remote_conds;
 				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
 																rel_child,
 																oid_child,
