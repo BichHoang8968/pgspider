@@ -93,6 +93,9 @@ typedef struct MemoryContextData
 	const char *name;			/* context name (just for debugging) */
 	const char *ident;			/* context ID if any (just for debugging) */
 	MemoryContextCallback *reset_cbs;	/* list of reset/delete callbacks */
+#ifdef PGSPIDER
+	pthread_t	creator_thread_id;		/* ID of the thread that created this MemoryContext */
+#endif
 } MemoryContextData;
 
 /* utils/palloc.h contains typedef struct MemoryContextData *MemoryContext */
