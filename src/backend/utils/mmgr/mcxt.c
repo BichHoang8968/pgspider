@@ -75,7 +75,18 @@ static void MemoryContextStatsPrint(MemoryContext context, void *passthru,
 									bool print_to_stderr);
 
 #ifdef PGSPIDER
-extern bool is_child_thread_running;
+extern bool		is_child_thread_running;
+extern List	   *skipped_memory_checking_context;
+static const char *skip_memory_checking_list[] = {
+	"thread tuple contxt1",
+	"thread tuple contxt2",
+	"Thread ErrorContext",
+	"thread top memory context",
+	"thread memory context",
+	"thread es_query_cxt",
+	"CacheMemoryContext",
+	NULL
+};
 #endif
 /*
  * You should not do memory allocations within a critical section, because
@@ -228,6 +239,22 @@ MemoryContextFreeContextList(void)
 	MemoryContext context = CurrentMemoryContext;
 
 	context->methods->free_context_list();
+}
+
+/*
+ * Return true if the string existed in list
+ */
+static bool
+string_exist_in_list(char *str, const char **strlist)
+{
+	int			i;
+
+	for (i = 0; strlist[i]; i++)
+	{
+		if (strcmp(str, strlist[i]) == 0)
+			return true;
+	}
+	return false;
 }
 #endif
 
@@ -767,16 +794,33 @@ MemoryContextCheck(MemoryContext context)
 
 	/*
 	 * Skip checking memory context when child thread is running and context
-	 * is created from pgspider_core_fdw
+	 * is created from pgspider_core_fdw (distinguish by name) or from child threads
+	 * (distinguish creator_thread_id).
 	 */
-	if (is_child_thread_running &&
-		(strcmp(context->name, "thread tuple contxt1") == 0 ||
-		 strcmp(context->name, "thread tuple contxt2") == 0 ||
-		 strcmp(context->name, "Thread ErrorContext") == 0 ||
-		 strcmp(context->name, "thread top memory context") == 0 ||
-		 strcmp(context->name, "thread memory context") == 0 ||
-		 strcmp(context->name, "thread es_query_cxt") == 0))
+	if ((is_child_thread_running) &&
+		((string_exist_in_list(context->name, skip_memory_checking_list)) ||
+		 context->creator_thread_id != pthread_self()))
+	{
+		/*
+		 * Append to skipped list if it does not exist in the list.
+		 * This list will be checked after child threads finished.
+		 */
+		ListCell   *lc;
+
+		foreach(lc, skipped_memory_checking_context)
+		{
+			MemoryContext ctx = (MemoryContext) lfirst(lc);
+
+			if (strcmp(ctx->name, context->name) == 0)
+				break;
+		}
+		if (lc == NULL)
+		{
+			/* Not in list, so add it */
+			skipped_memory_checking_context = lappend(skipped_memory_checking_context, context);
+		}
 		return;
+	}
 #endif
 
 	context->methods->check(context);
@@ -875,6 +919,9 @@ MemoryContextCreate(MemoryContext node,
 	node->name = name;
 	node->ident = NULL;
 	node->reset_cbs = NULL;
+#ifdef PGSPIDER
+	node->creator_thread_id = pthread_self();
+#endif
 
 	/* OK to link node into context tree */
 	if (parent)

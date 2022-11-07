@@ -45847,8 +45847,6 @@ SELECT max(c3), maketime(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 
 -- select maketime with group by index (result)
 --Testcase 3077:
 SELECT id, maketime(period_diff(mysql_extract('YEAR_MONTH', c3 ), 201907), 15, 30) FROM time_tbl group by 2,1 ORDER BY 1,2;
-WARNING:  problem in alloc set thread memory context: req size > alloc size for chunk 0x1699608 in block 0x167dde0
-WARNING:  problem in alloc set thread memory context: req size > alloc size for chunk 0x1699608 in block 0x167dde0
  id | maketime 
 ----+----------
   0 | 18:15:30

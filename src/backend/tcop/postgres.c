@@ -90,6 +90,7 @@
 __thread const char *debug_query_string;	/* client-supplied query string */
 bool		is_child_thread_running = false;	/* Flag to mark child thread
 												 * is running of PGSpider */
+List	   *skipped_memory_checking_context = NIL;		/* List of skipped memory checking contexts */
 #else
 const char *debug_query_string; /* client-supplied query string */
 #endif
@@ -1062,7 +1063,9 @@ exec_simple_query(const char *query_string)
 	bool		was_logged = false;
 	bool		use_implicit_block;
 	char		msec_str[32];
-
+#ifdef PGSPIDER
+	ListCell   *lc;
+#endif
 	/*
 	 * Report query to various monitoring facilities.
 	 */
@@ -1380,6 +1383,26 @@ exec_simple_query(const char *query_string)
 	 * iteration already did it.)
 	 */
 	finish_xact_command();
+
+#ifdef PGSPIDER
+#ifdef MEMORY_CONTEXT_CHECKING
+	/*
+	 * Execute memory checking for all skipped contexts if all child threads finish.
+	 */
+	if (is_child_thread_running == false)
+	{
+		foreach(lc, skipped_memory_checking_context)
+		{
+			MemoryContext context = (MemoryContext) lfirst(lc);
+
+			if (MemoryContextIsValid(context))
+				MemoryContextCheck(context);
+
+			skipped_memory_checking_context = foreach_delete_current(skipped_memory_checking_context, lc);
+		}
+	}
+#endif
+#endif
 
 	/*
 	 * If there were no parsetrees, return EmptyQueryResponse message.
@@ -4575,6 +4598,9 @@ PostgresMain(const char *dbname, const char *username)
 		MemoryContextSwitchTo(MessageContext);
 		MemoryContextResetAndDeleteChildren(MessageContext);
 
+#ifdef PGSPIDER
+		skipped_memory_checking_context = NIL;
+#endif
 		initStringInfo(&input_message);
 
 		/*
