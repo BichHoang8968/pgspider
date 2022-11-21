@@ -448,14 +448,12 @@ SELECT log_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestam
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 45:
 SELECT ln_all(),log10_all(),log_all(50) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub ln_all() is called
 CONTEXT:  PL/pgSQL function public.ln_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.ln_all(), public.log10_all(), public.log_all(50::double precision) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select log2 (stub function, explain)
 --Testcase 46:
 EXPLAIN VERBOSE
@@ -611,14 +609,12 @@ SELECT log10_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestam
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 58:
 SELECT log2_all(), log10_all() FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub log2_all() is called
 CONTEXT:  PL/pgSQL function public.log2_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.log2_all(), public.log10_all() FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select spread (stub agg function, explain)
 --Testcase 59:
 EXPLAIN VERBOSE
@@ -644,14 +640,12 @@ SELECT spread(value1),spread(value2),spread(value3),spread(value4) FROM s3;
 -- select spread (stub agg function, raise exception if not expected type)
 --Testcase 61:
 SELECT spread(value1::numeric),spread(value2::numeric),spread(value3::numeric),spread(value4::numeric) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub spread_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.spread_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.spread(value1::numeric), public.spread(value2::numeric), public.spread(value3::numeric), public.spread(value4::numeric) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select abs as nest function with agg (pushdown, explain)
 --Testcase 62:
 EXPLAIN VERBOSE
@@ -959,14 +953,12 @@ SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.v
 -- select spread over join query (result, stub call error)
 --Testcase 87:
 SELECT spread(t1.value1), spread(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub spread_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.spread_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.spread(r1.value1), public.spread(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select spread with having (explain)
 --Testcase 88:
 EXPLAIN VERBOSE
@@ -1424,14 +1416,12 @@ SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
 -- select multiple regex functions (do not push down, raise warning and stub error) (result)
 --Testcase 125:
 SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub first_sfunc(text, text) is called
 CONTEXT:  PL/pgSQL function public.first_sfunc(text,text) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.first('/value[1,4]/'::text), public.first('/^v.*/'::text) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select first(regex) (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 126:
 EXPLAIN VERBOSE
@@ -1629,14 +1619,12 @@ SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
 -- select multiple regex functions (do not push down, raise warning and stub error) (result)
 --Testcase 141:
 SELECT first('/value[1,4]/'), first('/^v.*/') from s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub first_sfunc(text, text) is called
 CONTEXT:  PL/pgSQL function public.first_sfunc(text,text) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.first('/value[1,4]/'::text), public.first('/^v.*/'::text) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select last(regex) (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 142:
 EXPLAIN VERBOSE
@@ -1989,14 +1977,12 @@ SELECT cumulative_sum_all(), cumulative_sum('/value[1,4]/') from s3;
 -- select multiple star and regex functions (do not push down, raise warning and stub error) (result)
 --Testcase 169:
 SELECT cumulative_sum_all(), cumulative_sum('/value[1,4]/') from s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub cumulative_sum_all() is called
 CONTEXT:  PL/pgSQL function public.cumulative_sum_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.cumulative_sum_all(), public.cumulative_sum('/value[1,4]/'::text) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select cumulative_sum(*) (stub function and group by tag only) (explain)
 --Testcase 170:
 EXPLAIN VERBOSE
@@ -2064,14 +2050,12 @@ SELECT (cumulative_sum_all()::s3).*, (cumulative_sum('/value[1,4]/')::s3).* from
 -- select cumulative_sum(*), cumulative_sum(regex) (stub function, expose data, result)
 --Testcase 175:
 SELECT (cumulative_sum_all()::s3).*, (cumulative_sum('/value[1,4]/')::s3).* from s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub cumulative_sum_all() is called
 CONTEXT:  PL/pgSQL function public.cumulative_sum_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.cumulative_sum_all(), public.cumulative_sum('/value[1,4]/'::text) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 --Testcase 176:
 EXPLAIN VERBOSE
 SELECT derivative(value1),derivative(value2),derivative(value3),derivative(value4) FROM s3;
@@ -2179,14 +2163,12 @@ SELECT derivative_all(), derivative('/value[1,4]/') from s3;
 -- select multiple star and regex functions (do not push down, raise warning and stub error) (explain)
 --Testcase 185:
 SELECT derivative_all(), derivative('/value[1,4]/') from s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub derivative_all() is called
 CONTEXT:  PL/pgSQL function public.derivative_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.derivative_all(), public.derivative('/value[1,4]/'::text) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select derivative(*) (stub function and group by tag only) (explain)
 --Testcase 186:
 EXPLAIN VERBOSE
@@ -4427,14 +4409,12 @@ SELECT integral(value1, interval '1s'),integral(value2, interval '1s'),integral(
 -- select integral (stub agg function, raise exception if not expected type)
 --Testcase 380:
 SELECT integral(value1::numeric),integral(value2::numeric),integral(value3::numeric),integral(value4::numeric) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub integral_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.integral(value1::numeric), public.integral(value2::numeric), public.integral(value3::numeric), public.integral(value4::numeric) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select integral (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 381:
 EXPLAIN VERBOSE
@@ -4536,14 +4516,12 @@ SELECT integral(t1.value1), integral(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (
 -- select integral over join query (result, stub call error)
 --Testcase 390:
 SELECT integral(t1.value1), integral(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub integral_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.integral(r1.value1), public.integral(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select integral over join query (explain)
 --Testcase 391:
 EXPLAIN VERBOSE
@@ -4561,14 +4539,12 @@ SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FR
 -- select integral over join query (result, stub call error)
 --Testcase 392:
 SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub integral_sfunc(double precision, float8, interval) is called
 CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precision,interval) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.integral(r1.value1, '@ 1 sec'::interval), public.integral(r2.value1, '@ 1 sec'::interval) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select integral with having (explain)
 --Testcase 393:
 EXPLAIN VERBOSE
@@ -4820,14 +4796,12 @@ SELECT mean(value1),mean(value2),mean(value3),mean(value4) FROM s3;
 -- select mean (stub agg function, raise exception if not expected type)
 --Testcase 415:
 SELECT mean(value1::numeric),mean(value2::numeric),mean(value3::numeric),mean(value4::numeric) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub mean_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.mean_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.mean(value1::numeric), public.mean(value2::numeric), public.mean(value3::numeric), public.mean(value4::numeric) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select mean (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 416:
 EXPLAIN VERBOSE
@@ -4893,14 +4867,12 @@ SELECT mean(t1.value1), mean(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value
 -- select mean over join query (result, stub call error)
 --Testcase 421:
 SELECT mean(t1.value1), mean(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub mean_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.mean_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.mean(r1.value1), public.mean(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select mean with having (explain)
 --Testcase 422:
 EXPLAIN VERBOSE
@@ -5144,14 +5116,12 @@ SELECT median(value1),median(value2),median(value3),median(value4) FROM s3;
 -- select median (stub agg function, raise exception if not expected type)
 --Testcase 442:
 SELECT median(value1::numeric),median(value2::numeric),median(value3::numeric),median(value4::numeric) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub median_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.median_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.median(value1::numeric), public.median(value2::numeric), public.median(value3::numeric), public.median(value4::numeric) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select median (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 443:
 EXPLAIN VERBOSE
@@ -5217,14 +5187,12 @@ SELECT median(t1.value1), median(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.v
 -- select median over join query (result, stub call error)
 --Testcase 448:
 SELECT median(t1.value1), median(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub median_sfunc(double precision, float8) is called
 CONTEXT:  PL/pgSQL function public.median_sfunc(double precision,double precision) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.median(r1.value1), public.median(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select median with having (explain)
 --Testcase 449:
 EXPLAIN VERBOSE
@@ -5468,14 +5436,12 @@ SELECT influx_mode(value1),influx_mode(value2),influx_mode(value3),influx_mode(v
 -- select influx_mode (stub agg function, raise exception if not expected type)
 --Testcase 469:
 SELECT influx_mode(value1::numeric),influx_mode(value2::numeric),influx_mode(value3::numeric),influx_mode(value4::numeric) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub influx_mode_sfunc(anyelement, anyelement) is called
 CONTEXT:  PL/pgSQL function public.influx_mode_sfunc(anyelement,anyelement) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.influx_mode(value1::numeric), public.influx_mode(value2::numeric), public.influx_mode(value3::numeric), public.influx_mode(value4::numeric) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select influx_mode (stub agg function and group by influx_time() and tag) (explain)
 --Testcase 470:
 EXPLAIN VERBOSE
@@ -5541,14 +5507,12 @@ SELECT influx_mode(t1.value1), influx_mode(t2.value1) FROM s3 t1 INNER JOIN s3 t
 -- select influx_mode over join query (result, stub call error)
 --Testcase 475:
 SELECT influx_mode(t1.value1), influx_mode(t2.value1) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub influx_mode_sfunc(anyelement, anyelement) is called
 CONTEXT:  PL/pgSQL function public.influx_mode_sfunc(anyelement,anyelement) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.influx_mode(r1.value1), public.influx_mode(r2.value1) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select influx_mode with having (explain)
 --Testcase 476:
 EXPLAIN VERBOSE
@@ -6220,14 +6184,12 @@ SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1
 -- selector function bottom() cannot be combined with other functions(result)
 --Testcase 531:
 SELECT bottom(value1, 1), bottom(value2, 1), bottom(value3, 1), bottom(value4, 1) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
-ERROR:  influxdb_fdw : selector function bottom() cannot be combined with other functions
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:influxdb_fdw : selector function bottom() cannot be combined with other functions
 }
-CONTEXT:  remote SQL command: SELECT public.bottom(value1, 1), public.bottom(value2, 1), public.bottom(value3, 1), public.bottom(value4, 1) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select influx_max(*) (stub agg function, explain)
 --Testcase 532:
 EXPLAIN VERBOSE
@@ -7017,14 +6979,12 @@ SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3;
 -- selector function top() cannot be combined with other functions(result)
 --Testcase 599:
 SELECT top(value1, 1), top(value2, 1), top(value3, 1), top(value4, 1) FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
-ERROR:  influxdb_fdw : selector function top() cannot be combined with other functions
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:influxdb_fdw : selector function top() cannot be combined with other functions
 }
-CONTEXT:  remote SQL command: SELECT public.top(value1, 1), public.top(value2, 1), public.top(value3, 1), public.top(value4, 1) FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select acos (builtin function, explain)
 --Testcase 600:
 EXPLAIN VERBOSE
@@ -7864,14 +7824,12 @@ SELECT (atan_all()::s3).* from s3;
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 668:
 SELECT asin_all(), acos_all(), atan_all() FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub asin_all() is called
 CONTEXT:  PL/pgSQL function public.asin_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.asin_all(), public.acos_all(), public.atan_all() FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select atan2 (builtin function, explain)
 --Testcase 669:
 EXPLAIN VERBOSE
@@ -8906,14 +8864,12 @@ SELECT exp_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 753:
 SELECT ceil_all(), cos_all(), exp_all() FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub ceil_all() is called
 CONTEXT:  PL/pgSQL function public.ceil_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.ceil_all(), public.cos_all(), public.exp_all() FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select floor (builtin function, explain)
 --Testcase 754:
 EXPLAIN VERBOSE
@@ -9458,14 +9414,12 @@ SELECT ln_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 798:
 SELECT ln_all(), floor_all() FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub ln_all() is called
 CONTEXT:  PL/pgSQL function public.ln_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.ln_all(), public.floor_all() FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select pow (builtin function, explain)
 --Testcase 799:
 EXPLAIN VERBOSE
@@ -10551,14 +10505,12 @@ SELECT tan_all() FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(
 -- select multiple star functions (do not push down, raise warning and stub error) (result)
 --Testcase 887:
 SELECT sin_all(), round_all(), tan_all() FROM s3;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub sin_all() is called
 CONTEXT:  PL/pgSQL function public.sin_all() line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.sin_all(), public.round_all(), public.tan_all() FROM public.s3influx
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select predictors function holt_winters() (explain)
 --Testcase 888:
 EXPLAIN VERBOSE
@@ -10709,14 +10661,12 @@ SELECT influx_count_all(*) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1
 -- select count(*) function of InfluxDB over join query (result, stub call error)
 --Testcase 899:
 SELECT influx_count_all(*) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub influx_count_all_sfunc(text) is called
 CONTEXT:  PL/pgSQL function public.influx_count_all_sfunc(text) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.influx_count_all(*) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select distinct (stub agg function, explain)
 --Testcase 900:
 EXPLAIN VERBOSE
@@ -10810,14 +10760,12 @@ SELECT influx_distinct(t1.value2) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2
 -- select distinct over join query (result, stub call error)
 --Testcase 907:
 SELECT influx_distinct(t1.value2) FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-ERROR:  pgspider_fdw fail to get tuples from child process
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
 ERROR:  stub influx_distinct_sfunc(anyelement, anyelement) is called
 CONTEXT:  PL/pgSQL function public.influx_distinct_sfunc(anyelement,anyelement) line 3 at RAISE
 }
-CONTEXT:  remote SQL command: SELECT public.influx_distinct(r1.value2) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
-
-ERROR:  PGSpider fail to iterate tuple from child thread
 -- select distinct with having (explain)
 --Testcase 908:
 EXPLAIN VERBOSE

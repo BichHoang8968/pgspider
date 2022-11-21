@@ -163,6 +163,7 @@ typedef enum
 	SPD_FS_STATE_PRE_END,
 	SPD_FS_STATE_END,
 	SPD_FS_STATE_FINISH,
+	SPD_FS_STATE_ERROR_INIT,
 	SPD_FS_STATE_ERROR,
 	SPD_FS_STATE_PENDING
 }			SpdForeignScanThreadState;
@@ -201,6 +202,7 @@ typedef struct SpdTupleQueue
 									 * main thread is processing */
 	bool		safe_to_clear;		/* The boolean variable to determine
 									 * if it is safe to clear queue slot */
+	char		*child_thread_error_msg; /* child thread error message to transfer to main thread */
 }			SpdTupleQueue;
 
 /* This structure stores child thread information. */
@@ -666,7 +668,7 @@ static TupleTableSlot *spd_queue_get(SpdTupleQueue * que, SpdQueueState * queue_
 static void spd_queue_reset(SpdTupleQueue * que);
 static void spd_queue_init(SpdTupleQueue * que, TupleDesc tupledesc, const TupleTableSlotOps *tts_ops, bool skipLast);
 static void spd_queue_notify_finish(SpdTupleQueue * que);
-static void spd_queue_notify_error(SpdTupleQueue * que);
+static void spd_queue_notify_error(SpdTupleQueue * que, char * child_thread_error_msg);
 static void spd_execute_local_query(char *query, pthread_rwlock_t * scan_mutex);
 
 static List *spd_catalog_makedivtlist(Aggref *aggref, List *newList, enum Aggtype aggtype);
@@ -1172,10 +1174,11 @@ spd_queue_notify_finish(SpdTupleQueue * que)
  * @param[in,out] que Tuple queue
  */
 static void
-spd_queue_notify_error(SpdTupleQueue * que)
+spd_queue_notify_error(SpdTupleQueue * que, char * child_thread_error_msg)
 {
 	pthread_mutex_lock(&que->qmutex);
 	que->queue_state = SPD_QUEUE_ERROR;
+	que->child_thread_error_msg = child_thread_error_msg;
 	pthread_mutex_unlock(&que->qmutex);
 }
 
@@ -1336,6 +1339,7 @@ spd_queue_reset(SpdTupleQueue * que)
 	que->main_process_idx = -1;
 	que->safe_to_clear = true;
 	que->queue_state = SPD_QUEUE_OK;
+	que->child_thread_error_msg = NULL;
 }
 
 /**
@@ -2693,32 +2697,6 @@ spd_aliveError(ForeignServer *fs)
 }
 
 /**
- * spd_ErrorCb
- *
- * Error callback for child thread.
- *
- * @param[in] arg
- */
-static void
-spd_ErrorCb(void *arg)
-{
-	if (throwErrorIfDead)
-	{
-		ErrorData  *err;
-		MemoryContext oldcontext;
-
-		oldcontext = MemoryContextSwitchTo(arg);
-		err = CopyErrorData();
-		MemoryContextSwitchTo(oldcontext);
-
-		pthread_mutex_lock(&error_mutex);
-		EmitErrorReport();
-		FreeErrorData(err);
-		pthread_mutex_unlock(&error_mutex);
-	}
-}
-
-/**
  * spd_setThreadContext
  *
  * Set error handling configuration and memory context. Additionally, create
@@ -2752,10 +2730,7 @@ spd_setThreadContext(ForeignScanThreadInfo * fssthrdInfo, ErrorContextCallback *
 
 	/* Declare ereport/elog jump is not available. */
 	PG_exception_stack = NULL;
-	pErrcallback->callback = spd_ErrorCb;
-	pErrcallback->arg = fssthrdInfo->threadMemoryContext;
-	pErrcallback->previous = NULL;
-	error_context_stack = pErrcallback;
+	error_context_stack = NULL;
 }
 
 /*
@@ -2838,7 +2813,7 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 	}
 	PG_CATCH();
 	{
-		fssthrdInfo->state = SPD_FS_STATE_ERROR;
+		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 	}
 	PG_END_TRY();
 
@@ -3049,7 +3024,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 	}
 	PG_CATCH();
 	{
-		fssthrdInfo->state = SPD_FS_STATE_ERROR;
+		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 
 #ifdef GETPROGRESS_ENABLED
 		if (fssthrdInfo->fsstate->conn)
@@ -3131,7 +3106,7 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 	}
 	PG_CATCH();
 	{
-		fssthrdInfo->state = SPD_FS_STATE_ERROR;
+		fssthrdInfo->state = SPD_FS_STATE_ERROR_INIT;
 		elog(DEBUG1, "Thread error occurred during EndForeignScan(). %s:%d",
 			 __FILE__, __LINE__);
 	}
@@ -3316,7 +3291,7 @@ spd_ForeignScan_thread(void *arg)
 
 	/* Begin Foreign Scan */
 	spd_BeginForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, &is_first);
-	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR || fssthrdInfo->state == SPD_FS_STATE_ERROR_INIT)
 		goto THREAD_EXIT;
 
 #ifdef MEASURE_TIME
@@ -3389,7 +3364,7 @@ RESCAN:
 	gettimeofday(&e1, NULL);
 	elog(DEBUG1, "thread%d end ite time = %lf", fssthrdInfo->serverId, (e1.tv_sec - e.tv_sec) + (e1.tv_usec - e.tv_usec) * 1.0E-6);
 #endif
-	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR || fssthrdInfo->state == SPD_FS_STATE_ERROR_INIT)
 		goto THREAD_EXIT;
 
 
@@ -3398,7 +3373,7 @@ THREAD_END:
 	fssthrdInfo->state = SPD_FS_STATE_PRE_END;
 	spd_EndForeignScanChild(fssthrdInfo, pChildInfo, &fdw_private->scan_mutex, agg_result, tuplectx, &fdw_private->tm_info);
 
-	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR || fssthrdInfo->state == SPD_FS_STATE_ERROR_INIT)
 		goto THREAD_EXIT;
 	else if (fssthrdInfo->requestRescan)
 		goto RESCAN;
@@ -3406,10 +3381,26 @@ THREAD_END:
 
 	fssthrdInfo->state = SPD_FS_STATE_FINISH;
 THREAD_EXIT:
-	if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
-		spd_queue_notify_error(&fssthrdInfo->tupleQueue);
+	if (fssthrdInfo->state == SPD_FS_STATE_ERROR_INIT)
+	{
+		ErrorData  *err;
+		MemoryContext oldcontext;
+
+		oldcontext = MemoryContextSwitchTo(fssthrdInfo->threadMemoryContext);
+		err = CopyErrorData();
+		MemoryContextSwitchTo(oldcontext);
+
+		/* Notify ERROR and transfer error message to main thread */
+		spd_queue_notify_error(&fssthrdInfo->tupleQueue, err->message);
+	}
+	else if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
+	{
+		spd_queue_notify_error(&fssthrdInfo->tupleQueue, NULL);
+	}
 	else
+	{
 		spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+	}
 
 	spd_freeThreadContextList();
 
@@ -10292,7 +10283,7 @@ nextChildTuple(ForeignScanThreadInfo * fssThrdInfo, int nThreads, int *nodeId, i
 				 * iteration
 				 */
 				notify_error_to_child_threads(fssThrdInfo, nThreads);
-				elog(ERROR, "PGSpider fail to iterate tuple from child thread");
+				elog(ERROR, "PGSpider fail to iterate tuple from child thread\n DETAIL:%s",fssThrdInfo[thread_idx].tupleQueue.child_thread_error_msg);
 			}
 			else
 			{

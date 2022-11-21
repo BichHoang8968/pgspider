@@ -320,8 +320,8 @@ SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should work
 ALTER SERVER postgres_srv OPTIONS (SET dbname 'no such database');
 --Testcase 42:
 SELECT c3, c4 FROM ft1 ORDER BY c3, c1 LIMIT 1;  -- should fail
-ERROR:  could not connect to server "postgres_srv"
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:could not connect to server "postgres_srv"
 DO $d$
     BEGIN
         EXECUTE $$ALTER SERVER postgres_srv
@@ -5179,26 +5179,22 @@ ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE int;
 ALTER FOREIGN TABLE ft1__postgres_srv__0 ALTER COLUMN c8 TYPE int;
 --Testcase 432:
 SELECT * FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8) WHERE x1 = 1;  -- ERROR
-ERROR:  invalid input syntax for type integer: "foo"
-CONTEXT:  processing expression at position 9 in select list
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:invalid input syntax for type integer: "foo"
 --Testcase 433:
 SELECT ftx.x1, ft2.c2, ftx.x8 FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8), ft2
   WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
-ERROR:  invalid input syntax for type integer: "foo"
-CONTEXT:  processing expression at position 3 in select list
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:invalid input syntax for type integer: "foo"
 --Testcase 434:
 SELECT ftx.x1, ft2.c2, ftx FROM ft1 ftx(x1,x2,x3,x4,x5,x6,x7,x8), ft2
   WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
-ERROR:  invalid input syntax for type integer: "foo"
-CONTEXT:  processing expression at position 9 in select list
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:invalid input syntax for type integer: "foo"
 --Testcase 435:
 SELECT sum(c2), array_agg(c8) FROM ft1 GROUP BY c8; -- ERROR
-ERROR:  invalid input syntax for type integer: "foo"
-CONTEXT:  processing expression at position 2 in select list
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:invalid input syntax for type integer: "foo"
 ANALYZE ft1; -- ERROR
 WARNING:  skipping "ft1" --- cannot analyze this foreign table
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
@@ -5252,16 +5248,12 @@ SELECT * FROM ft1 WHERE 'foo' = c8 LIMIT 1;
 -- with that remote type
 --Testcase 1202:
 SELECT * FROM ft1 WHERE c8 LIKE 'foo' LIMIT 1; -- ERROR
-ERROR:  operator does not exist: public.user_enum ~~ unknown
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c8 ~~ 'foo')) LIMIT 1::bigint
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:operator does not exist: public.user_enum ~~ unknown
 --Testcase 1203:
 SELECT * FROM ft1 WHERE c8::text LIKE 'foo' LIMIT 1; -- ERROR; cast not pushed down
-ERROR:  operator does not exist: public.user_enum ~~ unknown
-HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
-CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE ((c8 ~~ 'foo')) LIMIT 1::bigint
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:operator does not exist: public.user_enum ~~ unknown
 --Testcase 436:
 ALTER FOREIGN TABLE ft1 ALTER COLUMN c8 TYPE user_enum;
 --Testcase 437:
@@ -5295,9 +5287,8 @@ FETCH c;
 SAVEPOINT s;
 --Testcase 440:
 SELECT * FROM ft1 WHERE 1 / (c1 - 1) > 0;  -- ERROR
-ERROR:  division by zero
-CONTEXT:  remote SQL command: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (((1 / ("C 1" - 1)) > 0))
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:division by zero
 ROLLBACK TO s;
 --Testcase 441:
 FETCH c;
@@ -5435,12 +5426,12 @@ LINE 1: ERROR OUT;
 \! sleep 2
 --Testcase 1183:
 ROLLBACK TO s;
-ERROR:  Child thread pending timeout.
 --Testcase 1184:
 -- this case can has non-stable result because c1 CURSOR can be done before has any pending request.
 --Testcase 1204:
 FETCH 1000 FROM c1; -- should fail
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:Child thread pending timeout.
 --Testcase 1185:
 FETCH c1; -- should fail
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
@@ -11178,16 +11169,15 @@ SELECT t1.wr, t2.wr FROM (SELECT t1 wr, a FROM fprt1 t1 WHERE t1.a % 25 = 0) t1 
 --Testcase 1074:
 EXPLAIN (COSTS OFF)
 SELECT t1.a,t1.b FROM fprt1 t1, LATERAL (SELECT t2.a, t2.b FROM fprt2 t2 WHERE t1.a = t2.b AND t1.b = t2.a) q WHERE t1.a%25 = 0 ORDER BY 1,2;
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
- Sort
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Merge Append
    Sort Key: t1.a, t1.b
-   ->  Append
-         ->  Foreign Scan
-               Relations: (ftprt1_p1__postgres_srv__0 t1_1) INNER JOIN (ftprt2_p1__postgres_srv__0 t2_1)
-         ->  Foreign Scan
-               Relations: (ftprt1_p2__postgres_srv__0 t1_2) INNER JOIN (ftprt2_p2__postgres_srv__0 t2_2)
-(7 rows)
+   ->  Foreign Scan
+         Relations: (ftprt1_p1__postgres_srv__0 t1_1) INNER JOIN (ftprt2_p1__postgres_srv__0 t2_1)
+   ->  Foreign Scan
+         Relations: (ftprt1_p2__postgres_srv__0 t1_2) INNER JOIN (ftprt2_p2__postgres_srv__0 t2_2)
+(6 rows)
 
 --Testcase 1075:
 SELECT t1.a,t1.b FROM fprt1 t1, LATERAL (SELECT t2.a, t2.b FROM fprt2 t2 WHERE t1.a = t2.b AND t1.b = t2.a) q WHERE t1.a%25 = 0 ORDER BY 1,2;

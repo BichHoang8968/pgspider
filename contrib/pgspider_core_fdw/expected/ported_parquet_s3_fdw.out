@@ -185,7 +185,6 @@ SELECT * FROM test1 WHERE one < 1 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -196,7 +195,6 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 SELECT * FROM test1 WHERE one <= 1 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
@@ -210,7 +208,6 @@ SELECT * FROM test1 WHERE one > 6 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
     one     |           two            |                   three                    |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+--------------------------------------------+---------------------+------------+-----+-------------------+------------------
      100000 | {0,2,1000}               | MANGA&  &ANIME**日本が大好きです* *VIETNAM | 2049-01-01 00:00:00 | 2100-02-20 | t   |       5464.554455 | /parquet_s3_svr/
@@ -221,7 +218,6 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE one >= 6 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
     one     |           two            |                    three                    |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------------+------------------
@@ -235,7 +231,6 @@ SELECT * FROM test1 WHERE one = 2 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
  one |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -----+------------+-------+---------------------+------------+-----+-------+------------------
    2 | {10,11,12} | uno   | 2018-01-04 00:00:00 | 2018-01-04 | f   |   0.5 | /parquet_s3_svr/
@@ -246,7 +241,6 @@ SELECT * FROM test1 WHERE one = 7 ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
  one | two | three | four | five | six | seven | __spd_url 
 -----+-----+-------+------+------+-----+-------+-----------
 (0 rows)
@@ -255,8 +249,6 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 SELECT * FROM test1 WHERE six = true ORDER BY one;
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
      one     |           two            |                    three                    |        four         |    five    | six |    seven    |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+-------------+------------------
@@ -269,10 +261,7 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 --Testcase 27:
 SELECT * FROM test1 WHERE six = false ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
     one     |           two            |       three       |        four         |    five    | six |       seven       |    __spd_url     
 ------------+--------------------------+-------------------+---------------------+------------+-----+-------------------+------------------
@@ -287,10 +276,7 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 --Testcase 28:
 SELECT * FROM test1 WHERE seven < 0.9 ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
      one     |           two            |                    three                    |        four         |    five    | six |   seven    |    __spd_url     
 -------------+--------------------------+---------------------------------------------+---------------------+------------+-----+------------+------------------
@@ -303,10 +289,7 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 --Testcase 29:
 SELECT * FROM test1 WHERE seven IS NULL ORDER BY one;
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_2.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_3.parquet
  one |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -----+------------+-------+---------------------+------------+-----+-------+------------------
@@ -322,7 +305,6 @@ execute prep('2018-01-03');
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/
@@ -334,7 +316,6 @@ DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 execute prep('2018-01-01');
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
 DEBUG:  parquet_s3_fdw: skip rowgroup 1
-DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
 DEBUG:  parquet_s3_fdw: open Parquet file on S3. parquets3ported_1.parquet
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
