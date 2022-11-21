@@ -3884,20 +3884,10 @@ SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:0
 
 --Testcase 194:
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
-ERROR:  GridDB-API is failed by 152009
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152009
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=43)
   [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152009
-  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range. (address=127.0.0.1:10001, partition=17)
-  [152009:TQ_CONSTRAINT_ARRAY_OUT_OF_RANGE] Specified index is out of range.
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT timestamparray FROM public.s31griddb WHERE ((public.element(2, timestamparray) > '2020-12-29 04:00:00'::timestamp without time zone))
 
 --
 --if user selects non-unique functions which Griddb only supports in WHERE clause => do not push down
@@ -4076,20 +4066,10 @@ SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
 
 --Testcase 202:
 SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.element(1, timestamparray) FROM public.s31griddb
 
 --Testcase 203:
 EXPLAIN VERBOSE
@@ -4366,20 +4346,10 @@ SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
 
 --Testcase 214:
 SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.griddb_timestamp(strcol) FROM public.s31griddb
 
 --Testcase 215:
 EXPLAIN VERBOSE
@@ -4401,20 +4371,10 @@ SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
 
 --Testcase 216:
 SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.timestampadd('YEAR'::public.time_unit, date1, (-1)) FROM public.s31griddb
 
 --Testcase 217:
 EXPLAIN VERBOSE
@@ -4436,20 +4396,10 @@ SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
 
 --Testcase 218:
 SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.timestampdiff('YEAR'::public.time_unit, date1, '2018-01-04 08:48:00'::timestamp without time zone) FROM public.s31griddb
 
 --Testcase 219:
 EXPLAIN VERBOSE
@@ -4471,20 +4421,10 @@ SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
 
 --Testcase 220:
 SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.to_timestamp_ms(intcol) FROM public.s31griddb
 
 --Testcase 221:
 EXPLAIN VERBOSE
@@ -4506,20 +4446,10 @@ SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
 
 --Testcase 222:
 SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.to_epoch_ms(date1) FROM public.s31griddb
 
 --Testcase 223:
 EXPLAIN VERBOSE
@@ -4541,21 +4471,14 @@ SELECT array_length(boolarray) FROM s3 ORDER BY 1;
 
 --Testcase 224:
 SELECT array_length(boolarray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
 ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
+ DETAIL:pgspider_fdw fail to get tuples from child process
 {
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=10.116.42.130:10001, partition=17)
+  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
 }
-CONTEXT:  remote SQL command: SELECT public.array_length(boolarray) FROM public.s31griddb
-
 --Testcase 225:
 EXPLAIN VERBOSE
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
@@ -4576,20 +4499,10 @@ SELECT element(1, stringarray) FROM s3 ORDER BY 1;
 
 --Testcase 226:
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152502
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152502
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=43)
   [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152502
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented (address=127.0.0.1:10001, partition=17)
-  [152502:TQ_INTERNAL_NOT_IMPLEMENTED] Column selection and direct value selection are not implemented
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.element(1, stringarray) FROM public.s31griddb
 
 --
 --Test for unique functions of GridDB in SELECT clause: time-series functions
@@ -7169,20 +7082,10 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140
 
 --Testcase 293:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ (address=127.0.0.1:10001, partition=17)
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.140ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.14'::timestamp without time zone, 20, 'MILLISECOND'::public.time_unit) FROM public.s31griddb
 
 --rows for sampling does not exist => return rows that contains interpolated values.
 --The column which is specified as the 1st parameter will be calculated by linearly interpolating the value of the previous and next rows.
@@ -7238,20 +7141,10 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150
 
 --Testcase 297:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150', 5, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ (address=127.0.0.1:10001, partition=17)
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.150ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.15'::timestamp without time zone, 5, 'MILLISECOND'::public.time_unit) FROM public.s31griddb
 
 --In linearly interpolating the value of the previous and next rows, if one of the values does not exist => the sampling row will not be returned
 --Testcase 298:
@@ -7274,20 +7167,10 @@ SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500
 
 --Testcase 299:
 SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
-ERROR:  GridDB-API is failed by 152010
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 152010
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=43)
   [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 152010
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ (address=127.0.0.1:10001, partition=17)
-  [152010:TQ_CONSTRAINT_INVALID_ARGUMENT_TYPE] Cannot parse argument as Timestamp,2018-12-07T10:00:00.502ZZ
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT public.time_sampling(value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::public.time_unit) FROM public.s31griddb
 
 --if the first parameter is not set, * will be added as the first parameter.
 --When specified time does not exist, all columns (except timestamp key column) will be equal to the values of rows previous to the specified time.
@@ -7496,20 +7379,10 @@ SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
 
 --Testcase 317:
 SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
-ERROR:  GridDB-API is failed by 150014
+ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL:GridDB-API is failed by 150014
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=127.0.0.1:10001, partition=43)
   [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-ERROR:  pgspider_fdw fail to get tuples from child process
-{
-ERROR:  GridDB-API is failed by 150014
-  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS (address=127.0.0.1:10001, partition=17)
-  [150014:TQ_FUNCTION_NOT_FOUND] No such function : MAX_ROWS
-
-ERROR:  PGSpider fail to iterate tuple from child thread
-}
-CONTEXT:  remote SQL command: SELECT date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url FROM public.s31griddb WHERE ((public.max_rows(date) = public.min_rows(value2)))
 
 --
 -- Test syntax (xxx()::s3).*
