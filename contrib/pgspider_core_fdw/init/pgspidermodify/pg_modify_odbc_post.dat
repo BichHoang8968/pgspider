@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS tntbl2;
+CREATE TABLE tntbl2(_id text PRIMARY KEY NOT NULL, c1 int, c2 varchar(255), c3 boolean, c4 double precision, c5 bigint);
+INSERT INTO tntbl2 VALUES ('odbc', 1, 'odbc text', true, 100.0, 10000);
+
+DROP TABLE IF EXISTS tntbl3;
+CREATE TABLE tntbl3 (_id text PRIMARY KEY NOT NULL, c1 int, c2 float, c3 double precision, c4 bigint);
+INSERT INTO tntbl3 VALUES ('odbc postgres', 1, 1.1, 100.0, 10000);

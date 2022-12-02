@@ -1,0 +1,14 @@
+DROP EXTENSION IF EXISTS pgspider_core_fdw CASCADE;
+DROP EXTENSION IF EXISTS postgres_fdw CASCADE;
+CREATE EXTENSION pgspider_core_fdw;
+CREATE EXTENSION postgres_fdw;
+
+-- pgspider_core_fdw
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl1 (c1 int, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(30), c9 varchar(50), __spd_url text) SERVER pgspider_svr;
+
+-- postgres_fdw
+CREATE SERVER postgres_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432',dbname 'pg_modify_db');
+CREATE USER MAPPING FOR CURRENT_USER SERVER postgres_svr OPTIONS (user 'postgres',password 'postgres');
+CREATE FOREIGN TABLE tntbl1__postgres_svr__0 (c1 int, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(30), c9 varchar(50)) SERVER postgres_svr OPTIONS (table_name 'tntbl1');

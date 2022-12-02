@@ -531,6 +531,11 @@ transformDeleteStmt(ParseState *pstate, DeleteStmt *stmt)
 	if (pstate->p_hasAggs)
 		parseCheckAggregates(pstate, qry);
 
+#ifdef PGSPIDER
+	if (stmt->relation->spd_url_list != NULL)
+		pstate->p_target_nsitem->p_rte->spd_url_list = list_copy(stmt->relation->spd_url_list);
+#endif
+
 	return qry;
 }
 
@@ -2415,6 +2420,11 @@ transformUpdateStmt(ParseState *pstate, UpdateStmt *stmt)
 	qry->hasSubLinks = pstate->p_hasSubLinks;
 
 	assign_query_collations(pstate, qry);
+
+#ifdef PGSPIDER
+	if (stmt->relation->spd_url_list != NULL)
+		pstate->p_target_nsitem->p_rte->spd_url_list = list_copy(stmt->relation->spd_url_list);
+#endif
 
 	return qry;
 }

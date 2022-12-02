@@ -147,7 +147,8 @@ pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 		 * Validate option value, when we can do so without any context.
 		 */
 		if (strcmp(def->defname, "use_remote_estimate") == 0 ||
-			strcmp(def->defname, "updatable") == 0)
+			strcmp(def->defname, "updatable") == 0 ||
+			strcmp(def->defname, "disable_transaction_feature_check") == 0)
 		{
 			/* these accept only boolean values */
 			(void) defGetBoolean(def);
@@ -204,6 +205,7 @@ InitSpdFdwOptions(void)
 		{"dbname", ForeignTableRelationId, false},
 		{"table_name", ForeignTableRelationId, false},
 		{"column_name", AttributeRelationId, false},
+		{"disable_transaction_feature_check", ForeignTableRelationId, false},
 		/* use_remote_estimate is available on both server and table */
 		{"use_remote_estimate", ForeignServerRelationId, false},
 		{"use_remote_estimate", ForeignTableRelationId, false},

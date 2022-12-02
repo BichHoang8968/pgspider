@@ -78,12 +78,18 @@ static void MemoryContextStatsPrint(MemoryContext context, void *passthru,
 extern bool		is_child_thread_running;
 extern List	   *skipped_memory_checking_context;
 static const char *skip_memory_checking_list[] = {
-	"thread tuple contxt1",
-	"thread tuple contxt2",
-	"Thread ErrorContext",
-	"thread top memory context",
-	"thread memory context",
-	"thread es_query_cxt",
+	"scan thread tuple context1",
+	"scan thread tuple context2",
+	"Scan Thread ErrorContext",
+	"scan thread top memory context",
+	"scan thread memory context",
+	"scan thread es_query_cxt",
+	"modify thread tuple context1",
+	"modify thread tuple context2",
+	"Modify Thread ErrorContext",
+	"modify thread top memory context",
+	"modify thread memory context",
+	"modify thread es_query_cxt",
 	"CacheMemoryContext",
 	NULL
 };

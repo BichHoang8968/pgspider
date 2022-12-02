@@ -1,0 +1,3 @@
+CREATE TABLE tntbl1(c1 int primary key, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp, c8 char(255), c9 varchar(255));
+-- mysql required char length for primary key
+CREATE TABLE tntbl3 (_id varchar(100) primary key NOT NULL, c1 int, c2 float, c3 double precision, c4 bigint);

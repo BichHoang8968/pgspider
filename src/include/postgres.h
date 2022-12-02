@@ -49,6 +49,7 @@
 #ifdef PGSPIDER
 #include <pthread.h>
 #include <signal.h>
+#include <tcop/cmdtag.h>
 #endif
 
 /* ----------------------------------------------------------------
@@ -855,6 +856,9 @@ extern sigset_t spd_set_sigmask(sigset_t new_mask);
 		PG_RE_THROW(); \
 	} PG_END_TRY(); \
 	spd_set_sigmask(old_mask);
+
+/* Get command tag of query */
+extern CommandTag	get_cmd_tag(void);
 #endif							/* PGSPIDER */
 
 #endif							/* POSTGRES_H */

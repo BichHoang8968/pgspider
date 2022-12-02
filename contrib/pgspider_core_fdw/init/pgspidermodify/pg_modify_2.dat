@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS tntbl4;
+CREATE TABLE tntbl4 (c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, c6 char(255), c7 varchar(255), c8 float8, c9 smallint, c10 timestamp, c11 timestamp with time zone, c12 date, c13 json, c14 jsonb, c15 uuid, c16 point, c17 bytea, c18 bit(10), c19 varbit(10), c20 interval);
+INSERT INTO tntbl4 VALUES (20, 'texttext', false, -10.0, -1000, 'char array', 'varchar array', 1.0, 1, '2005-10-19 10:23:54', '2005-10-19 10:23:54+02', '2001-01-01', '{"product": "sample","quantity": 1}', '{"name": "paintings", "tags": ["Scene", "Portrait"], "finished": false }', '2f404849-f62c-4234-b0c8-e230bd694045', point '(1,-45)', E'\\xa7a8a9aaabacadaeaf', B'1111111111', B'10101', interval '1 year 3 hours 20 minutes');
+

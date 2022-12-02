@@ -1,0 +1,874 @@
+\set ECHO none
+--Testcase 1:
+SET datestyle = ISO;
+--Testcase 2:
+SET timezone = 'UTC';
+--Testcase 3:
+DELETE FROM pg_spd_node_info;
+--Testcase 4:
+CREATE EXTENSION pgspider_core_fdw;
+--Testcase 5:
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host :PGSPIDER_SERVER1);
+--Testcase 6:
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+-- Extensions
+--Testcase 7:
+CREATE EXTENSION griddb_fdw;
+--Testcase 8:
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+--Testcase 9:
+CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
+-- Create multi tenant tables
+-- tntbl1
+--Testcase 10:
+CREATE FOREIGN TABLE tntbl2 (_id text, c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, __spd_url text) SERVER pgspider_svr;
+-- Foreign tables
+--Testcase 11:
+CREATE FOREIGN TABLE tntbl2__griddb_svr__0 (_id text OPTIONS (rowkey 'true'), c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER griddb_svr OPTIONS (table_name 'tntbl2');
+-- Reset data of remote table before test
+DELETE FROM tntbl2__griddb_svr__0;
+-- SELECT FROM table if there is any record
+--Testcase 12:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+ _id | c1 | c2 | c3 | c4 | c5 | __spd_url 
+-----+----+----+----+----+----+-----------
+(0 rows)
+
+--
+-- INSERT
+-- insert with DEFAULT in the target_list
+--
+--Testcase 13:
+INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES (' ', DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+--Testcase 14:
+INSERT INTO tntbl2 (_id, c2, c3) VALUES ('3', DEFAULT, DEFAULT);
+--Testcase 15:
+INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('4', DEFAULT, '3q', DEFAULT);
+--Testcase 16:
+INSERT INTO tntbl2 VALUES ('DEFAULT', DEFAULT, 'test', true, 4654.0, 4000);
+--Testcase 17:
+INSERT INTO tntbl2 VALUES ('test', DEFAULT, 'test', false);
+--Testcase 18:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+   _id   | c1 |  c2  | c3 |  c4  |  c5  |  __spd_url   
+---------+----+------+----+------+------+--------------
+         |    |      |    |      |      | /griddb_svr/
+ 3       |    |      |    |      |      | /griddb_svr/
+ 4       |    | 3q   |    |      |      | /griddb_svr/
+ DEFAULT |    | test | t  | 4654 | 4000 | /griddb_svr/
+ test    |    | test | f  |      |      | /griddb_svr/
+(5 rows)
+
+--
+-- insert with similar expression / target_list VALUES (all fail)
+--
+--Testcase 19:
+INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('121', DEFAULT, DEFAULT);
+ERROR:  INSERT has more target columns than expressions
+LINE 1: INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('121', DEFAULT,...
+                                         ^
+--Testcase 20:
+INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2');
+ERROR:  INSERT has more target columns than expressions
+LINE 1: INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2');
+                                         ^
+--Testcase 21:
+INSERT INTO tntbl2 (_id, c1) VALUES ('a', 1, '3');
+ERROR:  INSERT has more expressions than target columns
+LINE 1: INSERT INTO tntbl2 (_id, c1) VALUES ('a', 1, '3');
+                                                     ^
+--Testcase 22:
+INSERT INTO tntbl2 (_id, c1) VALUES ('b', DEFAULT, DEFAULT);
+ERROR:  INSERT has more expressions than target columns
+LINE 1: INSERT INTO tntbl2 (_id, c1) VALUES ('b', DEFAULT, DEFAULT);
+                                                           ^
+--Testcase 23:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+   _id   | c1 |  c2  | c3 |  c4  |  c5  |  __spd_url   
+---------+----+------+----+------+------+--------------
+         |    |      |    |      |      | /griddb_svr/
+ 3       |    |      |    |      |      | /griddb_svr/
+ 4       |    | 3q   |    |      |      | /griddb_svr/
+ DEFAULT |    | test | t  | 4654 | 4000 | /griddb_svr/
+ test    |    | test | f  |      |      | /griddb_svr/
+(5 rows)
+
+--
+-- VALUES test
+--
+--Testcase 24:
+INSERT INTO tntbl2 VALUES('value1', 10, 'foo', false, 40.0, 5000), ('value2', -1, 'foo1', true, 2.0, DEFAULT),
+    ((SELECT 'abc'), (SELECT 2), 'VALUES are fun!', true, (SELECT i FROM (VALUES(3.0)) as foo (i)), 1000);
+--Testcase 25:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+   _id   | c1 |       c2        | c3 |  c4  |  c5  |  __spd_url   
+---------+----+-----------------+----+------+------+--------------
+         |    |                 |    |      |      | /griddb_svr/
+ 3       |    |                 |    |      |      | /griddb_svr/
+ 4       |    | 3q              |    |      |      | /griddb_svr/
+ DEFAULT |    | test            | t  | 4654 | 4000 | /griddb_svr/
+ abc     |  2 | VALUES are fun! | t  |    3 | 1000 | /griddb_svr/
+ test    |    | test            | f  |      |      | /griddb_svr/
+ value1  | 10 | foo             | f  |   40 | 5000 | /griddb_svr/
+ value2  | -1 | foo1            | t  |    2 |      | /griddb_svr/
+(8 rows)
+
+--
+-- TOASTed value test
+--
+--Testcase 26:
+INSERT INTO tntbl2 VALUES(repeat('a', 25), 30, repeat('x', 25), true, 512.0, 2000);
+--Testcase 27:
+SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
+ c1 | c3 | char_length | char_length 
+----+----+-------------+-------------
+ -1 | t  |           6 |           4
+  2 | t  |           3 |          15
+ 10 | f  |           6 |           3
+ 30 | t  |          25 |          25
+    | f  |           4 |           4
+    | t  |           7 |           4
+    |    |           1 |            
+    |    |           1 |           2
+    |    |           1 |            
+(9 rows)
+
+--
+-- INSERT with IN feature, this feature not work yet
+--
+--Testcase 28:
+INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
+ERROR:  Can not use INSERT with IN
+--Testcase 29:
+INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
+ERROR:  Can not use INSERT with IN
+--
+-- UPDATE
+--
+--Testcase 30:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 |  c4  |  c5  
+-------------+----+-------------+----+------+------
+           1 |    |           2 |    |      |     
+           1 |    |             |    |      |     
+           1 |    |             |    |      |     
+           3 |  2 |          15 | t  |    3 | 1000
+           4 |    |           4 | f  |      |     
+           6 | -1 |           4 | t  |    2 |     
+           6 | 10 |           3 | f  |   40 | 5000
+           7 |    |           4 | t  | 4654 | 4000
+          25 | 30 |          25 | t  |  512 | 2000
+(9 rows)
+
+--Testcase 31:
+UPDATE tntbl2 SET c4 = DEFAULT;
+--Testcase 32:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 |  2 |          15 | t  |    | 1000
+           4 |    |           4 | f  |    |     
+           6 | -1 |           4 | t  |    |     
+           6 | 10 |           3 | f  |    | 5000
+           7 |    |           4 | t  |    | 4000
+          25 | 30 |          25 | t  |    | 2000
+(9 rows)
+
+-- aliases for the UPDATE target table
+--Testcase 33:
+UPDATE tntbl2 AS t SET c1 = 10 WHERE t.c5 = 1000;
+--Testcase 34:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 | 10 |          15 | t  |    | 1000
+           4 |    |           4 | f  |    |     
+           6 | -1 |           4 | t  |    |     
+           6 | 10 |           3 | f  |    | 5000
+           7 |    |           4 | t  |    | 4000
+          25 | 30 |          25 | t  |    | 2000
+(9 rows)
+
+--Testcase 35:
+UPDATE tntbl2 t SET c1 = t.c1 + 10 WHERE t.c5 = 1000;
+--Testcase 36:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 | 20 |          15 | t  |    | 1000
+           4 |    |           4 | f  |    |     
+           6 | -1 |           4 | t  |    |     
+           6 | 10 |           3 | f  |    | 5000
+           7 |    |           4 | t  |    | 4000
+          25 | 30 |          25 | t  |    | 2000
+(9 rows)
+
+--
+-- Test VALUES in FROM
+--
+--Testcase 37:
+UPDATE tntbl2 SET c1=v.i FROM (VALUES(10, 1000)) AS v(i, j)
+  WHERE tntbl2.c5 = v.j;
+--Testcase 38:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 | 10 |          15 | t  |    | 1000
+           4 |    |           4 | f  |    |     
+           6 | -1 |           4 | t  |    |     
+           6 | 10 |           3 | f  |    | 5000
+           7 |    |           4 | t  |    | 4000
+          25 | 30 |          25 | t  |    | 2000
+(9 rows)
+
+-- fail, wrong data type:
+--Testcase 39:
+UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
+  WHERE tntbl2.c5 = v.j;
+ERROR:  column "c1" is of type integer but expression is of type record
+LINE 1: UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j...
+                               ^
+HINT:  You will need to rewrite or cast the expression.
+--
+-- Test multiple-set-clause syntax
+--
+--Testcase 40:
+INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+--Testcase 41:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 | 10 |          15 | t  |    | 1000
+           3 |    |           4 |    |    |     
+           3 |    |             |    |    |     
+           3 |    |             |    |    |     
+           4 |    |           4 | f  |    |     
+           5 | 11 |          17 |    |    |     
+           6 | -1 |           4 | t  |    |     
+           6 | 10 |           3 | f  |    | 5000
+           6 |    |           6 |    |    |     
+           7 |    |           4 | t  |    | 4000
+           8 |  0 |           6 |    |    |     
+           8 | 11 |           5 |    |    |     
+           9 |    |           6 |    |    |     
+          25 | 30 |          25 | t  |    | 2000
+          27 | 31 |          27 |    |    |     
+(18 rows)
+
+--Testcase 42:
+UPDATE tntbl2 SET (c1, c2) = (c1+11, DEFAULT) WHERE c3 = true;
+--Testcase 43:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 | c4 |  c5  
+-------------+----+-------------+----+----+------
+           1 |    |           2 |    |    |     
+           1 |    |             |    |    |     
+           1 |    |             |    |    |     
+           3 | 21 |             | t  |    | 1000
+           3 |    |           4 |    |    |     
+           3 |    |             |    |    |     
+           3 |    |             |    |    |     
+           4 |    |           4 | f  |    |     
+           5 | 11 |          17 |    |    |     
+           6 | 10 |           3 | f  |    | 5000
+           6 | 10 |             | t  |    |     
+           6 |    |           6 |    |    |     
+           7 |    |             | t  |    | 4000
+           8 |  0 |           6 |    |    |     
+           8 | 11 |           5 |    |    |     
+           9 |    |           6 |    |    |     
+          25 | 41 |             | t  |    | 2000
+          27 | 31 |          27 |    |    |     
+(18 rows)
+
+--Testcase 44:
+UPDATE tntbl2 SET (c2, c1) = ('car', c1 + c5), c4 = c4 + 10.0 WHERE c1 = 10;
+--Testcase 45:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length |  c1  | char_length | c3 | c4 |  c5  
+-------------+------+-------------+----+----+------
+           1 |      |           2 |    |    |     
+           1 |      |             |    |    |     
+           1 |      |             |    |    |     
+           3 |   21 |             | t  |    | 1000
+           3 |      |           4 |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    |     
+           4 |      |           4 | f  |    |     
+           5 |   11 |          17 |    |    |     
+           6 | 5010 |           3 | f  |    | 5000
+           6 |      |           3 | t  |    |     
+           6 |      |           6 |    |    |     
+           7 |      |             | t  |    | 4000
+           8 |    0 |           6 |    |    |     
+           8 |   11 |           5 |    |    |     
+           9 |      |           6 |    |    |     
+          25 |   41 |             | t  |    | 2000
+          27 |   31 |          27 |    |    |     
+(18 rows)
+
+-- fail, multi assignment to same column:
+--Testcase 46:
+UPDATE tntbl2 SET (c2, c4) = ('car', c1 + c4), c4 = c1 + 1 WHERE c1 = 10;
+ERROR:  multiple assignments to same column "c4"
+-- uncorrelated sub-SELECT:
+--Testcase 47:
+UPDATE tntbl2
+  SET (c1, c3) = (SELECT c1, c3 FROM tntbl2 where c1 = 1010 and c2 = 'car')
+  WHERE c5 = 1000 AND c1 = 21;
+--Testcase 48:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length |  c1  | char_length | c3 | c4 |  c5  
+-------------+------+-------------+----+----+------
+           1 |      |           2 |    |    |     
+           1 |      |             |    |    |     
+           1 |      |             |    |    |     
+           3 |      |           4 |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    | 1000
+           3 |      |             |    |    |     
+           4 |      |           4 | f  |    |     
+           5 |   11 |          17 |    |    |     
+           6 | 5010 |           3 | f  |    | 5000
+           6 |      |           3 | t  |    |     
+           6 |      |           6 |    |    |     
+           7 |      |             | t  |    | 4000
+           8 |    0 |           6 |    |    |     
+           8 |   11 |           5 |    |    |     
+           9 |      |           6 |    |    |     
+          25 |   41 |             | t  |    | 2000
+          27 |   31 |          27 |    |    |     
+(18 rows)
+
+-- correlated sub-SELECT:
+--Testcase 49:
+UPDATE tntbl2 o
+  SET (c5, c1) = (SELECT c1+1, c5 FROM tntbl2 i
+               where i.c1=o.c1 and i.c5=o.c5 and i.c2 is not distinct FROM o.c2);
+--Testcase 50:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length |  c1  | char_length | c3 | c4 |  c5  
+-------------+------+-------------+----+----+------
+           1 |      |           2 |    |    |     
+           1 |      |             |    |    |     
+           1 |      |             |    |    |     
+           3 |      |           4 |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    |     
+           4 |      |           4 | f  |    |     
+           5 |      |          17 |    |    |     
+           6 | 5000 |           3 | f  |    | 5011
+           6 |      |           3 | t  |    |     
+           6 |      |           6 |    |    |     
+           7 |      |             | t  |    |     
+           8 |      |           5 |    |    |     
+           8 |      |           6 |    |    |     
+           9 |      |           6 |    |    |     
+          25 | 2000 |             | t  |    |   42
+          27 |      |          27 |    |    |     
+(18 rows)
+
+-- fail, multiple rows supplied:
+--Testcase 51:
+UPDATE tntbl2 SET (c5, c1) = (SELECT c1+1, c5 FROM tntbl2);
+ERROR:  more than one row returned by a subquery used as an expression
+-- set to null if no rows supplied:
+--Testcase 52:
+UPDATE tntbl2 SET (c5 , c1) = (SELECT c1+1, c5 FROM tntbl2 where c4 = 10.0)
+  WHERE c4 = 50.0;
+--Testcase 53:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length |  c1  | char_length | c3 | c4 |  c5  
+-------------+------+-------------+----+----+------
+           1 |      |           2 |    |    |     
+           1 |      |             |    |    |     
+           1 |      |             |    |    |     
+           3 |      |           4 |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    |     
+           3 |      |             |    |    |     
+           4 |      |           4 | f  |    |     
+           5 |      |          17 |    |    |     
+           6 | 5000 |           3 | f  |    | 5011
+           6 |      |           3 | t  |    |     
+           6 |      |           6 |    |    |     
+           7 |      |             | t  |    |     
+           8 |      |           5 |    |    |     
+           8 |      |           6 |    |    |     
+           9 |      |           6 |    |    |     
+          25 | 2000 |             | t  |    |   42
+          27 |      |          27 |    |    |     
+(18 rows)
+
+-- *-expansion should work in this context:
+--Testcase 54:
+UPDATE tntbl2 SET (c1, c5) = ROW(v.*) FROM (VALUES(20, 3)) AS v(i, j)
+  WHERE tntbl2.c1 = v.j;
+-- you might expect this to work, but syntactically it's not a RowExpr:
+--Testcase 55:
+UPDATE tntbl2 SET (c1, c5) = (v.*) FROM (VALUES(20, 3)) AS v(i, j)
+  WHERE tntbl2.c1 = v.j;
+ERROR:  source for a multiple-column UPDATE item must be a sub-SELECT or ROW() expression
+LINE 1: UPDATE tntbl2 SET (c1, c5) = (v.*) FROM (VALUES(20, 3)) AS v...
+                                      ^
+-- if an alias for the target table is specified, don't allow references
+-- to the original table name
+--Testcase 56:
+UPDATE tntbl2 AS t SET c4 = tntbl2.c4 + 10 WHERE t.c1 = 10;
+ERROR:  invalid reference to FROM-clause entry for table "tntbl2"
+LINE 1: UPDATE tntbl2 AS t SET c4 = tntbl2.c4 + 10 WHERE t.c1 = 10;
+                                    ^
+HINT:  Perhaps you meant to reference the table alias "t".
+-- Make sure that we can update to a TOASTed value.
+--Testcase 57:
+UPDATE tntbl2 SET c2 = repeat('x', 25) WHERE c2 = 'car';
+--Testcase 58:
+SELECT c1, char_length(c2), char_length(_id) FROM tntbl2 ORDER BY 1, 2, 3;
+  c1  | char_length | char_length 
+------+-------------+-------------
+ 2000 |             |          25
+ 5000 |          25 |           6
+      |           2 |           1
+      |           4 |           3
+      |           4 |           4
+      |           5 |           8
+      |           6 |           6
+      |           6 |           8
+      |           6 |           9
+      |          17 |           5
+      |          25 |           6
+      |          27 |          27
+      |             |           1
+      |             |           1
+      |             |           3
+      |             |           3
+      |             |           3
+      |             |           7
+(18 rows)
+
+-- Check multi-assignment with a Result node to handle a one-time filter.
+--Testcase 59:
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE tntbl2 t
+  SET (c1, c5) = (SELECT c5, c1 FROM tntbl2 s WHERE s.c1 = t.c1 AND s.c1 != 0)
+  WHERE CURRENT_USER = SESSION_USER;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Update on public.tntbl2 t
+   Node: griddb_svr / Status: Alive
+   ->  Result
+         Output: (($1)::integer), (($2)::bigint), ((SubPlan 1 (returns $1,$2))), t._id, t.__spd_url, t.*
+         One-Time Filter: (CURRENT_USER = SESSION_USER)
+         ->  Foreign Scan on public.tntbl2 t
+               Output: $1, $2, (SubPlan 1 (returns $1,$2)), t._id, t.__spd_url, t.*
+               Filter: (CURRENT_USER = SESSION_USER)
+               Node: griddb_svr / Status: Alive
+                 Remote SQL: SELECT  *  FROM tntbl2
+               SubPlan 1 (returns $1,$2)
+                 ->  Foreign Scan on public.tntbl2 s
+                       Output: s.c5, s.c1
+                       Filter: (s.c1 = t.c1)
+                       Node: griddb_svr / Status: Alive
+                         Remote SQL: SELECT  *  FROM tntbl2 WHERE ((c1 <> 0))
+(16 rows)
+
+--Testcase 60:
+UPDATE tntbl2 t
+  SET (c1, c5) = (SELECT c5, c1 FROM tntbl2 s WHERE s.c1 = t.c1 AND s.c1 != 0)
+  WHERE CURRENT_USER = SESSION_USER;
+--Testcase 61:
+SELECT c1, c5, char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
+  c1  |  c5  | char_length 
+------+------+-------------
+   42 | 2000 |            
+ 5011 | 5000 |          25
+      |      |           2
+      |      |           4
+      |      |           4
+      |      |           5
+      |      |           6
+      |      |           6
+      |      |           6
+      |      |          17
+      |      |          25
+      |      |          27
+      |      |            
+      |      |            
+      |      |            
+      |      |            
+      |      |            
+      |      |            
+(18 rows)
+
+--
+-- UPDATE with IN feature
+--
+--Testcase 62:
+UPDATE tntbl2 IN ('/griddb_svr/') SET c4 = 56563.1212;
+--Testcase 63:
+UPDATE tntbl2 IN ('/odbc_post_svr/', '/jdbc_mysql_svr/') SET c4 = 22.2;
+ERROR:  No child node support modification.
+--
+-- DELETE
+--
+-- allow an alias to be specified for DELETE's target table
+--Testcase 64:
+DELETE FROM tntbl2 AS dt WHERE dt.c1 > 75;
+-- if an alias is specified, don't allow the original table name
+-- to be referenced
+--Testcase 65:
+DELETE FROM tntbl2 dt WHERE tntbl2.c1 > 25;
+ERROR:  invalid reference to FROM-clause entry for table "tntbl2"
+LINE 1: DELETE FROM tntbl2 dt WHERE tntbl2.c1 > 25;
+                                    ^
+HINT:  Perhaps you meant to reference the table alias "dt".
+--Testcase 66:
+SELECT char_length(_id), c1, char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length 
+-------------+----+-------------
+           1 |    |           2
+           1 |    |            
+           1 |    |            
+           3 |    |           4
+           3 |    |            
+           3 |    |            
+           3 |    |            
+           4 |    |           4
+           5 |    |          17
+           6 |    |           6
+           6 |    |          25
+           7 |    |            
+           8 |    |           5
+           8 |    |           6
+           9 |    |           6
+          25 | 42 |            
+          27 |    |          27
+(17 rows)
+
+-- delete a row with a TOASTed value
+--Testcase 67:
+DELETE FROM tntbl2 WHERE c2 = 'car';
+--Testcase 68:
+SELECT c1, char_length(_id) FROM tntbl2 ORDER BY 1, 2;
+ c1 | char_length 
+----+-------------
+ 42 |          25
+    |           1
+    |           1
+    |           1
+    |           3
+    |           3
+    |           3
+    |           3
+    |           4
+    |           5
+    |           6
+    |           6
+    |           7
+    |           8
+    |           8
+    |           9
+    |          27
+(17 rows)
+
+--
+-- DELETE with IN feature
+--
+--Testcase 69:
+DELETE FROM tntbl2 IN ('/griddb_svr/') WHERE c1 = 10;
+--
+-- Check behavior of disable_transaction_feature_check
+--
+-- Check value of disable_transaction_feature_check
+--Testcase 70:
+ALTER FOREIGN TABLE tntbl2 OPTIONS (disable_transaction_feature_check 'false');
+--Testcase 71:
+INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES ('121', 29, 'DEFAULT', true, 4.0, 4000);
+--Testcase 72:
+INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2', true);
+--Testcase 73:
+INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('xin3', 10, 'tst_in_feature', true, 5.0, 5000);
+ERROR:  Can not use INSERT with IN
+--Testcase 74:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+             _id             | c1 |             c2              | c3 |     c4     |  c5  |  __spd_url   
+-----------------------------+----+-----------------------------+----+------------+------+--------------
+                             |    |                             |    | 56563.1212 |      | /griddb_svr/
+  s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 121                         | 29 | DEFAULT                     | t  |          4 | 4000 | /griddb_svr/
+ 122                         |  1 | 2                           | t  |            |      | /griddb_svr/
+ 3                           |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 3s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 4                           |    | 3q                          |    | 56563.1212 |      | /griddb_svr/
+ 4s#                         |    | 3q@@                        |    | 56563.1212 |      | /griddb_svr/
+ DEFAULT                     |    |                             | t  | 56563.1212 |      | /griddb_svr/
+ DEFAULTs#                   |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaa   | 42 |                             | t  | 56563.1212 | 2000 | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaas# |    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 56563.1212 |      | /griddb_svr/
+ abc                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ abcs#                       |    | VALUES are fun!@@           |    | 56563.1212 |      | /griddb_svr/
+ test                        |    | test                        | f  | 56563.1212 |      | /griddb_svr/
+ tests#                      |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ value1s#                    |    | foo@@                       |    | 56563.1212 |      | /griddb_svr/
+ value2                      |    | xxxxxxxxxxxxxxxxxxxxxxxxx   | t  | 56563.1212 |      | /griddb_svr/
+ value2s#                    |    | foo1@@                      |    | 56563.1212 |      | /griddb_svr/
+(19 rows)
+
+--Testcase 75:
+UPDATE tntbl2 IN ('/dynamodb_svr/') SET c4 = 7000;
+ERROR:  No child node support modification.
+--Testcase 76:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+             _id             | c1 |             c2              | c3 |     c4     |  c5  |  __spd_url   
+-----------------------------+----+-----------------------------+----+------------+------+--------------
+                             |    |                             |    | 56563.1212 |      | /griddb_svr/
+  s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 121                         | 29 | DEFAULT                     | t  |          4 | 4000 | /griddb_svr/
+ 122                         |  1 | 2                           | t  |            |      | /griddb_svr/
+ 3                           |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 3s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 4                           |    | 3q                          |    | 56563.1212 |      | /griddb_svr/
+ 4s#                         |    | 3q@@                        |    | 56563.1212 |      | /griddb_svr/
+ DEFAULT                     |    |                             | t  | 56563.1212 |      | /griddb_svr/
+ DEFAULTs#                   |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaa   | 42 |                             | t  | 56563.1212 | 2000 | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaas# |    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 56563.1212 |      | /griddb_svr/
+ abc                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ abcs#                       |    | VALUES are fun!@@           |    | 56563.1212 |      | /griddb_svr/
+ test                        |    | test                        | f  | 56563.1212 |      | /griddb_svr/
+ tests#                      |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ value1s#                    |    | foo@@                       |    | 56563.1212 |      | /griddb_svr/
+ value2                      |    | xxxxxxxxxxxxxxxxxxxxxxxxx   | t  | 56563.1212 |      | /griddb_svr/
+ value2s#                    |    | foo1@@                      |    | 56563.1212 |      | /griddb_svr/
+(19 rows)
+
+--Testcase 77:
+DELETE FROM tntbl2 WHERE c2 = '2';
+--Testcase 78:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+             _id             | c1 |             c2              | c3 |     c4     |  c5  |  __spd_url   
+-----------------------------+----+-----------------------------+----+------------+------+--------------
+                             |    |                             |    | 56563.1212 |      | /griddb_svr/
+  s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 121                         | 29 | DEFAULT                     | t  |          4 | 4000 | /griddb_svr/
+ 3                           |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 3s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 4                           |    | 3q                          |    | 56563.1212 |      | /griddb_svr/
+ 4s#                         |    | 3q@@                        |    | 56563.1212 |      | /griddb_svr/
+ DEFAULT                     |    |                             | t  | 56563.1212 |      | /griddb_svr/
+ DEFAULTs#                   |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaa   | 42 |                             | t  | 56563.1212 | 2000 | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaas# |    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 56563.1212 |      | /griddb_svr/
+ abc                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ abcs#                       |    | VALUES are fun!@@           |    | 56563.1212 |      | /griddb_svr/
+ test                        |    | test                        | f  | 56563.1212 |      | /griddb_svr/
+ tests#                      |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ value1s#                    |    | foo@@                       |    | 56563.1212 |      | /griddb_svr/
+ value2                      |    | xxxxxxxxxxxxxxxxxxxxxxxxx   | t  | 56563.1212 |      | /griddb_svr/
+ value2s#                    |    | foo1@@                      |    | 56563.1212 |      | /griddb_svr/
+(18 rows)
+
+--Testcase 79:
+DELETE FROM tntbl2 IN ('/mongo_svr/') WHERE c1 = 10;
+ERROR:  No child node support modification.
+--Testcase 80:
+SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
+             _id             | c1 |             c2              | c3 |     c4     |  c5  |  __spd_url   
+-----------------------------+----+-----------------------------+----+------------+------+--------------
+                             |    |                             |    | 56563.1212 |      | /griddb_svr/
+  s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 121                         | 29 | DEFAULT                     | t  |          4 | 4000 | /griddb_svr/
+ 3                           |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 3s#                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ 4                           |    | 3q                          |    | 56563.1212 |      | /griddb_svr/
+ 4s#                         |    | 3q@@                        |    | 56563.1212 |      | /griddb_svr/
+ DEFAULT                     |    |                             | t  | 56563.1212 |      | /griddb_svr/
+ DEFAULTs#                   |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaa   | 42 |                             | t  | 56563.1212 | 2000 | /griddb_svr/
+ aaaaaaaaaaaaaaaaaaaaaaaaas# |    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 56563.1212 |      | /griddb_svr/
+ abc                         |    |                             |    | 56563.1212 |      | /griddb_svr/
+ abcs#                       |    | VALUES are fun!@@           |    | 56563.1212 |      | /griddb_svr/
+ test                        |    | test                        | f  | 56563.1212 |      | /griddb_svr/
+ tests#                      |    | test@@                      |    | 56563.1212 |      | /griddb_svr/
+ value1s#                    |    | foo@@                       |    | 56563.1212 |      | /griddb_svr/
+ value2                      |    | xxxxxxxxxxxxxxxxxxxxxxxxx   | t  | 56563.1212 |      | /griddb_svr/
+ value2s#                    |    | foo1@@                      |    | 56563.1212 |      | /griddb_svr/
+(18 rows)
+
+--Testcase 81:
+ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
+ERROR:  relation "tntbl1" does not exist
+--
+-- ON CONFLICT, this work only on postgres_fdw
+--
+--Testcase 82:
+INSERT INTO tntbl2(_id, c1) VALUES('key', 12);  -- duplicate key
+--Testcase 83:
+INSERT INTO tntbl2(_id, c1) VALUES('key', 12) ON CONFLICT DO NOTHING; -- works
+ERROR:  ON CONFLICT clause is not supported
+--Testcase 84:
+INSERT INTO tntbl2(_id, c1) VALUES('key', 12) ON CONFLICT (_id, c1) DO NOTHING; -- unsupported
+ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+--Testcase 85:
+INSERT INTO tntbl2(_id, c1) VALUES('key', 12) ON CONFLICT (_id, c1) DO UPDATE SET c2 = 'conficted!'; -- unsupported
+ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+--
+-- WITH CHECK, this work only on postgres_fdw
+--
+--Testcase 86:
+CREATE VIEW rw_view AS SELECT * FROM tntbl2
+  WHERE c1 < c5 WITH CHECK OPTION;
+--Testcase 87:
+\d+ rw_view
+                                 View "public.rw_view"
+  Column   |       Type       | Collation | Nullable | Default | Storage  | Description 
+-----------+------------------+-----------+----------+---------+----------+-------------
+ _id       | text             |           |          |         | extended | 
+ c1        | integer          |           |          |         | plain    | 
+ c2        | text             |           |          |         | extended | 
+ c3        | boolean          |           |          |         | plain    | 
+ c4        | double precision |           |          |         | plain    | 
+ c5        | bigint           |           |          |         | plain    | 
+ __spd_url | text             |           |          |         | extended | 
+View definition:
+ SELECT tntbl2._id,
+    tntbl2.c1,
+    tntbl2.c2,
+    tntbl2.c3,
+    tntbl2.c4,
+    tntbl2.c5,
+    tntbl2.__spd_url
+   FROM tntbl2
+  WHERE tntbl2.c1 < tntbl2.c5;
+Options: check_option=cascaded
+
+--Testcase 88:
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO rw_view(_id, c1, c5) VALUES ('id1', 5, 0);
+ERROR:  WITH CHECK clause is not supported
+--Testcase 89:
+INSERT INTO rw_view(_id, c1, c5) VALUES ('id1', 5, 0); -- should fail
+ERROR:  WITH CHECK clause is not supported
+--Testcase 90:
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO rw_view(_id, c1, c5) VALUES ('id2', 5, 3000);
+ERROR:  WITH CHECK clause is not supported
+--Testcase 91:
+INSERT INTO rw_view(_id, c1, c5) VALUES ('id2', 5, 3000); -- ok
+ERROR:  WITH CHECK clause is not supported
+--Testcase 92:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 |     c4     |  c5  
+-------------+----+-------------+----+------------+------
+           1 |    |           2 |    | 56563.1212 |     
+           1 |    |             |    | 56563.1212 |     
+           1 |    |             |    | 56563.1212 |     
+           3 | 12 |             |    |            |     
+           3 | 29 |           7 | t  |          4 | 4000
+           3 |    |           4 |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           4 |    |           4 | f  | 56563.1212 |     
+           5 |    |          17 |    | 56563.1212 |     
+           6 |    |           6 |    | 56563.1212 |     
+           6 |    |          25 | t  | 56563.1212 |     
+           7 |    |             | t  | 56563.1212 |     
+           8 |    |           5 |    | 56563.1212 |     
+           8 |    |           6 |    | 56563.1212 |     
+           9 |    |           6 |    | 56563.1212 |     
+          25 | 42 |             | t  | 56563.1212 | 2000
+          27 |    |          27 |    | 56563.1212 |     
+(19 rows)
+
+--Testcase 93:
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE rw_view SET c1 = c1 + 10000;
+ERROR:  WITH CHECK clause is not supported
+--Testcase 94:
+UPDATE rw_view SET c1 = c1 + 10000; -- should fail
+ERROR:  WITH CHECK clause is not supported
+--Testcase 95:
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE rw_view SET c1 = c1 + 15;
+ERROR:  WITH CHECK clause is not supported
+--Testcase 96:
+UPDATE rw_view SET c1 = c1 + 15; -- ok
+ERROR:  WITH CHECK clause is not supported
+--Testcase 97:
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+ char_length | c1 | char_length | c3 |     c4     |  c5  
+-------------+----+-------------+----+------------+------
+           1 |    |           2 |    | 56563.1212 |     
+           1 |    |             |    | 56563.1212 |     
+           1 |    |             |    | 56563.1212 |     
+           3 | 12 |             |    |            |     
+           3 | 29 |           7 | t  |          4 | 4000
+           3 |    |           4 |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           3 |    |             |    | 56563.1212 |     
+           4 |    |           4 | f  | 56563.1212 |     
+           5 |    |          17 |    | 56563.1212 |     
+           6 |    |           6 |    | 56563.1212 |     
+           6 |    |          25 | t  | 56563.1212 |     
+           7 |    |             | t  | 56563.1212 |     
+           8 |    |           5 |    | 56563.1212 |     
+           8 |    |           6 |    | 56563.1212 |     
+           9 |    |           6 |    | 56563.1212 |     
+          25 | 42 |             | t  | 56563.1212 | 2000
+          27 |    |          27 |    | 56563.1212 |     
+(19 rows)
+
+--Testcase 98:
+DROP VIEW rw_view;
+--
+-- RETURNING
+--
+--Testcase 99:
+INSERT INTO tntbl2 VALUES ('00:05:00', 20, '2022-05-16', false, 50.0, 7000) RETURNING *;
+ERROR:  RETURNING clause is not supported
+--Testcase 100:
+INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES ('_key_', 30, 'test', true, 50.0, 8000) RETURNING c1, c4, c5;
+ERROR:  RETURNING clause is not supported
+--Testcase 101:
+UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RETURNING (tntbl2), *;
+ERROR:  RETURNING clause is not supported
+--Testcase 102:
+DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
+ERROR:  RETURNING clause is not supported
+--Testcase 103:
+DELETE FROM tntbl2 RETURNING *;
+ERROR:  RETURNING clause is not supported
+--Clean
+DELETE FROM tntbl2;
+--Testcase 104:
+DROP FOREIGN TABLE tntbl2 CASCADE;
+--Testcase 105:
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+--Testcase 106:
+DROP EXTENSION griddb_fdw CASCADE;
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to server griddb_svr
+drop cascades to user mapping for public on server griddb_svr
+drop cascades to foreign table tntbl2__griddb_svr__0
+--Testcase 107:
+DROP SERVER pgspider_svr CASCADE;
+--Testcase 108:
+DROP EXTENSION pgspider_core_fdw CASCADE;
