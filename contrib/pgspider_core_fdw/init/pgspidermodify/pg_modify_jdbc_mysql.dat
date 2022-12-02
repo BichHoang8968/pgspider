@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS tntbl2;
+CREATE TABLE tntbl2(_id varchar(100) primary key NOT NULL, c1 int, c2 varchar(255), c3 boolean, c4 double precision, c5 bigint);
+
+DROP TABLE IF EXISTS tntbl3;
+CREATE TABLE tntbl3 (_id varchar(100) primary key NOT NULL, c1 int, c2 float, c3 double precision, c4 bigint);
+INSERT INTO tntbl3 VALUES ('jdbc_mysql', 10, 10.0, 1000.0, 10000);

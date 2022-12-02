@@ -557,6 +557,10 @@ typedef struct ResultRelInfo
 	 * one of its ancestors; see ExecCrossPartitionUpdateForeignKey().
 	 */
 	List	   *ri_ancestorResultRels;
+#ifdef PGSPIDER
+	void	   *spd_fsstate;    /* Store ForeignScanThreadInfo */
+	void	   *spd_mtstate;    /* Store ModifyThreadInfo */
+#endif
 } ResultRelInfo;
 
 #ifdef GETPROGRESS_ENABLED

@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS tntbl1;
+CREATE TABLE tntbl1 (c1 int PRIMARY KEY NOT NULL, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255));
+INSERT INTO tntbl1 VALUES (1000, 0, 1.0, 100.0, 1000, '2022-06-22 14:00:00', '2022-06-22 14:00:00+07', 'sqlite char array', 'sqlite varchar array');
+
+DROP TABLE IF EXISTS tntbl3;
+CREATE TABLE tntbl3 (_id text, c1 int, c2 float, c3 double precision, c4 bigint);
+INSERT INTO tntbl3 VALUES ('text_sqlite_id', 1, 1.0, 100.0, 1000);

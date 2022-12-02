@@ -182,8 +182,6 @@ typedef struct foreign_loc_cxt
 /* Local function forward declarations */
 static bool having_clause_tree_walker(Node *node, void *param);
 
-static bool exist_in_function_list(char *funcname, const char **funclist);
-
 /*
  * Prevent push down of T_Param(Subquery Expressions) which PGSpider cannot bind
  */
@@ -301,7 +299,7 @@ foreign_expr_walker(Node *node,
 					{
 						return false;
 					}
-					else if (strcmp(funcname, "count") && !exist_in_function_list(funcname, MysqlAggregateStubFunction))
+					else if (strcmp(funcname, "count") && !exist_in_string_list(funcname, MysqlAggregateStubFunction))
 					{
 						return false;
 					}
@@ -383,7 +381,7 @@ foreign_expr_walker(Node *node,
 					 * Do not push down specific stub aggregate function for
 					 * mysql remote
 					 */
-					if (exist_in_function_list(funcname, MysqlAggregateStubFunction))
+					if (exist_in_string_list(funcname, MysqlAggregateStubFunction))
 						return false;
 
 					/*
@@ -786,16 +784,16 @@ spd_deparse_operator_name(StringInfo buf, Form_pg_operator opform)
 }
 
 /*
- * Return true if function name existed in list of function
+ * Return true if string existed in list of string
  */
-static bool
-exist_in_function_list(char *funcname, const char **funclist)
+bool
+exist_in_string_list(char *str, const char **strlist)
 {
 	int			i;
 
-	for (i = 0; funclist[i]; i++)
+	for (i = 0; strlist[i]; i++)
 	{
-		if (strcmp(funcname, funclist[i]) == 0)
+		if (strcmp(str, strlist[i]) == 0)
 			return true;
 	}
 	return false;
@@ -829,7 +827,7 @@ spd_is_stub_star_regex_function(Expr *expr)
 					(strcmp(opername + strlen(opername) - 4, "_all") == 0))
 				{
 					/* Check stable function with star argument of InfluxDB */
-					if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+					if (exist_in_string_list(opername, InfluxDBStableStarFunction))
 						return true;
 				}
 
@@ -849,7 +847,7 @@ spd_is_stub_star_regex_function(Expr *expr)
 							Const	   *arg = (Const *) n;
 
 							if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
-								return exist_in_function_list(opername, InfluxDBStableRegexAgg);
+								return exist_in_string_list(opername, InfluxDBStableRegexAgg);
 						}
 					}
 				}
@@ -866,12 +864,12 @@ spd_is_stub_star_regex_function(Expr *expr)
 					(strcmp(opername + strlen(opername) - 4, "_all") == 0))
 				{
 					/* Check stable function with star argument of InfluxDB */
-					if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+					if (exist_in_string_list(opername, InfluxDBStableStarFunction))
 						return true;
 				}
 
 				/* Check stable function with constant argument of GridDB */
-				if (exist_in_function_list(opername, GridDBStableConstArgFunction))
+				if (exist_in_string_list(opername, GridDBStableConstArgFunction))
 					return true;
 
 				if (list_length(fe->args) > 0)
@@ -887,7 +885,7 @@ spd_is_stub_star_regex_function(Expr *expr)
 						Const	   *arg = (Const *) firstArg;
 
 						if (arg->consttype == TEXTOID && spd_is_regex_argument(arg))
-							return exist_in_function_list(opername, InfluxDBStableRegexFunction);
+							return exist_in_string_list(opername, InfluxDBStableRegexFunction);
 					}
 				}
 				break;
@@ -938,11 +936,11 @@ spd_is_record_func(List *tlist)
 			opername = get_func_name(funcid);
 
 			/* Check stable function return record of GridDB */
-			if (exist_in_function_list(opername, GridDBReturnRecordFunctions))
+			if (exist_in_string_list(opername, GridDBReturnRecordFunctions))
 				return true;
 
 			/* check stable agg with regex argument of InfluxDB */
-			if (exist_in_function_list(opername, InfluxDBStableRegexAgg))
+			if (exist_in_string_list(opername, InfluxDBStableRegexAgg))
 				return true;
 
 			if (list_length(args) > 0)
@@ -955,7 +953,7 @@ spd_is_record_func(List *tlist)
 					Const	   *arg = (Const *) firstArg;
 
 					if (spd_is_regex_argument(arg))
-						return exist_in_function_list(opername, InfluxDBStableRegexFunction);
+						return exist_in_string_list(opername, InfluxDBStableRegexFunction);
 				}
 			}
 
@@ -963,7 +961,7 @@ spd_is_record_func(List *tlist)
 				(strcmp(opername + strlen(opername) - 4, "_all") == 0))
 			{
 				/* Check stable function with star argument of InfluxDB */
-				if (exist_in_function_list(opername, InfluxDBStableStarFunction))
+				if (exist_in_string_list(opername, InfluxDBStableStarFunction))
 					return true;
 			}
 		}

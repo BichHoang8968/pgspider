@@ -2157,24 +2157,24 @@ static void
 addURLExprForRel(StringInfo buf, RangeTblEntry *r_entry)
 {
 	ListCell   *lc;
-	bool		is_first = false;
+	bool		is_first = true;
 
 	foreach(lc, r_entry->spd_url_list)
 	{
 		char	   *url_str = (char *) lfirst(lc);
 
-		if (is_first == false)
+		if (is_first == true)
 			appendStringInfoString(buf, " IN (");
 		else
-			appendStringInfoString(buf, ",");
+			appendStringInfoString(buf, ", ");
 
 		appendStringInfoString(buf, "'");
 		appendStringInfoString(buf, url_str);
-		appendStringInfoString(buf, "' ");
-		is_first = true;
+		appendStringInfoString(buf, "'");
+		is_first = false;
 	}
-	if (is_first == true)
-		appendStringInfoString(buf, ") ");
+	if (is_first == false)
+		appendStringInfoString(buf, ")");
 }
 
 /*
@@ -2565,6 +2565,7 @@ PGSpiderDeparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 
 	appendStringInfoString(buf, "UPDATE ");
 	deparseRelation(buf, rel);
+	addURLExprForRel(buf, rte);
 	appendStringInfoString(buf, " SET ");
 
 	pindex = 2;					/* ctid is always the first param */
@@ -2638,6 +2639,7 @@ PGSpiderDeparseDirectUpdateSql(StringInfo buf, PlannerInfo *root,
 
 	appendStringInfoString(buf, "UPDATE ");
 	deparseRelation(buf, rel);
+	addURLExprForRel(buf, rte);
 	if (foreignrel->reloptkind == RELOPT_JOINREL)
 		appendStringInfo(buf, " %s%d", REL_ALIAS_PREFIX, rtindex);
 	appendStringInfoString(buf, " SET ");
@@ -2704,6 +2706,7 @@ PGSpiderDeparseDeleteSql(StringInfo buf, RangeTblEntry *rte,
 {
 	appendStringInfoString(buf, "DELETE FROM ");
 	deparseRelation(buf, rel);
+	addURLExprForRel(buf, rte);
 	appendStringInfoString(buf, " WHERE ctid = $1");
 
 	deparseReturningList(buf, rte, rtindex, rel,
@@ -2735,6 +2738,7 @@ PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
 							   List **retrieved_attrs)
 {
 	deparse_expr_cxt context;
+	RangeTblEntry *rte = planner_rt_fetch(rtindex, root);
 
 	/* Set up context struct for recursion */
 	context.root = root;
@@ -2745,6 +2749,7 @@ PGSpiderDeparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
 
 	appendStringInfoString(buf, "DELETE FROM ");
 	deparseRelation(buf, rel);
+	addURLExprForRel(buf, rte);
 	if (foreignrel->reloptkind == RELOPT_JOINREL)
 		appendStringInfo(buf, " %s%d", REL_ALIAS_PREFIX, rtindex);
 

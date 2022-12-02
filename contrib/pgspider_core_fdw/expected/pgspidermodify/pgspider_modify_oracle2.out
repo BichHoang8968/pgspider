@@ -1,0 +1,915 @@
+\set ECHO none 
+SET datestyle = ISO;
+SET timezone = 'UTC';
+DELETE FROM pg_spd_node_info;
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host :PGSPIDER_SERVER1);
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+-- Extensions
+CREATE EXTENSION oracle_fdw;
+CREATE SERVER oracle_svr_1 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
+CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr_1 OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+CREATE SERVER oracle_svr_2 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
+CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr_2 OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+-- Create multi tenant tables
+-- tntbl1
+CREATE FOREIGN TABLE tntbl1 (c1 int, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(30), c9 varchar(50), __spd_url text) SERVER pgspider_svr;
+-- Foreign tables
+CREATE FOREIGN TABLE tntbl1__oracle_svr_1__0 (c1 int OPTIONS (key 'yes') NOT NULL, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER oracle_svr_1 OPTIONS (table 'TNTBL1');
+CREATE FOREIGN TABLE tntbl1__oracle_svr_2__0 (c1 int OPTIONS (key 'yes') NOT NULL, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER oracle_svr_2 OPTIONS (table 'TNTBL1_2');
+-- SELECT FROM table if there is any record
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 | c3 | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -20 |  0 |  1 | 100 | 1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+(1 row)
+
+--
+-- INSERT
+-- insert with DEFAULT in the target_list
+--
+INSERT INTO tntbl1 (c1, c2, c3, c4, c5, c6, c7, c8, c9) VALUES (4, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+INSERT INTO tntbl1 (c1, c2) VALUES (1, DEFAULT);
+INSERT INTO tntbl1 (c1, c2, c3) VALUES (5, 5, DEFAULT);
+INSERT INTO tntbl1 VALUES (6, 6, 2.6, 5453.454, 5989, '2001-01-01 04:05:02');
+INSERT INTO tntbl1 VALUES (7, 7);
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 | c3  |    c4    |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+-----+----------+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -20 |  0 |   1 |      100 | 1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   1 |    |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   4 |    |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   5 |  5 |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   6 |  6 | 2.6 | 5453.454 | 5989 | 2001-01-01 04:05:02 |                        |                                |               | /oracle_svr_1/
+   7 |  7 |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+(6 rows)
+
+--
+-- insert with similar expression / target_list VALUES (all fail)
+--
+INSERT INTO tntbl1 (c1, c2, c3, c4, c5, c6, c7, c8, c9) VALUES (10, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
+ERROR:  INSERT has more target columns than expressions
+LINE 1: ...SERT INTO tntbl1 (c1, c2, c3, c4, c5, c6, c7, c8, c9) VALUES...
+                                                             ^
+INSERT INTO tntbl1 (c1, c2, c3) VALUES (2, DEFAULT);
+ERROR:  INSERT has more target columns than expressions
+LINE 1: INSERT INTO tntbl1 (c1, c2, c3) VALUES (2, DEFAULT);
+                                    ^
+INSERT INTO tntbl1 (c1, c2) VALUES (3, 2, 5);
+ERROR:  INSERT has more expressions than target columns
+LINE 1: INSERT INTO tntbl1 (c1, c2) VALUES (3, 2, 5);
+                                                  ^
+INSERT INTO tntbl1 (c1, c2) VALUES (8, DEFAULT, 6);
+ERROR:  INSERT has more expressions than target columns
+LINE 1: INSERT INTO tntbl1 (c1, c2) VALUES (8, DEFAULT, 6);
+                                                        ^
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 | c3  |    c4    |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+-----+----------+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -20 |  0 |   1 |      100 | 1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   1 |    |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   4 |    |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   5 |  5 |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+   6 |  6 | 2.6 | 5453.454 | 5989 | 2001-01-01 04:05:02 |                        |                                |               | /oracle_svr_1/
+   7 |  7 |     |          |      |                     |                        |                                |               | /oracle_svr_1/
+(6 rows)
+
+--
+-- VALUES test
+--
+INSERT INTO tntbl1 VALUES (10, 20, 3.0, 452.254, 599, '2038-01-19 03:14:07', '2004-10-19 10:23:54+02', '40', 'abc'), (-1, 2, DEFAULT, DEFAULT, 69845, '2004-10-19 10:23:54', '1970-01-01 00:00:01', 'Beera', 'John Does'),
+    ((SELECT 2), (SELECT i FROM (VALUES(3)) as foo (i)), 4.0, 656.212, 5944, '2007-10-19 10:23:54', '2007-10-19 10:23:54+02', 'VALUES are fun!', 'foo');
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 | c3  |    c4    |  c5   |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+-----+----------+-------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -20 |  0 |   1 |      100 |  1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+  -1 |  2 |     |          | 69845 | 2004-10-19 10:23:54 | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+   1 |    |     |          |       |                     |                        |                                |               | /oracle_svr_1/
+   2 |  3 |   4 |  656.212 |  5944 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo           | /oracle_svr_1/
+   4 |    |     |          |       |                     |                        |                                |               | /oracle_svr_1/
+   5 |  5 |     |          |       |                     |                        |                                |               | /oracle_svr_1/
+   6 |  6 | 2.6 | 5453.454 |  5989 | 2001-01-01 04:05:02 |                        |                                |               | /oracle_svr_1/
+   7 |  7 |     |          |       |                     |                        |                                |               | /oracle_svr_1/
+  10 | 20 |   3 |  452.254 |   599 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | 40                             | abc           | /oracle_svr_1/
+(9 rows)
+
+--
+-- TOASTed value test
+--
+INSERT INTO tntbl1 VALUES (9, 9, 902.12, 9545.03, 3122, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', repeat('x', 25), repeat('a', 25));
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 |   c3   |    c4    |  c5   |         c6          |           c7           |               c8               |            c9             |   __spd_url    
+-----+----+--------+----------+-------+---------------------+------------------------+--------------------------------+---------------------------+----------------
+ -20 |  0 |      1 |      100 |  1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array             | /oracle_svr_1/
+  -1 |  2 |        |          | 69845 | 2004-10-19 10:23:54 | 1970-01-01 00:00:01+00 | Beera                          | John Does                 | /oracle_svr_1/
+   1 |    |        |          |       |                     |                        |                                |                           | /oracle_svr_1/
+   2 |  3 |      4 |  656.212 |  5944 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo                       | /oracle_svr_1/
+   4 |    |        |          |       |                     |                        |                                |                           | /oracle_svr_1/
+   5 |  5 |        |          |       |                     |                        |                                |                           | /oracle_svr_1/
+   6 |  6 |    2.6 | 5453.454 |  5989 | 2001-01-01 04:05:02 |                        |                                |                           | /oracle_svr_1/
+   7 |  7 |        |          |       |                     |                        |                                |                           | /oracle_svr_1/
+   9 |  9 | 902.12 |  9545.03 |  3122 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa | /oracle_svr_1/
+  10 | 20 |      3 |  452.254 |   599 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | 40                             | abc                       | /oracle_svr_1/
+(10 rows)
+
+--
+-- INSERT with IN feature, this feature not work yet
+--
+INSERT INTO tntbl1 IN ('/oracle_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
+ERROR:  Can not use INSERT with IN
+--
+-- UPDATE
+--
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 |   c3   |    c4    |  c5   |         c6          |           c7           |               c8               |            c9             
+-----+----+--------+----------+-------+---------------------+------------------------+--------------------------------+---------------------------
+ -20 |  0 |      1 |      100 |  1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array
+  -1 |  2 |        |          | 69845 | 2004-10-19 10:23:54 | 1970-01-01 00:00:01+00 | Beera                          | John Does
+   1 |    |        |          |       |                     |                        |                                | 
+   2 |  3 |      4 |  656.212 |  5944 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+   4 |    |        |          |       |                     |                        |                                | 
+   5 |  5 |        |          |       |                     |                        |                                | 
+   6 |  6 |    2.6 | 5453.454 |  5989 | 2001-01-01 04:05:02 |                        |                                | 
+   7 |  7 |        |          |       |                     |                        |                                | 
+   9 |  9 | 902.12 |  9545.03 |  3122 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+  10 | 20 |      3 |  452.254 |   599 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | 40                             | abc
+(10 rows)
+
+UPDATE tntbl1 SET c6 = DEFAULT, c4 = DEFAULT;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+-----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -20 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+  -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+   1 |    |        |    |       |    |                        |                                | 
+   2 |  3 |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+   4 |    |        |    |       |    |                        |                                | 
+   5 |  5 |        |    |       |    |                        |                                | 
+   6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+   7 |  7 |        |    |       |    |                        |                                | 
+   9 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+  10 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+(10 rows)
+
+-- aliases for the UPDATE target table
+UPDATE tntbl1 AS t SET c1 = 15 WHERE t.c3 = 902.12;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+-----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -20 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+  -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+   1 |    |        |    |       |    |                        |                                | 
+   2 |  3 |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+   4 |    |        |    |       |    |                        |                                | 
+   5 |  5 |        |    |       |    |                        |                                | 
+   6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+   7 |  7 |        |    |       |    |                        |                                | 
+  10 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+  15 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+(10 rows)
+
+UPDATE tntbl1 t SET c1 = t.c1 + 10 WHERE t.c3 = 3.0;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+-----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -20 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+  -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+   1 |    |        |    |       |    |                        |                                | 
+   2 |  3 |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+   4 |    |        |    |       |    |                        |                                | 
+   5 |  5 |        |    |       |    |                        |                                | 
+   6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+   7 |  7 |        |    |       |    |                        |                                | 
+  15 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+  20 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+(10 rows)
+
+--
+-- Test VALUES in FROM
+--
+UPDATE tntbl1 SET c1=v.i FROM (VALUES(30, 0)) AS v(i, j)
+  WHERE tntbl1.c2 = v.j;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |    |       |    |                        |                                | 
+  2 |  3 |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+  4 |    |        |    |       |    |                        |                                | 
+  5 |  5 |        |    |       |    |                        |                                | 
+  6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+  7 |  7 |        |    |       |    |                        |                                | 
+ 15 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+ 20 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 30 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+(10 rows)
+
+-- fail, wrong data type:
+UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
+  WHERE tntbl1.c2 = v.j;
+ERROR:  column "c1" is of type integer but expression is of type record
+LINE 1: UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
+                               ^
+HINT:  You will need to rewrite or cast the expression.
+--
+-- Test multiple-set-clause syntax
+--
+INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |    |       |    |                        |                                | 
+  2 |  3 |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | VALUES are fun!                | foo
+  4 |    |        |    |       |    |                        |                                | 
+  5 |  5 |        |    |       |    |                        |                                | 
+  6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+  7 |  7 |        |    |       |    |                        |                                | 
+ 15 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+ 19 | 52 |        |    |       |    |                        |                                | 
+ 20 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |    |       |    |                        |                                | 
+ 22 | 53 |      4 |    |       |    |                        |                                | 
+ 24 |    |        |    |       |    |                        |                                | 
+ 25 | 55 |        |    |       |    |                        |                                | 
+ 26 | 56 |    2.6 |    |       |    |                        |                                | 
+ 27 | 57 |        |    |       |    |                        |                                | 
+ 30 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |    |       |    |                        |                                | 
+ 40 | 70 |      3 |    |       |    |                        |                                | 
+ 50 | 50 |      1 |    |       |    |                        |                                | 
+(20 rows)
+
+UPDATE tntbl1 SET (c8,c1,c2) = ('bugle', c1+11, DEFAULT) WHERE c9 = 'foo';
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
+----+----+--------+----+-------+----+------------------------+--------------------------------+---------------------------
+ -1 |  2 |        |    | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |    |       |    |                        |                                | 
+  4 |    |        |    |       |    |                        |                                | 
+  5 |  5 |        |    |       |    |                        |                                | 
+  6 |  6 |    2.6 |    |  5989 |    |                        |                                | 
+  7 |  7 |        |    |       |    |                        |                                | 
+ 13 |    |      4 |    |  5944 |    | 2007-10-19 08:23:54+00 | bugle                          | foo
+ 15 |  9 | 902.12 |    |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa
+ 19 | 52 |        |    |       |    |                        |                                | 
+ 20 | 20 |      3 |    |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |    |       |    |                        |                                | 
+ 22 | 53 |      4 |    |       |    |                        |                                | 
+ 24 |    |        |    |       |    |                        |                                | 
+ 25 | 55 |        |    |       |    |                        |                                | 
+ 26 | 56 |    2.6 |    |       |    |                        |                                | 
+ 27 | 57 |        |    |       |    |                        |                                | 
+ 30 |  0 |      1 |    |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |    |       |    |                        |                                | 
+ 40 | 70 |      3 |    |       |    |                        |                                | 
+ 50 | 50 |      1 |    |       |    |                        |                                | 
+(20 rows)
+
+UPDATE tntbl1 SET (c9,c4) = ('car', c1+c3), c1 = c1 + 1 WHERE c5 = 3122;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   |   c4   |  c5   | c6 |           c7           |               c8               |      c9       
+----+----+--------+--------+-------+----+------------------------+--------------------------------+---------------
+ -1 |  2 |        |        | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |        |       |    |                        |                                | 
+  4 |    |        |        |       |    |                        |                                | 
+  5 |  5 |        |        |       |    |                        |                                | 
+  6 |  6 |    2.6 |        |  5989 |    |                        |                                | 
+  7 |  7 |        |        |       |    |                        |                                | 
+ 13 |    |      4 |        |  5944 |    | 2007-10-19 08:23:54+00 | bugle                          | foo
+ 16 |  9 | 902.12 | 917.12 |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | car
+ 19 | 52 |        |        |       |    |                        |                                | 
+ 20 | 20 |      3 |        |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |        |       |    |                        |                                | 
+ 22 | 53 |      4 |        |       |    |                        |                                | 
+ 24 |    |        |        |       |    |                        |                                | 
+ 25 | 55 |        |        |       |    |                        |                                | 
+ 26 | 56 |    2.6 |        |       |    |                        |                                | 
+ 27 | 57 |        |        |       |    |                        |                                | 
+ 30 |  0 |      1 |        |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |        |       |    |                        |                                | 
+ 40 | 70 |      3 |        |       |    |                        |                                | 
+ 50 | 50 |      1 |        |       |    |                        |                                | 
+(20 rows)
+
+-- fail, multi assignment to same column:
+UPDATE tntbl1 SET (c9,c5) = ('car', c1+c5), c5 = c1 + 1 WHERE c2 = 20;
+ERROR:  multiple assignments to same column "c5"
+-- uncorrelated sub-SELECT:
+-- 
+UPDATE tntbl1
+  SET (c1,c3) = (SELECT c1,c3 FROM tntbl1 where c3 = 3 and c9 = 'car')
+  WHERE c1 = 100 AND c2 = 20.0;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   |   c4   |  c5   | c6 |           c7           |               c8               |      c9       
+----+----+--------+--------+-------+----+------------------------+--------------------------------+---------------
+ -1 |  2 |        |        | 69845 |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |        |       |    |                        |                                | 
+  4 |    |        |        |       |    |                        |                                | 
+  5 |  5 |        |        |       |    |                        |                                | 
+  6 |  6 |    2.6 |        |  5989 |    |                        |                                | 
+  7 |  7 |        |        |       |    |                        |                                | 
+ 13 |    |      4 |        |  5944 |    | 2007-10-19 08:23:54+00 | bugle                          | foo
+ 16 |  9 | 902.12 | 917.12 |  3122 |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | car
+ 19 | 52 |        |        |       |    |                        |                                | 
+ 20 | 20 |      3 |        |   599 |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |        |       |    |                        |                                | 
+ 22 | 53 |      4 |        |       |    |                        |                                | 
+ 24 |    |        |        |       |    |                        |                                | 
+ 25 | 55 |        |        |       |    |                        |                                | 
+ 26 | 56 |    2.6 |        |       |    |                        |                                | 
+ 27 | 57 |        |        |       |    |                        |                                | 
+ 30 |  0 |      1 |        |  1000 |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |        |       |    |                        |                                | 
+ 40 | 70 |      3 |        |       |    |                        |                                | 
+ 50 | 50 |      1 |        |       |    |                        |                                | 
+(20 rows)
+
+-- correlated sub-SELECT:
+UPDATE tntbl1 o
+  SET (c4,c5) = (SELECT c4+1,c5 FROM tntbl1 i
+               where i.c4=o.c3 and i.c5=o.c5 and i.c5 is not distinct FROM o.c5);
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   | c4 | c5 | c6 |           c7           |               c8               |      c9       
+----+----+--------+----+----+----+------------------------+--------------------------------+---------------
+ -1 |  2 |        |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |    |    |    |                        |                                | 
+  4 |    |        |    |    |    |                        |                                | 
+  5 |  5 |        |    |    |    |                        |                                | 
+  6 |  6 |    2.6 |    |    |    |                        |                                | 
+  7 |  7 |        |    |    |    |                        |                                | 
+ 13 |    |      4 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo
+ 16 |  9 | 902.12 |    |    |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | car
+ 19 | 52 |        |    |    |    |                        |                                | 
+ 20 | 20 |      3 |    |    |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |    |    |    |                        |                                | 
+ 22 | 53 |      4 |    |    |    |                        |                                | 
+ 24 |    |        |    |    |    |                        |                                | 
+ 25 | 55 |        |    |    |    |                        |                                | 
+ 26 | 56 |    2.6 |    |    |    |                        |                                | 
+ 27 | 57 |        |    |    |    |                        |                                | 
+ 30 |  0 |      1 |    |    |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |    |    |    |                        |                                | 
+ 40 | 70 |      3 |    |    |    |                        |                                | 
+ 50 | 50 |      1 |    |    |    |                        |                                | 
+(20 rows)
+
+-- fail, multiple rows supplied:
+UPDATE tntbl1 SET (c1,c2) = (SELECT c2+1,c1 FROM tntbl1);
+ERROR:  more than one row returned by a subquery used as an expression
+--set to null if no rows supplied:
+UPDATE tntbl1 SET (c4,c5) = (SELECT c4+1,c5 FROM tntbl1 where c5 = 1000)
+  WHERE c5 = 11;
+SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |   c3   | c4 | c5 | c6 |           c7           |               c8               |      c9       
+----+----+--------+----+----+----+------------------------+--------------------------------+---------------
+ -1 |  2 |        |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does
+  1 |    |        |    |    |    |                        |                                | 
+  4 |    |        |    |    |    |                        |                                | 
+  5 |  5 |        |    |    |    |                        |                                | 
+  6 |  6 |    2.6 |    |    |    |                        |                                | 
+  7 |  7 |        |    |    |    |                        |                                | 
+ 13 |    |      4 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo
+ 16 |  9 | 902.12 |    |    |    | 2005-10-20 08:20:54+00 | xxxxxxxxxxxxxxxxxxxxxxxxx      | car
+ 19 | 52 |        |    |    |    |                        |                                | 
+ 20 | 20 |      3 |    |    |    | 2004-10-19 08:23:54+00 | 40                             | abc
+ 21 |    |        |    |    |    |                        |                                | 
+ 22 | 53 |      4 |    |    |    |                        |                                | 
+ 24 |    |        |    |    |    |                        |                                | 
+ 25 | 55 |        |    |    |    |                        |                                | 
+ 26 | 56 |    2.6 |    |    |    |                        |                                | 
+ 27 | 57 |        |    |    |    |                        |                                | 
+ 30 |  0 |      1 |    |    |    | 2017-08-07 12:00:00+00 | char array                     | varchar array
+ 35 | 59 | 902.12 |    |    |    |                        |                                | 
+ 40 | 70 |      3 |    |    |    |                        |                                | 
+ 50 | 50 |      1 |    |    |    |                        |                                | 
+(20 rows)
+
+-- *-expansion should work in this context:
+UPDATE tntbl1 SET (c1,c2) = ROW(v.*) FROM (VALUES(2, 100)) AS v(i, j)
+  WHERE tntbl1.c2 = v.i;
+-- you might expect this to work, but syntactically it's not a RowExpr:
+UPDATE tntbl1 SET (c1,c2) = (v.*) FROM (VALUES(2, 101)) AS v(i, j)
+  WHERE tntbl1.c2 = v.i;
+ERROR:  source for a multiple-column UPDATE item must be a sub-SELECT or ROW() expression
+LINE 1: UPDATE tntbl1 SET (c1,c2) = (v.*) FROM (VALUES(2, 101)) AS v...
+                                     ^
+-- if an alias for the target table is specified, don't allow references
+-- to the original table name
+UPDATE tntbl1 AS t SET c1 = tntbl1.c1 + 10 WHERE t.c2 = 10;
+ERROR:  invalid reference to FROM-clause entry for table "tntbl1"
+LINE 1: UPDATE tntbl1 AS t SET c1 = tntbl1.c1 + 10 WHERE t.c2 = 10;
+                                    ^
+HINT:  Perhaps you meant to reference the table alias "t".
+-- Make sure that we can update to a TOASTed value.
+UPDATE tntbl1 SET c9 = repeat('x', 25) WHERE c9 = 'car';
+SELECT c1, c2, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2  |            c9             
+----+-----+---------------------------
+  1 |     | 
+  2 | 100 | John Does
+  4 |     | 
+  5 |   5 | 
+  6 |   6 | 
+  7 |   7 | 
+ 13 |     | foo
+ 16 |   9 | xxxxxxxxxxxxxxxxxxxxxxxxx
+ 19 |  52 | 
+ 20 |  20 | abc
+ 21 |     | 
+ 22 |  53 | 
+ 24 |     | 
+ 25 |  55 | 
+ 26 |  56 | 
+ 27 |  57 | 
+ 30 |   0 | varchar array
+ 35 |  59 | 
+ 40 |  70 | 
+ 50 |  50 | 
+(20 rows)
+
+-- Check multi-assignment with a Result node to handle a one-time filter.
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE tntbl1 t
+  SET (c2, c3) = (SELECT c3, c2 FROM tntbl1 s WHERE s.c2 = t.c2)
+  WHERE CURRENT_USER = SESSION_USER;
+                                                                         QUERY PLAN                                                                         
+------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Update on public.tntbl1 t
+   Node: oracle_svr_1 / Status: Alive
+     Oracle statement: UPDATE "TNTBL1" SET "C2" = :p2, "C3" = :p3 WHERE "C1" = :k1
+   Node: oracle_svr_2 / Status: Alive
+     Oracle statement: UPDATE "TNTBL1_2" SET "C2" = :p2, "C3" = :p3 WHERE "C1" = :k1
+   ->  Result
+         Output: (($1)::smallint), (($2)::double precision), ((SubPlan 1 (returns $1,$2))), t.c1, t.c1, t.__spd_url, t.*
+         One-Time Filter: (CURRENT_USER = SESSION_USER)
+         ->  Foreign Scan on public.tntbl1 t
+               Output: $1, $2, (SubPlan 1 (returns $1,$2)), t.c1, t.c1, t.__spd_url, t.*
+               Filter: (CURRENT_USER = SESSION_USER)
+               Node: oracle_svr_1 / Status: Alive
+                 Oracle query: SELECT /*303b20419872781a0e0c0a407ccd7e5d*/ "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9" FROM  "TNTBL1" FOR UPDATE
+                 Oracle plan: SELECT STATEMENT
+                 Oracle plan:   FOR UPDATE
+                 Oracle plan:     BUFFER SORT
+                 Oracle plan:       TABLE ACCESS FULL TNTBL1
+               Node: oracle_svr_2 / Status: Alive
+                 Oracle query: SELECT /*9950889ec9e89697bcadc1fc3dc96540*/ "C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9" FROM  "TNTBL1_2" FOR UPDATE
+                 Oracle plan: SELECT STATEMENT
+                 Oracle plan:   FOR UPDATE
+                 Oracle plan:     BUFFER SORT
+                 Oracle plan:       TABLE ACCESS FULL TNTBL1_2
+               SubPlan 1 (returns $1,$2)
+                 ->  Foreign Scan on public.tntbl1 s
+                       Output: s.c3, s.c2
+                       Node: oracle_svr_1 / Status: Alive
+                         Oracle query: SELECT /*5b6adb24865a6e5576ed745be5061195*/ "C2", "C3" FROM  "TNTBL1" WHERE ("C2" = :p1)
+                         Oracle plan: SELECT STATEMENT
+                         Oracle plan:   TABLE ACCESS FULL TNTBL1  (filter "C2"=TO_NUMBER(:P1))
+                       Node: oracle_svr_2 / Status: Alive
+                         Oracle query: SELECT /*a6b0085d595ede7b8c87e0042aff9ae2*/ "C2", "C3" FROM  "TNTBL1_2" WHERE ("C2" = :p1)
+                         Oracle plan: SELECT STATEMENT
+                         Oracle plan:   TABLE ACCESS FULL TNTBL1_2  (filter "C2"=TO_NUMBER(:P1))
+(34 rows)
+
+UPDATE tntbl1 t
+  SET (c2, c3) = (SELECT c3, c2 FROM tntbl1 s WHERE s.c2 = t.c2)
+  WHERE CURRENT_USER = SESSION_USER;
+SELECT c2, c3, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c2  | c3  |            c9             
+-----+-----+---------------------------
+   1 |   0 | varchar array
+   1 |  50 | 
+   3 |   6 | 
+   3 |  20 | abc
+   3 |  56 | 
+   3 |  70 | 
+   4 |  53 | 
+ 902 |   9 | xxxxxxxxxxxxxxxxxxxxxxxxx
+ 902 |  59 | 
+     |   5 | 
+     |   7 | 
+     |  52 | 
+     |  55 | 
+     |  57 | 
+     | 100 | John Does
+     |     | foo
+     |     | 
+     |     | 
+     |     | 
+     |     | 
+(20 rows)
+
+--
+-- UPDATE with IN feature
+--
+UPDATE tntbl1 IN ('/oracle_svr/', '/sqlite_svr/') SET c3 = 22.2;
+ERROR:  No child node support modification.
+--
+-- DELETE
+--
+-- allow an alias to be specified for DELETE's target table
+DELETE FROM tntbl1 AS dt WHERE dt.c1 > 75;
+-- if an alias is specified, don't allow the original table name
+-- to be referenced
+DELETE FROM tntbl1 dt WHERE tntbl1.c1 > 25;
+ERROR:  invalid reference to FROM-clause entry for table "tntbl1"
+LINE 1: DELETE FROM tntbl1 dt WHERE tntbl1.c1 > 25;
+                                    ^
+HINT:  Perhaps you meant to reference the table alias "dt".
+SELECT c1, c2, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2  |            c9             
+----+-----+---------------------------
+  1 |     | 
+  2 |     | John Does
+  4 |     | 
+  5 |     | 
+  6 |   3 | 
+  7 |     | 
+ 13 |     | foo
+ 16 | 902 | xxxxxxxxxxxxxxxxxxxxxxxxx
+ 19 |     | 
+ 20 |   3 | abc
+ 21 |     | 
+ 22 |   4 | 
+ 24 |     | 
+ 25 |     | 
+ 26 |   3 | 
+ 27 |     | 
+ 30 |   1 | varchar array
+ 35 | 902 | 
+ 40 |   3 | 
+ 50 |   1 | 
+(20 rows)
+
+-- delete a row with a TOASTed value
+DELETE FROM tntbl1 WHERE c2 > 2;
+SELECT c1, c2, c9 FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 |      c9       
+----+----+---------------
+  1 |    | 
+  2 |    | John Does
+  4 |    | 
+  5 |    | 
+  7 |    | 
+ 13 |    | foo
+ 19 |    | 
+ 21 |    | 
+ 24 |    | 
+ 25 |    | 
+ 27 |    | 
+ 30 |  1 | varchar array
+ 50 |  1 | 
+(13 rows)
+
+--
+-- DELETE with IN feature
+--
+DELETE FROM tntbl1 IN ('/oracle_svr/') WHERE c1 = 20;
+ERROR:  No child node support modification.
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 | c3  | c4 | c5 | c6 |           c7           |               c8               |      c9       |   __spd_url    
+----+----+-----+----+----+----+------------------------+--------------------------------+---------------+----------------
+  1 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+  2 |    | 100 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+  4 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+  5 |    |   5 |    |    |    |                        |                                |               | /oracle_svr_1/
+  7 |    |   7 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 13 |    |     |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+ 19 |    |  52 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 21 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+ 24 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+ 25 |    |  55 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 27 |    |  57 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 30 |  1 |   0 |    |    |    | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+ 50 |  1 |  50 |    |    |    |                        |                                |               | /oracle_svr_1/
+(13 rows)
+
+DELETE FROM tntbl1 IN ('/sqlite_svr/', '/tiny_svr/', '/oracle_svr/') WHERE c5 = 1000;
+ERROR:  No child node support modification.
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1 | c2 | c3  | c4 | c5 | c6 |           c7           |               c8               |      c9       |   __spd_url    
+----+----+-----+----+----+----+------------------------+--------------------------------+---------------+----------------
+  1 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+  2 |    | 100 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+  4 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+  5 |    |   5 |    |    |    |                        |                                |               | /oracle_svr_1/
+  7 |    |   7 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 13 |    |     |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+ 19 |    |  52 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 21 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+ 24 |    |     |    |    |    |                        |                                |               | /oracle_svr_1/
+ 25 |    |  55 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 27 |    |  57 |    |    |    |                        |                                |               | /oracle_svr_1/
+ 30 |  1 |   0 |    |    |    | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+ 50 |  1 |  50 |    |    |    |                        |                                |               | /oracle_svr_1/
+(13 rows)
+
+--
+-- Check behavior of disable_transaction_feature_check
+--
+-- Check value of disable_transaction_feature_check
+ALTER FOREIGN TABLE tntbl1 OPTIONS (disable_transaction_feature_check 'false');
+INSERT INTO tntbl1 VALUES (200, 70, 2.0, 200.0, 3000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', DEFAULT, 'abc', 'foo');
+WARNING:  __spd_url value will be ignored and can not added into child table
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+ c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+   1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+   4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+  19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+  24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+  25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+  50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+ 200 | 70 |   2 | 200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc           | /oracle_svr_1/
+(14 rows)
+
+INSERT INTO tntbl1 VALUES (100, 20, 3.0, 300.0, 4000, '2038-01-19 03:14:07', '2004-10-19 10:23:54+02', interval '2 months ago', '40', 'abc'), (-100, 30, DEFAULT, DEFAULT, 2000, '2004-10-19 10:23:54', '1970-01-01 00:00:01+07', interval '1 year 3 hours 20 minutes', 'Beera', 'John Does'),
+    ((SELECT 220), (SELECT i FROM (VALUES(3)) as foo (i)), 250, 400.212, 5000, '2007-10-19 10:23:54', '2007-10-19 10:23:54+02', interval '1 year 2 months 3 days', 'VALUES are fun!', 'foo');
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
+------+----+-----+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
+ -100 | 30 |     |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /oracle_svr_1/
+    1 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    2 |    | 100 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /oracle_svr_1/
+    4 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    5 |    |   5 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    7 |    |   7 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   13 |    |     |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /oracle_svr_1/
+   19 |    |  52 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   21 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   24 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   25 |    |  55 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   27 |    |  57 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   30 |  1 |   0 |         |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array   | /oracle_svr_1/
+   50 |  1 |  50 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+  100 | 20 |   3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /oracle_svr_1/
+  200 | 70 |   2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /oracle_svr_1/
+  220 |  3 | 250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /oracle_svr_1/
+(17 rows)
+
+INSERT INTO tntbl1 VALUES (900, 80, 6.0, 400.03, 6000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', interval '1 months ago', repeat('x', 10), repeat('a', 20));
+WARNING:  __spd_url value will be ignored and can not added into child table
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
+------+----+-----+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
+ -100 | 30 |     |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /oracle_svr_1/
+    1 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    2 |    | 100 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /oracle_svr_1/
+    4 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    5 |    |   5 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+    7 |    |   7 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   13 |    |     |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /oracle_svr_1/
+   19 |    |  52 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   21 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   24 |    |     |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   25 |    |  55 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   27 |    |  57 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+   30 |  1 |   0 |         |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array   | /oracle_svr_1/
+   50 |  1 |  50 |         |      |                     |                        |                                |                 | /oracle_svr_1/
+  100 | 20 |   3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /oracle_svr_1/
+  200 | 70 |   2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /oracle_svr_1/
+  220 |  3 | 250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /oracle_svr_1/
+  900 | 80 |   6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /oracle_svr_1/
+(18 rows)
+
+UPDATE tntbl1 SET c2 = 10.001 WHERE c1 = 100;
+DELETE FROM tntbl1 WHERE tntbl1.c1 > 100;
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(15 rows)
+
+INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
+ERROR:  Can not use INSERT with IN
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(15 rows)
+
+UPDATE tntbl1 IN ('/oracle_svr/') SET c4 = 60.0;
+ERROR:  No child node support modification.
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(15 rows)
+
+DELETE FROM tntbl1 IN ('/sqlite_svr/', '/tiny_svr/', '/oracle_svr/') WHERE c5 = 4000;
+ERROR:  No child node support modification.
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(15 rows)
+
+ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
+--
+-- Test with optional options: tntbl1
+--
+--
+-- ON CONFLICT, this work only on postgres_fdw
+--
+INSERT INTO tntbl1(c1, c2) VALUES(11, 12);  -- duplicate key
+INSERT INTO tntbl1(c1, c2) VALUES(11, 12) ON CONFLICT DO NOTHING; -- works
+ERROR:  ON CONFLICT clause is not supported
+INSERT INTO tntbl1(c1, c2) VALUES(11, 12) ON CONFLICT (c1, c2) DO NOTHING; -- unsupported
+ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+INSERT INTO tntbl1(c1, c2) VALUES(11, 12) ON CONFLICT (c1, c2) DO UPDATE SET c3 = 562.3213; -- unsupported
+ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
+--
+-- WITH CHECK, this work only on postgres_fdw
+--
+CREATE VIEW rw_view AS SELECT * FROM tntbl1
+  WHERE c1 < c2 WITH CHECK OPTION;
+\d+ rw_view
+                                       View "public.rw_view"
+  Column   |            Type             | Collation | Nullable | Default | Storage  | Description 
+-----------+-----------------------------+-----------+----------+---------+----------+-------------
+ c1        | integer                     |           |          |         | plain    | 
+ c2        | smallint                    |           |          |         | plain    | 
+ c3        | double precision            |           |          |         | plain    | 
+ c4        | double precision            |           |          |         | plain    | 
+ c5        | bigint                      |           |          |         | plain    | 
+ c6        | timestamp without time zone |           |          |         | plain    | 
+ c7        | timestamp with time zone    |           |          |         | plain    | 
+ c8        | character(30)               |           |          |         | extended | 
+ c9        | character varying(50)       |           |          |         | extended | 
+ __spd_url | text                        |           |          |         | extended | 
+View definition:
+ SELECT tntbl1.c1,
+    tntbl1.c2,
+    tntbl1.c3,
+    tntbl1.c4,
+    tntbl1.c5,
+    tntbl1.c6,
+    tntbl1.c7,
+    tntbl1.c8,
+    tntbl1.c9,
+    tntbl1.__spd_url
+   FROM tntbl1
+  WHERE tntbl1.c1 < tntbl1.c2;
+Options: check_option=cascaded
+
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO rw_view(c1, c2) VALUES (5, 0);
+ERROR:  WITH CHECK clause is not supported
+INSERT INTO rw_view(c1, c2) VALUES (5, 0); -- should fail
+ERROR:  WITH CHECK clause is not supported
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO rw_view(c1, c2) VALUES (0, 15);
+ERROR:  WITH CHECK clause is not supported
+INSERT INTO rw_view(c1, c2) VALUES (0, 15); -- ok
+ERROR:  WITH CHECK clause is not supported
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   11 | 12 |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(16 rows)
+
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE rw_view SET c1 = c1 + 100;
+ERROR:  WITH CHECK clause is not supported
+UPDATE rw_view SET c1 = c1 + 100; -- should fail
+ERROR:  WITH CHECK clause is not supported
+EXPLAIN (VERBOSE, COSTS OFF)
+UPDATE rw_view SET c2 = c2 + 15;
+ERROR:  WITH CHECK clause is not supported
+UPDATE rw_view SET c2 = c2 + 15; -- ok
+ERROR:  WITH CHECK clause is not supported
+SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
+  c1  | c2 | c3  | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+------+----+-----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -100 | 30 |     |     | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera         | /oracle_svr_1/
+    1 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    2 |    | 100 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does     | /oracle_svr_1/
+    4 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+    5 |    |   5 |     |      |                     |                        |                                |               | /oracle_svr_1/
+    7 |    |   7 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   11 | 12 |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   13 |    |     |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo           | /oracle_svr_1/
+   19 |    |  52 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   21 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   24 |    |     |     |      |                     |                        |                                |               | /oracle_svr_1/
+   25 |    |  55 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   27 |    |  57 |     |      |                     |                        |                                |               | /oracle_svr_1/
+   30 |  1 |   0 |     |      |                     | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+   50 |  1 |  50 |     |      |                     |                        |                                |               | /oracle_svr_1/
+  100 | 10 |   3 | 300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40            | /oracle_svr_1/
+(16 rows)
+
+DROP VIEW rw_view;
+--
+-- RETURNING
+--
+INSERT INTO tntbl1 VALUES (1, 2, 3.0, 6.0, 21, '2002-01-01 00:05:00', '2022-05-16 10:50:00+01', 'test1', 'test1') RETURNING *;
+ERROR:  RETURNING clause is not supported
+INSERT INTO tntbl1 (c1, c2, c3, c4, c5) VALUES (2, 3, 4.0, 5.0, 6) RETURNING c1, c4, c6;
+ERROR:  RETURNING clause is not supported
+UPDATE tntbl1 SET c7 = '2100-01-01 10:00:00+01' WHERE c1 = 2 AND c2 = 3 RETURNING (tntbl1), *;
+ERROR:  RETURNING clause is not supported
+DELETE FROM tntbl1 WHERE c4 = 6.0 RETURNING c1, c2;
+ERROR:  RETURNING clause is not supported
+DELETE FROM tntbl1 RETURNING *;
+ERROR:  RETURNING clause is not supported
+--Clean
+DELETE FROM tntbl1;
+--Reset data
+INSERT INTO tntbl1__oracle_svr_1__0 VALUES (-20, 0, 1.0, 100.0, 1000, TO_TIMESTAMP('2022-06-22 14:00:00', 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP('2017-08-07 12:00:00', 'YYYY-MM-DD HH24:MI:SS'), 'char array', 'varchar array');
+SELECT * FROM tntbl1;
+ c1  | c2 | c3 | c4  |  c5  |         c6          |           c7           |               c8               |      c9       |   __spd_url    
+-----+----+----+-----+------+---------------------+------------------------+--------------------------------+---------------+----------------
+ -20 |  0 |  1 | 100 | 1000 | 2022-06-22 14:00:00 | 2017-08-07 12:00:00+00 | char array                     | varchar array | /oracle_svr_1/
+(1 row)
+
+DROP FOREIGN TABLE tntbl1 CASCADE;
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+DROP EXTENSION oracle_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server oracle_svr_1
+drop cascades to user mapping for vagrant on server oracle_svr_1
+drop cascades to foreign table tntbl1__oracle_svr_1__0
+drop cascades to server oracle_svr_2
+drop cascades to user mapping for vagrant on server oracle_svr_2
+drop cascades to foreign table tntbl1__oracle_svr_2__0
+DROP SERVER pgspider_svr CASCADE;
+DROP EXTENSION pgspider_core_fdw CASCADE;

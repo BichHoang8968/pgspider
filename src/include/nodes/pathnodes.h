@@ -386,6 +386,8 @@ struct PlannerInfo
 	 * server OID if this PlannerInfo is child (the list length is always 1).
 	 */
 	List	   *child_root;
+
+	void	   *fdw_private;	/* Store fdw_private used for ForeignModify */
 #endif
 };
 

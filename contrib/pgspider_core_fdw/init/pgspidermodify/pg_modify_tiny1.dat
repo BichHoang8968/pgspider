@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS tntbl1;
+CREATE TABLE tntbl1 (c1 int PRIMARY KEY NOT NULL, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255));
+INSERT INTO tntbl1 VALUES (101, 1, 2.0, 101.0, 1001, '2022-06-23 14:00:00', '2022-06-23 14:00:00+07', 'tiny array 1', 'tiny varchar array 1');
+
+DROP TABLE IF EXISTS tntbl3;
+CREATE TABLE tntbl3 (_id text, c1 int, c2 float, c3 double precision, c4 bigint);
+INSERT INTO tntbl3 VALUES ('text_tiny1', 2, 2.0, 101.0, 1001);

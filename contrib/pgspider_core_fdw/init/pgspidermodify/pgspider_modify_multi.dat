@@ -1,0 +1,140 @@
+
+\ir ../../sql/pgspidermodify/parameters.conf
+
+DROP EXTENSION IF EXISTS pgspider_core_fdw CASCADE;
+DROP EXTENSION IF EXISTS postgres_fdw CASCADE;
+DROP EXTENSION IF EXISTS sqlite_fdw CASCADE;
+DROP EXTENSION IF EXISTS tinybrace_fdw CASCADE;
+DROP EXTENSION IF EXISTS mysql_fdw CASCADE;
+DROP EXTENSION IF EXISTS oracle_fdw CASCADE;
+DROP EXTENSION IF EXISTS odbc_fdw CASCADE;
+DROP EXTENSION IF EXISTS jdbc_fdw CASCADE;
+DROP EXTENSION IF EXISTS griddb_fdw CASCADE;
+-- DROP EXTENSION IF EXISTS mongo_fdw CASCADE;
+DROP EXTENSION IF EXISTS dynamodb_fdw CASCADE;
+DROP EXTENSION IF EXISTS file_fdw CASCADE;
+
+CREATE EXTENSION pgspider_core_fdw;
+CREATE EXTENSION postgres_fdw;
+CREATE EXTENSION sqlite_fdw;
+CREATE EXTENSION tinybrace_fdw;
+CREATE EXTENSION mysql_fdw;
+CREATE EXTENSION oracle_fdw;
+CREATE EXTENSION odbc_fdw;
+CREATE EXTENSION jdbc_fdw;
+CREATE EXTENSION griddb_fdw;
+-- CREATE EXTENSION mongo_fdw;
+CREATE EXTENSION dynamodb_fdw;
+CREATE EXTENSION file_fdw;
+
+-- pgspider_core_fdw
+CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
+CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl1 (c1 int, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(30), c9 varchar(50), __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl2 (_id text, c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl3 (_id text, c1 int, c2 real, c3 double precision, c4 bigint, __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl4 (c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, c6 char(255), c7 varchar(255), c8 float8, c9 smallint, c10 timestamp, c11 timestamp with time zone, c12 date, c13 json, c14 jsonb, c15 uuid, c16 point, c17 bytea, c18 bit(10), c19 varbit(10), c20 interval, __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE tntbl5 (c1 int, c2 text, __spd_url text) SERVER pgspider_svr;
+
+
+-- postgres_fdw
+CREATE SERVER postgres_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host :POSTGRES_SERVER, port :POSTGRES_PORT, dbname 'pg_modify_db');
+CREATE USER MAPPING FOR CURRENT_USER SERVER postgres_svr OPTIONS (user :POSTGRES_USER,password :POSTGRES_PASS);
+CREATE FOREIGN TABLE tntbl1__postgres_svr__0 (c1 int, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER postgres_svr OPTIONS (table_name 'tntbl1');
+CREATE FOREIGN TABLE tntbl3__postgres_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER postgres_svr OPTIONS (table_name 'tntbl3');
+CREATE FOREIGN TABLE tntbl4__postgres_svr__0 (c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, c6 char(255), c7 varchar(255), c8 float8, c9 smallint, c10 timestamp, c11 timestamp with time zone, c12 date, c13 json, c14 jsonb, c15 uuid, c16 point, c17 bytea, c18 bit(10), c19 varbit(10), c20 interval) SERVER postgres_svr OPTIONS (table_name 'tntbl4');
+
+CREATE SERVER postgres_svr_1 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host :POSTGRES_1_SERVER, port :POSTGRES_1_PORT, dbname 'pg_modify_db');
+CREATE USER mapping for public SERVER postgres_svr_1 OPTIONS(user :POSTGRES_1_USER, password :POSTGRES_1_PASS);
+-- CREATE FOREIGN TABLE tntbl3__postgres_svr__1 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER postgres_svr_1 OPTIONS (table_name 'tntbl3');
+
+CREATE SERVER postgres_svr_2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host :POSTGRES_2_SERVER, port :POSTGRES_2_PORT, dbname 'pg_modify_db');
+CREATE USER mapping for public SERVER postgres_svr_2 OPTIONS(user :POSTGRES_2_USER, password :POSTGRES_2_PASS);
+CREATE FOREIGN TABLE tntbl4__postgres_svr_2__0 (c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint, c6 char(255), c7 varchar(255), c8 float8, c9 smallint, c10 timestamp, c11 timestamp with time zone, c12 date, c13 json, c14 jsonb, c15 uuid, c16 point, c17 bytea, c18 bit(10), c19 varbit(10), c20 interval) SERVER postgres_svr_2 OPTIONS (table_name 'tntbl4');
+
+
+-- sqlite_fdw
+CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgmodifytest.db');
+CREATE FOREIGN TABLE tntbl1__sqlite_svr__0 (c1 int OPTIONS (key 'true'), c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER sqlite_svr OPTIONS (table 'tntbl1');
+CREATE FOREIGN TABLE tntbl3__sqlite_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER sqlite_svr OPTIONS (table 'tntbl3');
+
+
+-- tinybrace_fdw
+CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host :TINYBRACE_SERVER, port :TINYBRACE_PORT, dbname 'pgmodifytest.db');
+CREATE USER mapping for public SERVER tiny_svr OPTIONS(username :TINYBRACE_USER, password :TINYBRACE_PASS);
+CREATE FOREIGN TABLE tntbl1__tiny_svr__0 (c1 int OPTIONS (key 'true'), c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER tiny_svr OPTIONS (table_name 'tntbl1');
+CREATE FOREIGN TABLE tntbl3__tiny_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER tiny_svr OPTIONS (table_name 'tntbl3');
+
+
+-- mysql_fdw
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL_SERVER, port :MYSQL_PORT);
+CREATE USER MAPPING FOR CURRENT_USER SERVER mysql_svr OPTIONS(username :MYSQL_USER, password :MYSQL_PASS);
+CREATE FOREIGN TABLE tntbl1__mysql_svr__0 (c1 int OPTIONS (key 'true'), c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER mysql_svr OPTIONS (dbname :MYSQL_DB_NAME1, table_name 'tntbl1');
+CREATE FOREIGN TABLE tntbl3__mysql_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER mysql_svr OPTIONS (dbname :MYSQL_DB_NAME1, table_name 'tntbl3');
+
+
+-- oracle_fdw
+CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
+CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+CREATE FOREIGN TABLE tntbl1__oracle_svr__0 (c1 int OPTIONS (key 'yes') NOT NULL, c2 smallint, c3 float, c4 double precision, c5 bigint, c6 timestamp, c7 timestamp with time zone, c8 char(255), c9 varchar(255)) SERVER oracle_svr OPTIONS (table 'TNTBL1');
+CREATE FOREIGN TABLE tntbl3__oracle_svr__0 (_id text OPTIONS (key 'yes', column_name 'ID_ID') NOT NULL, c1 int, c2 real, c3 double precision, c4 bigint) SERVER oracle_svr OPTIONS (table 'TNTBL3');
+
+
+-- odbc_fdw
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
+CREATE FOREIGN TABLE tntbl2__odbc_post_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER odbc_post_svr OPTIONS (table 'tntbl2');
+
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
+CREATE FOREIGN TABLE tntbl3__odbc_mysql_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER odbc_mysql_svr OPTIONS (schema :ODBC_DB_SCHEMA, table 'tntbl3');
+
+
+-- jdbc_fdw
+CREATE SERVER jdbc_mysql_svr FOREIGN DATA WRAPPER jdbc_fdw OPTIONS(
+drivername :JDBC_MYSQL_DRIVERNAME,
+url :JDBC_MYSQL_URL,
+querytimeout '15',
+jarfile :JDBC_MYSQL_DRIVERPATH,
+maxheapsize '600'
+);
+CREATE USER MAPPING FOR public SERVER jdbc_mysql_svr OPTIONS(username :JDBC_MYSQL_USER, password :JDBC_MYSQL_PASS);
+CREATE FOREIGN TABLE tntbl2__jdbc_mysql_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER jdbc_mysql_svr OPTIONS (table_name 'tntbl2');
+
+CREATE SERVER jdbc_post_svr FOREIGN DATA WRAPPER jdbc_fdw OPTIONS(
+drivername :JDBC_POSTGRES_DRIVERNAME,
+url :JDBC_POSTGRES_URL,
+querytimeout '15',
+jarfile :JDBC_POSTGRES_DRIVERPATH,
+maxheapsize '600'
+);
+CREATE USER MAPPING FOR public SERVER jdbc_post_svr OPTIONS(username :JDBC_POSTGRES_USER, password :JDBC_POSTGRES_PASS);
+CREATE FOREIGN TABLE tntbl3__jdbc_post_svr__0 (_id text OPTIONS (key 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER jdbc_post_svr OPTIONS (table_name 'tntbl3');
+
+
+-- griddb_fdw
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
+CREATE FOREIGN TABLE tntbl2__griddb_svr__0 (_id text OPTIONS (rowkey 'true'), c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER griddb_svr OPTIONS (table_name 'tntbl2');
+CREATE FOREIGN TABLE tntbl3__griddb_svr__0 (_id text OPTIONS (rowkey 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER griddb_svr OPTIONS (table_name 'tntbl3');
+
+
+-- mongo_fdw
+-- CREATE SERVER mongo_svr FOREIGN DATA WRAPPER mongo_fdw OPTIONS (address :MONGO_HOST, port :MONGO_PORT);
+-- CREATE USER MAPPING FOR public SERVER mongo_svr OPTIONS (username :MONGO_USER, password :MONGO_PASS);
+-- CREATE FOREIGN TABLE tntbl2__mongo_svr__0 (_id text, c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER mongo_svr OPTIONS (database 'mongo_pg_modify', collection 'tntbl2');
+-- CREATE FOREIGN TABLE tntbl3__mongo_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER mongo_svr OPTIONS (database 'mongo_pg_modify', collection 'tntbl3');
+
+
+-- dynamodb_fdw
+CREATE SERVER dynamodb_svr FOREIGN DATA WRAPPER dynamodb_fdw OPTIONS (endpoint :DYNAMODB_ENDPOINT1);
+CREATE USER MAPPING FOR public SERVER dynamodb_svr OPTIONS (user :DYNAMODB_USER, password :DYNAMODB_PASS);
+CREATE FOREIGN TABLE tntbl2__dynamodb_svr__0 (_id text, c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER dynamodb_svr OPTIONS (table_name 'tntbl2', partition_key '_id');
+CREATE FOREIGN TABLE tntbl3__dynamodb_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER dynamodb_svr OPTIONS (table_name 'tntbl3', partition_key '_id');
+
+
+-- file_fdw
+CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
+CREATE SERVER file_svr_2 FOREIGN DATA WRAPPER file_fdw;
+CREATE FOREIGN TABLE tntbl5__file_svr__0 (c1 int, c2 text) SERVER file_svr OPTIONS (filename '/tmp/pg_modify_file1.csv', format 'csv');
+CREATE FOREIGN TABLE tntbl5__file_svr__2 (c1 int, c2 text) SERVER file_svr_2 OPTIONS (filename '/tmp/pg_modify_file2.csv', format 'csv');

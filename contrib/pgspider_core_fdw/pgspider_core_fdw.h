@@ -41,6 +41,7 @@ extern void spd_classifyConditions(PlannerInfo *root,
 									List **local_conds);
 extern bool spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs);
 extern const char *spd_get_jointype_name(JoinType jointype);
+extern bool exist_in_string_list(char *funcname, const char **funclist);
 
  /* in pgspider_core_option.c */
 extern int	spdExtractConnectionOptions(List *defelems,

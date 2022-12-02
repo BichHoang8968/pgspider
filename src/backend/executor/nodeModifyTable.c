@@ -3593,6 +3593,24 @@ ExecModifyTable(PlanState *pstate)
 		EvalPlanQualSetSlot(&node->mt_epqstate, context.planSlot);
 		slot = context.planSlot;
 
+#ifdef PGSPIDER
+		/* Assign spd_fsstate so that the modification routine can access to data of fdw_private of Scanning */
+		if (IsA(subplanstate, ForeignScanState))
+			resultRelInfo->spd_fsstate = ((ForeignScanState *) subplanstate)->spd_fsstate;
+		else if (IsA(subplanstate, ResultState))
+		{
+			ResultState *rsState = castNode(ResultState, subplanstate);
+			ForeignScanState *outerPlan = (ForeignScanState *) outerPlanState(rsState);
+
+			if (outerPlan)
+				resultRelInfo->spd_fsstate = outerPlan->spd_fsstate;
+			else
+				resultRelInfo->spd_fsstate = NIL;
+		}
+		else
+			resultRelInfo->spd_fsstate = NIL;
+#endif
+
 		tupleid = NULL;
 		oldtuple = NULL;
 

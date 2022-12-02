@@ -749,3 +749,21 @@ get_key_with_id(HTAB *hashp, const void *keyPtr)
 	memcpy(key + NORMALIZED_ID_SIZE, keyPtr, hashp->keysize - NORMALIZED_ID_SIZE);
 	return key;
 }
+
+/*
+ * Get normalized thread id of the current thread
+ */
+int
+get_normalized_id(void)
+{
+	return normalized_id;
+}
+
+/*
+ * Update normalized thread id of the current thread
+ */
+void
+update_normalized_id(int new_val)
+{
+	normalized_id = new_val;
+}

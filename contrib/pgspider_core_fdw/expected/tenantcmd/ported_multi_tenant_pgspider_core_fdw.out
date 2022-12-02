@@ -2958,6 +2958,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 SET pgspider_core_fdw.print_error_nodes to true;
 --Testcase 171:
 SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+WARNING:  Can not get data from post_svr2
  i | t | a 
 ---+---+---
  1 | a | 

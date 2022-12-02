@@ -102,6 +102,9 @@ CommandDest whereToSendOutput = DestDebug;
 #ifdef PGSPIDER
 bool		getResultFlag = false;
 bool		getAggResultFlag = false;
+
+/* Command tag of query */
+CommandTag	cmdTag;
 #endif
 bool		Log_disconnections = false;
 
@@ -231,6 +234,7 @@ static void enable_statement_timeout(void);
 static void disable_statement_timeout(void);
 #ifdef PGSPIDER
 void		skip_memory_checking(bool);
+CommandTag	get_cmd_tag(void);
 #endif
 
 #ifdef GETPROGRESS_ENABLED
@@ -1183,6 +1187,10 @@ exec_simple_query(const char *query_string)
 
 		/* Make sure we are in a transaction command */
 		start_xact_command();
+
+#ifdef PGSPIDER
+		cmdTag = commandTag;
+#endif
 
 		/*
 		 * If using an implicit transaction block, and we're not already in a
@@ -2839,6 +2847,13 @@ void
 skip_memory_checking(bool flag)
 {
 	is_child_thread_running = flag;
+}
+
+/* Get command tag of current query */
+CommandTag
+get_cmd_tag(void)
+{
+	return cmdTag;
 }
 #endif
 
@@ -5346,7 +5361,6 @@ disable_statement_timeout(void)
 sigset_t
 spd_block_handle_signals(void)
 {
-	int			err;
 	sigset_t	new_mask;
 
 	/* Block all signal */
