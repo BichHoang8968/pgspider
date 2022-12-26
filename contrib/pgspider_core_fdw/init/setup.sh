@@ -41,6 +41,28 @@ then
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$TINYBRACE_HOME/lib
   bin/tbserver &
   sleep 3
+
+  # Start MINIO Server
+  # Clean minio server
+  if [ "$(docker ps -aq -f name=^/${container_name}$)" ]; then
+    if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${container_name}$)" ]; then
+        docker rm ${container_name}
+    else
+        docker rm $(docker stop ${container_name})
+    fi
+  fi
+  # Prepare data for MINIO Server
+  cd $CURR_PATH
+  rm -rf /tmp/data_s3 || true
+  mkdir -p /tmp/data_s3 || true
+  cp -a parquets3 /tmp/data_s3
+  cp -a test-bucket /tmp/data_s3
+  # run minio container
+  docker run  -d --name ${container_name} -it -p 9000:9000 \
+              -e "MINIO_ACCESS_KEY=minioadmin" -e "MINIO_SECRET_KEY=minioadmin" \
+              -v /tmp/data_s3:/data \
+              ${minio_image} \
+              server /data
 else
   # Initialize data for TinyBrace Server
   $TINYBRACE_HOME/bin/tbcshell -id=user -pwd=testuser -server=127.0.0.1 -port=5100 -db=test.db < tiny.dat

@@ -1454,6 +1454,30 @@ SELECT * FROM ft1 WHERE CASE c3 COLLATE "C" WHEN c6 THEN true ELSE c3 < 'bar' EN
      Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
 (5 rows)
 
+-- check schema-qualification of regconfig constant
+--Testcase 1244:
+CREATE TEXT SEARCH CONFIGURATION public.custom_search
+  (COPY = pg_catalog.english);
+--Testcase 1245:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT c1, to_tsvector('custom_search'::regconfig, c3) FROM ft1
+WHERE c1 = 642 AND length(to_tsvector('custom_search'::regconfig, c3)) > 0;
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.ft1
+   Output: c1, to_tsvector('custom_search'::regconfig, c3)
+   Node: postgres_srv / Status: Alive
+     Remote SQL: SELECT "C 1", c3 FROM "S 1"."T 1" WHERE ((length(to_tsvector('public.custom_search'::regconfig, c3)) > 0)) AND (("C 1" = 642))
+(4 rows)
+
+--Testcase 1246:
+SELECT c1, to_tsvector('custom_search'::regconfig, c3) FROM ft1
+WHERE c1 = 642 AND length(to_tsvector('custom_search'::regconfig, c3)) > 0;
+ c1  | to_tsvector 
+-----+-------------
+ 642 | '00642':1
+(1 row)
+
 -- ===================================================================
 -- JOIN queries
 -- ===================================================================
@@ -2984,6 +3008,89 @@ SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = f
 RESET enable_nestloop;
 --Testcase 217:
 RESET enable_hashjoin;
+-- test that add_paths_with_pathkeys_for_rel() arranges for the epq_path to
+-- return columns needed by the parent ForeignScan node
+--Testcase 1247:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM local_tbl LEFT JOIN (SELECT ft1.*, COALESCE(ft1.c3 || ft2.c3, 'foobar') FROM ft1 INNER JOIN ft2 ON (ft1.c1 = ft2.c1 AND ft1.c1 < 100)) ss ON (local_tbl.c1 = ss.c1) ORDER BY local_tbl.c1 FOR UPDATE OF local_tbl;
+                                                                                                      QUERY PLAN                                                                                                       
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, (COALESCE((ft1.c3 || ft2.c3), 'foobar'::text)), local_tbl.ctid, ft1.*, ft2.*
+   ->  Merge Left Join
+         Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, (COALESCE((ft1.c3 || ft2.c3), 'foobar'::text)), local_tbl.ctid, ft1.*, ft2.*
+         Merge Cond: (local_tbl.c1 = ft1.c1)
+         ->  Index Scan using local_tbl_pkey on public.local_tbl
+               Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+         ->  Materialize
+               Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.*, (COALESCE((ft1.c3 || ft2.c3), 'foobar'::text))
+               ->  Merge Join
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.*, COALESCE((ft1.c3 || ft2.c3), 'foobar'::text)
+                     Merge Cond: (ft1.c1 = ft2.c1)
+                     ->  Sort
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Sort push-down: no
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.*, ft2.c1, ft2.c3
+                           Sort Key: ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.*, ft2.c1, ft2.c3
+                                 Node: postgres_srv / Status: Alive
+                                   Sort push-down: no
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+(28 rows)
+
+--Testcase 1248:
+ALTER SERVER postgres_srv OPTIONS (DROP extensions);
+--Testcase 1249:
+ALTER SERVER postgres_srv OPTIONS (ADD fdw_startup_cost '10000.0');
+--Testcase 1250:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM local_tbl LEFT JOIN (SELECT ft1.* FROM ft1 INNER JOIN ft2 ON (ft1.c1 = ft2.c1 AND ft1.c1 < 100 AND ft1.c1 = postgres_fdw_abs(ft2.c2))) ss ON (local_tbl.c3 = ss.c3) ORDER BY local_tbl.c1 FOR UPDATE OF local_tbl;
+                                                                                 QUERY PLAN                                                                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows
+   Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, local_tbl.ctid, ft1.*, ft2.*
+   ->  Sort
+         Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, local_tbl.ctid, ft1.*, ft2.*
+         Sort Key: local_tbl.c1
+         ->  Hash Right Join
+               Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, local_tbl.ctid, ft1.*, ft2.*
+               Hash Cond: (ft1.c3 = local_tbl.c3)
+               ->  Merge Join
+                     Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*, ft2.*
+                     Merge Cond: ((ft1.c1 = (postgres_fdw_abs(ft2.c2))) AND (ft1.c1 = ft2.c1))
+                     ->  Sort
+                           Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                           Sort Key: ft1.c1
+                           ->  Foreign Scan on public.ft1
+                                 Output: ft1.c1, ft1.c2, ft1.c3, ft1.c4, ft1.c5, ft1.c6, ft1.c7, ft1.c8, ft1.__spd_url, ft1.*
+                                 Node: postgres_srv / Status: Alive
+                                   Sort push-down: no
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1" WHERE (("C 1" < 100))
+                     ->  Sort
+                           Output: ft2.*, ft2.c1, ft2.c2, (postgres_fdw_abs(ft2.c2))
+                           Sort Key: (postgres_fdw_abs(ft2.c2)), ft2.c1
+                           ->  Foreign Scan on public.ft2
+                                 Output: ft2.*, ft2.c1, ft2.c2, postgres_fdw_abs(ft2.c2)
+                                 Node: postgres_srv / Status: Alive
+                                   Sort push-down: no
+                                   Remote SQL: SELECT "C 1", c2, c3, c4, c5, c6, c7, c8 FROM "S 1"."T 1"
+               ->  Hash
+                     Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+                     ->  Seq Scan on public.local_tbl
+                           Output: local_tbl.c1, local_tbl.c2, local_tbl.c3, local_tbl.ctid
+(31 rows)
+
+--Testcase 1251:
+ALTER SERVER postgres_srv OPTIONS (DROP fdw_startup_cost);
+--Testcase 1252:
+ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
 --Testcase 218:
 DROP TABLE local_tbl;
 -- check join pushdown in situations where multiple userids are involved
@@ -7807,6 +7914,13 @@ Options: check_option=cascaded
 --UPDATE rw_view SET b = b + 15;
 --UPDATE rw_view SET b = b + 15; -- ok
 --SELECT * FROM foreign_tbl;
+-- -- We don't allow batch insert when there are any WCO constraints
+-- ALTER SERVER postgres_srv OPTIONS (ADD batch_size '10');
+-- EXPLAIN (VERBOSE, COSTS OFF)
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5);
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5); -- should fail
+-- SELECT * FROM foreign_tbl;
+-- ALTER SERVER postgres_srv OPTIONS (DROP batch_size);
 --Testcase 561:
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 NOTICE:  drop cascades to view rw_view
@@ -7880,6 +7994,13 @@ Options: check_option=cascaded
 --UPDATE rw_view SET b = b + 15;
 --UPDATE rw_view SET b = b + 15; -- ok
 --SELECT * FROM foreign_tbl;
+-- -- We don't allow batch insert when there are any WCO constraints
+-- ALTER SERVER postgres_srv OPTIONS (ADD batch_size '10');
+-- EXPLAIN (VERBOSE, COSTS OFF)
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5);
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5); -- should fail
+-- SELECT * FROM foreign_tbl;
+-- ALTER SERVER postgres_srv OPTIONS (DROP batch_size);
 --Testcase 572:
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 --Testcase 573:

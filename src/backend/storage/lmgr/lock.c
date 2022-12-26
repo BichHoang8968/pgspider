@@ -774,7 +774,7 @@ LockAcquire(const LOCKTAG *locktag,
 static
 LockAcquireResult
 #ifdef PGSPIDER
-LockAcquireExtendedOrg(const LOCKTAG *locktag,
+			LockAcquireExtendedOrg(const LOCKTAG *locktag,
 #else
 LockAcquireExtended(const LOCKTAG *locktag,
 #endif

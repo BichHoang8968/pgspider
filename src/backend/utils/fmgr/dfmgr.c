@@ -192,8 +192,8 @@ internal_load_library(const char *libname)
 	sigset_t	old_mask;
 
 	/*
-	 * On PGSpider, signal handler must be run on main thread.
-	 * Block signal when loading library for safety library worker thread
+	 * On PGSpider, signal handler must be run on main thread. Block signal
+	 * when loading library for safety library worker thread
 	 */
 	SPD_SIGBLOCK_TRY(old_mask);
 #endif

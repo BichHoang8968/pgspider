@@ -1414,7 +1414,10 @@ foreign_expr_walker(Node *node,
 			break;
 		case T_CoerceViaIO:
 			{
-				/* Accept cast function outer of json_extract and mysql_json_value */
+				/*
+				 * Accept cast function outer of json_extract and
+				 * mysql_json_value
+				 */
 				CoerceViaIO *c = (CoerceViaIO *) node;
 
 				if (IsA(c->arg, FuncExpr))
@@ -1568,8 +1571,8 @@ pgspider_is_foreign_param(PlannerInfo *root,
  */
 bool
 pgspider_is_foreign_pathkey(PlannerInfo *root,
-				   RelOptInfo *baserel,
-				   PathKey *pathkey)
+							RelOptInfo *baserel,
+							PathKey *pathkey)
 {
 	EquivalenceClass *pathkey_ec = pathkey->pk_eclass;
 	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) baserel->fdw_private;
@@ -1764,6 +1767,7 @@ deparseSelectSql(List *tlist, bool is_subquery, List **retrieved_attrs,
 				 deparse_expr_cxt *context)
 {
 	StringInfo	buf = context->buf;
+	int			nestlevel;
 	RelOptInfo *foreignrel = context->foreignrel;
 	PlannerInfo *root = context->root;
 	PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) foreignrel->fdw_private;
@@ -1772,6 +1776,9 @@ deparseSelectSql(List *tlist, bool is_subquery, List **retrieved_attrs,
 	 * Construct SELECT list
 	 */
 	appendStringInfoString(buf, "SELECT ");
+
+	/* Make sure any constants in the exprs are printed portably */
+	nestlevel = pgspider_set_transmission_modes();
 
 	if (is_subquery)
 	{
@@ -1809,6 +1816,8 @@ deparseSelectSql(List *tlist, bool is_subquery, List **retrieved_attrs,
 						  fpinfo->attrs_used, false, retrieved_attrs);
 		table_close(rel, NoLock);
 	}
+
+	pgspider_reset_transmission_modes(nestlevel);
 }
 
 /*
@@ -4258,13 +4267,13 @@ appendOrderByClause(List *pathkeys, bool has_final_sort,
 			 * the final sort.
 			 */
 			em = pgspider_find_em_for_rel_target(context->root,
-										pathkey->pk_eclass,
-										context->foreignrel);
+												 pathkey->pk_eclass,
+												 context->foreignrel);
 		}
 		else
 			em = pgspider_find_em_for_rel(context->root,
-								 pathkey->pk_eclass,
-								 context->scanrel);
+										  pathkey->pk_eclass,
+										  context->scanrel);
 
 		/*
 		 * We don't expect any error here; it would mean that shippability

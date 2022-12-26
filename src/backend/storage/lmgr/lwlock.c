@@ -1956,6 +1956,32 @@ LWLockHeldByMe(LWLock *l)
 }
 
 /*
+ * LWLockHeldByMe - test whether my process holds any of an array of locks
+ *
+ * This is meant as debug support only.
+ */
+bool
+LWLockAnyHeldByMe(LWLock *l, int nlocks, size_t stride)
+{
+	char	   *held_lock_addr;
+	char	   *begin;
+	char	   *end;
+	int			i;
+
+	begin = (char *) l;
+	end = begin + nlocks * stride;
+	for (i = 0; i < num_held_lwlocks; i++)
+	{
+		held_lock_addr = (char *) held_lwlocks[i].lock;
+		if (held_lock_addr >= begin &&
+			held_lock_addr < end &&
+			(held_lock_addr - begin) % stride == 0)
+			return true;
+	}
+	return false;
+}
+
+/*
  * LWLockHeldByMeInMode - test whether my process holds a lock in given mode
  *
  * This is meant as debug support only.
@@ -1971,11 +1997,4 @@ LWLockHeldByMeInMode(LWLock *l, LWLockMode mode)
 			return true;
 	}
 	return false;
-}
-
-/* temp debugging aid to analyze 019_replslot_limit failures */
-int
-LWLockHeldCount(void)
-{
-	return num_held_lwlocks;
 }

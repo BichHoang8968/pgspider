@@ -244,9 +244,9 @@ SELECT sum(c6+c10), max(c7), min(c8), count(c9-c5) FROM tbl01 WHERE __spd_url NO
 EXPLAIN VERBOSE SELECT max(c4), min(c4), sum(c4), count(c4) FROM tbl01 WHERE __spd_url != 'wefwe' ORDER BY 1 ASC LIMIT 10 OFFSET 0;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Limit  (cost=246.59..246.59 rows=1 width=24)
+ Limit  (cost=246.54..246.54 rows=1 width=24)
    Output: (max(c4)), (min(c4)), (sum(c4)), (count(c4))
-   ->  Sort  (cost=246.59..246.59 rows=1 width=24)
+   ->  Sort  (cost=246.54..246.54 rows=1 width=24)
          Output: (max(c4)), (min(c4)), (sum(c4)), (count(c4))
          Sort Key: (max(tbl01.c4))
          ->  Aggregate  (cost=246.52..246.53 rows=1 width=24)
@@ -271,7 +271,7 @@ SELECT max(c4), min(c4), sum(c4), count(c4) FROM tbl01 WHERE __spd_url != 'wefwe
 EXPLAIN VERBOSE SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) FROM tbl01 WHERE __spd_url NOT ILIKE 'sBi(' ORDER BY 1, 2 LIMIT ALL OFFSET NULL;
                                                             QUERY PLAN                                                            
 ----------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=297.80..297.81 rows=1 width=88)
+ Sort  (cost=297.73..297.74 rows=1 width=88)
    Output: (min(c1)), (min(c2)), (max(((c4)::double precision - c5))), (min((((c8 / 122))::double precision * c9))), (count(c11))
    Sort Key: (min(tbl01.c1)), (min(tbl01.c2))
    ->  Aggregate  (cost=297.71..297.72 rows=1 width=88)
@@ -295,9 +295,9 @@ SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) FROM tbl01 WHERE
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/c5) FROM tbl01 WHERE __spd_url NOT LIKE '%owoefj%' ORDER BY 1 ASC, 2 DESC, 3 LIMIT 10 OFFSET 1;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Limit  (cost=255.16..255.17 rows=1 width=52)
+ Limit  (cost=255.08..255.08 rows=1 width=52)
    Output: (sum(c5)), (max(c7)), (min(c8)), (count((c9 / c5)))
-   ->  Sort  (cost=255.16..255.16 rows=1 width=52)
+   ->  Sort  (cost=255.07..255.08 rows=1 width=52)
          Output: (sum(c5)), (max(c7)), (min(c8)), (count((c9 / c5)))
          Sort Key: (sum(tbl01.c5)), (max(tbl01.c7)) DESC, (min(tbl01.c8))
          ->  Aggregate  (cost=255.05..255.06 rows=1 width=52)
@@ -1228,9 +1228,9 @@ SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4 - 100, c5, c6, c9, c10 FROM tbl01 WHERE c4-c5 > c8-c9 GROUP BY 1, 2, 3, 4, 5, 6, 7 ORDER BY 1 ASC, 2 DESC, 3, 4, 5, 6, 7 LIMIT 5;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=317.19..317.20 rows=5 width=84)
+ Limit  (cost=286.98..286.99 rows=5 width=84)
    Output: ((c1 || c2)), c3, ((c4 - 100)), c5, c6, c9, c10
-   ->  Sort  (cost=317.19..317.69 rows=200 width=84)
+   ->  Sort  (cost=286.98..287.48 rows=200 width=84)
          Output: ((c1 || c2)), c3, ((c4 - 100)), c5, c6, c9, c10
          Sort Key: ((tbl01.c1 || tbl01.c2)), tbl01.c3 DESC, ((tbl01.c4 - 100)), tbl01.c5, tbl01.c6, tbl01.c9, tbl01.c10
          ->  HashAggregate  (cost=280.66..283.66 rows=200 width=84)
@@ -1258,9 +1258,9 @@ SELECT c1 || c2, c3, c4 - 100, c5, c6, c9, c10 FROM tbl01 WHERE c4-c5 > c8-c9 GR
 EXPLAIN VERBOSE SELECT c1, c2 || c3 || c7, ceil(c4-c5), abs(c8/c9) FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY 1, 2, 3, 4 ORDER BY 1 DESC, 2, 3, 4 LIMIT 15;
                                                                                   QUERY PLAN                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=320.44..320.48 rows=15 width=80)
+ Limit  (cost=300.10..300.14 rows=15 width=80)
    Output: c1, (((c2 || c3) || c7)), (ceil(((c4)::double precision - c5))), (abs(((c8)::double precision / c9)))
-   ->  Sort  (cost=320.44..320.94 rows=200 width=80)
+   ->  Sort  (cost=300.10..300.60 rows=200 width=80)
          Output: c1, (((c2 || c3) || c7)), (ceil(((c4)::double precision - c5))), (abs(((c8)::double precision / c9)))
          Sort Key: tbl01.c1 DESC, (((tbl01.c2 || tbl01.c3) || tbl01.c7)), (ceil(((tbl01.c4)::double precision - tbl01.c5))), (abs(((tbl01.c8)::double precision / tbl01.c9)))
          ->  HashAggregate  (cost=289.19..295.19 rows=200 width=80)
@@ -1282,9 +1282,9 @@ psql:sql/limit/limit_orderby.sql:212: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT lower(c1 || c2), c3, c4-c5, c8*0.212+c9, c11 FROM tbl01 WHERE c3 <> 'AJEOF' GROUP BY 1, 2, 3, 4, 5 ORDER BY 1 ASC, 2, 3, 4, 5 LIMIT 5;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=357.80..357.81 rows=5 width=88)
+ Limit  (cost=340.27..340.29 rows=5 width=88)
    Output: (lower((c1 || c2))), c3, (((c4)::double precision - c5)), (((((c8)::numeric * 0.212))::double precision + c9)), c11
-   ->  Sort  (cost=357.80..358.30 rows=200 width=88)
+   ->  Sort  (cost=340.27..340.77 rows=200 width=88)
          Output: (lower((c1 || c2))), c3, (((c4)::double precision - c5)), (((((c8)::numeric * 0.212))::double precision + c9)), c11
          Sort Key: (lower((tbl01.c1 || tbl01.c2))), tbl01.c3, (((tbl01.c4)::double precision - tbl01.c5)), (((((tbl01.c8)::numeric * 0.212))::double precision + tbl01.c9)), tbl01.c11
          ->  HashAggregate  (cost=330.95..336.95 rows=200 width=88)
@@ -1313,9 +1313,9 @@ SELECT lower(c1 || c2), c3, c4-c5, c8*0.212+c9, c11 FROM tbl01 WHERE c3 <> 'AJEO
 EXPLAIN VERBOSE SELECT upper(c1 || '&' || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c7 != '[]' GROUP BY 1, 2, 3, 4, 5 ORDER BY 1, 2, 3, 4, 5 LIMIT 10;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=328.92..328.95 rows=10 width=84)
+ Limit  (cost=305.31..305.34 rows=10 width=84)
    Output: (upper(((c1 || '&'::text) || c3))), c5, c7, c9, ((c11 + '@ 1 hour'::interval))
-   ->  Sort  (cost=328.92..329.42 rows=200 width=84)
+   ->  Sort  (cost=305.31..305.81 rows=200 width=84)
          Output: (upper(((c1 || '&'::text) || c3))), c5, c7, c9, ((c11 + '@ 1 hour'::interval))
          Sort Key: (upper(((tbl01.c1 || '&'::text) || tbl01.c3))), tbl01.c5, tbl01.c7, tbl01.c9, ((tbl01.c11 + '@ 1 hour'::interval))
          ->  HashAggregate  (cost=296.99..300.99 rows=200 width=84)
@@ -1350,9 +1350,9 @@ SELECT upper(c1 || '&' || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 W
 EXPLAIN VERBOSE SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Limit  (cost=1.05..1.05 rows=1 width=8)
+ Limit  (cost=1.01..1.01 rows=1 width=8)
    Output: (count(*))
-   ->  Sort  (cost=1.05..1.05 rows=1 width=8)
+   ->  Sort  (cost=1.01..1.01 rows=1 width=8)
          Output: (count(*))
          Sort Key: (count(*))
          ->  Foreign Scan  (cost=1.00..1.00 rows=1 width=8)
@@ -1375,9 +1375,9 @@ SELECT count(*) FROM tbl01 WHERE c8 > 0 ORDER BY 1 LIMIT 5;
 EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE c4 <> 0 ORDER BY 1 ASC, 2 DESC, 3 LIMIT 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Limit  (cost=263.14..263.15 rows=1 width=72)
+ Limit  (cost=263.05..263.06 rows=1 width=72)
    Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
-   ->  Sort  (cost=263.14..263.15 rows=1 width=72)
+   ->  Sort  (cost=263.05..263.06 rows=1 width=72)
          Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
          Sort Key: (min((tbl01.c1 || tbl01.c2))), (max(tbl01.c3)) DESC, (min(tbl01.c4))
          ->  Aggregate  (cost=263.03..263.04 rows=1 width=72)
@@ -1401,9 +1401,9 @@ SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 WHERE c4 <> 0 ORDER B
 EXPLAIN VERBOSE SELECT min(c5/3 + c6), max(c7), min(c8), max(c9/2+c10), max(c11) FROM tbl01 WHERE c3 || 'abc' > 'AEJFOAWF' ORDER BY 1 ASC,2 ASC,3 LIMIT 15;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=260.86..260.86 rows=1 width=64)
+ Limit  (cost=260.77..260.77 rows=1 width=64)
    Output: (min(((c5 / '3'::double precision) + (c6)::double precision))), (max(c7)), (min(c8)), (max(((c9 / '2'::double precision) + (c10)::double precision))), (max(c11))
-   ->  Sort  (cost=260.86..260.86 rows=1 width=64)
+   ->  Sort  (cost=260.77..260.77 rows=1 width=64)
          Output: (min(((c5 / '3'::double precision) + (c6)::double precision))), (max(c7)), (min(c8)), (max(((c9 / '2'::double precision) + (c10)::double precision))), (max(c11))
          Sort Key: (min(((tbl01.c5 / '3'::double precision) + (tbl01.c6)::double precision))), (max(tbl01.c7)), (min(tbl01.c8))
          ->  Aggregate  (cost=260.75..260.76 rows=1 width=64)
@@ -1428,9 +1428,9 @@ SELECT min(c5/3 + c6), max(c7), min(c8), max(c9/2+c10), max(c11) FROM tbl01 WHER
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Limit  (cost=271.61..271.62 rows=1 width=56)
+ Limit  (cost=271.54..271.55 rows=1 width=56)
    Output: (min(c7)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
-   ->  Sort  (cost=271.61..271.62 rows=1 width=56)
+   ->  Sort  (cost=271.54..271.55 rows=1 width=56)
          Output: (min(c7)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
          Sort Key: (min(tbl01.c7)), (max(tbl01.c8))
          ->  Aggregate  (cost=271.52..271.53 rows=1 width=56)
@@ -1454,9 +1454,9 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER 
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WHERE c8 BETWEEN -10000 AND 10000 ORDER BY 1 LIMIT 15;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=161.90..161.91 rows=1 width=52)
+ Limit  (cost=161.85..161.86 rows=1 width=52)
    Output: (sum(c5)), (max(c7)), (min(c8)), (count(((c9 / '2'::double precision) - (c5 * '2'::double precision))))
-   ->  Sort  (cost=161.90..161.91 rows=1 width=52)
+   ->  Sort  (cost=161.85..161.86 rows=1 width=52)
          Output: (sum(c5)), (max(c7)), (min(c8)), (count(((c9 / '2'::double precision) - (c5 * '2'::double precision))))
          Sort Key: (sum(tbl01.c5))
          ->  Aggregate  (cost=161.83..161.84 rows=1 width=52)
@@ -1610,9 +1610,9 @@ SELECT c4-c5, c8/(c9-23), c11 + '3 days'::interval, c10 FROM tbl01 WHERE c4 > 0 
 EXPLAIN VERBOSE SELECT concat(c1, c2, c3), c4-c5, c8/2+c9, c11 FROM tbl01 WHERE  c5 > c4 ORDER BY 1,2 LIMIT 15 OFFSET 1;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Limit  (cost=284.22..284.26 rows=15 width=56)
+ Limit  (cost=274.98..275.02 rows=15 width=56)
    Output: (concat(c1, c2, c3)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c11
-   ->  Sort  (cost=284.22..287.07 rows=1138 width=56)
+   ->  Sort  (cost=274.98..277.82 rows=1138 width=56)
          Output: (concat(c1, c2, c3)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c11
          Sort Key: (concat(tbl01.c1, tbl01.c2, tbl01.c3)), (((tbl01.c4)::double precision - tbl01.c5))
          ->  Foreign Scan on public.tbl01  (cost=100.00..246.52 rows=1138 width=56)
@@ -1635,9 +1635,9 @@ SELECT concat(c1, c2, c3), c4-c5, c8/2+c9, c11 FROM tbl01 WHERE  c5 > c4 ORDER B
 EXPLAIN VERBOSE SELECT upper(c1 || c2 || 'base64'), c5, round(c8/23+c9), c10 FROM tbl01 WHERE NOT c4 < 0 ORDER BY 1,2 LIMIT 5 OFFSET 3;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Limit  (cost=223.79..223.81 rows=5 width=46)
+ Limit  (cost=218.10..218.12 rows=5 width=46)
    Output: (upper(((c1 || c2) || 'base64'::text))), c5, (round((((c8 / 23))::double precision + c9))), c10
-   ->  Sort  (cost=223.79..226.63 rows=1138 width=46)
+   ->  Sort  (cost=218.10..220.94 rows=1138 width=46)
          Output: (upper(((c1 || c2) || 'base64'::text))), c5, (round((((c8 / 23))::double precision + c9))), c10
          Sort Key: (upper(((tbl01.c1 || tbl01.c2) || 'base64'::text))), tbl01.c5
          ->  Foreign Scan on public.tbl01  (cost=100.00..195.34 rows=1138 width=46)
@@ -1802,7 +1802,7 @@ SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 ORDER BY c1, c2, c3 LIM
 EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'time3', c10 FROM tbl01 ORDER BY 1 DESC,2 ASC, 3 LIMIT ALL;
                                                                     QUERY PLAN                                                                     
 ---------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=644.47..653.00 rows=3413 width=50)
+ Sort  (cost=472.41..480.94 rows=3413 width=50)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'time3'::text)), c10
    Sort Key: (((tbl01.c4)::double precision - tbl01.c5)) DESC, (((tbl01.c8)::double precision / tbl01.c9)), (((tbl01.c11)::text || 'time3'::text))
    ->  Foreign Scan on public.tbl01  (cost=100.00..272.12 rows=3413 width=50)
@@ -1819,9 +1819,9 @@ psql:sql/limit/limit_orderby.sql:297: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 3 LIMIT 5;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
- Limit  (cost=401.23..401.25 rows=5 width=80)
+ Limit  (cost=311.74..311.75 rows=5 width=80)
    Output: ((c1 || c2)), c3, (((c4)::double precision - c5)), (((c8)::double precision - c9))
-   ->  Sort  (cost=401.23..409.77 rows=3413 width=80)
+   ->  Sort  (cost=311.74..320.27 rows=3413 width=80)
          Output: ((c1 || c2)), c3, (((c4)::double precision - c5)), (((c8)::double precision - c9))
          Sort Key: ((tbl01.c1 || tbl01.c2)), tbl01.c3, (((tbl01.c4)::double precision - tbl01.c5))
          ->  Foreign Scan on public.tbl01  (cost=100.00..255.05 rows=3413 width=80)
@@ -1847,9 +1847,9 @@ SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 3 LIMIT 5;
 EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, abs(c8-c5-c9), c10, c11 FROM tbl01 ORDER BY c4/(c5 + c6) DESC, c7 LIMIT 15;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=365.97..366.01 rows=15 width=58)
+ Limit  (cost=364.39..364.42 rows=15 width=58)
    Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, (abs((((c8)::double precision - c5) - c9))), c10, c11
-   ->  Sort  (cost=365.97..374.51 rows=3413 width=58)
+   ->  Sort  (cost=364.39..372.92 rows=3413 width=58)
          Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, (abs((((c8)::double precision - c5) - c9))), c10, c11
          Sort Key: (((tbl01.c4)::double precision / (tbl01.c5 + (tbl01.c6)::double precision))) DESC, tbl01.c7
          ->  Foreign Scan on public.tbl01  (cost=100.00..280.65 rows=3413 width=58)
@@ -1867,9 +1867,9 @@ psql:sql/limit/limit_orderby.sql:305: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, round(c4/(c8-c5)+c9), c11 FROM tbl01 ORDER BY c1, c2, c3 || c7 ASC LIMIT 5;
                                                             QUERY PLAN                                                             
 -----------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=430.21..430.23 rows=5 width=144)
+ Limit  (cost=337.34..337.35 rows=5 width=144)
    Output: ((c1 || c2)), ((c3 || c7)), (round((((c4)::double precision / ((c8)::double precision - c5)) + c9))), c11, c1, c2
-   ->  Sort  (cost=430.21..438.75 rows=3413 width=144)
+   ->  Sort  (cost=337.34..345.87 rows=3413 width=144)
          Output: ((c1 || c2)), ((c3 || c7)), (round((((c4)::double precision / ((c8)::double precision - c5)) + c9))), c11, c1, c2
          Sort Key: tbl01.c1, tbl01.c2, ((tbl01.c3 || tbl01.c7))
          ->  Foreign Scan on public.tbl01  (cost=100.00..280.65 rows=3413 width=144)
@@ -2207,9 +2207,9 @@ SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7 HA
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1, c2, c3, c4, c7, c8 ORDER BY 1 ASC, 2 DESC LIMIT 1 OFFSET 1;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
- Limit  (cost=280.62..280.62 rows=1 width=212)
+ Limit  (cost=277.62..277.62 rows=1 width=212)
    Output: c1, c2, (((c3 || '123'::text) || c7)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
-   ->  Sort  (cost=280.62..281.12 rows=200 width=212)
+   ->  Sort  (cost=277.62..278.12 rows=200 width=212)
          Output: c1, c2, (((c3 || '123'::text) || c7)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
          Sort Key: tbl01.c1, tbl01.c2 DESC
          ->  HashAggregate  (cost=272.12..275.62 rows=200 width=212)
@@ -2234,9 +2234,9 @@ SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1,
 EXPLAIN VERBOSE SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c5, c8, c9, c10, c11 ORDER BY 1 DESC LIMIT 5 OFFSET 1;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=283.12..283.13 rows=5 width=114)
+ Limit  (cost=281.70..281.72 rows=5 width=114)
    Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
-   ->  Sort  (cost=283.12..283.62 rows=200 width=114)
+   ->  Sort  (cost=281.70..282.20 rows=200 width=114)
          Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
          Sort Key: (((tbl01.c4)::double precision - tbl01.c5)) DESC
          ->  HashAggregate  (cost=272.12..278.12 rows=200 width=114)
@@ -2265,9 +2265,9 @@ SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c
 EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __spd_url, c4, c5, c6, c7, c8, c9, c10, c11 ORDER BY 1 ASC LIMIT 5 OFFSET 2;
                                                                             QUERY PLAN                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=299.69..299.70 rows=5 width=116)
+ Limit  (cost=298.49..298.51 rows=5 width=116)
    Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
-   ->  Sort  (cost=299.68..300.18 rows=200 width=116)
+   ->  Sort  (cost=298.49..298.99 rows=200 width=116)
          Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
          Sort Key: (((tbl01.c4)::double precision / (tbl01.c5 + (tbl01.c6)::double precision)))
          ->  HashAggregate  (cost=289.18..294.68 rows=200 width=116)
@@ -2288,9 +2288,9 @@ psql:sql/limit/limit_orderby.sql:372: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, __spd_url, c9, c10 ORDER BY 1 LIMIT 5 OFFSET 3;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=296.19..296.20 rows=5 width=148)
+ Limit  (cost=295.19..295.20 rows=5 width=148)
    Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
-   ->  Sort  (cost=296.18..296.68 rows=200 width=148)
+   ->  Sort  (cost=295.18..295.68 rows=200 width=148)
          Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
          Sort Key: tbl01.c1
          ->  HashAggregate  (cost=289.18..291.18 rows=200 width=148)
@@ -2319,9 +2319,9 @@ SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_url, c4, c5, c7, c8, c9 ORDER BY 1 LIMIT 5 OFFSET 4;
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=299.19..299.20 rows=5 width=232)
+ Limit  (cost=298.36..298.37 rows=5 width=232)
    Output: c1, c2, ((c3 || c7)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
-   ->  Sort  (cost=299.18..299.68 rows=200 width=232)
+   ->  Sort  (cost=298.35..298.85 rows=200 width=232)
          Output: c1, c2, ((c3 || c7)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
          Sort Key: tbl01.c1
          ->  HashAggregate  (cost=289.18..294.18 rows=200 width=232)
@@ -2350,9 +2350,9 @@ SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_ur
 EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url ORDER BY 1 LIMIT 10 OFFSET 5;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=313.27..313.29 rows=10 width=196)
+ Limit  (cost=313.18..313.20 rows=10 width=196)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
-   ->  Sort  (cost=313.26..313.76 rows=200 width=196)
+   ->  Sort  (cost=313.16..313.66 rows=200 width=196)
          Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
          Sort Key: tbl01.c1
          ->  HashAggregate  (cost=306.26..308.26 rows=200 width=196)
@@ -2402,9 +2402,9 @@ SELECT 1,2, 'wefakef', 2332, ')!@*&<>\\//' FROM tbl01 WHERE c3 IS NOT NULL ORDER
 EXPLAIN VERBOSE SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OFFSET 3;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Limit  (cost=313.98..313.99 rows=5 width=96)
+ Limit  (cost=297.00..297.01 rows=5 width=96)
    Output: ((c1 || c2)), c3, __spd_url
-   ->  Sort  (cost=313.97..322.46 rows=3396 width=96)
+   ->  Sort  (cost=296.99..305.48 rows=3396 width=96)
          Output: ((c1 || c2)), c3, __spd_url
          Sort Key: ((tbl01.c1 || tbl01.c2)), tbl01.c3
          ->  Foreign Scan on public.tbl01  (cost=100.00..229.07 rows=3396 width=96)
@@ -2430,9 +2430,9 @@ SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OF
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Limit  (cost=178.34..178.34 rows=1 width=8)
+ Limit  (cost=178.29..178.29 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Sort  (cost=178.34..178.34 rows=1 width=8)
+   ->  Sort  (cost=178.29..178.29 rows=1 width=8)
          Output: (count(DISTINCT c5))
          Sort Key: (count(DISTINCT tbl01.c5))
          ->  Aggregate  (cost=178.27..178.28 rows=1 width=8)
@@ -2456,9 +2456,9 @@ SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
 EXPLAIN VERBOSE SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), json_object_agg('x', c7), jsonb_object_agg('y', c7) FROM tbl01 WHERE c7 IS NOT NULL ORDER BY 1 LIMIT 5 OFFSET 0;
                                                                                QUERY PLAN                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=271.56..271.57 rows=1 width=160)
+ Limit  (cost=271.51..271.52 rows=1 width=160)
    Output: (array_agg(((c3 || ' '::text) || c7))), (json_agg(ROW('xx', c4))), (jsonb_agg(ROW('yy', c5))), (json_object_agg('x', c7)), (jsonb_object_agg('y', c7))
-   ->  Sort  (cost=271.56..271.57 rows=1 width=160)
+   ->  Sort  (cost=271.51..271.52 rows=1 width=160)
          Output: (array_agg(((c3 || ' '::text) || c7))), (json_agg(ROW('xx', c4))), (jsonb_agg(ROW('yy', c5))), (json_object_agg('x', c7)), (jsonb_object_agg('y', c7))
          Sort Key: (array_agg(((tbl01.c3 || ' '::text) || tbl01.c7)))
          ->  Aggregate  (cost=271.49..271.50 rows=1 width=160)
@@ -2491,9 +2491,9 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), 
 EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=246.53..246.53 rows=1 width=64)
+ Limit  (cost=246.46..246.46 rows=1 width=64)
    Output: (string_agg(c3, '-'::text ORDER BY c3)), (string_agg(c7, '_'::text ORDER BY c7))
-   ->  Sort  (cost=246.53..246.53 rows=1 width=64)
+   ->  Sort  (cost=246.46..246.46 rows=1 width=64)
          Output: (string_agg(c3, '-'::text ORDER BY c3)), (string_agg(c7, '_'::text ORDER BY c7))
          Sort Key: (string_agg(tbl01.c3, '-'::text ORDER BY tbl01.c3)), (string_agg(tbl01.c7, '_'::text ORDER BY tbl01.c7))
          ->  Aggregate  (cost=246.44..246.45 rows=1 width=64)
@@ -2518,9 +2518,9 @@ SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl
 EXPLAIN VERBOSE SELECT string_agg(c3, c7) FROM tbl01 WHERE c8 < c9 ORDER BY 1 ASC LIMIT 1 OFFSET 0;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Limit  (cost=232.37..232.38 rows=1 width=32)
+ Limit  (cost=232.32..232.33 rows=1 width=32)
    Output: (string_agg(c3, c7))
-   ->  Sort  (cost=232.37..232.38 rows=1 width=32)
+   ->  Sort  (cost=232.32..232.33 rows=1 width=32)
          Output: (string_agg(c3, c7))
          Sort Key: (string_agg(tbl01.c3, tbl01.c7))
          ->  Aggregate  (cost=232.30..232.31 rows=1 width=32)
@@ -2546,9 +2546,9 @@ SELECT string_agg(c3, c7) FROM tbl01 WHERE c8 < c9 ORDER BY 1 ASC LIMIT 1 OFFSET
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 ORDER BY __spd_url LIMIT 5;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Limit  (cost=297.71..297.73 rows=5 width=178)
+ Limit  (cost=269.08..269.09 rows=5 width=178)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
-   ->  Sort  (cost=297.71..306.25 rows=3413 width=178)
+   ->  Sort  (cost=269.08..277.61 rows=3413 width=178)
          Output: c1, c2, c3, c4, c5, c6, c7, c8, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..212.39 rows=3413 width=178)
@@ -2574,9 +2574,9 @@ SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 ORDER BY __spd_url LIMIT 5;
 EXPLAIN VERBOSE SELECT round(c4-c5), ceil(c8/(c9+33)), c11 || 'time5', c10 FROM tbl01 ORDER BY __spd_url LIMIT 1;
                                                                                  QUERY PLAN                                                                                 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=383.04..383.04 rows=1 width=82)
+ Limit  (cost=314.78..314.78 rows=1 width=82)
    Output: (round(((c4)::double precision - c5))), (ceil(((c8)::double precision / (c9 + '33'::double precision)))), (((c11)::text || 'time5'::text)), c10, __spd_url
-   ->  Sort  (cost=383.04..391.57 rows=3413 width=82)
+   ->  Sort  (cost=314.78..323.31 rows=3413 width=82)
          Output: (round(((c4)::double precision - c5))), (ceil(((c8)::double precision / (c9 + '33'::double precision)))), (((c11)::text || 'time5'::text)), c10, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..297.71 rows=3413 width=82)
@@ -2598,9 +2598,9 @@ SELECT round(c4-c5), ceil(c8/(c9+33)), c11 || 'time5', c10 FROM tbl01 ORDER BY _
 EXPLAIN VERBOSE SELECT c1, c2 || c3, c4-c5, c8/23+c9, c11 FROM tbl01 ORDER BY __spd_url LIMIT 2;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=348.91..348.91 rows=2 width=120)
+ Limit  (cost=297.71..297.72 rows=2 width=120)
    Output: c1, ((c2 || c3)), (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), c11, __spd_url
-   ->  Sort  (cost=348.91..357.44 rows=3413 width=120)
+   ->  Sort  (cost=297.71..306.25 rows=3413 width=120)
          Output: c1, ((c2 || c3)), (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), c11, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..263.58 rows=3413 width=120)
@@ -2624,9 +2624,9 @@ SELECT c1, c2 || c3, c4-c5, c8/23+c9, c11 FROM tbl01 ORDER BY __spd_url LIMIT 2;
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4/21212+c5/221*c6-c9, c10 FROM tbl01 ORDER BY __spd_url OFFSET 5;
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=512.74..521.26 rows=3408 width=106)
+ Limit  (cost=480.95..489.47 rows=3408 width=106)
    Output: ((c1 || c2)), c3, (((((c4 / 21212))::double precision + ((c5 / '221'::double precision) * (c6)::double precision)) - c9)), c10, __spd_url
-   ->  Sort  (cost=512.72..521.26 rows=3413 width=106)
+   ->  Sort  (cost=480.94..489.47 rows=3413 width=106)
          Output: ((c1 || c2)), c3, (((((c4 / 21212))::double precision + ((c5 / '221'::double precision) * (c6)::double precision)) - c9)), c10, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..280.65 rows=3413 width=106)
@@ -2652,9 +2652,9 @@ SELECT c1 || c2, c3, c4/21212+c5/221*c6-c9, c10 FROM tbl01 ORDER BY __spd_url OF
 EXPLAIN VERBOSE SELECT lower(c1 || c2 || c3), round(c4-c5), round(c8/2-c9) FROM tbl01 ORDER BY __spd_url OFFSET 1;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=529.79..538.32 rows=3412 width=80)
+ Limit  (cost=498.01..506.54 rows=3412 width=80)
    Output: (lower(((c1 || c2) || c3))), (round(((c4)::double precision - c5))), (round((((c8 / 2))::double precision - c9))), __spd_url
-   ->  Sort  (cost=529.79..538.32 rows=3413 width=80)
+   ->  Sort  (cost=498.00..506.54 rows=3413 width=80)
          Output: (lower(((c1 || c2) || c3))), (round(((c4)::double precision - c5))), (round((((c8 / 2))::double precision - c9))), __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..297.71 rows=3413 width=80)
@@ -2684,9 +2684,9 @@ SELECT lower(c1 || c2 || c3), round(c4-c5), round(c8/2-c9) FROM tbl01 ORDER BY _
 EXPLAIN VERBOSE SELECT c4/c5, c6, c7, c8/(c5-c9), c10, c11 FROM tbl01 ORDER BY __spd_url OFFSET 5;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=487.14..495.66 rows=3408 width=92)
+ Limit  (cost=455.35..463.87 rows=3408 width=92)
    Output: (((c4)::double precision / c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, c11, __spd_url
-   ->  Sort  (cost=487.13..495.66 rows=3413 width=92)
+   ->  Sort  (cost=455.34..463.87 rows=3413 width=92)
          Output: (((c4)::double precision / c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, c11, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..255.05 rows=3413 width=92)
@@ -2705,9 +2705,9 @@ psql:sql/limit/limit_orderby.sql:435: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT * FROM tbl01 ORDER BY __spd_url LIMIT 5 OFFSET 3;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Limit  (cost=297.72..297.73 rows=5 width=196)
+ Limit  (cost=280.66..280.67 rows=5 width=196)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
-   ->  Sort  (cost=297.71..306.25 rows=3413 width=196)
+   ->  Sort  (cost=280.65..289.18 rows=3413 width=196)
          Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..212.39 rows=3413 width=196)
@@ -2733,9 +2733,9 @@ SELECT * FROM tbl01 ORDER BY __spd_url LIMIT 5 OFFSET 3;
 EXPLAIN VERBOSE SELECT c7, c8, c6, c4, c5, c3, c2, c1 FROM tbl01 ORDER BY __spd_url LIMIT 1 OFFSET 1;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Limit  (cost=297.72..297.72 rows=1 width=178)
+ Limit  (cost=246.52..246.53 rows=1 width=178)
    Output: c7, c8, c6, c4, c5, c3, c2, c1, __spd_url
-   ->  Sort  (cost=297.71..306.25 rows=3413 width=178)
+   ->  Sort  (cost=246.52..255.05 rows=3413 width=178)
          Output: c7, c8, c6, c4, c5, c3, c2, c1, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..212.39 rows=3413 width=178)
@@ -2757,9 +2757,9 @@ SELECT c7, c8, c6, c4, c5, c3, c2, c1 FROM tbl01 ORDER BY __spd_url LIMIT 1 OFFS
 EXPLAIN VERBOSE SELECT lower(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url LIMIT 5 OFFSET 1;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Limit  (cost=323.31..323.33 rows=5 width=104)
+ Limit  (cost=299.17..299.18 rows=5 width=104)
    Output: (lower(((c1 || c2) || c3))), 1, 2, 'abc'::text, __spd_url
-   ->  Sort  (cost=323.31..331.85 rows=3413 width=104)
+   ->  Sort  (cost=299.16..307.70 rows=3413 width=104)
          Output: (lower(((c1 || c2) || c3))), 1, 2, 'abc'::text, __spd_url
          Sort Key: tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..237.99 rows=3413 width=104)
@@ -2841,7 +2841,7 @@ SELECT c1, c2, c3, c4 /2, c5 + 23.12, c6 * 23, c9 - 23, c10 + 231 FROM tbl01 ORD
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/(c9+c6) FROM tbl01 ORDER BY c4-c5 DESC, c8/2 ASC;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=616.74..625.27 rows=3413 width=120)
+ Sort  (cost=480.94..489.47 rows=3413 width=120)
    Output: c1, c2, ((c3 || c7)), (((c4)::double precision - c5)), (((c8)::double precision / (c9 + (c6)::double precision))), ((c8 / 2))
    Sort Key: (((tbl01.c4)::double precision - tbl01.c5)) DESC, ((tbl01.c8 / 2))
    ->  Foreign Scan on public.tbl01  (cost=100.00..280.65 rows=3413 width=120)
@@ -2859,7 +2859,7 @@ psql:sql/limit/limit_orderby.sql:462: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT * FROM tbl01 ORDER BY __spd_url;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Sort  (cost=444.46..453.00 rows=3413 width=196)
+ Sort  (cost=412.68..421.21 rows=3413 width=196)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
    Sort Key: tbl01.__spd_url
    ->  Foreign Scan on public.tbl01  (cost=100.00..212.39 rows=3413 width=196)
@@ -2889,7 +2889,7 @@ SELECT * FROM tbl01 ORDER BY __spd_url;
 EXPLAIN VERBOSE SELECT lower(c1 || c2), c3 || c7, c4/(c5+c6)-c8 FROM tbl01 ORDER BY __spd_url;
                                                                   QUERY PLAN                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=521.26..529.79 rows=3413 width=104)
+ Sort  (cost=489.47..498.00 rows=3413 width=104)
    Output: (lower((c1 || c2))), ((c3 || c7)), ((((c4)::double precision / (c5 + (c6)::double precision)) - (c8)::double precision)), __spd_url
    Sort Key: tbl01.__spd_url
    ->  Foreign Scan on public.tbl01  (cost=100.00..289.18 rows=3413 width=104)
@@ -2906,7 +2906,7 @@ psql:sql/limit/limit_orderby.sql:471: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url;
                                   QUERY PLAN                                   
 -------------------------------------------------------------------------------
- Sort  (cost=444.46..453.00 rows=3413 width=168)
+ Sort  (cost=412.68..421.21 rows=3413 width=168)
    Output: c1, c2, c3, 1, 2, 'abc'::text, __spd_url
    Sort Key: tbl01.__spd_url
    ->  Foreign Scan on public.tbl01  (cost=100.00..212.39 rows=3413 width=168)
@@ -2937,7 +2937,7 @@ SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url;
 EXPLAIN VERBOSE SELECT count(*) FROM tbl01 ORDER BY 1;
                       QUERY PLAN                      
 ------------------------------------------------------
- Sort  (cost=1.05..1.05 rows=1 width=8)
+ Sort  (cost=1.01..1.01 rows=1 width=8)
    Output: (count(*))
    Sort Key: (count(*))
    ->  Foreign Scan  (cost=1.00..1.00 rows=1 width=8)
@@ -2959,7 +2959,7 @@ SELECT count(*) FROM tbl01 ORDER BY 1;
 EXPLAIN VERBOSE SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORDER BY 1, 2 DESC;
                                      QUERY PLAN                                      
 -------------------------------------------------------------------------------------
- Sort  (cost=255.14..255.14 rows=1 width=48)
+ Sort  (cost=255.07..255.08 rows=1 width=48)
    Output: (count((c1 || c2))), (max(c3)), (min(c4)), (sum(c5))
    Sort Key: (count((tbl01.c1 || tbl01.c2))), (max(tbl01.c3)) DESC
    ->  Aggregate  (cost=255.05..255.06 rows=1 width=48)
@@ -2982,7 +2982,7 @@ SELECT count(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 ORDER BY 1, 2 DESC;
 EXPLAIN VERBOSE SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl01 ORDER BY 1 ASC, 2 DESC, 3;
                                                                             QUERY PLAN                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=297.82..297.83 rows=1 width=56)
+ Sort  (cost=297.73..297.74 rows=1 width=56)
    Output: (count(((c5 / '2'::double precision) + (c6)::double precision))), (max(c7)), (min(c8)), (sum(((c9 / '2'::double precision) + (c10)::double precision)))
    Sort Key: (count(((tbl01.c5 / '2'::double precision) + (tbl01.c6)::double precision))), (max(tbl01.c7)) DESC, (min(tbl01.c8))
    ->  Aggregate  (cost=297.71..297.72 rows=1 width=56)
@@ -3005,7 +3005,7 @@ SELECT count(c5/2+c6), max(c7), min(c8), sum(c9/2+c10) FROM tbl01 ORDER BY 1 ASC
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
                                              QUERY PLAN                                              
 -----------------------------------------------------------------------------------------------------
- Sort  (cost=263.69..263.70 rows=1 width=56)
+ Sort  (cost=263.60..263.61 rows=1 width=56)
    Output: (min(c7)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10))
    Sort Key: (min(tbl01.c7)) DESC, (max(tbl01.c8)), (sum(((tbl01.c8)::double precision - tbl01.c9)))
    ->  Aggregate  (cost=263.58..263.59 rows=1 width=56)
@@ -3028,7 +3028,7 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 AS
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2+c5) FROM tbl01 ORDER BY 1 ASC, 2, 3;
                                        QUERY PLAN                                        
 -----------------------------------------------------------------------------------------
- Sort  (cost=263.69..263.70 rows=1 width=52)
+ Sort  (cost=263.60..263.61 rows=1 width=52)
    Output: (sum(c5)), (max(c7)), (min(c8)), (count(((c9 / '2'::double precision) + c5)))
    Sort Key: (sum(tbl01.c5)), (max(tbl01.c7)), (min(tbl01.c8))
    ->  Aggregate  (cost=263.58..263.59 rows=1 width=52)
@@ -3106,7 +3106,7 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Sort  (cost=220.99..221.00 rows=1 width=8)
+ Sort  (cost=220.94..220.95 rows=1 width=8)
    Output: (count(DISTINCT c5))
    Sort Key: (count(DISTINCT tbl01.c5))
    ->  Aggregate  (cost=220.92..220.93 rows=1 width=8)
@@ -3129,7 +3129,7 @@ SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
 EXPLAIN VERBOSE SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y', c3)), json_object_agg('x', c7), jsonb_object_agg('y', c7) FROM tbl01 ORDER BY 1 DESC;
                                                                                 QUERY PLAN                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=272.20..272.21 rows=1 width=160)
+ Sort  (cost=272.15..272.15 rows=1 width=160)
    Output: (array_agg(((c3 || ' '::text) || c7))), (json_agg(ROW('json_x', c3))), (jsonb_agg(ROW('json_y', c3))), (json_object_agg('x', c7)), (jsonb_object_agg('y', c7))
    Sort Key: (array_agg(((tbl01.c3 || ' '::text) || tbl01.c7))) DESC
    ->  Aggregate  (cost=272.13..272.14 rows=1 width=160)
@@ -3161,7 +3161,7 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y'
 EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Sort  (cost=229.55..229.55 rows=1 width=64)
+ Sort  (cost=229.48..229.48 rows=1 width=64)
    Output: (string_agg(c3, ':'::text ORDER BY c3)), (string_agg(c7, '>>'::text ORDER BY c7))
    Sort Key: (string_agg(tbl01.c3, ':'::text ORDER BY tbl01.c3)), (string_agg(tbl01.c7, '>>'::text ORDER BY tbl01.c7))
    ->  Aggregate  (cost=229.46..229.47 rows=1 width=64)
@@ -3184,7 +3184,7 @@ SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tb
 EXPLAIN VERBOSE SELECT string_agg(c3, c7) FROM tbl01 ORDER BY 1 DESC;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Sort  (cost=221.00..221.00 rows=1 width=32)
+ Sort  (cost=220.94..220.95 rows=1 width=32)
    Output: (string_agg(c3, c7))
    Sort Key: (string_agg(tbl01.c3, tbl01.c7)) DESC
    ->  Aggregate  (cost=220.92..220.93 rows=1 width=32)
@@ -3631,7 +3631,7 @@ SELECT * FROM tbl01 WHERE __spd_url != 'ae' ORDER BY c1, c2;
 EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, c4-c5, c8/(c9+c6), c11 + '23 hours'::interval FROM tbl01 WHERE c5 >= 0 AND __spd_url != '$' ORDER BY 1,2;
                                                                              QUERY PLAN                                                                              
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=309.97..312.82 rows=1138 width=88)
+ Sort  (cost=258.79..261.64 rows=1138 width=88)
    Output: ((c1 || c2)), ((c3 || c7)), (((c4)::double precision - c5)), (((c8)::double precision / (c9 + (c6)::double precision))), ((c11 + '@ 23 hours'::interval))
    Sort Key: ((tbl01.c1 || tbl01.c2)), ((tbl01.c3 || tbl01.c7))
    ->  Foreign Scan on public.tbl01  (cost=100.00..201.03 rows=1138 width=88)
@@ -3712,7 +3712,7 @@ SELECT round(c4-c5), floor(c8/3+c9), c11 || 'timey', c10 FROM tbl01 WHERE c4 > 0
 EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), floor(c4/112-c5+ c8/3+c9), c11 + '1 hour'::interval FROM tbl01 WHERE c5 > c4 ORDER BY 1,2;
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=369.69..372.54 rows=1138 width=80)
+ Sort  (cost=318.52..321.36 rows=1138 width=80)
    Output: ((c1 || c2)), (upper(c3)), (floor((((((c4 / 112))::double precision - c5) + ((c8 / 3))::double precision) + c9))), ((c11 + '@ 1 hour'::interval))
    Sort Key: ((tbl01.c1 || tbl01.c2)), (upper(tbl01.c3))
    ->  Foreign Scan on public.tbl01  (cost=100.00..260.75 rows=1138 width=80)
@@ -3735,7 +3735,7 @@ SELECT c1 || c2, upper(c3), floor(c4/112-c5+ c8/3+c9), c11 + '1 hour'::interval 
 EXPLAIN VERBOSE SELECT length(c1 || c2), lower(c3), abs(c5/12+c8/3-c9+c10) FROM tbl01 WHERE NOT c4 < 0 ORDER BY 1,2;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=307.97..310.82 rows=1138 width=44)
+ Sort  (cost=264.48..267.33 rows=1138 width=44)
    Output: (length((c1 || c2))), (lower(c3)), (abs(((((c5 / '12'::double precision) + ((c8 / 3))::double precision) - c9) + (c10)::double precision)))
    Sort Key: (length((tbl01.c1 || tbl01.c2))), (lower(tbl01.c3))
    ->  Foreign Scan on public.tbl01  (cost=100.00..206.72 rows=1138 width=44)
@@ -3765,7 +3765,7 @@ SELECT length(c1 || c2), lower(c3), abs(c5/12+c8/3-c9+c10) FROM tbl01 WHERE NOT 
 EXPLAIN VERBOSE SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0 ORDER BY 1;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Sort  (cost=0.07..0.08 rows=1 width=28)
+ Sort  (cost=0.04..0.04 rows=1 width=28)
    Output: (count(*)), (count(c1)), (count(c3)), c4
    Sort Key: (count(*))
    ->  GroupAggregate  (cost=0.00..0.02 rows=1 width=28)
@@ -3950,10 +3950,10 @@ SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT
 EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, __spd_url HAVING c4 BETWEEN -11000 AND 10000 ORDER BY c1, c2, c3, c4, __spd_url;
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- Group  (cost=170.64..170.73 rows=6 width=132)
+ Group  (cost=170.17..170.26 rows=6 width=132)
    Output: c1, c2, c3, __spd_url, c4
    Group Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.__spd_url
-   ->  Sort  (cost=170.64..170.65 rows=6 width=132)
+   ->  Sort  (cost=170.17..170.18 rows=6 width=132)
          Output: c1, c2, c3, __spd_url, c4
          Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.__spd_url
          ->  Foreign Scan on public.tbl01  (cost=100.00..170.09 rows=6 width=132)

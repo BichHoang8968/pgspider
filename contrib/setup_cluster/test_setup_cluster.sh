@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # set global variables
-POSTGRES_HOME=/home/jenkins/postgresql-15beta2/install
+POSTGRES_HOME=/home/jenkins/postgresql-15.0/install
 PGSPIDER_HOME=/home/jenkins/PGSpider/install
 GRIDDB_HOME=/home/jenkins/griddb-5.0/griddb-5.0.0
 GRIDDB_CLIENT=/home/jenkins/griddb-5.0/griddb

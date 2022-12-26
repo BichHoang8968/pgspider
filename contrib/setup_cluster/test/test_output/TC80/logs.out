@@ -1,4 +1,3 @@
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -17,10 +16,7 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -39,7 +35,6 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -58,11 +53,7 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -81,15 +72,9 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" already exists, skipping
 NOTICE:  role "pgspider" is already a member of role "pg_read_server_files"
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "pgspider_fdw" already exists, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -108,10 +93,7 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "postgres_fdw" already exists, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping

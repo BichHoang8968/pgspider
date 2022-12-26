@@ -7,12 +7,17 @@ def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
 def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'port15beta2'
-def BRANCH_MYSQL_FDW = 'port15beta2'
-def BRANCH_SQLITE_FDW = 'port15beta2'
-def BRANCH_GRIDDB_FDW = 'port15beta2'
-def BRANCH_INFLUXDB_FDW = 'port15beta2'
-def BRANCH_PARQUET_S3_FDW = 'port15beta2'
+def BRANCH_TINYBRACE_FDW = 'port15.0'
+def BRANCH_MYSQL_FDW = 'port15.0'
+def BRANCH_SQLITE_FDW = 'port15.0'
+def BRANCH_GRIDDB_FDW = 'port15.0'
+def BRANCH_INFLUXDB_FDW = 'port15.0'
+def BRANCH_PARQUET_S3_FDW = 'port15.0'
+def BRANCH_MONGO_FDW = 'port15.0'
+def BRANCH_DYNAMODB_FDW = 'port15.0'
+def BRANCH_ORACLE_FDW = 'port15'
+def BRANCH_ODBC_FDW = 'port15.0'
+def BRANCH_JDBC_FDW = 'port15.0'
 
 pipeline {
     agent {
@@ -68,7 +73,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW} ${BRANCH_MONGO_FDW} ${BRANCH_DYNAMODB_FDW} ${BRANCH_ORACLE_FDW} ${BRANCH_ODBC_FDW} ${BRANCH_JDBC_FDW}" pgspider'
                     """
                 }
             }
@@ -284,10 +289,7 @@ pipeline {
                         docker exec gridserver_multi2_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_limit_2.sh ${BRANCH_PGSPIDER}"
                         docker exec tinybraceserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_limit.sh ${BRANCH_PGSPIDER}"
                         docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
-                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_limit.sh --pgs ${BRANCH_PGSPIDER}" postgres'
-                        docker exec postgresserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_limit.sh --pgs1 ${BRANCH_PGSPIDER}" postgres'
-                        docker exec postgresserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_limit.sh --pgs2 ${BRANCH_PGSPIDER}" postgres'
-                        docker exec postgresserver_multi3_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_limit.sh --pgsjoin ${BRANCH_PGSPIDER}" postgres'
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_limit.sh ${BRANCH_PGSPIDER}" postgres'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_limit.sh" pgspider'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_limit" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_limit_make_check.out
@@ -304,6 +306,74 @@ pipeline {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_limit', state: 'failed'
                     } else {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_limit', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('pgspider_modify') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec -w /dynamodblocal dynamodbserver_multi1_existed_test /bin/bash -c 'java -jar DynamoDBLocal.jar -sharedDb &'
+                        docker exec -w /dynamodblocal dynamodbserver_multi2_existed_test /bin/bash -c 'java -jar DynamoDBLocal.jar -sharedDb &'
+                        docker exec mongoserver_multi_existed_test /bin/bash -c '/usr/bin/mongod --dbpath /data/db --bind_ip_all &'
+                        docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/setup_oracle_server.sh'
+                        docker exec dynamodbserver_multi1_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh --dynamo1'
+                        docker exec dynamodbserver_multi2_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh --dynamo2'
+                        docker exec mongoserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}'
+
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}"
+                        docker exec mysqlserver_multi1_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify_1.sh ${BRANCH_PGSPIDER}"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}"
+                        docker exec tinybraceserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}"
+                        docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}" postgres'
+
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgmodify.sh" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c '/home/test/start_odbc_for_pgmodify.sh'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_pgmodify" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_pgmodify_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_pgmodify_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_pgmodify Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_pgmodify_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_pgmodify.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_fdw_pgmodify'
+                        sh 'cat pgspider_core_fdw_pgmodify.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('pgspider_modify_multi') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgmodify_multi.sh ${BRANCH_PGSPIDER}" postgres'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c '/home/test/start_odbc_for_pgmodify.sh'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgmodify.sh --multi" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_pgmodify_multi" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_pgmodify_multi_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_pgmodify_multi_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_pgmodify_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_pgmodify_multi_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_pgmodify_multi.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_fdw_pgmodify_multi'
+                        sh 'cat pgspider_core_fdw_pgmodify_multi.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify_multi', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify_multi', state: 'success'
                     }
                 }
             }
@@ -340,6 +410,10 @@ pipeline {
                         docker exec -w /usr/local/tinybrace tinybraceserver1_enhance_test /bin/bash -c 'bin/tbserver &'
                         docker exec tinybraceserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test_2.sh'
                         docker exec -w /usr/local/tinybrace tinybraceserver2_enhance_test /bin/bash -c 'bin/tbserver &'
+                        docker exec influxserver1_enhance_test /bin/bash -c 'systemctl stop influxd'
+                        docker exec -d influxserver1_enhance_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver2_enhance_test /bin/bash -c 'systemctl stop influxd'
+                        docker exec -d influxserver2_enhance_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
                         docker exec influxserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
                         docker exec influxserver2_enhance_test /bin/bash -c '/home/test/start_enhance_test.sh'
                         docker exec gridserver1_enhance_test /bin/bash -c '/home/test/start_enhance_test_1.sh'
@@ -371,9 +445,10 @@ pipeline {
                     status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'make_check_enhancetest.out'")
                     if (status != 0) {
                         unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_enhance Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="make_check_enhancetest.out"}', to: "${MAIL_TO}", attachLog: false
                         sh 'docker cp pgspiderserver1_enhance_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs regression_enhancetest.diffs'
                         sh 'docker cp pgspiderserver1_enhance_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_enhancetest'
-                        // sh 'cat regression_enhancetest.diffs || true'
+                        sh 'cat regression_enhancetest.diffs || true'
                         updateGitlabCommitStatus name: 'make_check', state: 'failed'
                     } else {
                         updateGitlabCommitStatus name: 'make_check', state: 'success'

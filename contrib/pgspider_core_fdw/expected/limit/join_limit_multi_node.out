@@ -18,12 +18,12 @@ CREATE FOREIGN TABLE tbl01__postgres_svr_2__0 (c1 text, c2 text, c3 char(255), c
 EXPLAIN VERBOSE SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING (c4) WHERE (t1.__spd_url = t2.__spd_url) OR t1.__spd_url != '' GROUP BY t1.c1, t2.c4 LIMIT 10;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=8144.77..8144.87 rows=10 width=40)
+ Limit  (cost=8151.12..8151.22 rows=10 width=40)
    Output: t1.c1, (min(t2.c4)), t2.c4
-   ->  HashAggregate  (cost=8144.77..8544.77 rows=40000 width=40)
+   ->  HashAggregate  (cost=8151.12..8551.12 rows=40000 width=40)
          Output: t1.c1, min(t2.c4), t2.c4
          Group Key: t1.c1, t2.c4
-         ->  Merge Left Join  (cost=1712.63..6406.18 rows=231812 width=36)
+         ->  Merge Left Join  (cost=1718.98..6412.53 rows=231812 width=36)
                Output: t1.c1, t2.c4
                Merge Cond: (t1.c4 = t2.c4)
                Filter: ((t1.__spd_url = t2.__spd_url) OR (t1.__spd_url <> ''::text))
@@ -71,16 +71,16 @@ SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING (c4) WHERE (t1._
 EXPLAIN VERBOSE SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl01 t2 USING (c1) WHERE t1.c5 < 0 GROUP BY t2.c1, t2.c4, t2.c5, t2.__spd_url LIMIT 5;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1465.22..1872.88 rows=5 width=116)
+ Limit  (cost=1369.89..1588.27 rows=5 width=116)
    Output: (min(t2.c1)), t2.c4, (max(t2.c5)), t2.__spd_url, t2.c1, t2.c5
-   ->  GroupAggregate  (cost=1465.22..17771.79 rows=200 width=116)
+   ->  GroupAggregate  (cost=1369.89..10105.10 rows=200 width=116)
          Output: min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url, t2.c1, t2.c5
          Group Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
-         ->  Incremental Sort  (cost=1465.22..16604.59 rows=77680 width=76)
+         ->  Incremental Sort  (cost=1369.89..8937.90 rows=77680 width=76)
                Output: t2.c4, t2.__spd_url, t2.c1, t2.c5
                Sort Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
                Presorted Key: t2.c1
-               ->  Merge Join  (cost=1394.53..2571.11 rows=77680 width=76)
+               ->  Merge Join  (cost=1337.25..2513.83 rows=77680 width=76)
                      Output: t2.c4, t2.__spd_url, t2.c1, t2.c5
                      Merge Cond: (t1.c1 = t2.c1)
                      ->  Sort  (cost=477.76..483.45 rows=2276 width=32)
@@ -122,13 +122,13 @@ SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl0
 EXPLAIN VERBOSE SELECT t1.a1, t1.a4, t2.a5 FROM tbl01 t1(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) FULL JOIN tbl01 t2(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10, a11, a12) ON t1.a1 = t2.a1 GROUP BY t1.a1, t1.a4, t2.a5 HAVING max(t1.a4) <> max(t2.a5) + 1 LIMIT 10 OFFSET 1;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=8218.70..8218.88 rows=10 width=44)
+ Limit  (cost=8159.83..8160.00 rows=10 width=44)
    Output: t1.a1, t1.a4, t2.a5
-   ->  HashAggregate  (cost=8218.68..8918.68 rows=39800 width=44)
+   ->  HashAggregate  (cost=8159.81..8859.81 rows=39800 width=44)
          Output: t1.a1, t1.a4, t2.a5
          Group Key: t1.a1, t1.a4, t2.a5
          Filter: ((max(t1.a4))::double precision <> (max(t2.a5) + '1'::double precision))
-         ->  Merge Full Join  (cost=1777.85..5306.55 rows=232971 width=44)
+         ->  Merge Full Join  (cost=1718.98..5247.67 rows=232971 width=44)
                Output: t1.a1, t1.a4, t2.a5
                Merge Cond: (t1.a1 = t2.a1)
                ->  Sort  (cost=859.49..876.55 rows=6826 width=36)
@@ -175,9 +175,9 @@ SELECT t1.a1, t1.a4, t2.a5 FROM tbl01 t1(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10
 EXPLAIN VERBOSE SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2) GROUP BY  t1.c4, t1.c5, t1.__spd_url, t2.__spd_url ORDER BY t1.c4, t1.c5, t1.__spd_url, t2.__spd_url LIMIT 5;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Limit  (cost=8132180.41..8132180.42 rows=5 width=116)
+ Limit  (cost=8130548.07..8130548.08 rows=5 width=116)
    Output: (avg(t1.c4)), (sum(t1.c5)), t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
-   ->  Sort  (cost=8132180.41..8132280.41 rows=40000 width=116)
+   ->  Sort  (cost=8130548.07..8130648.07 rows=40000 width=116)
          Output: (avg(t1.c4)), (sum(t1.c5)), t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
          Sort Key: t1.c4, t1.c5, t1.__spd_url, t2.__spd_url
          ->  HashAggregate  (cost=6946325.89..8129883.68 rows=40000 width=116)
@@ -224,12 +224,12 @@ SELECT avg(t1.c4), sum(t1.c5) FROM (tbl01 t1 CROSS JOIN tbl01 t2) GROUP BY  t1.c
 EXPLAIN VERBOSE SELECT t1.c1, t1.c2, t1.c4, t1.c5 FROM tbl01 t1 LEFT JOIN tbl01 t2 USING(c4) WHERE t1.c4 > 0 ORDER BY t1.c1, t1.c2, t1.c4, t1.c5 LIMIT 10 OFFSET 0;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=7823.58..7823.60 rows=10 width=76)
+ Limit  (cost=4192.46..4192.49 rows=10 width=76)
    Output: t1.c1, t1.c2, t1.c4, t1.c5
-   ->  Sort  (cost=7823.58..8017.78 rows=77680 width=76)
+   ->  Sort  (cost=4192.46..4386.66 rows=77680 width=76)
          Output: t1.c1, t1.c2, t1.c4, t1.c5
          Sort Key: t1.c1, t1.c2, t1.c4, t1.c5
-         ->  Merge Left Join  (cost=1351.05..2527.63 rows=77680 width=76)
+         ->  Merge Left Join  (cost=1337.25..2513.83 rows=77680 width=76)
                Output: t1.c1, t1.c2, t1.c4, t1.c5
                Merge Cond: (t1.c4 = t2.c4)
                ->  Sort  (cost=477.76..483.45 rows=2276 width=76)
@@ -280,19 +280,19 @@ SELECT t1.c1, t1.c2, t1.c4, t1.c5 FROM tbl01 t1 LEFT JOIN tbl01 t2 USING(c4) WHE
 EXPLAIN VERBOSE SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOIN tbl01 AS ss1 ON t1.c4 >= ss1.c4 WHERE ss1.c5 > 0 GROUP BY t1.c1, t1.c2 ORDER BY t1.c1 LIMIT 10 OFFSET 0;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=320242.60..3652677.69 rows=10 width=64)
+ Limit  (cost=276187.78..3170863.18 rows=10 width=64)
    Output: t1.c1, t1.c2
-   ->  Group  (cost=320242.60..66968944.43 rows=200 width=64)
+   ->  Group  (cost=276187.78..58169695.89 rows=200 width=64)
          Output: t1.c1, t1.c2
          Group Key: t1.c1, t1.c2
-         ->  Incremental Sort  (cost=320242.60..66085207.77 rows=176747332 width=64)
+         ->  Incremental Sort  (cost=276187.78..57285959.23 rows=176747332 width=64)
                Output: t1.c1, t1.c2
                Sort Key: t1.c1, t1.c2
                Presorted Key: t1.c1
-               ->  Nested Loop  (cost=1977.85..7959293.02 rows=176747332 width=64)
+               ->  Nested Loop  (cost=1918.98..7959234.15 rows=176747332 width=64)
                      Output: t1.c1, t1.c2
                      Join Filter: (t1.c4 >= ss1.c4)
-                     ->  Merge Left Join  (cost=1777.85..5306.55 rows=232971 width=68)
+                     ->  Merge Left Join  (cost=1718.98..5247.67 rows=232971 width=68)
                            Output: t1.c1, t1.c2, t1.c4
                            Merge Cond: (t1.c1 = t3.c1)
                            ->  Sort  (cost=859.49..876.55 rows=6826 width=68)
@@ -355,26 +355,15 @@ SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOI
 EXPLAIN VERBOSE SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 AND f1.c5 IS NOT NULL) GROUP BY f1.__spd_url, f1.c2, f1.c1, f2.c1 ORDER BY f1.c1;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
- Sort  (cost=13324.63..13424.63 rows=40000 width=128)
+ Sort  (cost=13603.16..13703.16 rows=40000 width=128)
    Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
    Sort Key: f1.c1
-   ->  HashAggregate  (cost=7604.26..8004.26 rows=40000 width=128)
+   ->  HashAggregate  (cost=7545.12..7945.12 rows=40000 width=128)
          Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
          Group Key: f1.c1, f1.__spd_url, f1.c2, f2.c1
-         ->  Merge Left Join  (cost=1774.86..5286.15 rows=231811 width=128)
+         ->  Merge Right Join  (cost=1715.89..5227.01 rows=231811 width=128)
                Output: f1.c1, f1.c2, f2.c1, f1.__spd_url
-               Merge Cond: (f2.c1 = f1.c1)
-               ->  Sort  (cost=859.49..876.55 rows=6826 width=32)
-                     Output: f2.c1
-                     Sort Key: f2.c1
-                     ->  Foreign Scan on public.tbl01 f2  (cost=200.00..424.78 rows=6826 width=32)
-                           Output: f2.c1
-                           Node: postgres_svr_1 / Status: Alive
-                             Sort push-down: no
-                             Remote SQL: SELECT c1 FROM public.tbl01
-                           Node: postgres_svr_2 / Status: Alive
-                             Sort push-down: no
-                             Remote SQL: SELECT c1 FROM public.tbl01
+               Merge Cond: (f1.c1 = f2.c1)
                ->  Sort  (cost=856.40..873.38 rows=6792 width=96)
                      Output: f1.c1, f1.c2, f1.__spd_url
                      Sort Key: f1.c1
@@ -386,6 +375,17 @@ EXPLAIN VERBOSE SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON 
                            Node: postgres_svr_2 / Status: Alive
                              Sort push-down: no
                              Remote SQL: SELECT c1, c2, c5 FROM public.tbl01 WHERE ((c5 IS NOT NULL))
+               ->  Sort  (cost=859.49..876.55 rows=6826 width=32)
+                     Output: f2.c1
+                     Sort Key: f2.c1
+                     ->  Foreign Scan on public.tbl01 f2  (cost=200.00..424.78 rows=6826 width=32)
+                           Output: f2.c1
+                           Node: postgres_svr_1 / Status: Alive
+                             Sort push-down: no
+                             Remote SQL: SELECT c1 FROM public.tbl01
+                           Node: postgres_svr_2 / Status: Alive
+                             Sort push-down: no
+                             Remote SQL: SELECT c1 FROM public.tbl01
 (31 rows)
 
 --Testcase 14:

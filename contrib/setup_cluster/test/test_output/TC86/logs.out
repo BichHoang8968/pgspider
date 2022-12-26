@@ -1,4 +1,3 @@
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -17,7 +16,6 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  schema "temp_schema" does not exist, skipping
 File:install_util.c Function:query_execute L:147 Msg:IMPORT FOREIGN SCHEMA public FROM SERVER db2 INTO temp_schema; failed :ERROR:  foreign-data wrapper "dynamodb_fdw" does not support IMPORT FOREIGN SCHEMA
 

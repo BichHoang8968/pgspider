@@ -91,5 +91,5 @@
 -- ===================================================================
 -- test function version()
 -- ===================================================================
-SELECT substring(version(), 1, 16) AS version;
-SELECT * FROM substring(version(),1,16);
+SELECT substring(version(), 1, 13) AS version;
+SELECT * FROM substring(version(),1,13);

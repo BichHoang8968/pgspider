@@ -30,6 +30,7 @@ PG_MODULE_MAGIC;
 #include "access/tableam.h"
 #include "access/xact.h"
 #include "catalog/pg_type.h"
+#include "catalog/namespace.h"
 #include "commands/explain.h"
 #include "commands/defrem.h"
 #include "catalog/pg_proc.h"
@@ -3610,6 +3611,9 @@ spd_ForeignScan_thread(void *arg)
 
 	/* Configuration for context of error handling and memory context. */
 	spd_setThreadContext(fssthrdInfo, &errcallback, tuplectx);
+
+	/* Build a guc_variables array for child thread */
+	build_guc_variables_child_thread();
 
 	spd_tm_child_thread_init(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, get_rel_name(pChildInfo->oid));
 	spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_TOTAL_TIME);
@@ -9717,6 +9721,8 @@ spd_BeginForeignScan(ForeignScanState *node, int eflags)
 	 */
 	skip_memory_checking(true);
 
+	copy_main_guc_variables();
+
 	/* Launch child threads. */
 	spd_CreateChildThreads(fdw_private, fssThrdInfo, (ForeignScanThreadInfo *) node->spd_fsstate);
 
@@ -12280,6 +12286,9 @@ spd_DirectModify_thread(void *arg)
 	/* Configuration for context of error handling and memory context. */
 	spd_setThreadContext(fssthrdInfo, &errcallback, tuplectx);
 
+	/* Build a guc_variables array for child thread */
+	build_guc_variables_child_thread();
+
 	spd_tm_child_thread_init(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, get_rel_name(pChildInfo->oid));
 	spd_tm_time_set_start(&fdw_private_main->tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_TOTAL_TIME);
 
@@ -12598,6 +12607,8 @@ spd_BeginDirectModify(ForeignScanState *node, int eflags)
 	 * while child thread is running.
 	 */
 	skip_memory_checking(true);
+
+	copy_main_guc_variables();
 
 	/* Launch child threads. */
 	spd_CreateChildDirectThreads(fdw_private, fssThrdInfo, (ForeignScanThreadInfo *) node->spd_fsstate);
@@ -13652,6 +13663,9 @@ spd_ForeignModify_thread(void *arg)
 	/* Update normalized_id corresponding with scan thread */
 	update_normalized_id(child_thread_info->normalizedId);
 
+	/* Build a guc_variables array for child thread */
+	build_guc_variables_child_thread();
+
 	/* BeginForeignModify */
 	spd_BeginForeignModifyChild(mtThrdInfo, pChildInfo, &fdw_private->modify_mutex);
 	THREAD_ERROR_CHECK(mtThrdInfo, requestEndModify, true, SPD_MDF_STATE_ERROR)
@@ -13710,6 +13724,7 @@ THREAD_EXIT:
 			 __FILE__, __LINE__);
 	}
 	PG_END_TRY();
+
 	spd_freeThreadContextList();
 
 #ifdef MEASURE_TIME
@@ -14049,6 +14064,9 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 	 * while child thread is running.
 	 */
 	skip_memory_checking(true);
+
+	/* shallow copy guc_variables of main thread so that child thread can copy its value later */
+	copy_main_guc_variables();
 
 	/* Launch child threads. */
 	spd_CreateChildForeignModifyThreads(fdw_private, mtThrdInfo, (ModifyThreadInfo *) resultRelInfo->spd_mtstate);
@@ -14520,6 +14538,55 @@ spd_add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
 	 * by spd_is_orderby_pushdown_safe() in spd_GetForeignRelSize(), so we copy it directly.
 	 */
 	useful_pathkeys_list = list_make1(list_copy(root->query_pathkeys));
+
+	/*
+	 * Before creating sorted paths, arrange for the passed-in EPQ path, if
+	 * any, to return columns needed by the parent ForeignScan node so that
+	 * they will propagate up through Sort nodes injected below, if necessary.
+	 */
+	if (epq_path != NULL)
+	{
+		SpdRelationInfo *fpinfo = (SpdRelationInfo *) rel->fdw_private;
+		PathTarget *target = copy_pathtarget(epq_path->pathtarget);
+
+		/* Include columns required for evaluating PHVs in the tlist. */
+		add_new_columns_to_pathtarget(target,
+									  pull_var_clause((Node *) target->exprs,
+													  PVC_RECURSE_PLACEHOLDERS));
+
+		/* Include columns required for evaluating the local conditions. */
+		foreach(lc, fpinfo->local_conds)
+		{
+			RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
+
+			add_new_columns_to_pathtarget(target,
+										  pull_var_clause((Node *) rinfo->clause,
+														  PVC_RECURSE_PLACEHOLDERS));
+		}
+
+		/*
+		 * If we have added any new columns, adjust the tlist of the EPQ path.
+		 *
+		 * Note: the plan created using this path will only be used to execute
+		 * EPQ checks, where accuracy of the plan cost and width estimates
+		 * would not be important, so we do not do set_pathtarget_cost_width()
+		 * for the new pathtarget here.  See also postgresGetForeignPlan().
+		 */
+		if (list_length(target->exprs) > list_length(epq_path->pathtarget->exprs))
+		{
+			/* The EPQ path is a join path, so it is projection-capable. */
+			Assert(is_projection_capable_path(epq_path));
+
+			/*
+			 * Use create_projection_path() here, so as to avoid modifying it
+			 * in place.
+			 */
+			epq_path = (Path *) create_projection_path(root,
+													   rel,
+													   epq_path,
+													   target);
+		}
+	}
 
 	/* Create one path for each set of pathkeys we found above. */
 	foreach(lc, useful_pathkeys_list)

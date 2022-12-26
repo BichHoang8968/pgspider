@@ -388,6 +388,11 @@ extern int	set_config_option(const char *name, const char *value,
 							  GucContext context, GucSource source,
 							  GucAction action, bool changeVal, int elevel,
 							  bool is_reload);
+extern int	set_config_option_ext(const char *name, const char *value,
+								  GucContext context, GucSource source,
+								  Oid srole,
+								  GucAction action, bool changeVal, int elevel,
+								  bool is_reload);
 extern void AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt);
 extern char *GetConfigOptionByName(const char *name, const char **varname,
 								   bool missing_ok);
@@ -437,6 +442,10 @@ extern void GUC_check_errcode(int sqlerrcode);
 	pre_format_elog_string(errno, TEXTDOMAIN), \
 	GUC_check_errhint_string = format_elog_string
 
+#ifdef PGSPIDER
+extern void build_guc_variables_child_thread(void);
+extern void copy_main_guc_variables(void);
+#endif
 
 /*
  * The following functions are not in guc.c, but are declared here to avoid

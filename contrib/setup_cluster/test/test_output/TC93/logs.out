@@ -1,4 +1,3 @@
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -18,7 +17,6 @@ NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  server "db1" already exists, skipping
 NOTICE:  user mapping for "public" already exists for server "db1", skipping
 Config directory: ./

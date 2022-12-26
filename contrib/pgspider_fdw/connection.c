@@ -330,7 +330,7 @@ make_new_connection(ConnCacheEntry *entry, UserMapping *user)
 	 * default.
 	 *
 	 * Note: it's enough to determine these only when making a new connection
-	 * because these settings for it are changed, it will be closed and
+	 * because if these settings for it are changed, it will be closed and
 	 * re-made later.
 	 */
 	entry->keep_connections = true;
@@ -660,9 +660,9 @@ do_sql_command_end(PGconn *conn, const char *sql, bool consume_input)
 
 	/*
 	 * If requested, consume whatever data is available from the socket. (Note
-	 * that if all data is available, this allows pgspiderfdw_get_result to call
-	 * PQgetResult without forcing the overhead of WaitLatchOrSocket, which
-	 * would be large compared to the overhead of PQconsumeInput.)
+	 * that if all data is available, this allows pgspiderfdw_get_result to
+	 * call PQgetResult without forcing the overhead of WaitLatchOrSocket,
+	 * which would be large compared to the overhead of PQconsumeInput.)
 	 */
 	if (consume_input && !PQconsumeInput(conn))
 		pgspiderfdw_report_error(ERROR, NULL, conn, false, sql);
@@ -898,9 +898,9 @@ pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 				(errcode(sqlstate),
 				 (message_primary != NULL && message_primary[0] != '\0') ?
 				 errmsg_internal("pgspider_fdw fail to get tuples from child process\n" \
-												   "{\n" \
-												   "%s" \
-												   "\n}", message_primary) :
+								 "{\n" \
+								 "%s" \
+								 "\n}", message_primary) :
 				 errmsg("could not obtain message string for remote error"),
 				 NULL,
 				 NULL,
