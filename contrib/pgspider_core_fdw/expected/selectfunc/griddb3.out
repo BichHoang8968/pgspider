@@ -197,7 +197,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE char_length(name) > 4  ORDER BY 1;
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -242,7 +242,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE char_length(name) < 6  ORDER BY 1;
                                                                                                                                                                             QUERY PLAN                                                                                                                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -279,7 +279,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE concat(name,' and george') = 'fred and george' ORDER BY 1;
                                                                                                                                                             QUERY PLAN                                                                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=392.43..392.51 rows=34 width=525)
+ Sort  (cost=391.59..391.68 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..390.73 rows=34 width=525)
@@ -306,7 +306,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE substr(name,2,3) = 'red' ORDER BY 1;
                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=324.77..324.85 rows=34 width=525)
+ Sort  (cost=323.93..324.02 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..323.07 rows=34 width=525)
@@ -331,7 +331,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE substr(name,1,3) <> 'fre' ORDER BY 1;
                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                   
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=887.62..904.60 rows=6792 width=525)
+ Sort  (cost=890.53..907.51 rows=6792 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..458.23 rows=6792 width=525)
@@ -382,7 +382,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE upper(name) = 'FRED' ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=324.77..324.85 rows=34 width=525)
+ Sort  (cost=323.93..324.02 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..323.07 rows=34 width=525)
@@ -407,7 +407,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE upper(name) <> 'FRED' ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=887.62..904.60 rows=6792 width=525)
+ Sort  (cost=890.53..907.51 rows=6792 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..458.23 rows=6792 width=525)
@@ -458,7 +458,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE lower(name) = 'george' ORDER BY 1;
                                                                                                                                                                                 QUERY PLAN                                                                                                                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=324.77..324.85 rows=34 width=525)
+ Sort  (cost=323.93..324.02 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..323.07 rows=34 width=525)
@@ -483,7 +483,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE lower(name) <> 'bob' ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=887.62..904.60 rows=6792 width=525)
+ Sort  (cost=890.53..907.51 rows=6792 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..458.23 rows=6792 width=525)
@@ -534,7 +534,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE round(gpa) > 3.5 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -582,7 +582,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE round(gpa) <= 3 ORDER BY 1;
                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                   
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -610,7 +610,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE floor(gpa) = 3 ORDER BY 1;
                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=324.77..324.85 rows=34 width=525)
+ Sort  (cost=323.93..324.02 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..323.07 rows=34 width=525)
@@ -659,7 +659,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE floor(gpa) < 2 ORDER BY 1;
                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -686,7 +686,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE ceiling(gpa) >= 3 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=511.80..517.49 rows=2276 width=525)
+ Sort  (cost=494.82..500.51 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..367.91 rows=2276 width=525)
@@ -737,7 +737,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE ceiling(gpa) = 4 ORDER BY 1;
                                                                                                                                                                                    QUERY PLAN                                                                                                                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=324.77..324.85 rows=34 width=525)
+ Sort  (cost=323.93..324.02 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..323.07 rows=34 width=525)
@@ -790,7 +790,7 @@ EXPLAIN VERBOSE
 SELECT date, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol FROM s3 WHERE griddb_timestamp(strcol) > '2020-01-05 21:00:00' ORDER BY 1;
                                                                                                              QUERY PLAN                                                                                                              
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=69)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=69)
    Output: date, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=69)
@@ -814,7 +814,7 @@ EXPLAIN VERBOSE
 SELECT date, strcol FROM s3 WHERE date < griddb_timestamp(strcol) ORDER BY 1;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=40)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=40)
    Output: date, strcol
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=40)
@@ -870,7 +870,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, -1) > '2019-12-29 05:00:00' ORDER BY 1;
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -919,7 +919,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, 5) >= '2025-12-29 04:50:00' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -969,7 +969,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('YEAR', date1, 5) >= '2025-12-29' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1021,7 +1021,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, -3) > '2020-06-29 05:00:00' ORDER BY 1;
                                                                                      QUERY PLAN                                                                                      
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1072,7 +1072,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, 3) = '2021-03-29 05:00:30' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1098,7 +1098,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MONTH', date1, 3) >= '2021-03-29' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1150,7 +1150,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, -3) > '2020-06-29 05:00:00' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1201,7 +1201,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, 3) = '2021-01-01 05:00:30' ORDER BY 1;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1227,7 +1227,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('DAY', date1, 3) >= '2021-01-01' ORDER BY 1;
                                                                                    QUERY PLAN                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1279,7 +1279,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('HOUR', date1, -1) > '2020-12-29 04:00:00' ORDER BY 1;
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1328,7 +1328,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('HOUR', date1, 2) >= '2020-12-29 06:50:00' ORDER BY 1;
                                                                                     QUERY PLAN                                                                                    
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1379,7 +1379,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MINUTE', date1, 20) = '2020-12-29 05:00:00' ORDER BY 1;
                                                                                      QUERY PLAN                                                                                     
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1404,7 +1404,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MINUTE', date1, -50) <= '2020-12-29 04:00:00' ORDER BY 1;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1431,7 +1431,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('SECOND', date1, 25) >= '2020-12-29 04:40:30' ORDER BY 1;
                                                                                      QUERY PLAN                                                                                      
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1481,7 +1481,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('SECOND', date1, -50) <= '2020-12-29 04:00:00' ORDER BY 1;
                                                                                        QUERY PLAN                                                                                       
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1508,7 +1508,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MILLISECOND', date1, 300) = '2020-12-29 05:10:00.420' ORDER BY 1;
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1534,7 +1534,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MILLISECOND', date1, -55) = '2020-12-29 05:10:00.065' ORDER BY 1;
                                                                                            QUERY PLAN                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1561,7 +1561,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampadd('MICROSECOND', date1, -55) = '2020-12-29 05:10:00.065' ORDER BY 1;
                                                                                            QUERY PLAN                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1581,7 +1581,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('YEAR', date1, '2018-01-04 08:48:00') > 0 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1632,7 +1632,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('YEAR', '2015-07-15 08:48:00', date2) < 5 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1682,7 +1682,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('YEAR', date1, date2) > 10 ORDER BY 1;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -1708,7 +1708,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('MONTH', date1, '2020-11-04 08:48:00') = 1 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                              
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=8)
+ Sort  (cost=2013.37..2013.45 rows=34 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=8)
@@ -1759,7 +1759,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('YEAR', '2020-02-15 08:48:00', date2) < 5 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1809,7 +1809,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MONTH', date1, date2) < 10 ORDER BY 1;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -1860,7 +1860,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('DAY', date2, '2020-12-04 08:48:00') > 20 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1907,7 +1907,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('DAY', '2020-02-15 08:48:00', date2) < 5 ORDER BY 1;
                                                                                             QUERY PLAN                                                                                             
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -1957,7 +1957,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('DAY', date1, date2) > 10 ORDER BY 1;
                                                                           QUERY PLAN                                                                          
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -1986,7 +1986,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE timestampdiff('HOUR', date1, '2020-12-29 07:40:00') < 0 ORDER BY 1;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2024,7 +2024,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('HOUR', '2020-12-15 08:48:00', date2) > 3.5 ORDER BY 1;
                                                                                               QUERY PLAN                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2052,7 +2052,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('HOUR', date1, date2) > 10 ORDER BY 1;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -2081,7 +2081,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MINUTE', date2, '2020-12-04 08:48:00') > 20 ORDER BY 1;
                                                                                               QUERY PLAN                                                                                               
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2130,7 +2130,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MINUTE', '2020-02-15 08:48:00', date2) < 5 ORDER BY 1;
                                                                                               QUERY PLAN                                                                                              
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2180,7 +2180,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MINUTE', date1, date2) > 10 ORDER BY 1;
                                                                            QUERY PLAN                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -2211,7 +2211,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('SECOND', date2, '2020-12-04 08:48:00') > 1000 ORDER BY 1;
                                                                                                QUERY PLAN                                                                                                
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2260,7 +2260,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('SECOND', '2020-03-17 04:50:00', date2) < 100 ORDER BY 1;
                                                                                                QUERY PLAN                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2309,7 +2309,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('SECOND', date1, date2) > 1600000 ORDER BY 1;
                                                                               QUERY PLAN                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=16)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=16)
@@ -2336,7 +2336,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MILLISECOND', date2, '2020-12-04 08:48:00') > 200 ORDER BY 1;
                                                                                                  QUERY PLAN                                                                                                  
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2385,7 +2385,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MILLISECOND', '2020-03-17 08:48:00', date2) < 0 ORDER BY 1;
                                                                                                 QUERY PLAN                                                                                                 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2434,7 +2434,7 @@ EXPLAIN VERBOSE
 SELECT date1, date2 FROM s3 WHERE timestampdiff('MILLISECOND', date1, date2) = -443 ORDER BY 1;
                                                                                 QUERY PLAN                                                                                
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.20..2014.29 rows=34 width=16)
+ Sort  (cost=2013.37..2013.45 rows=34 width=16)
    Output: date1, date2
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=16)
@@ -2461,7 +2461,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE timestampdiff('MICROSECOND', date2, '2020-12-04 08:48:00') > 20 ORDER BY 1;
                                                                                                  QUERY PLAN                                                                                                 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2493,7 +2493,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE to_timestamp_ms(intcol) > '1970-01-01 1:00:00' ORDER BY 1;
                                                                        QUERY PLAN                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2218.30..2223.99 rows=2276 width=8)
+ Sort  (cost=2201.32..2207.01 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2074.41 rows=2276 width=8)
@@ -2529,7 +2529,7 @@ EXPLAIN VERBOSE
 SELECT date1 FROM s3 WHERE intcol < to_epoch_ms(date1) ORDER BY 1;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date1
    Sort Key: s3.date1
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2580,7 +2580,7 @@ EXPLAIN VERBOSE
 SELECT date2 FROM s3 WHERE to_epoch_ms(date2) < 1000000000000 ORDER BY 1;
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=8)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=8)
    Output: date2
    Sort Key: s3.date2
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=8)
@@ -2600,7 +2600,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2649,7 +2649,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) > 0 ORDER BY 1;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2675,7 +2675,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('HOUR', griddb_now(), '2020-12-04 08:48:00') > 0 ORDER BY 1;
                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2726,7 +2726,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', griddb_now(), '2032-12-04 08:48:00') < 0 ORDER BY 1;
                                                                                                                                                                                                                                         QUERY PLAN                                                                                                                                                                                                                                         
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2778,7 +2778,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE date > timestampadd('YEAR', griddb_now(), -1) ORDER BY 1;
                                                                                                                                                                                                          QUERY PLAN                                                                                                                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2804,7 +2804,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE date < timestampadd('YEAR', griddb_now(), -1) ORDER BY 1;
                                                                                                                                                                                                          QUERY PLAN                                                                                                                                                                                                          
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -2854,7 +2854,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE date < griddb_now() ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=525)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=525)
@@ -2903,7 +2903,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE date > griddb_now() ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                               
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=525)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=525)
@@ -2929,7 +2929,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE date <= griddb_now() ORDER BY 1;
                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2201.23..2206.92 rows=2276 width=525)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=525)
@@ -2979,7 +2979,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE to_epoch_ms(griddb_now()) > 0 ORDER BY 1;
                                                                                                                                                                                        QUERY PLAN                                                                                                                                                                                        
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -3031,7 +3031,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE griddb_now() IS NOT NULL ORDER BY 1;
                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2559.99..2576.97 rows=6792 width=525)
+ Sort  (cost=2562.90..2579.88 rows=6792 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..2130.60 rows=6792 width=525)
@@ -3082,7 +3082,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) > 0 OR timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1;
                                                                                                                                                                                                                                                                      QUERY PLAN                                                                                                                                                                                                                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=7463.96..7473.44 rows=3792 width=525)
+ Sort  (cost=7449.64..7459.12 rows=3792 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..7224.23 rows=3792 width=525)
@@ -3133,7 +3133,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1 ASC;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -3182,7 +3182,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1 DESC;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date DESC
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -3231,7 +3231,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1 ASC;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -3280,7 +3280,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE timestampdiff('YEAR', date, griddb_now()) < 0 ORDER BY 1 DESC;
                                                                                                                                                                                                                  QUERY PLAN                                                                                                                                                                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3907.73..3913.42 rows=2276 width=525)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date DESC
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=525)
@@ -3333,7 +3333,7 @@ EXPLAIN VERBOSE
 SELECT boolarray FROM s3 WHERE array_length(boolarray) = 3 ORDER BY 1;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.31..2014.40 rows=34 width=32)
+ Sort  (cost=2013.37..2013.45 rows=34 width=32)
    Output: boolarray
    Sort Key: s3.boolarray
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=32)
@@ -3382,7 +3382,7 @@ EXPLAIN VERBOSE
 SELECT stringarray FROM s3 WHERE array_length(stringarray) = 3 ORDER BY 1;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Sort  (cost=2014.31..2014.40 rows=34 width=32)
+ Sort  (cost=2013.37..2013.45 rows=34 width=32)
    Output: stringarray
    Sort Key: s3.stringarray
    ->  Foreign Scan on public.s3  (cost=200.00..2012.50 rows=34 width=32)
@@ -3433,7 +3433,7 @@ EXPLAIN VERBOSE
 SELECT bytearray, shortarray FROM s3 WHERE array_length(bytearray) > array_length(shortarray) ORDER BY 1;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3918.61..3924.30 rows=2276 width=64)
+ Sort  (cost=3890.76..3896.45 rows=2276 width=64)
    Output: bytearray, shortarray
    Sort Key: s3.bytearray
    ->  Foreign Scan on public.s3  (cost=200.00..3763.85 rows=2276 width=64)
@@ -3483,7 +3483,7 @@ EXPLAIN VERBOSE
 SELECT integerarray, longarray FROM s3 WHERE array_length(integerarray) = array_length(longarray) ORDER BY 1;
                                                                        QUERY PLAN                                                                        
 ---------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3720.81..3720.90 rows=34 width=64)
+ Sort  (cost=3719.87..3719.95 rows=34 width=64)
    Output: integerarray, longarray
    Sort Key: s3.integerarray
    ->  Foreign Scan on public.s3  (cost=200.00..3719.01 rows=34 width=64)
@@ -3534,7 +3534,7 @@ EXPLAIN VERBOSE
 SELECT floatarray, doublearray FROM s3 WHERE array_length(floatarray) - array_length(doublearray) = 0 ORDER BY 1, 2;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3738.17..3738.26 rows=34 width=64)
+ Sort  (cost=3736.93..3737.02 rows=34 width=64)
    Output: floatarray, doublearray
    Sort Key: s3.floatarray, s3.doublearray
    ->  Foreign Scan on public.s3  (cost=200.00..3736.07 rows=34 width=64)
@@ -3585,7 +3585,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE array_length(timestamparray) < 3 ORDER BY 1;
                                                      QUERY PLAN                                                      
 ---------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2212.11..2217.80 rows=2276 width=32)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=32)
    Output: timestamparray
    Sort Key: s3.timestamparray
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=32)
@@ -3635,7 +3635,7 @@ EXPLAIN VERBOSE
 SELECT boolarray FROM s3 WHERE element(1, boolarray) = 'f' ORDER BY 1;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Sort  (cost=2395.14..2406.52 rows=4550 width=32)
+ Sort  (cost=2362.21..2373.59 rows=4550 width=32)
    Output: boolarray
    Sort Key: s3.boolarray
    ->  Foreign Scan on public.s3  (cost=200.00..2085.76 rows=4550 width=32)
@@ -3686,7 +3686,7 @@ EXPLAIN VERBOSE
 SELECT stringarray FROM s3 WHERE element(1, stringarray) != 'bbb' ORDER BY 1;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2609.50..2626.48 rows=6792 width=32)
+ Sort  (cost=2579.96..2596.94 rows=6792 width=32)
    Output: stringarray
    Sort Key: s3.stringarray
    ->  Foreign Scan on public.s3  (cost=200.00..2147.66 rows=6792 width=32)
@@ -3713,7 +3713,7 @@ EXPLAIN VERBOSE
 SELECT bytearray, shortarray FROM s3 WHERE element(0, bytearray) = element(0, shortarray) ORDER BY 1;
                                                                    QUERY PLAN                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3720.81..3720.90 rows=34 width=64)
+ Sort  (cost=3719.87..3719.95 rows=34 width=64)
    Output: bytearray, shortarray
    Sort Key: s3.bytearray
    ->  Foreign Scan on public.s3  (cost=200.00..3719.01 rows=34 width=64)
@@ -3761,7 +3761,7 @@ EXPLAIN VERBOSE
 SELECT integerarray, longarray FROM s3 WHERE element(0, integerarray)*100+44 = element(0,longarray) ORDER BY 1;
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3754.94..3755.03 rows=34 width=64)
+ Sort  (cost=3754.00..3754.08 rows=34 width=64)
    Output: integerarray, longarray
    Sort Key: s3.integerarray
    ->  Foreign Scan on public.s3  (cost=200.00..3753.14 rows=34 width=64)
@@ -3788,7 +3788,7 @@ EXPLAIN VERBOSE
 SELECT floatarray, doublearray FROM s3 WHERE element(2, floatarray)*10 < element(0,doublearray) ORDER BY 1;
                                                                                   QUERY PLAN                                                                                  
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3935.67..3941.36 rows=2276 width=64)
+ Sort  (cost=3907.82..3913.51 rows=2276 width=64)
    Output: floatarray, doublearray
    Sort Key: s3.floatarray
    ->  Foreign Scan on public.s3  (cost=200.00..3780.91 rows=2276 width=64)
@@ -3819,7 +3819,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE element(1,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2212.11..2217.80 rows=2276 width=32)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=32)
    Output: timestamparray
    Sort Key: s3.timestamparray
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=32)
@@ -3869,7 +3869,7 @@ EXPLAIN VERBOSE
 SELECT timestamparray FROM s3 WHERE element(2,timestamparray) > '2020-12-29 04:00:00' ORDER BY 1;
                                                                              QUERY PLAN                                                                             
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2212.11..2217.80 rows=2276 width=32)
+ Sort  (cost=2184.26..2189.95 rows=2276 width=32)
    Output: timestamparray
    Sort Key: s3.timestamparray
    ->  Foreign Scan on public.s3  (cost=200.00..2057.35 rows=2276 width=32)
@@ -3898,7 +3898,7 @@ EXPLAIN VERBOSE
 SELECT char_length(name) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort  (cost=873.38..890.44 rows=6826 width=4)
+ Sort  (cost=876.55..893.62 rows=6826 width=4)
    Output: (char_length(name))
    Sort Key: (char_length(s3.name))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=4)
@@ -3949,7 +3949,7 @@ EXPLAIN VERBOSE
 SELECT concat(name,'abc') FROM s3 ORDER BY 1;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=905.99..923.06 rows=6826 width=32)
+ Sort  (cost=876.55..893.62 rows=6826 width=32)
    Output: (concat(name, 'abc'))
    Sort Key: (concat(s3.name, 'abc'))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=32)
@@ -4000,7 +4000,7 @@ EXPLAIN VERBOSE
 SELECT substr(name,2,3) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=905.99..923.06 rows=6826 width=32)
+ Sort  (cost=876.55..893.62 rows=6826 width=32)
    Output: (substr(name, 2, 3))
    Sort Key: (substr(s3.name, 2, 3))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=32)
@@ -4051,7 +4051,7 @@ EXPLAIN VERBOSE
 SELECT element(1, timestamparray) FROM s3 ORDER BY 1;
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=8)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=8)
    Output: (element(1, timestamparray))
    Sort Key: (element(1, s3.timestamparray))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=8)
@@ -4076,7 +4076,7 @@ EXPLAIN VERBOSE
 SELECT upper(name) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=905.99..923.06 rows=6826 width=32)
+ Sort  (cost=876.55..893.62 rows=6826 width=32)
    Output: (upper(name))
    Sort Key: (upper(s3.name))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=32)
@@ -4127,7 +4127,7 @@ EXPLAIN VERBOSE
 SELECT lower(name) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=905.99..923.06 rows=6826 width=32)
+ Sort  (cost=876.55..893.62 rows=6826 width=32)
    Output: (lower(name))
    Sort Key: (lower(s3.name))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=32)
@@ -4178,7 +4178,7 @@ EXPLAIN VERBOSE
 SELECT round(gpa) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort  (cost=873.38..890.44 rows=6826 width=8)
+ Sort  (cost=876.55..893.62 rows=6826 width=8)
    Output: (round(gpa))
    Sort Key: (round(s3.gpa))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=8)
@@ -4229,7 +4229,7 @@ EXPLAIN VERBOSE
 SELECT floor(gpa) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort  (cost=873.38..890.44 rows=6826 width=8)
+ Sort  (cost=876.55..893.62 rows=6826 width=8)
    Output: (floor(gpa))
    Sort Key: (floor(s3.gpa))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=8)
@@ -4280,7 +4280,7 @@ EXPLAIN VERBOSE
 SELECT ceiling(gpa) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort  (cost=873.38..890.44 rows=6826 width=8)
+ Sort  (cost=876.55..893.62 rows=6826 width=8)
    Output: (ceiling(gpa))
    Sort Key: (ceiling(s3.gpa))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=8)
@@ -4331,7 +4331,7 @@ EXPLAIN VERBOSE
 SELECT griddb_timestamp(strcol) FROM s3 ORDER BY 1;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=8)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=8)
    Output: (griddb_timestamp(strcol))
    Sort Key: (griddb_timestamp(s3.strcol))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=8)
@@ -4356,7 +4356,7 @@ EXPLAIN VERBOSE
 SELECT timestampadd('YEAR', date1, -1) FROM s3 ORDER BY 1;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=8)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=8)
    Output: (timestampadd('YEAR'::time_unit, date1, '-1'::integer))
    Sort Key: (timestampadd('YEAR'::time_unit, s3.date1, '-1'::integer))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=8)
@@ -4381,7 +4381,7 @@ EXPLAIN VERBOSE
 SELECT timestampdiff('YEAR', date1, '2018-01-04 08:48:00') FROM s3 ORDER BY 1;
                                                                           QUERY PLAN                                                                          
 --------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=8)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=8)
    Output: (timestampdiff('YEAR'::time_unit, date1, '2018-01-04 08:48:00'::timestamp without time zone))
    Sort Key: (timestampdiff('YEAR'::time_unit, s3.date1, '2018-01-04 08:48:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=8)
@@ -4406,7 +4406,7 @@ EXPLAIN VERBOSE
 SELECT to_timestamp_ms(intcol) FROM s3 ORDER BY 1;
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Sort  (cost=2579.88..2596.94 rows=6826 width=8)
+ Sort  (cost=2583.05..2600.12 rows=6826 width=8)
    Output: (to_timestamp_ms((intcol)::bigint))
    Sort Key: (to_timestamp_ms((s3.intcol)::bigint))
    ->  Foreign Scan on public.s3  (cost=200.00..2148.35 rows=6826 width=8)
@@ -4431,7 +4431,7 @@ EXPLAIN VERBOSE
 SELECT to_epoch_ms(date1) FROM s3 ORDER BY 1;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=8)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=8)
    Output: (to_epoch_ms(date1))
    Sort Key: (to_epoch_ms(s3.date1))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=8)
@@ -4456,7 +4456,7 @@ EXPLAIN VERBOSE
 SELECT array_length(boolarray) FROM s3 ORDER BY 1;
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Sort  (cost=2562.81..2579.88 rows=6826 width=4)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=4)
    Output: (array_length(boolarray))
    Sort Key: (array_length(s3.boolarray))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=4)
@@ -4484,7 +4484,7 @@ EXPLAIN VERBOSE
 SELECT element(1, stringarray) FROM s3 ORDER BY 1;
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (element(1, stringarray))
    Sort Key: (element(1, s3.stringarray))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4514,7 +4514,7 @@ EXPLAIN VERBOSE
 SELECT time_next('2018-12-01 10:00:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next('2018-12-01 10:00:00'::timestamp without time zone))
    Sort Key: (time_next('2018-12-01 10:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4541,7 +4541,7 @@ EXPLAIN VERBOSE
 SELECT time_next('2018-12-01 10:05:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next('2018-12-01 10:05:00'::timestamp without time zone))
    Sort Key: (time_next('2018-12-01 10:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4568,7 +4568,7 @@ EXPLAIN VERBOSE
 SELECT time_next('2018-12-01 10:45:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next('2018-12-01 10:45:00'::timestamp without time zone))
    Sort Key: (time_next('2018-12-01 10:45:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4596,7 +4596,7 @@ EXPLAIN VERBOSE
 SELECT time_next_only('2018-12-01 10:00:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next_only('2018-12-01 10:00:00'::timestamp without time zone))
    Sort Key: (time_next_only('2018-12-01 10:00:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4623,7 +4623,7 @@ EXPLAIN VERBOSE
 SELECT time_next_only('2018-12-01 10:05:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next_only('2018-12-01 10:05:00'::timestamp without time zone))
    Sort Key: (time_next_only('2018-12-01 10:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4650,7 +4650,7 @@ EXPLAIN VERBOSE
 SELECT time_next_only('2018-12-01 10:45:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_next_only('2018-12-01 10:45:00'::timestamp without time zone))
    Sort Key: (time_next_only('2018-12-01 10:45:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4678,7 +4678,7 @@ EXPLAIN VERBOSE
 SELECT time_prev('2018-12-01 10:10:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev('2018-12-01 10:10:00'::timestamp without time zone))
    Sort Key: (time_prev('2018-12-01 10:10:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4704,7 +4704,7 @@ EXPLAIN VERBOSE
 SELECT time_prev('2018-12-01 10:05:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev('2018-12-01 10:05:00'::timestamp without time zone))
    Sort Key: (time_prev('2018-12-01 10:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4730,7 +4730,7 @@ EXPLAIN VERBOSE
 SELECT time_prev('2018-12-01 09:45:00') FROM s3 ORDER BY 1;
                                                        QUERY PLAN                                                        
 -------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev('2018-12-01 09:45:00'::timestamp without time zone))
    Sort Key: (time_prev('2018-12-01 09:45:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4756,7 +4756,7 @@ EXPLAIN VERBOSE
 SELECT time_prev_only('2018-12-01 10:10:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev_only('2018-12-01 10:10:00'::timestamp without time zone))
    Sort Key: (time_prev_only('2018-12-01 10:10:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4782,7 +4782,7 @@ EXPLAIN VERBOSE
 SELECT time_prev_only('2018-12-01 10:05:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev_only('2018-12-01 10:05:00'::timestamp without time zone))
    Sort Key: (time_prev_only('2018-12-01 10:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4808,7 +4808,7 @@ EXPLAIN VERBOSE
 SELECT time_prev_only('2018-12-01 09:45:00') FROM s3 ORDER BY 1;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2301.93..2318.99 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_prev_only('2018-12-01 09:45:00'::timestamp without time zone))
    Sort Key: (time_prev_only('2018-12-01 09:45:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4834,7 +4834,7 @@ EXPLAIN VERBOSE
 SELECT time_interpolated(value1, '2018-12-01 10:10:00') FROM s3 ORDER BY 1;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_interpolated(value1, '2018-12-01 10:10:00'::timestamp without time zone))
    Sort Key: (time_interpolated(s3.value1, '2018-12-01 10:10:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4862,7 +4862,7 @@ EXPLAIN VERBOSE
 SELECT time_interpolated(value1, '2018-12-01 10:05:00') FROM s3 ORDER BY 1;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_interpolated(value1, '2018-12-01 10:05:00'::timestamp without time zone))
    Sort Key: (time_interpolated(s3.value1, '2018-12-01 10:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4888,7 +4888,7 @@ EXPLAIN VERBOSE
 SELECT time_interpolated(value1, '2018-12-01 09:05:00') FROM s3 ORDER BY 1;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_interpolated(value1, '2018-12-01 09:05:00'::timestamp without time zone))
    Sort Key: (time_interpolated(s3.value1, '2018-12-01 09:05:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4912,7 +4912,7 @@ EXPLAIN VERBOSE
 SELECT time_interpolated(value1, '2018-12-01 10:45:00') FROM s3 ORDER BY 1;
                                                                QUERY PLAN                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_interpolated(value1, '2018-12-01 10:45:00'::timestamp without time zone))
    Sort Key: (time_interpolated(s3.value1, '2018-12-01 10:45:00'::timestamp without time zone))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4939,7 +4939,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-01 10:00:00', '2018-12-01 10:20:00', 10, 'MINUTE') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:20:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:20:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4969,7 +4969,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-01 10:05:00', '2018-12-01 10:35:00', 10, 'MINUTE') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-01 10:05:00'::timestamp without time zone, '2018-12-01 10:35:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-01 10:05:00'::timestamp without time zone, '2018-12-01 10:35:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -4998,7 +4998,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-01 10:00:00', '2018-12-01 10:40:00', 10, 'MINUTE') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:40:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:40:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5028,7 +5028,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-01 09:30:00', '2018-12-01 11:00:00', 10, 'MINUTE') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-01 09:30:00'::timestamp without time zone, '2018-12-01 11:00:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-01 09:30:00'::timestamp without time zone, '2018-12-01 11:00:00'::timestamp without time zone, 10, 'MINUTE'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5067,7 +5067,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-02 10:00:00', '2018-12-02 12:00:00', 2, 'HOUR') FROM s3 ORDER BY 1;
                                                                                                       QUERY PLAN                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-02 10:00:00'::timestamp without time zone, '2018-12-02 12:00:00'::timestamp without time zone, 2, 'HOUR'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-02 10:00:00'::timestamp without time zone, '2018-12-02 12:00:00'::timestamp without time zone, 2, 'HOUR'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5096,7 +5096,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-02 10:05:00', '2018-12-02 21:00:00', 3, 'HOUR') FROM s3 ORDER BY 1;
                                                                                                       QUERY PLAN                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-02 10:05:00'::timestamp without time zone, '2018-12-02 21:00:00'::timestamp without time zone, 3, 'HOUR'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-02 10:05:00'::timestamp without time zone, '2018-12-02 21:00:00'::timestamp without time zone, 3, 'HOUR'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5125,7 +5125,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-02 10:00:00', '2018-12-02 21:40:00', 2, 'HOUR') FROM s3 ORDER BY 1;
                                                                                                       QUERY PLAN                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-02 10:00:00'::timestamp without time zone, '2018-12-02 21:40:00'::timestamp without time zone, 2, 'HOUR'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-02 10:00:00'::timestamp without time zone, '2018-12-02 21:40:00'::timestamp without time zone, 2, 'HOUR'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5156,7 +5156,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-02 6:00:00', '2018-12-02 23:00:00', 3, 'HOUR') FROM s3 ORDER BY 1;
                                                                                                       QUERY PLAN                                                                                                      
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-02 06:00:00'::timestamp without time zone, '2018-12-02 23:00:00'::timestamp without time zone, 3, 'HOUR'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-02 06:00:00'::timestamp without time zone, '2018-12-02 23:00:00'::timestamp without time zone, 3, 'HOUR'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5194,7 +5194,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-03 11:00:00', '2018-12-04 11:00:00', 1, 'DAY') FROM s3 ORDER BY 1;
                                                                                                      QUERY PLAN                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-03 11:00:00'::timestamp without time zone, '2018-12-04 11:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-03 11:00:00'::timestamp without time zone, '2018-12-04 11:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5224,7 +5224,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-03 09:00:00', '2018-12-05 12:00:00', 1, 'DAY') FROM s3 ORDER BY 1;
                                                                                                      QUERY PLAN                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-03 09:00:00'::timestamp without time zone, '2018-12-05 12:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-03 09:00:00'::timestamp without time zone, '2018-12-05 12:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5253,7 +5253,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-03 11:00:00', '2018-12-05 12:00:00', 1, 'DAY') FROM s3 ORDER BY 1;
                                                                                                      QUERY PLAN                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-03 11:00:00'::timestamp without time zone, '2018-12-05 12:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-03 11:00:00'::timestamp without time zone, '2018-12-05 12:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5283,7 +5283,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-03 09:30:00', '2018-12-03 11:00:00', 1, 'DAY') FROM s3 ORDER BY 1;
                                                                                                      QUERY PLAN                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-03 09:30:00'::timestamp without time zone, '2018-12-03 11:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-03 09:30:00'::timestamp without time zone, '2018-12-03 11:00:00'::timestamp without time zone, 1, 'DAY'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5322,7 +5322,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-06 10:00:00', '2018-12-06 10:00:20', 10, 'SECOND') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-06 10:00:00'::timestamp without time zone, '2018-12-06 10:00:20'::timestamp without time zone, 10, 'SECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-06 10:00:00'::timestamp without time zone, '2018-12-06 10:00:20'::timestamp without time zone, 10, 'SECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5355,7 +5355,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-06 10:00:03', '2018-12-06 10:00:35', 15, 'SECOND') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-06 10:00:03'::timestamp without time zone, '2018-12-06 10:00:35'::timestamp without time zone, 15, 'SECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-06 10:00:03'::timestamp without time zone, '2018-12-06 10:00:35'::timestamp without time zone, 15, 'SECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -5386,7 +5386,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-06 10:00:00', '2018-12-06 11:00:00', 10, 'SECOND') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-06 10:00:00'::timestamp without time zone, '2018-12-06 11:00:00'::timestamp without time zone, 10, 'SECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-06 10:00:00'::timestamp without time zone, '2018-12-06 11:00:00'::timestamp without time zone, 10, 'SECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -6133,7 +6133,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-06 08:30:00', '2018-12-06 11:00:00', 20, 'SECOND') FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-06 08:30:00'::timestamp without time zone, '2018-12-06 11:00:00'::timestamp without time zone, 20, 'SECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-06 08:30:00'::timestamp without time zone, '2018-12-06 11:00:00'::timestamp without time zone, 20, 'SECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7067,7 +7067,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.140', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
                                                                                                             QUERY PLAN                                                                                                             
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.14'::timestamp without time zone, 20, 'MILLISECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.14'::timestamp without time zone, 20, 'MILLISECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7095,7 +7095,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-07 10:00:00.115', '2018-12-07 10:00:00.155', 15, 'MILLISECOND') FROM s3 ORDER BY 1;
                                                                                                               QUERY PLAN                                                                                                              
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-07 10:00:00.115'::timestamp without time zone, '2018-12-07 10:00:00.155'::timestamp without time zone, 15, 'MILLISECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-07 10:00:00.115'::timestamp without time zone, '2018-12-07 10:00:00.155'::timestamp without time zone, 15, 'MILLISECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7126,7 +7126,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-07 10:00:00.100', '2018-12-07 10:00:00.150', 5, 'MILLISECOND') FROM s3 ORDER BY 1;
                                                                                                             QUERY PLAN                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.15'::timestamp without time zone, 5, 'MILLISECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-07 10:00:00.1'::timestamp without time zone, '2018-12-07 10:00:00.15'::timestamp without time zone, 5, 'MILLISECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7152,7 +7152,7 @@ EXPLAIN VERBOSE
 SELECT time_sampling(value1, '2018-12-07 10:00:00.002', '2018-12-07 10:00:00.500', 20, 'MILLISECOND') FROM s3 ORDER BY 1;
                                                                                                              QUERY PLAN                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (time_sampling(value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::time_unit))
    Sort Key: (time_sampling(s3.value1, '2018-12-07 10:00:00.002'::timestamp without time zone, '2018-12-07 10:00:00.5'::timestamp without time zone, 20, 'MILLISECOND'::time_unit))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7184,7 +7184,7 @@ EXPLAIN VERBOSE
 SELECT max_rows(value2) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (max_rows(value2))
    Sort Key: (max_rows(s3.value2))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7211,7 +7211,7 @@ EXPLAIN VERBOSE
 SELECT max_rows(date) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (max_rows(date))
    Sort Key: (max_rows(s3.date))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7238,7 +7238,7 @@ EXPLAIN VERBOSE
 SELECT min_rows(value2) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (min_rows(value2))
    Sort Key: (min_rows(s3.value2))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7265,7 +7265,7 @@ EXPLAIN VERBOSE
 SELECT min_rows(date) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=2595.43..2612.49 rows=6826 width=32)
+ Sort  (cost=2565.99..2583.05 rows=6826 width=32)
    Output: (min_rows(date))
    Sort Key: (min_rows(s3.date))
    ->  Foreign Scan on public.s3  (cost=200.00..2131.28 rows=6826 width=32)
@@ -7294,7 +7294,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE time_next('2018-12-01 10:00:00') = '"2020-01-05 21:00:00,{t,f,t}"' ORDER BY 1;
                                                                                                                                                                QUERY PLAN                                                                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=856.82..873.88 rows=6826 width=525)
+ Sort  (cost=859.99..877.06 rows=6826 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Result  (cost=200.50..425.28 rows=6826 width=525)
@@ -7329,7 +7329,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE time_prev('2018-12-01 10:00:00') = '"2020-01-05 21:00:00,{t,f,t}"' ORDER BY 1;
                                                                                                                                                                QUERY PLAN                                                                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=856.82..873.88 rows=6826 width=525)
+ Sort  (cost=859.99..877.06 rows=6826 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Result  (cost=200.50..425.28 rows=6826 width=525)
@@ -7364,7 +7364,7 @@ EXPLAIN VERBOSE
 SELECT * FROM s3 WHERE max_rows(date) = min_rows(value2) ORDER BY 1;
                                                                                                                                                                                          QUERY PLAN                                                                                                                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3720.70..3720.79 rows=34 width=525)
+ Sort  (cost=3719.87..3719.95 rows=34 width=525)
    Output: date, value1, value2, name, age, location, gpa, date1, date2, strcol, booleancol, bytecol, shortcol, intcol, longcol, floatcol, doublecol, blobcol, stringarray, boolarray, bytearray, shortarray, integerarray, longarray, floatarray, doublearray, timestamparray, __spd_url
    Sort Key: s3.date
    ->  Foreign Scan on public.s3  (cost=200.00..3719.01 rows=34 width=525)
@@ -7392,7 +7392,7 @@ EXPLAIN VERBOSE
 SELECT (time_sampling(value1, '2018-12-01 10:00:00', '2018-12-01 10:50:00', 20, 'MINUTE')::s3).* FROM s3 ORDER BY 1;
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   QUERY PLAN                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=49593.95..49611.02 rows=6826 width=525)
+ Sort  (cost=49597.13..49614.19 rows=6826 width=525)
    Output: ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).value1), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).value2), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).name), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).age), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).location), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).gpa), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date1), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date2), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).strcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).booleancol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).bytecol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).shortcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).intcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).longcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).floatcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).doublecol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).blobcol), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).stringarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).boolarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).bytearray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).shortarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).integerarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).longarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).floatarray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).doublearray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).timestamparray), ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).__spd_url)
    Sort Key: ((((time_sampling(s3.value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date)
    ->  Foreign Scan on public.s3  (cost=200.00..49162.42 rows=6826 width=525)
@@ -7419,7 +7419,7 @@ EXPLAIN VERBOSE
 SELECT (time_sampling(value1, '2018-12-01 10:00:00', '2018-12-01 10:50:00', 20, 'MINUTE')::s3).date FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2596.94..2614.01 rows=6826 width=8)
+ Sort  (cost=2600.12..2617.18 rows=6826 width=8)
    Output: ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date)
    Sort Key: ((((time_sampling(s3.value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).date)
    ->  Foreign Scan on public.s3  (cost=200.00..2165.41 rows=6826 width=8)
@@ -7446,7 +7446,7 @@ EXPLAIN VERBOSE
 SELECT (time_sampling(value1, '2018-12-01 10:00:00', '2018-12-01 10:50:00', 20, 'MINUTE')::s3).value1 FROM s3 ORDER BY 1;
                                                                                                        QUERY PLAN                                                                                                        
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=2596.94..2614.01 rows=6826 width=4)
+ Sort  (cost=2600.12..2617.18 rows=6826 width=4)
    Output: ((((time_sampling(value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).value1)
    Sort Key: ((((time_sampling(s3.value1, '2018-12-01 10:00:00'::timestamp without time zone, '2018-12-01 10:50:00'::timestamp without time zone, 20, 'MINUTE'::time_unit)))::s3).value1)
    ->  Foreign Scan on public.s3  (cost=200.00..2165.41 rows=6826 width=4)
@@ -7476,7 +7476,7 @@ EXPLAIN VERBOSE
 SELECT time_avg(value1) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=145.22..145.22 rows=1 width=8)
+ Sort  (cost=145.17..145.17 rows=1 width=8)
    Output: (time_avg(value1))
    Sort Key: (time_avg(s3.value1))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=8)
@@ -7504,7 +7504,7 @@ EXPLAIN VERBOSE
 SELECT time_avg(value2) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                 
 ----------------------------------------------------------------------------
- Sort  (cost=145.22..145.22 rows=1 width=8)
+ Sort  (cost=145.17..145.17 rows=1 width=8)
    Output: (time_avg(value2))
    Sort Key: (time_avg(s3.value2))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=8)
@@ -7533,7 +7533,7 @@ EXPLAIN VERBOSE
 SELECT time_avg(value1), time_avg(value2) FROM s3 ORDER BY 1;
                                              QUERY PLAN                                              
 -----------------------------------------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=16)
+ Sort  (cost=144.17..144.17 rows=1 width=16)
    Output: (time_avg(value1)), (time_avg(value2))
    Sort Key: (time_avg(s3.value1))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=16)
@@ -7556,7 +7556,7 @@ EXPLAIN VERBOSE
 SELECT time_avg(date) FROM s3 ORDER BY 1;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=8)
+ Sort  (cost=144.17..144.17 rows=1 width=8)
    Output: (time_avg(date))
    Sort Key: (time_avg(s3.date))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
@@ -7578,7 +7578,7 @@ EXPLAIN VERBOSE
 SELECT time_avg(blobcol) FROM s3 ORDER BY 1;
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=8)
+ Sort  (cost=144.17..144.17 rows=1 width=8)
    Output: (time_avg(blobcol))
    Sort Key: (time_avg(s3.blobcol))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
@@ -7603,7 +7603,7 @@ EXPLAIN VERBOSE
 SELECT min(age) FROM s3 ORDER BY 1;
                          QUERY PLAN                          
 -------------------------------------------------------------
- Sort  (cost=145.22..145.22 rows=1 width=4)
+ Sort  (cost=145.17..145.17 rows=1 width=4)
    Output: (min(age))
    Sort Key: (min(s3.age))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=4)
@@ -7631,7 +7631,7 @@ EXPLAIN VERBOSE
 SELECT max(gpa) FROM s3 ORDER BY 1;
                          QUERY PLAN                          
 -------------------------------------------------------------
- Sort  (cost=145.22..145.22 rows=1 width=8)
+ Sort  (cost=145.17..145.17 rows=1 width=8)
    Output: (max(gpa))
    Sort Key: (max(s3.gpa))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=8)
@@ -7659,7 +7659,7 @@ EXPLAIN VERBOSE
 SELECT count(*) FROM s3 ORDER BY 1;
                          QUERY PLAN                          
 -------------------------------------------------------------
- Sort  (cost=145.21..145.21 rows=1 width=8)
+ Sort  (cost=145.17..145.17 rows=1 width=8)
    Output: (count(*))
    Sort Key: (count(*))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=8)
@@ -7687,7 +7687,7 @@ EXPLAIN VERBOSE
 SELECT count(*) FROM s3 WHERE gpa < 3.5 OR age < 42 ORDER BY 1;
                                                     QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
- Sort  (cost=162.27..162.28 rows=1 width=8)
+ Sort  (cost=162.23..162.24 rows=1 width=8)
    Output: (count(*))
    Sort Key: (count(*))
    ->  Foreign Scan  (cost=101.00..162.22 rows=1 width=8)
@@ -7715,7 +7715,7 @@ EXPLAIN VERBOSE
 SELECT sum(age) FROM s3 ORDER BY 1;
                          QUERY PLAN                          
 -------------------------------------------------------------
- Sort  (cost=145.22..145.22 rows=1 width=8)
+ Sort  (cost=145.17..145.17 rows=1 width=8)
    Output: (sum(age))
    Sort Key: (sum(s3.age))
    ->  Foreign Scan  (cost=101.00..145.16 rows=1 width=8)
@@ -7743,7 +7743,7 @@ EXPLAIN VERBOSE
 SELECT sum(age) FROM s3 WHERE round(gpa) > 3.5 ORDER BY 1;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Sort  (cost=162.28..162.29 rows=1 width=8)
+ Sort  (cost=162.23..162.24 rows=1 width=8)
    Output: (sum(age))
    Sort Key: (sum(s3.age))
    ->  Foreign Scan  (cost=101.00..162.22 rows=1 width=8)
@@ -7771,7 +7771,7 @@ EXPLAIN VERBOSE
 SELECT avg(gpa) FROM s3 ORDER BY 1;
                                QUERY PLAN                                
 -------------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=8)
+ Sort  (cost=144.17..144.17 rows=1 width=8)
    Output: (avg(gpa))
    Sort Key: (avg(s3.gpa))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
@@ -7799,7 +7799,7 @@ EXPLAIN VERBOSE
 SELECT avg(gpa) FROM s3 WHERE lower(name) = 'george' ORDER BY 1;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Sort  (cost=161.28..161.29 rows=1 width=8)
+ Sort  (cost=161.23..161.24 rows=1 width=8)
    Output: (avg(gpa))
    Sort Key: (avg(s3.gpa))
    ->  Foreign Scan  (cost=100.00..161.22 rows=1 width=8)
@@ -7827,7 +7827,7 @@ EXPLAIN VERBOSE
 SELECT variance(gpa) FROM s3 ORDER BY 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=8)
+ Sort  (cost=144.17..144.17 rows=1 width=8)
    Output: (variance(gpa))
    Sort Key: (variance(s3.gpa))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
@@ -7855,7 +7855,7 @@ EXPLAIN VERBOSE
 SELECT variance(gpa) FROM s3 WHERE gpa > 3.5 ORDER BY 1;
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=152.75..152.76 rows=1 width=8)
+ Sort  (cost=152.70..152.71 rows=1 width=8)
    Output: (variance(gpa))
    Sort Key: (variance(s3.gpa))
    ->  Foreign Scan  (cost=100.00..152.69 rows=1 width=8)
@@ -7883,7 +7883,7 @@ EXPLAIN VERBOSE
 SELECT stddev(age) FROM s3 ORDER BY 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Sort  (cost=144.22..144.23 rows=1 width=32)
+ Sort  (cost=144.17..144.17 rows=1 width=32)
    Output: (stddev(age))
    Sort Key: (stddev(s3.age))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
@@ -7911,7 +7911,7 @@ EXPLAIN VERBOSE
 SELECT stddev(age) FROM s3 WHERE char_length(name) > 4 ORDER BY 1;
                                                         QUERY PLAN                                                         
 ---------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=161.29..161.29 rows=1 width=32)
+ Sort  (cost=161.23..161.24 rows=1 width=32)
    Output: (stddev(age))
    Sort Key: (stddev(s3.age))
    ->  Foreign Scan  (cost=100.00..161.22 rows=1 width=32)
@@ -7939,7 +7939,7 @@ EXPLAIN VERBOSE
 SELECT max(gpa), min(age) FROM s3 ORDER BY 1;
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Sort  (cost=144.22..144.22 rows=1 width=12)
+ Sort  (cost=144.17..144.17 rows=1 width=12)
    Output: (max(gpa)), (min(age))
    Sort Key: (max(s3.gpa))
    ->  Foreign Scan  (cost=100.00..144.16 rows=1 width=12)

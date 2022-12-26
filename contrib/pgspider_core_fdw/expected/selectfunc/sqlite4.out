@@ -67,7 +67,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 ORDER BY 1;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Sort  (cost=924.57..941.64 rows=6826 width=24)
+ Sort  (cost=927.75..944.81 rows=6826 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Sort Key: (abs(s3.value1))
    ->  Foreign Scan on public.s3  (cost=200.00..493.04 rows=6826 width=24)
@@ -101,7 +101,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE to_hex(value2) != '64' ORDER BY 1;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
- Sort  (cost=956.22..973.20 rows=6792 width=24)
+ Sort  (cost=959.13..976.11 rows=6792 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Sort Key: (abs(s3.value1))
    ->  Foreign Scan on public.s3  (cost=200.00..526.83 rows=6792 width=24)
@@ -133,7 +133,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value2), abs(value3), abs(value4) FROM s3 WHERE value2 != 200 ORDER BY 1;
                                                           QUERY PLAN                                                           
 -------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=938.47..955.45 rows=6792 width=24)
+ Sort  (cost=941.38..958.36 rows=6792 width=24)
    Output: (abs(value1)), (abs(value2)), (abs(value3)), (abs(value4))
    Sort Key: (abs(s3.value1))
    ->  Foreign Scan on public.s3  (cost=200.00..509.09 rows=6792 width=24)
@@ -164,7 +164,7 @@ EXPLAIN VERBOSE
 SELECT sum(value3),abs(sum(value3)) FROM s3 ORDER BY 1;
                            QUERY PLAN                           
 ----------------------------------------------------------------
- Sort  (cost=288.38..288.39 rows=1 width=16)
+ Sort  (cost=288.33..288.34 rows=1 width=16)
    Output: (sum(value3)), (abs((sum(value3))))
    Sort Key: (sum(s3.value3))
    ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=16)
@@ -195,7 +195,7 @@ EXPLAIN VERBOSE
 SELECT abs(value3), pi(), 4.1 FROM s3 ORDER BY 1;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Sort  (cost=873.38..890.44 rows=6826 width=48)
+ Sort  (cost=876.55..893.62 rows=6826 width=48)
    Output: (abs(value3)), '3.141592653589793'::double precision, 4.1
    Sort Key: (abs(s3.value3))
    ->  Foreign Scan on public.s3  (cost=200.00..441.84 rows=6826 width=48)
@@ -229,7 +229,7 @@ EXPLAIN VERBOSE
 SELECT value1, abs(1-value1) FROM s3 ORDER BY abs(1-value1);
                                            QUERY PLAN                                           
 ------------------------------------------------------------------------------------------------
- Sort  (cost=890.44..907.51 rows=6826 width=16)
+ Sort  (cost=893.62..910.68 rows=6826 width=16)
    Output: value1, (abs(('1'::double precision - value1)))
    Sort Key: (abs(('1'::double precision - s3.value1)))
    ->  Foreign Scan on public.s3  (cost=200.00..458.91 rows=6826 width=16)
@@ -302,7 +302,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1) + 1, value2, tag1, sqrt(value2) FROM s3 ORDER BY 1;
                                                      QUERY PLAN                                                     
 --------------------------------------------------------------------------------------------------------------------
- Sort  (cost=924.57..941.64 rows=6826 width=52)
+ Sort  (cost=927.75..944.81 rows=6826 width=52)
    Output: ((abs(value1) + '1'::double precision)), value2, tag1, (sqrt((value2)::double precision))
    Sort Key: ((abs(s3.value1) + '1'::double precision))
    ->  Foreign Scan on public.s3  (cost=200.00..493.04 rows=6826 width=52)
@@ -336,9 +336,9 @@ EXPLAIN VERBOSE
 SELECT abs(value1), abs(value3), sqrt(value2) FROM s3 ORDER BY abs(value3) LIMIT 1;
                                            QUERY PLAN                                            
 -------------------------------------------------------------------------------------------------
- Limit  (cost=663.69..663.69 rows=1 width=24)
+ Limit  (cost=527.17..527.17 rows=1 width=24)
    Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
-   ->  Sort  (cost=663.69..680.75 rows=6826 width=24)
+   ->  Sort  (cost=527.17..544.24 rows=6826 width=24)
          Output: (abs(value1)), (abs(value3)), (sqrt((value2)::double precision))
          Sort Key: (abs(s3.value3))
          ->  Foreign Scan on public.s3  (cost=200.00..493.04 rows=6826 width=24)
@@ -369,7 +369,7 @@ EXPLAIN VERBOSE
 SELECT abs(value1), sqrt(value2), upper(tag1) FROM s3 ORDER BY 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Sort  (cost=924.57..941.64 rows=6826 width=48)
+ Sort  (cost=927.75..944.81 rows=6826 width=48)
    Output: (abs(value1)), (sqrt((value2)::double precision)), (upper(tag1))
    Sort Key: (abs(s3.value1))
    ->  Foreign Scan on public.s3  (cost=200.00..493.04 rows=6826 width=48)
@@ -403,7 +403,7 @@ EXPLAIN VERBOSE
 SELECT abs(value3), length(tag1), ltrim(str2), ltrim(str1, '-'), replace(str1, 'XYZ', 'ABC'), round(value3), rtrim(str1, '-'), rtrim(str2), substr(str1, 4), substr(str1, 4, 3) FROM s3 ORDER BY 1;
                                                                                                                      QUERY PLAN                                                                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=1026.96..1044.03 rows=6826 width=244)
+ Sort  (cost=1030.14..1047.20 rows=6826 width=244)
    Output: (abs(value3)), (length(tag1)), (ltrim(str2)), (ltrim(str1, '-'::text)), (replace(str1, 'XYZ'::text, 'ABC'::text)), (round(value3)), (rtrim(str1, '-'::text)), (rtrim(str2)), (substr(str1, 4)), (substr(str1, 4, 3))
    Sort Key: (abs(s3.value3))
    ->  Foreign Scan on public.s3  (cost=200.00..595.43 rows=6826 width=244)

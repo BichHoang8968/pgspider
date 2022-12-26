@@ -97,9 +97,10 @@ preprocess_targetlist(PlannerInfo *root)
 	{
 		if (target_relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 			elog(WARNING, "Modification query is executing in non-autocommit mode. "
-							"PGSpider might get inconsistent data.");
+				 "PGSpider might get inconsistent data.");
 	}
 #endif
+
 	/*
 	 * In an INSERT, the executor expects the targetlist to match the exact
 	 * order of the target table's attributes, including entries for

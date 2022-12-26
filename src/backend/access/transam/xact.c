@@ -122,7 +122,7 @@ bool		bsysscan = false;
  * lookups as fast as possible.
  */
 static FullTransactionId XactTopFullTransactionId = {InvalidTransactionId};
-static int nParallelCurrentXids = 0;
+static int	nParallelCurrentXids = 0;
 static TransactionId *ParallelCurrentXids;
 
 /*
@@ -2174,7 +2174,11 @@ CommitTransaction(void)
 	Assert(s->parent == NULL);
 
 #ifdef PGSPIDER
-	/* At commit transaction, PGSpider call the callback to end all child thread */
+
+	/*
+	 * At commit transaction, PGSpider call the callback to end all child
+	 * thread
+	 */
 	SpdAtCommitTransaction();
 #endif
 
@@ -3484,6 +3488,9 @@ AbortCurrentTransaction(void)
  *	could issue more commands and possibly cause a failure after the statement
  *	completes).  Subtransactions are verboten too.
  *
+ *	We must also set XACT_FLAGS_NEEDIMMEDIATECOMMIT in MyXactFlags, to ensure
+ *	that postgres.c follows through by committing after the statement is done.
+ *
  *	isTopLevel: passed down from ProcessUtility to determine whether we are
  *	inside a function.  (We will always fail if this is false, but it's
  *	convenient to centralize the check here instead of making callers do it.)
@@ -3525,7 +3532,9 @@ PreventInTransactionBlock(bool isTopLevel, const char *stmtType)
 	if (CurrentTransactionState->blockState != TBLOCK_DEFAULT &&
 		CurrentTransactionState->blockState != TBLOCK_STARTED)
 		elog(FATAL, "cannot prevent transaction chain");
-	/* all okay */
+
+	/* All okay.  Set the flag to make sure the right thing happens later. */
+	MyXactFlags |= XACT_FLAGS_NEEDIMMEDIATECOMMIT;
 }
 
 /*
@@ -3621,6 +3630,13 @@ IsInTransactionBlock(bool isTopLevel)
 	if (CurrentTransactionState->blockState != TBLOCK_DEFAULT &&
 		CurrentTransactionState->blockState != TBLOCK_STARTED)
 		return true;
+
+	/*
+	 * If we tell the caller we're not in a transaction block, then inform
+	 * postgres.c that it had better commit when the statement is done.
+	 * Otherwise our report could be a lie.
+	 */
+	MyXactFlags |= XACT_FLAGS_NEEDIMMEDIATECOMMIT;
 
 	return false;
 }
@@ -5044,9 +5060,10 @@ AbortSubTransaction(void)
 	HOLD_INTERRUPTS();
 
 #ifdef PGSPIDER
+
 	/*
-	 * PGSpider need kill all child thread start in aborted transaction
-	 * and all other will pending.
+	 * PGSpider need kill all child thread start in aborted transaction and
+	 * all other will pending.
 	 */
 	SpdAtAbortSubTransaction();
 #endif
@@ -5242,9 +5259,14 @@ PushTransaction(void)
 	TransactionState s;
 
 #ifdef PGSPIDER
-	/* PGSpider need pending all child thread during new transaction is initialized */
+
+	/*
+	 * PGSpider need pending all child thread during new transaction is
+	 * initialized
+	 */
 	SpdAtMakeNewTransaction();
 #endif
+
 	/*
 	 * We keep subtransaction state nodes in TopTransactionContext.
 	 */
@@ -6290,7 +6312,7 @@ void
 UnregisterSpdTransactionCallback(spdTransactionCallback callback, void *arg)
 {
 	spdTransactionCallbackItem *item,
-			   				   *prev;
+			   *prev;
 
 	prev = NULL;
 	for (item = spd_transaction_callbacks; item; prev = item, item = item->next)
@@ -6321,7 +6343,7 @@ SpdAtAbortTransaction(void)
 		return;
 
 	item = spd_transaction_callbacks;
-	for (item = spd_transaction_callbacks; item;item = item->next)
+	for (item = spd_transaction_callbacks; item; item = item->next)
 	{
 		item->callback(SPD_EVENT_ABORT_TRANSACTION, item->arg);
 	}
@@ -6337,7 +6359,7 @@ SpdAtAbortSubTransaction(void)
 	spdTransactionCallbackItem *item;
 
 	item = spd_transaction_callbacks;
-	for (item = spd_transaction_callbacks; item;item = item->next)
+	for (item = spd_transaction_callbacks; item; item = item->next)
 	{
 		item->callback(SPD_EVENT_ABORT_SUB_TRANSACTION, item->arg);
 	}
@@ -6353,7 +6375,7 @@ SpdAtMakeNewTransaction(void)
 	spdTransactionCallbackItem *item;
 
 	item = spd_transaction_callbacks;
-	for (item = spd_transaction_callbacks; item;item = item->next)
+	for (item = spd_transaction_callbacks; item; item = item->next)
 	{
 		item->callback(SPD_EVENT_NEW_TRANSACTION, item->arg);
 	}
@@ -6369,7 +6391,7 @@ SpdAtCommitTransaction(void)
 	spdTransactionCallbackItem *item;
 
 	item = spd_transaction_callbacks;
-	for (item = spd_transaction_callbacks; item;item = item->next)
+	for (item = spd_transaction_callbacks; item; item = item->next)
 	{
 		item->callback(SPD_EVENT_COMMIT_TRANSACTION, item->arg);
 	}

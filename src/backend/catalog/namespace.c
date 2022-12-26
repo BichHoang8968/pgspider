@@ -136,7 +136,11 @@
 
 /* These variables define the actually active state: */
 
+#ifdef PGSPIDER
+static __thread List *activeSearchPath = NIL;
+#else
 static List *activeSearchPath = NIL;
+#endif
 
 /* default place to create stuff; if InvalidOid, no default */
 static Oid	activeCreationNamespace = InvalidOid;
@@ -149,16 +153,36 @@ static uint64 activePathGeneration = 1;
 
 /* These variables are the values last derived from namespace_search_path: */
 
+#ifdef PGSPIDER
+static __thread List *baseSearchPath = NIL;
+#else
 static List *baseSearchPath = NIL;
+#endif
 
+#ifdef PGSPIDER
+static __thread Oid	baseCreationNamespace = InvalidOid;
+#else
 static Oid	baseCreationNamespace = InvalidOid;
+#endif
 
+#ifdef PGSPIDER
+static __thread bool baseTempCreationPending = false;
+#else
 static bool baseTempCreationPending = false;
+#endif
 
+#ifdef PGSPIDER
+static __thread Oid	namespaceUser = InvalidOid;
+#else
 static Oid	namespaceUser = InvalidOid;
+#endif
 
 /* The above four values are valid only if baseSearchPathValid */
+#ifdef PGSPIDER
+static __thread bool baseSearchPathValid = true;
+#else
 static bool baseSearchPathValid = true;
+#endif
 
 /* Override requests are remembered in a stack of OverrideStackEntry structs */
 
@@ -196,8 +220,11 @@ static SubTransactionId myTempNamespaceSubID = InvalidSubTransactionId;
  * This is the user's textual search path specification --- it's the value
  * of the GUC variable 'search_path'.
  */
+#ifdef PGSPIDER
+__thread char   *namespace_search_path = NULL;
+#else
 char	   *namespace_search_path = NULL;
-
+#endif
 
 /* Local functions */
 static void recomputeNamespacePath(void);

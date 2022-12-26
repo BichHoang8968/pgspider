@@ -420,4 +420,7 @@ CREATE TABLE batch_table_p3 ( x int, field1 text, field2 text);
 -- ===================================================================
 CREATE TABLE ploc1 (f1 int, f2 text);
 CREATE TABLE ploc2 (f1 int, f2 text);
-\q
+
+-- check schema-qualification of regconfig constant
+CREATE TEXT SEARCH CONFIGURATION public.custom_search
+  (COPY = pg_catalog.english);

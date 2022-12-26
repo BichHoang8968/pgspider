@@ -635,7 +635,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -667,7 +667,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -699,7 +699,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
@@ -731,7 +731,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -763,7 +763,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -795,7 +795,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test2.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
@@ -927,7 +927,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -969,7 +969,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -1011,7 +1011,7 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
@@ -1053,7 +1053,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -1095,7 +1095,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
@@ -1137,7 +1137,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=342.91..342.92 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test1.i
    ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)

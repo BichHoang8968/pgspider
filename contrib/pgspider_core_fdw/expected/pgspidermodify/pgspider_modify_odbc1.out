@@ -1450,11 +1450,11 @@ ERROR:  option "disable_transaction_feature_check" provided more than once
 --Testcase 168:
 INSERT INTO tntbl3 (_id, c1, c2, c3, c4) VALUES (DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 ERROR:  Executing ODBC query
-[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.30]Column '_id' cannot be null
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Column '_id' cannot be null
 --Testcase 169:
 INSERT INTO tntbl3 (_id, c2, c3) VALUES ('_3', 3.0, DEFAULT);
 ERROR:  Executing ODBC query
-[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.30]Duplicate entry '_3' for key 'tntbl3.PRIMARY'
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Duplicate entry '_3' for key 'tntbl3.PRIMARY'
 --Testcase 170:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
 --Testcase 171:

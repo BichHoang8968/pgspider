@@ -630,6 +630,18 @@ SELECT * FROM ft1 WHERE CASE c3 WHEN c6 THEN true ELSE c3 < 'bar' END;
 EXPLAIN (VERBOSE, COSTS OFF)
 SELECT * FROM ft1 WHERE CASE c3 COLLATE "C" WHEN c6 THEN true ELSE c3 < 'bar' END;
 
+-- check schema-qualification of regconfig constant
+--Testcase 1244:
+CREATE TEXT SEARCH CONFIGURATION public.custom_search
+  (COPY = pg_catalog.english);
+--Testcase 1245:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT c1, to_tsvector('custom_search'::regconfig, c3) FROM ft1
+WHERE c1 = 642 AND length(to_tsvector('custom_search'::regconfig, c3)) > 0;
+--Testcase 1246:
+SELECT c1, to_tsvector('custom_search'::regconfig, c3) FROM ft1
+WHERE c1 = 642 AND length(to_tsvector('custom_search'::regconfig, c3)) > 0;
+
 -- ===================================================================
 -- JOIN queries
 -- ===================================================================
@@ -937,6 +949,25 @@ SELECT * FROM ft1, ft2, ft4, ft5, local_tbl WHERE ft1.c1 = ft2.c1 AND ft1.c2 = f
 RESET enable_nestloop;
 --Testcase 217:
 RESET enable_hashjoin;
+
+-- test that add_paths_with_pathkeys_for_rel() arranges for the epq_path to
+-- return columns needed by the parent ForeignScan node
+--Testcase 1247:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM local_tbl LEFT JOIN (SELECT ft1.*, COALESCE(ft1.c3 || ft2.c3, 'foobar') FROM ft1 INNER JOIN ft2 ON (ft1.c1 = ft2.c1 AND ft1.c1 < 100)) ss ON (local_tbl.c1 = ss.c1) ORDER BY local_tbl.c1 FOR UPDATE OF local_tbl;
+
+--Testcase 1248:
+ALTER SERVER postgres_srv OPTIONS (DROP extensions);
+--Testcase 1249:
+ALTER SERVER postgres_srv OPTIONS (ADD fdw_startup_cost '10000.0');
+--Testcase 1250:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM local_tbl LEFT JOIN (SELECT ft1.* FROM ft1 INNER JOIN ft2 ON (ft1.c1 = ft2.c1 AND ft1.c1 < 100 AND ft1.c1 = postgres_fdw_abs(ft2.c2))) ss ON (local_tbl.c3 = ss.c3) ORDER BY local_tbl.c1 FOR UPDATE OF local_tbl;
+--Testcase 1251:
+ALTER SERVER postgres_srv OPTIONS (DROP fdw_startup_cost);
+--Testcase 1252:
+ALTER SERVER postgres_srv OPTIONS (ADD extensions 'postgres_fdw');
+
 --Testcase 218:
 DROP TABLE local_tbl;
 
@@ -2231,6 +2262,14 @@ CREATE VIEW rw_view AS SELECT * FROM foreign_tbl
 --UPDATE rw_view SET b = b + 15; -- ok
 --SELECT * FROM foreign_tbl;
 
+-- -- We don't allow batch insert when there are any WCO constraints
+-- ALTER SERVER postgres_srv OPTIONS (ADD batch_size '10');
+-- EXPLAIN (VERBOSE, COSTS OFF)
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5);
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5); -- should fail
+-- SELECT * FROM foreign_tbl;
+-- ALTER SERVER postgres_srv OPTIONS (DROP batch_size);
+
 --Testcase 561:
 DROP FOREIGN TABLE foreign_tbl CASCADE;
 --Testcase 562:
@@ -2280,6 +2319,14 @@ CREATE VIEW rw_view AS SELECT * FROM parent_tbl
 --UPDATE rw_view SET b = b + 15;
 --UPDATE rw_view SET b = b + 15; -- ok
 --SELECT * FROM foreign_tbl;
+
+-- -- We don't allow batch insert when there are any WCO constraints
+-- ALTER SERVER postgres_srv OPTIONS (ADD batch_size '10');
+-- EXPLAIN (VERBOSE, COSTS OFF)
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5);
+-- INSERT INTO rw_view VALUES (0, 15), (0, 5); -- should fail
+-- SELECT * FROM foreign_tbl;
+-- ALTER SERVER postgres_srv OPTIONS (DROP batch_size);
 
 --Testcase 572:
 DROP FOREIGN TABLE foreign_tbl CASCADE;

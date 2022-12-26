@@ -997,7 +997,7 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel)
 
 		/* Can't push down the sort if the EC's opfamily is not shippable. */
 		if (!pgspider_is_shippable(linitial_oid(cur_ec->ec_opfamilies),
-						  OperatorFamilyRelationId, fpinfo))
+								   OperatorFamilyRelationId, fpinfo))
 			continue;
 
 		/* If no pushable expression for this rel, skip it. */
@@ -2096,8 +2096,9 @@ pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo)
 		batch_size = get_batch_size_option(resultRelInfo->ri_RelationDesc);
 
 	/*
-	 * Disable batching when we have to use RETURNING or there are any
-	 * BEFORE/AFTER ROW INSERT triggers on the foreign table.
+	 * Disable batching when we have to use RETURNING, there are any
+	 * BEFORE/AFTER ROW INSERT triggers on the foreign table, or there are any
+	 * WITH CHECK OPTION constraints from parent views.
 	 *
 	 * When there are any BEFORE ROW INSERT triggers on the table, we can't
 	 * support it, because such triggers might query the table we're inserting
@@ -2105,6 +2106,7 @@ pgspiderGetForeignModifyBatchSize(ResultRelInfo *resultRelInfo)
 	 * and prepared for insertion are not there.
 	 */
 	if (resultRelInfo->ri_projectReturning != NULL ||
+		resultRelInfo->ri_WithCheckOptions != NIL ||
 		(resultRelInfo->ri_TrigDesc &&
 		 (resultRelInfo->ri_TrigDesc->trig_insert_before_row ||
 		  resultRelInfo->ri_TrigDesc->trig_insert_after_row)))
@@ -3953,6 +3955,14 @@ pgspider_set_transmission_modes(void)
 								 PGC_USERSET, PGC_S_SESSION,
 								 GUC_ACTION_SAVE, true, 0, false);
 
+	/*
+	 * In addition force restrictive search_path, in case there are any
+	 * regproc or similar constants to be printed.
+	 */
+	(void) set_config_option("search_path", "pg_catalog",
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
+
 	return nestlevel;
 }
 
@@ -5338,21 +5348,23 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		PQclear(res);
 		res = NULL;
 		resetStringInfo(&buf);
+
 		/*
 		 * There are 4 table types:
-		 * 		1. Normal table
-		 * 		2. Multi-tenant table
-		 * 		3. Foreign table which is a child table of multi-tenant table
-		 * 		4. Foreign table which is not a child table of multi-tenant table
-		 * 
-		 * Using CTEs to get multi tenants table (type2) and build regex patterns from their name.
+		 *		1. Normal table
+		 *		2. Multi-tenant table
+		 *		3. Foreign table which is a child table of multi-tenant table
+		 *		4. Foreign table which is not a child table of multi-tenant table
+		 *
+		 * Using CTEs to get multi tenants table (type2) and build regex
+		 * patterns from their name.
 		 */
 		appendStringInfoString(&buf, "WITH multi_tenant_tbl AS "
 							   "  ( "
 							   "  SELECT c.relname AS relname "
 							   "  FROM pg_class c "
 							   "    JOIN pg_namespace n "
-							   "      ON relnamespace = n.oid " 
+							   "      ON relnamespace = n.oid "
 							   "	LEFT JOIN pg_foreign_table ft "
 							   "   	  ON c.oid = ft.ftrelid "
 							   "	LEFT JOIN pg_foreign_server fs "
@@ -5369,13 +5381,13 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 							   "  FROM multi_tenant_tbl ) ");
 
 		/*
-		 * Fetch all table types of 1,2,4 and table data from this schema, 
-		 * possibly restricted by EXCEPT or LIMIT TO.  (We don't actually 
-		 * need to pay any attention to EXCEPT/LIMIT TO here, because the 
-		 * core code will filter the statements we return according to those 
-		 * lists anyway. But it should save a few cycles to not process 
-		 * excluded tables in the first place.)
-		 * Table of type 3 will be excluded by regex pattern.
+		 * Fetch all table types of 1,2,4 and table data from this schema,
+		 * possibly restricted by EXCEPT or LIMIT TO.  (We don't actually need
+		 * to pay any attention to EXCEPT/LIMIT TO here, because the core code
+		 * will filter the statements we return according to those lists
+		 * anyway. But it should save a few cycles to not process excluded
+		 * tables in the first place.) Table of type 3 will be excluded by
+		 * regex pattern.
 		 *
 		 * Import table data for partitions only when they are explicitly
 		 * specified in LIMIT TO clause. Otherwise ignore them and only
@@ -5407,17 +5419,17 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 			appendStringInfoString(&buf,
 								   "  cc.collname, "
 								   "  cc.collnspnspname ");
-		else 
+		else
 			appendStringInfoString(&buf,
 								   "  NULL, NULL ");
 
 		appendStringInfoString(&buf,
-								   "  FROM ( "
-								   "    SELECT relname, "
-								   "      attname, "
-								   "      format_type(atttypid, atttypmod) AS formattype, "
-								   "      attnotnull, "
-								   "	  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
+							   "  FROM ( "
+							   "    SELECT relname, "
+							   "      attname, "
+							   "      format_type(atttypid, atttypmod) AS formattype, "
+							   "      attnotnull, "
+							   "	  pg_get_expr(adbin, adrelid) AS pggetexpr, ");
 
 		if (pg_server_version >= 120000)
 			appendStringInfoString(&buf,
@@ -5496,9 +5508,12 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		/* Append a closing parenthesis and alias name for first statement. */
 		appendStringInfoString(&buf, " ) cc ");
 
-		/* Append LEFT JOIN with (pg_class, pg_namespace, pg_foreign_tables, pg_foreign_server and pg_foreign_data_wrapper)  */
-		appendStringInfoString(&buf, 
-							   "LEFT JOIN ( " 
+		/*
+		 * Append LEFT JOIN with (pg_class, pg_namespace, pg_foreign_tables,
+		 * pg_foreign_server and pg_foreign_data_wrapper)
+		 */
+		appendStringInfoString(&buf,
+							   "LEFT JOIN ( "
 							   "  SELECT c.relname "
 							   "  FROM pg_class c "
 							   "  JOIN pg_namespace n "
@@ -5518,8 +5533,9 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		/* Append ON condition to JOIN 2 statement 'cc' and 'ss'. */
 		appendStringInfoString(&buf, " ON cc.relname = ss.relname");
 
-		/* Append WHERE condition to filter child foreign table 
-		 * of multi-tenant (type3) out final result. 
+		/*
+		 * Append WHERE condition to filter child foreign table of
+		 * multi-tenant (type3) out final result.
 		 */
 		appendStringInfoString(&buf,
 							   "  WHERE ( SELECT "
@@ -5527,7 +5543,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 							   "                 WHEN COUNT(*) = 0 THEN cc.relname ~ '.*' "
 							   "                 WHEN COUNT(*) != 0 THEN cc.relname !~ string_agg(regex_col, '|') "
 							   "              END "
-                               "          FROM regex)");
+							   "          FROM regex)");
 
 		/* Append ORDER BY at the end of query to ensure output ordering */
 		appendStringInfoString(&buf, " ORDER BY cc.relname");
@@ -5928,6 +5944,55 @@ add_paths_with_pathkeys_for_rel(PlannerInfo *root, RelOptInfo *rel,
 	ListCell   *lc;
 
 	useful_pathkeys_list = get_useful_pathkeys_for_relation(root, rel);
+
+	/*
+	 * Before creating sorted paths, arrange for the passed-in EPQ path, if
+	 * any, to return columns needed by the parent ForeignScan node so that
+	 * they will propagate up through Sort nodes injected below, if necessary.
+	 */
+	if (epq_path != NULL && useful_pathkeys_list != NIL)
+	{
+		PGSpiderFdwRelationInfo *fpinfo = (PGSpiderFdwRelationInfo *) rel->fdw_private;
+		PathTarget *target = copy_pathtarget(epq_path->pathtarget);
+
+		/* Include columns required for evaluating PHVs in the tlist. */
+		add_new_columns_to_pathtarget(target,
+									  pull_var_clause((Node *) target->exprs,
+													  PVC_RECURSE_PLACEHOLDERS));
+
+		/* Include columns required for evaluating the local conditions. */
+		foreach(lc, fpinfo->local_conds)
+		{
+			RestrictInfo *rinfo = lfirst_node(RestrictInfo, lc);
+
+			add_new_columns_to_pathtarget(target,
+										  pull_var_clause((Node *) rinfo->clause,
+														  PVC_RECURSE_PLACEHOLDERS));
+		}
+
+		/*
+		 * If we have added any new columns, adjust the tlist of the EPQ path.
+		 *
+		 * Note: the plan created using this path will only be used to execute
+		 * EPQ checks, where accuracy of the plan cost and width estimates
+		 * would not be important, so we do not do set_pathtarget_cost_width()
+		 * for the new pathtarget here.  See also postgresGetForeignPlan().
+		 */
+		if (list_length(target->exprs) > list_length(epq_path->pathtarget->exprs))
+		{
+			/* The EPQ path is a join path, so it is projection-capable. */
+			Assert(is_projection_capable_path(epq_path));
+
+			/*
+			 * Use create_projection_path() here, so as to avoid modifying it
+			 * in place.
+			 */
+			epq_path = (Path *) create_projection_path(root,
+													   rel,
+													   epq_path,
+													   target);
+		}
+	}
 
 	/* Create one path for each set of pathkeys we found above. */
 	foreach(lc, useful_pathkeys_list)
@@ -6705,6 +6770,7 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		em = pgspider_find_em_for_rel_target(root,
 											 pathkey_ec,
 											 input_rel);
+
 		/*
 		 * The EC must contain a shippable EM that is computed in input_rel's
 		 * reltarget, else we can't push down the sort.
@@ -6716,9 +6782,9 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 
 		/*
 		 * For Function Expression, pgspider_is_foreign_expr would detect
-		 * volatile expressions.
-		 * For Non-Function Expression, pgspider_is_foreign_expr would detect
-		 * as well, but checking ec_has_volatile here saves some cycles.
+		 * volatile expressions. For Non-Function Expression,
+		 * pgspider_is_foreign_expr would detect as well, but checking
+		 * ec_has_volatile here saves some cycles.
 		 */
 		if (!(IsA(sort_expr, FuncExpr)) && pathkey_ec->ec_has_volatile)
 			return;
@@ -6727,7 +6793,7 @@ add_foreign_ordered_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		 * Can't push down the sort if pathkey's opfamily is not shippable.
 		 */
 		if (!pgspider_is_shippable(pathkey->pk_opfamily, OperatorFamilyRelationId,
-						  fpinfo))
+								   fpinfo))
 			return;
 
 	}
@@ -7228,7 +7294,7 @@ fetch_more_data_begin(AsyncRequest *areq)
 	snprintf(sql, sizeof(sql), "FETCH %d FROM c%u",
 			 fsstate->fetch_size, fsstate->cursor_number);
 
-	if (PQsendQuery(fsstate->conn, sql) < 0)
+	if (!PQsendQuery(fsstate->conn, sql))
 		pgspiderfdw_report_error(ERROR, NULL, fsstate->conn, false, fsstate->query);
 
 	/* Remember that the request is in process */
@@ -7609,7 +7675,7 @@ pgspider_find_em_for_rel(PlannerInfo *root, EquivalenceClass *ec, RelOptInfo *re
  */
 EquivalenceMember *
 pgspider_find_em_for_rel_target(PlannerInfo *root, EquivalenceClass *ec,
-					   RelOptInfo *rel)
+								RelOptInfo *rel)
 {
 	PathTarget *target = rel->reltarget;
 	ListCell   *lc1;

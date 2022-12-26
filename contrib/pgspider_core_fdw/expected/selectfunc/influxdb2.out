@@ -751,14 +751,14 @@ LINE 2: SELECT sqrt(count(value1)), pi(), 4.1, tag1 FROM s3;
 --Testcase 71:
 EXPLAIN VERBOSE
 SELECT spread("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                           QUERY PLAN                                                                                                           
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (spread(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.spread(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.spread(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select spread (stub agg function and group by influx_time() and tag) (result)
@@ -1007,14 +1007,14 @@ SELECT spread_all(*) from s3;
 --Testcase 92:
 EXPLAIN VERBOSE
 SELECT spread_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                          QUERY PLAN                                                                                                           
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                           
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (spread_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.spread_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.spread_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select spread(*) (stub agg function and group by influx_time() and tag) (result)
@@ -1105,14 +1105,14 @@ SELECT spread('/value[1,4]/') from s3;
 --Testcase 100:
 EXPLAIN VERBOSE
 SELECT spread('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                               QUERY PLAN                                                                                                               
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (spread('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.spread('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.spread('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select spread(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -1255,7 +1255,7 @@ EXPLAIN VERBOSE
 SELECT sqrt(abs(value3)),min(value1) FROM s3 GROUP BY value3 HAVING sqrt(abs(value3)) > 0 ORDER BY 1,2;
                                                                                                       QUERY PLAN                                                                                                       
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=189.72..194.22 rows=0 width=24)
+ Foreign Scan  (cost=183.22..187.72 rows=0 width=24)
    Output: (sqrt(abs(value3))), (min(value1)), value3
    Node: pgspider_svr / Status: Alive
      Sort push-down: yes
@@ -1323,14 +1323,14 @@ SELECT first_all(*) from s3;
 --Testcase 118:
 EXPLAIN VERBOSE
 SELECT first_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                          QUERY PLAN                                                                                                          
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (first_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.first_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.first_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select first(*) (stub agg function and group by influx_time() and tag) (result)
@@ -1426,14 +1426,14 @@ CONTEXT:  PL/pgSQL function public.first_sfunc(text,text) line 3 at RAISE
 --Testcase 126:
 EXPLAIN VERBOSE
 SELECT first('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                              QUERY PLAN                                                                                                               
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                               
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (first('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.first('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.first('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select first(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -1526,14 +1526,14 @@ SELECT last_all(*) from s3;
 --Testcase 134:
 EXPLAIN VERBOSE
 SELECT last_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                         QUERY PLAN                                                                                                          
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (last_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.last_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.last_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select last(*) (stub agg function and group by influx_time() and tag) (result)
@@ -1629,14 +1629,14 @@ CONTEXT:  PL/pgSQL function public.first_sfunc(text,text) line 3 at RAISE
 --Testcase 142:
 EXPLAIN VERBOSE
 SELECT last('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                              QUERY PLAN                                                                                                              
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                              QUERY PLAN                                                                                                               
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (last('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.last('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.last('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select last(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -1715,7 +1715,7 @@ SELECT sample(value2, 1) FROM s3 WHERE time >= to_timestamp(0) AND time <= to_ti
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.sample(value2, 1), public.influx_time("time", '@ 3 secs'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:05+09')) GROUP BY 2
+     Remote SQL: SELECT public.sample(value2, 1), public.influx_time("time", '00:00:03'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:05+09')) GROUP BY 2
 (6 rows)
 
 --Testcase 149:
@@ -1755,14 +1755,14 @@ SELECT sample_all(50) from s3;
 --Testcase 152:
 EXPLAIN VERBOSE
 SELECT sample_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                           QUERY PLAN                                                                                                           
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (sample_all(50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.sample_all(50), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.sample_all(50), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select sample(*, int) (stub agg function and group by influx_time() and tag) (result)
@@ -1836,14 +1836,14 @@ SELECT sample('/value[1,4]/', 50) from s3;
 --Testcase 158:
 EXPLAIN VERBOSE
 SELECT sample('/^v.*/', 50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                 QUERY PLAN                                                                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                 QUERY PLAN                                                                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (sample('/^v.*/'::text, 50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.sample('/^v.*/'::text, 50), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.sample('/^v.*/'::text, 50), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select sample(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -2086,7 +2086,7 @@ SELECT derivative(value1, interval '0.5s'),derivative(value2, interval '0.2s'),d
  Foreign Scan on public.s3  (cost=100.00..3625.39 rows=3413 width=32)
    Output: (derivative(value1, '@ 0.5 secs'::interval)), (derivative(value2, '@ 0.2 secs'::interval)), (derivative(value3, '@ 0.1 secs'::interval)), (derivative(value4, '@ 2 secs'::interval))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.derivative(value1, '@ 0.5 secs'::interval), public.derivative(value2, '@ 0.2 secs'::interval), public.derivative(value3, '@ 0.1 secs'::interval), public.derivative(value4, '@ 2 secs'::interval) FROM public.s3influx
+     Remote SQL: SELECT public.derivative(value1, '00:00:00.5'::interval), public.derivative(value2, '00:00:00.2'::interval), public.derivative(value3, '00:00:00.1'::interval), public.derivative(value4, '00:00:02'::interval) FROM public.s3influx
 (4 rows)
 
 --Testcase 179:
@@ -2295,7 +2295,7 @@ SELECT non_negative_derivative(value1, interval '0.5s'),non_negative_derivative(
  Foreign Scan on public.s3  (cost=100.00..3625.39 rows=3413 width=32)
    Output: (non_negative_derivative(value1, '@ 0.5 secs'::interval)), (non_negative_derivative(value2, '@ 0.2 secs'::interval)), (non_negative_derivative(value3, '@ 0.1 secs'::interval)), (non_negative_derivative(value4, '@ 2 secs'::interval))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.non_negative_derivative(value1, '@ 0.5 secs'::interval), public.non_negative_derivative(value2, '@ 0.2 secs'::interval), public.non_negative_derivative(value3, '@ 0.1 secs'::interval), public.non_negative_derivative(value4, '@ 2 secs'::interval) FROM public.s3influx
+     Remote SQL: SELECT public.non_negative_derivative(value1, '00:00:00.5'::interval), public.non_negative_derivative(value2, '00:00:00.2'::interval), public.non_negative_derivative(value3, '00:00:00.1'::interval), public.non_negative_derivative(value4, '00:00:02'::interval) FROM public.s3influx
 (4 rows)
 
 --Testcase 197:
@@ -2815,7 +2815,7 @@ SELECT elapsed(value1, interval '0.5s'),elapsed(value2, interval '0.2s'),elapsed
  Foreign Scan on public.s3  (cost=100.00..3625.39 rows=3413 width=32)
    Output: (elapsed(value1, '@ 0.5 secs'::interval)), (elapsed(value2, '@ 0.2 secs'::interval)), (elapsed(value3, '@ 0.1 secs'::interval)), (elapsed(value4, '@ 2 secs'::interval))
    Node: pgspider_svr / Status: Alive
-     Remote SQL: SELECT public.elapsed(value1, '@ 0.5 secs'::interval), public.elapsed(value2, '@ 0.2 secs'::interval), public.elapsed(value3, '@ 0.1 secs'::interval), public.elapsed(value4, '@ 2 secs'::interval) FROM public.s3influx
+     Remote SQL: SELECT public.elapsed(value1, '00:00:00.5'::interval), public.elapsed(value2, '00:00:00.2'::interval), public.elapsed(value3, '00:00:00.1'::interval), public.elapsed(value4, '00:00:02'::interval) FROM public.s3influx
 (4 rows)
 
 --Testcase 241:
@@ -4388,14 +4388,14 @@ SELECT integral(value1),integral(value2),integral(value3),integral(value4) FROM 
 --Testcase 378:
 EXPLAIN VERBOSE
 SELECT integral(value1, interval '1s'),integral(value2, interval '1s'),integral(value3, interval '1s'),integral(value4, interval '1s') FROM s3;
-                                                                                                             QUERY PLAN                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                               
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.00..144.16 rows=1 width=32)
    Output: (integral(value1, '@ 1 sec'::interval)), (integral(value2, '@ 1 sec'::interval)), (integral(value3, '@ 1 sec'::interval)), (integral(value4, '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral(value1, '@ 1 sec'::interval), public.integral(value2, '@ 1 sec'::interval), public.integral(value3, '@ 1 sec'::interval), public.integral(value4, '@ 1 sec'::interval) FROM public.s3influx
+     Remote SQL: SELECT public.integral(value1, '00:00:01'::interval), public.integral(value2, '00:00:01'::interval), public.integral(value3, '00:00:01'::interval), public.integral(value4, '00:00:01'::interval) FROM public.s3influx
 (6 rows)
 
 -- select integral (stub agg function, result)
@@ -4419,14 +4419,14 @@ CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precis
 --Testcase 381:
 EXPLAIN VERBOSE
 SELECT integral("value1"),influx_time(time, interval '1s'),tag1 FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                QUERY PLAN                                                                
-------------------------------------------------------------------------------------------------------------------------------------------
+                                                                QUERY PLAN                                                                 
+-------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..256.68 rows=1 width=48)
    Output: (integral(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
+     Remote SQL: SELECT public.integral(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
 (6 rows)
 
 -- select integral (stub agg function and group by influx_time() and tag) (result)
@@ -4444,14 +4444,14 @@ SELECT integral("value1"),influx_time(time, interval '1s'),tag1 FROM s3 GROUP BY
 --Testcase 383:
 EXPLAIN VERBOSE
 SELECT integral("value1", interval '1s'),influx_time(time, interval '1s'),tag1 FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                          QUERY PLAN                                                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..256.68 rows=1 width=48)
    Output: (integral(value1, '@ 1 sec'::interval)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral(value1, '@ 1 sec'::interval), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
+     Remote SQL: SELECT public.integral(value1, '00:00:01'::interval), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
 (6 rows)
 
 -- select integral (stub agg function and group by influx_time() and tag) (result)
@@ -4526,14 +4526,14 @@ CONTEXT:  PL/pgSQL function public.integral_sfunc(double precision,double precis
 --Testcase 391:
 EXPLAIN VERBOSE
 SELECT integral(t1.value1, interval '1s'), integral(t2.value1, interval '1s') FROM s3 t1 INNER JOIN s3 t2 ON (t1.value1 = t2.value1) where t1.value1 = 0.1;
-                                                                                                                              QUERY PLAN                                                                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                               QUERY PLAN                                                                                                                               
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.00..206.80 rows=1 width=16)
    Output: (integral(t1.value1, '@ 1 sec'::interval)), (integral(t2.value1, '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on ((public.s3 t1) INNER JOIN (public.s3 t2))
-     Remote SQL: SELECT public.integral(r1.value1, '@ 1 sec'::interval), public.integral(r2.value1, '@ 1 sec'::interval) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
+     Remote SQL: SELECT public.integral(r1.value1, '00:00:01'::interval), public.integral(r2.value1, '00:00:01'::interval) FROM (public.s3influx r1 INNER JOIN public.s3influx r2 ON (((r2.value1 = 0.1::double precision)) AND ((r1.value1 = 0.1::double precision))))
 (6 rows)
 
 -- select integral over join query (result, stub call error)
@@ -4571,15 +4571,15 @@ SELECT integral(value1) FROM s3 HAVING integral(value1) > 100;
 --Testcase 395:
 EXPLAIN VERBOSE
 SELECT integral(value1, interval '1s') FROM s3 HAVING integral(value1, interval '1s') > 100;
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.00..144.16 rows=1 width=8)
    Output: (integral(value1, '@ 1 sec'::interval))
    Filter: ((integral(s3.value1, '@ 1 sec'::interval)) > '100'::double precision)
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral(value1, '@ 1 sec'::interval) FROM public.s3influx
+     Remote SQL: SELECT public.integral(value1, '00:00:01'::interval) FROM public.s3influx
 (7 rows)
 
 -- select integral with having (explain, not pushdown, stub call error)
@@ -4615,14 +4615,14 @@ SELECT integral_all(*) from s3;
 --Testcase 399:
 EXPLAIN VERBOSE
 SELECT integral_all(*) FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
-                                                               QUERY PLAN                                                                
------------------------------------------------------------------------------------------------------------------------------------------
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..256.68 rows=1 width=72)
    Output: (integral_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
+     Remote SQL: SELECT public.integral_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
 (6 rows)
 
 -- select integral(*) (stub agg function and group by influx_time() and tag) (result)
@@ -4706,14 +4706,14 @@ SELECT integral('/value[1,4]/') from s3;
 --Testcase 407:
 EXPLAIN VERBOSE
 SELECT integral('/^v.*/') FROM s3 GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                    QUERY PLAN                                                                    
---------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=117.06..256.68 rows=1 width=72)
    Output: (integral('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.integral('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
+     Remote SQL: SELECT public.integral('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx GROUP BY 2, 3
 (6 rows)
 
 -- select integral(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -4806,14 +4806,14 @@ CONTEXT:  PL/pgSQL function public.mean_sfunc(double precision,double precision)
 --Testcase 416:
 EXPLAIN VERBOSE
 SELECT mean("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                          QUERY PLAN                                                                                                          
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                           
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (mean(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.mean(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.mean(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select mean (stub agg function and group by influx_time() and tag) (result)
@@ -4921,14 +4921,14 @@ SELECT mean_all(*) from s3;
 --Testcase 426:
 EXPLAIN VERBOSE
 SELECT mean_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                         QUERY PLAN                                                                                                          
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                          QUERY PLAN                                                                                                          
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (mean_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.mean_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.mean_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select mean(*) (stub agg function and group by influx_time() and tag) (result)
@@ -5019,14 +5019,14 @@ SELECT mean('/value[1,4]/') from s3;
 --Testcase 434:
 EXPLAIN VERBOSE
 SELECT mean('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                              QUERY PLAN                                                                                                              
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                              QUERY PLAN                                                                                                               
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (mean('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.mean('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.mean('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select mean(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -5126,14 +5126,14 @@ CONTEXT:  PL/pgSQL function public.median_sfunc(double precision,double precisio
 --Testcase 443:
 EXPLAIN VERBOSE
 SELECT median("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                           QUERY PLAN                                                                                                           
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                            
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (median(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.median(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.median(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select median (stub agg function and group by influx_time() and tag) (result)
@@ -5241,14 +5241,14 @@ SELECT median_all(*) from s3;
 --Testcase 453:
 EXPLAIN VERBOSE
 SELECT median_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                          QUERY PLAN                                                                                                           
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                           
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (median_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.median_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.median_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select median(*) (stub agg function and group by influx_time() and tag) (result)
@@ -5339,14 +5339,14 @@ SELECT  median('/^v.*/') from s3;
 --Testcase 461:
 EXPLAIN VERBOSE
 SELECT median('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                               QUERY PLAN                                                                                                               
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (median('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.median('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.median('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select median(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -5446,14 +5446,14 @@ CONTEXT:  PL/pgSQL function public.influx_mode_sfunc(anyelement,anyelement) line
 --Testcase 470:
 EXPLAIN VERBOSE
 SELECT influx_mode("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                             QUERY PLAN                                                                                                              
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                              QUERY PLAN                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (influx_mode(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_mode(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_mode(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_mode (stub agg function and group by influx_time() and tag) (result)
@@ -5561,14 +5561,14 @@ SELECT influx_mode_all(*) from s3;
 --Testcase 480:
 EXPLAIN VERBOSE
 SELECT influx_mode_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                             QUERY PLAN                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                             QUERY PLAN                                                                                                              
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_mode_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_mode_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_mode_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_mode(*) (stub agg function and group by influx_time() and tag) (result)
@@ -5659,14 +5659,14 @@ SELECT influx_mode('/value[1,4]/') from s3;
 --Testcase 488:
 EXPLAIN VERBOSE
 SELECT influx_mode('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                 QUERY PLAN                                                                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                  QUERY PLAN                                                                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_mode('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_mode('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_mode('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_mode(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -5757,14 +5757,14 @@ SELECT stddev(value1),stddev(value2),stddev(value3),stddev(value4) FROM s3;
 --Testcase 496:
 EXPLAIN VERBOSE
 SELECT stddev("value1"),influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                       QUERY PLAN                                                                                                        
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                        QUERY PLAN                                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (stddev(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT stddev(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT stddev(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select stddev (agg function and group by influx_time() and tag) (result)
@@ -5827,14 +5827,14 @@ SELECT stddev_all(*) from s3;
 --Testcase 502:
 EXPLAIN VERBOSE
 SELECT stddev_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                          QUERY PLAN                                                                                                           
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                           QUERY PLAN                                                                                                           
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (stddev_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.stddev_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.stddev_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select stddev(*) (stub agg function and group by influx_time() and tag) (result)
@@ -5903,14 +5903,14 @@ SELECT stddev('/value[1,4]/') from s3;
 --Testcase 508:
 EXPLAIN VERBOSE
 SELECT stddev('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                               QUERY PLAN                                                                                                               
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (stddev('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.stddev('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.stddev('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select stddev(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -5979,14 +5979,14 @@ SELECT influx_sum_all(*) from s3;
 --Testcase 514:
 EXPLAIN VERBOSE
 SELECT influx_sum_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                            QUERY PLAN                                                                                                             
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                             QUERY PLAN                                                                                                             
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_sum_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_sum_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_sum_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_sum(*) (stub agg function and group by influx_time() and tag) (result)
@@ -6077,14 +6077,14 @@ SELECT influx_sum('/value[1,4]/') from s3;
 --Testcase 522:
 EXPLAIN VERBOSE
 SELECT influx_sum('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                 QUERY PLAN                                                                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                 QUERY PLAN                                                                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_sum('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_sum('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_sum('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_sum(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -6216,14 +6216,14 @@ SELECT influx_max_all(*) from s3;
 --Testcase 534:
 EXPLAIN VERBOSE
 SELECT influx_max_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                            QUERY PLAN                                                                                                             
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                             QUERY PLAN                                                                                                             
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_max_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_max_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_max_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_max(*) (stub agg function and group by influx_time() and tag) (result)
@@ -6314,14 +6314,14 @@ SELECT influx_max('/value[1,4]/') from s3;
 --Testcase 542:
 EXPLAIN VERBOSE
 SELECT influx_max('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                 QUERY PLAN                                                                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                 QUERY PLAN                                                                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_max('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_max('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_max('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_max(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -6412,14 +6412,14 @@ SELECT influx_min_all(*) from s3;
 --Testcase 550:
 EXPLAIN VERBOSE
 SELECT influx_min_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                            QUERY PLAN                                                                                                             
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                             QUERY PLAN                                                                                                             
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_min_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_min_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_min_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_min(*) (stub agg function and group by influx_time() and tag) (result)
@@ -6510,14 +6510,14 @@ SELECT influx_min('/value[1,4]/') from s3;
 --Testcase 558:
 EXPLAIN VERBOSE
 SELECT influx_min('/^v.*/') FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                 QUERY PLAN                                                                                                                 
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                 QUERY PLAN                                                                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_min('/^v.*/'::text)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_min('/^v.*/'::text), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_min('/^v.*/'::text), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select influx_min(regex) (stub agg function and group by influx_time() and tag) (result)
@@ -6666,14 +6666,14 @@ SELECT percentile_all(70.5) from s3;
 --Testcase 572:
 EXPLAIN VERBOSE
 SELECT percentile_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                             QUERY PLAN                                                                                                             
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                             QUERY PLAN                                                                                                              
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile_all(50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.percentile_all(50), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.percentile_all(50), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select percentile(*, int) (stub function and group by influx_time() and tag) (result)
@@ -6697,14 +6697,14 @@ SELECT percentile_all(50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_t
 --Testcase 574:
 EXPLAIN VERBOSE
 SELECT percentile_all(70.5) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                       QUERY PLAN                                                                                                                       
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                       QUERY PLAN                                                                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile_all('70.5'::double precision)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.percentile_all(70.5::double precision), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.percentile_all(70.5::double precision), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select percentile(*, float8) (stub function and group by influx_time() and tag) (result)
@@ -6834,14 +6834,14 @@ SELECT percentile('/value[1,4]/', 50) from s3;
 --Testcase 586:
 EXPLAIN VERBOSE
 SELECT percentile('/^v.*/', 50) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                                   QUERY PLAN                                                                                                                   
-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                   QUERY PLAN                                                                                                                    
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..170.29 rows=0 width=72)
    Output: (percentile('/^v.*/'::text, 50)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.percentile('/^v.*/'::text, 50), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.percentile('/^v.*/'::text, 50), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select percentile(regex) (stub function and group by influx_time() and tag) (result)
@@ -10515,14 +10515,14 @@ CONTEXT:  PL/pgSQL function public.sin_all() line 3 at RAISE
 --Testcase 888:
 EXPLAIN VERBOSE
 SELECT holt_winters(min(value1), 5, 1) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s');
-                                                                                                               QUERY PLAN                                                                                                               
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                               QUERY PLAN                                                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.04..169.72 rows=1 width=16)
    Output: (holt_winters(min(value1), 5, 1)), (influx_time("time", '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.holt_winters(min(value1), 5, 1), public.influx_time("time", '@ 1 sec'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2
+     Remote SQL: SELECT public.holt_winters(min(value1), 5, 1), public.influx_time("time", '00:00:01'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2
 (6 rows)
 
 -- select predictors function holt_winters() (result)
@@ -10541,14 +10541,14 @@ SELECT holt_winters(min(value1), 5, 1) FROM s3 WHERE time >= to_timestamp(0) and
 --Testcase 890:
 EXPLAIN VERBOSE
 SELECT holt_winters_with_fit(min(value1), 5, 1) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s');
-                                                                                                                   QUERY PLAN                                                                                                                    
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                    QUERY PLAN                                                                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.04..169.72 rows=1 width=16)
    Output: (holt_winters_with_fit(min(value1), 5, 1)), (influx_time("time", '@ 1 sec'::interval))
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.holt_winters_with_fit(min(value1), 5, 1), public.influx_time("time", '@ 1 sec'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2
+     Remote SQL: SELECT public.holt_winters_with_fit(min(value1), 5, 1), public.influx_time("time", '00:00:01'::interval) FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2
 (6 rows)
 
 -- select predictors function holt_winters_with_fit() (result)
@@ -10594,14 +10594,14 @@ SELECT influx_count_all(*) FROM s3;
 --Testcase 894:
 EXPLAIN VERBOSE
 SELECT influx_count_all(*) FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                             QUERY PLAN                                                                                                              
--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                              QUERY PLAN                                                                                                              
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=72)
    Output: (influx_count_all(*)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_count_all(*), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_count_all(*), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select count(*) function of InfluxDB (stub agg function and group by influx_time() and tag) (result)
@@ -10698,14 +10698,14 @@ SELECT influx_distinct(value1) FROM s3;
 --Testcase 902:
 EXPLAIN VERBOSE
 SELECT influx_distinct(value1), influx_time(time, interval '1s'),tag1 FROM s3 WHERE time >= to_timestamp(0) and time <= to_timestamp(4) GROUP BY influx_time(time, interval '1s'), tag1;
-                                                                                                               QUERY PLAN                                                                                                                
------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                                                                QUERY PLAN                                                                                                                
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Foreign Scan  (cost=100.08..166.04 rows=1 width=48)
    Output: (influx_distinct(value1)), (influx_time("time", '@ 1 sec'::interval)), tag1
    Node: pgspider_svr / Status: Alive
      Agg push-down: yes
      Relations: Aggregate on (public.s3)
-     Remote SQL: SELECT public.influx_distinct(value1), public.influx_time("time", '@ 1 sec'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
+     Remote SQL: SELECT public.influx_distinct(value1), public.influx_time("time", '00:00:01'::interval), tag1 FROM public.s3influx WHERE (("time" >= '1970-01-01 09:00:00+09')) AND (("time" <= '1970-01-01 09:00:04+09')) GROUP BY 2, 3
 (6 rows)
 
 -- select distinct (stub agg function and group by influx_time() and tag) (result)

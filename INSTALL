@@ -39,7 +39,7 @@ below.
 
 The following software packages are required for building PostgreSQL:
 
--   GNU make version 3.80 or newer is required; other make programs or
+-   GNU make version 3.81 or newer is required; other make programs or
     older GNU make versions will *not* work. (GNU make is sometimes
     installed under the name "gmake".) To test for GNU make enter:
 
@@ -52,7 +52,7 @@ The following software packages are required for building PostgreSQL:
 -   tar is required to unpack the source distribution, in addition to
     either gzip or bzip2.
 
--   The GNU Readline library is used by default. It allows pgsql (the
+-   The GNU Readline library is used by default. It allows psql (the
     PostgreSQL command line SQL interpreter) to remember each command
     you type, and allows you to use arrow keys to recall and edit
     previous commands. This is very helpful and is strongly recommended.
@@ -590,8 +590,8 @@ in the section called "Requirements".
     Build the uuid-ossp module (which provides functions to generate
     UUIDs), using the specified UUID library. "LIBRARY" must be one of:
 
-    -   "bsd" to use the UUID functions found in FreeBSD, NetBSD, and
-        some other BSD-derived systems
+    -   "bsd" to use the UUID functions found in FreeBSD and some other
+        BSD-derived systems
 
     -   "e2fs" to use the UUID library created by the e2fsprogs project;
         this library is present in most Linux systems and in macOS, and
@@ -1482,7 +1482,7 @@ To build 64 bit binaries using MinGW, install the 64 bit tool set from
 https://mingw-w64.org/, put its bin directory in the PATH, and run
 "configure" with the "--host=x86_64-w64-mingw32" option.
 
-After you have everything installed, it is suggested that you run pgsql
+After you have everything installed, it is suggested that you run psql
 under "CMD.EXE", as the MSYS console has buffering issues.
 
 ------------------------------------------------------------------------

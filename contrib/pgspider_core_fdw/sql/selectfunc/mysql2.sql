@@ -18734,168 +18734,168 @@ SELECT c2, json_valid(c1) FROM s8 group by 1, 2 HAVING count(c2) > 0;
 --Testcase 4273:
 SELECT json_valid(json_build_array(c1, 'a', c2)) as json_valid1 FROM s8;
 
--- select json_value (stub function, explain)
+-- select mysql_json_value (stub function, explain)
 --Testcase 4274:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
 
--- select json_value (stub function, result)
+-- select mysql_json_value (stub function, result)
 --Testcase 4275:
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8;
 
--- select json_value (stub function, not pushdown constraints, explain)
+-- select mysql_json_value (stub function, not pushdown constraints, explain)
 --Testcase 4276:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
 
--- select json_value (stub function, not pushdown constraints, result)
+-- select mysql_json_value (stub function, not pushdown constraints, result)
 --Testcase 4277:
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE to_hex(id) = '2';
 
--- select json_value (stub function, pushdown constraints, explain)
+-- select mysql_json_value (stub function, pushdown constraints, explain)
 --Testcase 4278:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
 
--- select json_value (stub function, pushdown constraints, result)
+-- select mysql_json_value (stub function, pushdown constraints, result)
 --Testcase 4279:
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE id != 0;
 
--- select json_value (stub function, json_value in constraints, explain)
+-- select mysql_json_value (stub function, mysql_json_value in constraints, explain)
 --Testcase 4280:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value(c1, '$.a', 'default 0 on empty')::int > 1;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE mysql_json_value(c1, '$.a', 'default 0 on empty')::int > 1;
 
--- select json_value (stub function, json_value in constraints, result)
+-- select mysql_json_value (stub function, mysql_json_value in constraints, result)
 --Testcase 4281:
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value(c1, '$.a', 'default 0 on empty')::int > 1;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE mysql_json_value(c1, '$.a', 'default 0 on empty')::int > 1;
 
--- select json_value (stub function, json_value in constraints, explain)
+-- select mysql_json_value (stub function, mysql_json_value in constraints, explain)
 --Testcase 4282:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
 
--- select json_value (stub function, json_value in constraints, result)
+-- select mysql_json_value (stub function, mysql_json_value in constraints, result)
 --Testcase 4283:
-SELECT json_value(c1, '$.a'), json_value(c1, '$[1]'), json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
+SELECT mysql_json_value(c1, '$.a'), mysql_json_value(c1, '$[1]'), mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 1)')::numeric FROM s8 WHERE mysql_json_value('{"item": "shoes", "price": "49.95"}', '$.price', 'returning decimal(10, 2)')::decimal = 49.95;
 
--- select json_value (stub function, abnormal cast, explain)
+-- select mysql_json_value (stub function, abnormal cast, explain)
 --Testcase 4284:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a')::date FROM s8;
+SELECT mysql_json_value(c1, '$.a')::date FROM s8;
 
--- select json_value (stub function, abnormal cast, result)
+-- select mysql_json_value (stub function, abnormal cast, result)
 --Testcase 4285:
-SELECT json_value(c1, '$.a')::date FROM s8; -- should fail
+SELECT mysql_json_value(c1, '$.a')::date FROM s8; -- should fail
 
--- select json_value (stub function, abnormal cast, explain)
+-- select mysql_json_value (stub function, abnormal cast, explain)
 --Testcase 4286:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a', 'returning date')::date FROM s8;
+SELECT mysql_json_value(c1, '$.a', 'returning date')::date FROM s8;
 
--- select json_value (stub function, abnormal cast, result)
+-- select mysql_json_value (stub function, abnormal cast, result)
 --Testcase 4287:
-SELECT json_value(c1, '$.a', 'returning date')::date FROM s8; --empty result
+SELECT mysql_json_value(c1, '$.a', 'returning date')::date FROM s8; --empty result
 
--- select json_value (stub function, abnormal cast, explain)
+-- select mysql_json_value (stub function, abnormal cast, explain)
 --Testcase 4288:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
+SELECT mysql_json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8;
 
--- select json_value (stub function, abnormal cast, result)
+-- select mysql_json_value (stub function, abnormal cast, result)
 --Testcase 4289:
-SELECT json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
+SELECT mysql_json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
 
--- select json_value with normal cast
+-- select mysql_json_value with normal cast
 --Testcase 4290:
-SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamp, json_value('{"a": "2000-01-01"}', '$.a')::date , json_value('{"a": 1234}', '$.a')::bigint, json_value('{"a": "b"}', '$.a')::text FROM s8;
+SELECT mysql_json_value('{"a": "2000-01-01"}', '$.a')::timestamp, mysql_json_value('{"a": "2000-01-01"}', '$.a')::date , mysql_json_value('{"a": 1234}', '$.a')::bigint, mysql_json_value('{"a": "b"}', '$.a')::text FROM s8;
 
--- select json_value with normal cast
+-- select mysql_json_value with normal cast
 --Testcase 4291:
-SELECT json_value('{"a": "2000-01-01"}', '$.a')::timestamptz, json_value('{"a": "12:10:20.123456"}', '$.a')::time , json_value('{"a": "12:10:20.123456"}', '$.a')::timetz FROM s8;
+SELECT mysql_json_value('{"a": "2000-01-01"}', '$.a')::timestamptz, mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::time , mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::timetz FROM s8;
 
--- select json_value with type modifier (explain)
+-- select mysql_json_value with type modifier (explain)
 --Testcase 4292:
 EXPLAIN VERBOSE
-SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
+SELECT mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
 
--- select json_value with type modifier (result)
+-- select mysql_json_value with type modifier (result)
 --Testcase 4293:
-SELECT json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
+SELECT mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamp(3), mysql_json_value('{"a": "2000-01-01 12:02:01.123456"}', '$.a')::timestamptz(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::time(3), mysql_json_value('{"a": "12:10:20.123456"}', '$.a')::timetz(3) FROM s8;
 
--- select json_value with type modifier (explain)
+-- select mysql_json_value with type modifier (explain)
 --Testcase 4294:
 EXPLAIN VERBOSE
-SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
+SELECT mysql_json_value('{"a": 100}', '$.a')::numeric(10, 2), mysql_json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(mysql_json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
 
--- select json_value with type modifier (result)
+-- select mysql_json_value with type modifier (result)
 --Testcase 4295:
-SELECT json_value('{"a": 100}', '$.a')::numeric(10, 2), json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
+SELECT mysql_json_value('{"a": 100}', '$.a')::numeric(10, 2), mysql_json_value('{"a": 100}', '$.a')::decimal(10, 2), json_unquote(mysql_json_value('{"a": "1.123456"}', '$.a'))::numeric(10, 3) FROM s8;
 
--- select json_value as nest function with agg (pushdown, explain)
+-- select mysql_json_value as nest function with agg (pushdown, explain)
 --Testcase 4296:
 EXPLAIN VERBOSE
-SELECT sum(id), json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
+SELECT sum(id), mysql_json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
 
--- select json_value as nest function with agg (pushdown, result)
+-- select mysql_json_value as nest function with agg (pushdown, result)
 --Testcase 4297:
-SELECT sum(id), json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
+SELECT sum(id), mysql_json_value(json_build_object('item', 'shoe', 'price', sum(id)), '$.price')::int FROM s8;
 
--- select json_value with non pushdown func and explicit constant (EXPLAIN)
+-- select mysql_json_value with non pushdown func and explicit constant (EXPLAIN)
 --Testcase 4298:
 EXPLAIN VERBOSE
-SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
+SELECT mysql_json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
 
--- select json_value with non pushdown func and explicit constant (result)
+-- select mysql_json_value with non pushdown func and explicit constant (result)
 --Testcase 4299:
-SELECT json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
+SELECT mysql_json_value(c1, '$[1]'), pi(), 4.1 FROM s8;
 
 
--- select json_value with order by index (result)
+-- select mysql_json_value with order by index (result)
 --Testcase 4300:
-SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 2, 1;
+SELECT id, mysql_json_value(c1, '$.a') FROM s8 ORDER BY 2, 1;
 
--- select json_value with order by index (result)
+-- select mysql_json_value with order by index (result)
 --Testcase 4301:
-SELECT id, json_value(c1, '$.a') FROM s8 ORDER BY 1, 2;
+SELECT id, mysql_json_value(c1, '$.a') FROM s8 ORDER BY 1, 2;
 
--- select json_value with group by (EXPLAIN)
+-- select mysql_json_value with group by (EXPLAIN)
 --Testcase 4302:
 EXPLAIN VERBOSE
-SELECT count(id), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a');
+SELECT count(id), mysql_json_value(c1, '$.a') FROM s8 group by mysql_json_value(c1, '$.a');
 
--- select json_value with group by (result)
+-- select mysql_json_value with group by (result)
 --Testcase 4303:
-SELECT count(id), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a');
+SELECT count(id), mysql_json_value(c1, '$.a') FROM s8 group by mysql_json_value(c1, '$.a');
 
--- select json_value with group by index (result)
+-- select mysql_json_value with group by index (result)
 --Testcase 4304:
-SELECT id, json_value(c1, '$.a') FROM s8 group by 2, 1;
+SELECT id, mysql_json_value(c1, '$.a') FROM s8 group by 2, 1;
 
--- select json_value with group by index (result)
+-- select mysql_json_value with group by index (result)
 --Testcase 4305:
-SELECT id, json_value(c1, '$.a') FROM s8 group by 1, 2;
+SELECT id, mysql_json_value(c1, '$.a') FROM s8 group by 1, 2;
 
--- select json_value with group by having (EXPLAIN)
+-- select mysql_json_value with group by having (EXPLAIN)
 --Testcase 4306:
 EXPLAIN VERBOSE
-SELECT count(c2), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a') HAVING count(c2) > 0;
+SELECT count(c2), mysql_json_value(c1, '$.a') FROM s8 group by mysql_json_value(c1, '$.a') HAVING count(c2) > 0;
 
--- select json_value with group by having (result)
+-- select mysql_json_value with group by having (result)
 --Testcase 4307:
-SELECT count(c2), json_value(c1, '$.a') FROM s8 group by json_value(c1, '$.a') HAVING count(c2) > 0;
+SELECT count(c2), mysql_json_value(c1, '$.a') FROM s8 group by mysql_json_value(c1, '$.a') HAVING count(c2) > 0;
 
--- select json_value with group by index having (result)
+-- select mysql_json_value with group by index having (result)
 --Testcase 4308:
-SELECT c2, json_value(c1, '$.a') FROM s8 group by 2, 1 HAVING count(c2) > 0;
+SELECT c2, mysql_json_value(c1, '$.a') FROM s8 group by 2, 1 HAVING count(c2) > 0;
 
--- select json_value with group by index having (result)
+-- select mysql_json_value with group by index having (result)
 --Testcase 4309:
-SELECT c2, json_value(c1, '$.a') FROM s8 group by 1, 2 HAVING count(c2) > 0;
+SELECT c2, mysql_json_value(c1, '$.a') FROM s8 group by 1, 2 HAVING count(c2) > 0;
 
--- select json_value and as
+-- select mysql_json_value and as
 --Testcase 4310:
-SELECT json_value(c1, '$[1]') as json_value1 FROM s8;
+SELECT mysql_json_value(c1, '$[1]') as mysql_json_value1 FROM s8;
 
 -- select member_of (builtin function, explain)
 --Testcase 4311:

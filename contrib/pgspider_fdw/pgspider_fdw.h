@@ -159,10 +159,10 @@ extern void pgspiderfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 
 /* in option.c */
 extern int	PGSpiderExtractConnectionOptions(List *defelems,
-									 const char **keywords,
-									 const char **values);
+											 const char **keywords,
+											 const char **values);
 extern List *PGSpiderExtractExtensionList(const char *extensionsString,
-								  bool warnOnMissing);
+										  bool warnOnMissing);
 extern char *process_pgfdw_appname(const char *appname);
 extern char *pgfdw_application_name;
 
@@ -179,8 +179,8 @@ extern bool pgspider_is_foreign_param(PlannerInfo *root,
 									  RelOptInfo *baserel,
 									  Expr *expr);
 extern bool pgspider_is_foreign_pathkey(PlannerInfo *root,
-									  RelOptInfo *baserel,
-									  PathKey *pathkey);
+										RelOptInfo *baserel,
+										PathKey *pathkey);
 extern void PGSpiderDeparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 									 Index rtindex, Relation rel,
 									 List *targetAttrs, bool doNothing,
@@ -227,11 +227,11 @@ extern void PGSpiderDeparseTruncateSql(StringInfo buf,
 									   bool restart_seqs);
 extern void PGSpiderDeparseStringLiteral(StringInfo buf, const char *val);
 extern EquivalenceMember *pgspider_find_em_for_rel(PlannerInfo *root,
-										  EquivalenceClass *ec,
-										  RelOptInfo *rel);
+												   EquivalenceClass *ec,
+												   RelOptInfo *rel);
 extern EquivalenceMember *pgspider_find_em_for_rel_target(PlannerInfo *root,
-												 EquivalenceClass *ec,
-												 RelOptInfo *rel);
+														  EquivalenceClass *ec,
+														  RelOptInfo *rel);
 extern List *pgspider_build_tlist_to_deparse(RelOptInfo *foreignrel);
 extern void PGSpiderDeparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 											RelOptInfo *foreignrel, List *tlist,

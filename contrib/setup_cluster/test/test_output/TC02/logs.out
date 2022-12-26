@@ -1,4 +1,3 @@
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  extension "file_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" does not exist, skipping
@@ -17,13 +16,6 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
-WARNING:  Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data.
 NOTICE:  schema "temp_schema" does not exist, skipping
 Config directory: /home/vagrant/test_cluster_gui/PGSpider/contrib/setup_cluster/test/test_input/TC02
 Node information file: node_information.json
