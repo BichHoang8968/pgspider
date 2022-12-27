@@ -46,6 +46,9 @@
 #include "utils/pg_locale.h"
 #include "utils/ps_status.h"
 
+#ifdef PGSPIDER
+#include "utils/hsearch.h"
+#endif
 
 const char *progname;
 
@@ -63,6 +66,13 @@ int
 main(int argc, char *argv[])
 {
 	bool		do_check_root = true;
+
+#ifdef PGSPIDER
+	/*
+	 * In PGSpider, normalized_id must be initialize for main thread by a default value.
+	 */
+	update_normalized_id(DEFAULT_MAIN_THREAD_NORMALIZED_ID);
+#endif
 
 	/*
 	 * If supported on the current platform, set up a handler to be called if

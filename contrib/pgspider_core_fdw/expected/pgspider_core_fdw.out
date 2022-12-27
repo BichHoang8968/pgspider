@@ -3214,6 +3214,89 @@ SELECT * FROM test1 ORDER BY i, __spd_url;
  22222 | /sqlite_svr/
 (17 rows)
 
+-- Test bug: using same connection
+SET pgspider_core_fdw.throw_error_ifdead to true;
+--Testcase 310:
+CREATE SERVER server1 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+--Testcase 311:
+CREATE SERVER server2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+--Testcase 312:
+CREATE SERVER server3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
+--Testcase 313:
+CREATE USER MAPPING FOR public SERVER server1 OPTIONS(user 'postgres',password 'postgres');
+--Testcase 314:
+CREATE USER MAPPING FOR public SERVER server2 OPTIONS(user 'postgres',password 'postgres');
+--Testcase 315:
+CREATE USER MAPPING FOR public SERVER server3 OPTIONS(user 'postgres',password 'postgres');
+--Testcase 316:
+CREATE FOREIGN TABLE tbl03__server1__0 (i int) SERVER server1 OPTIONS(table_name 'tbl03_1');
+--Testcase 317:
+CREATE FOREIGN TABLE tbl03__server2__0 (i int) SERVER server2 OPTIONS(table_name 'tbl03_2');
+--Testcase 318:
+CREATE FOREIGN TABLE tbl03__server3__0 (i int) SERVER server3 OPTIONS(table_name 'tbl03_3');
+--Testcase 319:
+CREATE FOREIGN TABLE tbl03_4 (i int) SERVER server2 OPTIONS(table_name 'tbl03_4');
+--Testcase 320:
+CREATE FOREIGN TABLE tbl03_5 (i int) SERVER server3 OPTIONS(table_name 'tbl03_5');
+--Testcase 321:
+CREATE FOREIGN TABLE tbl03 (i int, __spd_url text) SERVER pgspider_svr;
+--Testcase 322:
+SELECT count(*) FROM tbl03_4;
+ count 
+-------
+ 10000
+(1 row)
+
+--Testcase 323:
+INSERT INTO tbl03_5 SELECT i FROM tbl03;
+--Testcase 324:
+SELECT count(*) FROM tbl03_5;
+ count 
+-------
+ 30000
+(1 row)
+
+--Testcase 325:
+DELETE FROM tbl03_5;
+-- modify multitenant table in manual commit mode
+BEGIN;
+--Testcase 326:
+DELETE FROM tbl03;
+WARNING:  Modification query is executing in non-autocommit mode.
+Foreign table can not read un-commited data.
+Multitenant table might get inconsistent data randomly.
+--Testcase 327:
+INSERT INTO tbl03 VALUES (100), (101);
+WARNING:  Modification query is executing in non-autocommit mode.
+Foreign table can not read un-commited data.
+Multitenant table might get inconsistent data randomly.
+--Testcase 328:
+UPDATE tbl03 SET i = 102 WHERE i = 100;
+WARNING:  Modification query is executing in non-autocommit mode.
+Foreign table can not read un-commited data.
+Multitenant table might get inconsistent data randomly.
+--Testcase 329:
+DELETE FROM tbl03 WHERE i = 102 OR i = 101;
+WARNING:  Modification query is executing in non-autocommit mode.
+Foreign table can not read un-commited data.
+Multitenant table might get inconsistent data randomly.
+ROLLBACK;
+--Testcase 330:
+DROP FOREIGN TABLE tbl03__server1__0;
+--Testcase 331:
+DROP FOREIGN TABLE tbl03__server2__0;
+--Testcase 332:
+DROP FOREIGN TABLE tbl03__server3__0;
+--Testcase 333:
+DROP FOREIGN TABLE tbl03;
+--Testcase 334:
+DROP SERVER server1, server2, server3 CASCADE;
+NOTICE:  drop cascades to 5 other objects
+DETAIL:  drop cascades to user mapping for public on server server3
+drop cascades to foreign table tbl03_5
+drop cascades to user mapping for public on server server2
+drop cascades to foreign table tbl03_4
+drop cascades to user mapping for public on server server1
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:

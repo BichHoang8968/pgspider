@@ -35,4 +35,7 @@ extern void ExecAsyncForeignScanRequest(AsyncRequest *areq);
 extern void ExecAsyncForeignScanConfigureWait(AsyncRequest *areq);
 extern void ExecAsyncForeignScanNotify(AsyncRequest *areq);
 
+#ifdef PGSPIDER
+extern bool SpdIsInAutoCommitMode(void);
+#endif
 #endif							/* NODEFOREIGNSCAN_H */

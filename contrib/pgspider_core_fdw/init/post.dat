@@ -16,3 +16,22 @@ insert into t2 values(2,null,'a');
 insert into t2 values(null,'a','a');
 insert into t2 values(null,null,null);
 insert into large_t select i, 'aa' || i from generate_series(1,10000) i;
+
+DROP TABLE IF EXISTS tbl03_1;
+CREATE TABLE tbl03_1 (i int);
+insert into tbl03_1 select i from generate_series(1,10000) i;
+
+DROP TABLE IF EXISTS tbl03_2;
+CREATE TABLE tbl03_2 (i int);
+insert into tbl03_2 select i from generate_series(10001,20000) i;
+
+DROP TABLE IF EXISTS tbl03_3;
+CREATE TABLE tbl03_3 (i int);
+insert into tbl03_3 select i from generate_series(20001,30000) i;
+
+DROP TABLE IF EXISTS tbl03_4;
+CREATE TABLE tbl03_4 (i int);
+insert into tbl03_4 select i from generate_series(30001,40000) i;
+
+DROP TABLE IF EXISTS tbl03_5;
+CREATE TABLE tbl03_5 (i int);

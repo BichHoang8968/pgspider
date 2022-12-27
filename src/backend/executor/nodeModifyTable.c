@@ -3995,12 +3995,33 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 			resultRelInfo->ri_FdwRoutine->BeginForeignModify != NULL)
 		{
 			List	   *fdw_private = (List *) list_nth(node->fdwPrivLists, i);
+#ifdef PGSPIDER
+			resultRelInfo->spd_mtstate = NULL;
+#endif
 
 			resultRelInfo->ri_FdwRoutine->BeginForeignModify(mtstate,
 															 resultRelInfo,
 															 fdw_private,
 															 i,
 															 eflags);
+#ifdef PGSPIDER
+			if (!SpdIsInAutoCommitMode())
+			{
+				if (resultRelInfo->spd_mtstate)
+				{
+					/* BeginForeignModify has been called from pgspider_core_fdw */
+					elog(WARNING, "Modification query is executing in non-autocommit mode.\n"
+								"Foreign table can not read un-commited data.\n"
+								"Multitenant table might get inconsistent data randomly.");
+				}
+				else
+				{
+					/* other FDWs */
+					elog(WARNING, "Modification query is executing in non-autocommit mode.\n"
+								  "Multitenant table can not read un-commited data.");
+				}
+			}
+#endif
 		}
 
 		/*

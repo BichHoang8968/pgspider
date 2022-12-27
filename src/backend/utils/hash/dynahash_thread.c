@@ -148,7 +148,7 @@ static const char tabname_array[][HASH_TABLE_NAME_LEN] = {
 };
 
 /* normalized thread id of the current thread */
-static __thread normalized_id_t normalized_id = 0;
+static __thread normalized_id_t normalized_id = DEFAULT_CHILD_THREAD_NORMALIZED_ID;
 
  /*
   * List of normalized tables. Every time hash_create is called, we create
@@ -676,17 +676,11 @@ hash_reset_id(void *arg)
 		{
 			normalized_id_t *id = GET_ID_FROM_ENTRY(entry, htab);
 
-			*id = 0;
+			*id = DEFAULT_CHILD_THREAD_NORMALIZED_ID;
 		}
 	}
 
 	registered_callback = false;
-
-	/*
-	 * Reset normalized_id of main thread. No need to reset normalized_id of
-	 * child thread because it is destroyed at the end of query
-	 */
-	normalized_id = 0;
 }
 
 /**
@@ -724,14 +718,14 @@ get_key_with_id(HTAB *hashp, const void *keyPtr)
 {
 	int8	   *key = NULL;
 
-	if (normalized_id == 0)
+	if (normalized_id == DEFAULT_CHILD_THREAD_NORMALIZED_ID)
 	{
 		bool		found;
 		void	   *entry = hash_search_orig(hashp->nomralized_id_htab, keyPtr, HASH_ENTER, &found);
 		normalized_id_t *maxid = GET_ID_FROM_ENTRY(entry, hashp->nomralized_id_htab);
 
 		if (!found)
-			*maxid = 0;
+			*maxid = DEFAULT_CHILD_THREAD_NORMALIZED_ID;
 		++*maxid;
 		normalized_id = *maxid;
 		elog(DEBUG3, "id assigned: %d", (int) normalized_id);
@@ -758,5 +752,7 @@ get_normalized_id(void)
 void
 update_normalized_id(int new_val)
 {
+	if (normalized_id == DEFAULT_MAIN_THREAD_NORMALIZED_ID)
+		elog(ERROR, "normalized_id of main thread can not be updated!!!");
 	normalized_id = new_val;
 }

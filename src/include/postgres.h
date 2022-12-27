@@ -859,6 +859,8 @@ extern sigset_t spd_set_sigmask(sigset_t new_mask);
 
 /* Get command tag of query */
 extern CommandTag	get_cmd_tag(void);
+#define DEFAULT_CHILD_THREAD_NORMALIZED_ID	10
+#define DEFAULT_MAIN_THREAD_NORMALIZED_ID	1
 #endif							/* PGSPIDER */
 
 #endif							/* POSTGRES_H */
