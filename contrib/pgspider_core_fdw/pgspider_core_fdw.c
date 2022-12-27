@@ -3358,6 +3358,13 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 {
 	PG_TRY();
 	{
+		/*
+		 * If there is request to force end child thread while EndForeignScan has not been call,
+		 * we need to set requestEndScan to true so that outer function can call EndForeignScan
+		 */
+		if (force_end_child_threads_flag)
+			fssthrdInfo->requestEndScan = true;
+
 		while (!force_end_child_threads_flag)
 		{
 			if (fssthrdInfo->requestEndScan)
@@ -3396,17 +3403,14 @@ spd_EndForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChildI
 				/* Can't goto RESCAN directly due to PG_TRY.  */
 				break;
 			}
-			/*
-			 * If there is request to force end child thread while EndForeignScan has not been call,
-			 * we need to set requestEndScan to true so that outer function can call EndForeignScan
-			 */
-			if (force_end_child_threads_flag)
-				fssthrdInfo->requestEndScan = true;
 
 			/* Wait for a request from main thread. */
 			spd_tm_time_set_start(tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_END_REQUEST);
 			usleep(1);
 			spd_tm_accum_diff(tm_info, fssthrdInfo->childInfoIndex, SPD_TM_CHILD_WAIT_FOR_END_REQUEST);
+
+			if (force_end_child_threads_flag)
+				fssthrdInfo->requestEndScan = true;
 		}
 	}
 	PG_CATCH();
@@ -3791,7 +3795,7 @@ THREAD_EXIT:
 		force_end_child_threads_flag = false;
 		child_thread_info_list = NIL;
 		child_node_info_list = NIL;
-		update_normalized_id(0);
+		update_normalized_id(DEFAULT_CHILD_THREAD_NORMALIZED_ID);
 	}
 	else
 	{
@@ -8820,7 +8824,6 @@ spd_reset_callback(void *arg)
 	force_end_child_threads_flag = false;
 	child_thread_info_list = NIL;
 	child_node_info_list = NIL;
-	update_normalized_id(0);
 }
 
 /**
@@ -12380,7 +12383,7 @@ THREAD_EXIT:
 		force_end_child_threads_flag = false;
 		child_thread_info_list = NIL;
 		child_node_info_list = NIL;
-		update_normalized_id(0);
+		update_normalized_id(DEFAULT_CHILD_THREAD_NORMALIZED_ID);
 	}
 	pthread_mutex_unlock(&thread_running_mutex);
 
@@ -13742,7 +13745,7 @@ THREAD_EXIT:
 		force_end_child_threads_flag = false;
 		child_thread_info_list = NIL;
 		child_node_info_list = NIL;
-		update_normalized_id(0);
+		update_normalized_id(DEFAULT_CHILD_THREAD_NORMALIZED_ID);
 	}
 
 	if (child_thread_info != NULL)
@@ -13906,8 +13909,6 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 
 		if (child_thread_info != NULL)
 		{
-			/* Update normalized_id corresponding with scan thread */
-			update_normalized_id(child_thread_info->normalizedId);
 			pthread_mutex_lock(&thread_running_mutex);
 			child_thread_info->operation = fdw_private->operation;
 			pthread_mutex_unlock(&thread_running_mutex);
@@ -14366,7 +14367,6 @@ spd_finalizeForeignModify(ResultRelInfo *resultRelInfo)
 	resultRelInfo->spd_fsstate = NULL;
 	child_thread_info_list = NIL;
 	child_node_info_list = NIL;
-	update_normalized_id(0);
 }
 
 /**

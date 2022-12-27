@@ -280,7 +280,31 @@ ExecInitForeignScan(ForeignScan *node, EState *estate, int eflags)
 		 * processing.  See also ExecForeignScan/ExecReScanForeignScan.
 		 */
 		if (estate->es_epq_active == NULL)
+#ifdef PGSPIDER
+		{
+			scanstate->spd_fsstate = NULL;
+#endif
+
 			fdwroutine->BeginDirectModify(scanstate, eflags);
+#ifdef PGSPIDER
+			if (!SpdIsInAutoCommitMode())
+			{
+				if (scanstate->spd_fsstate)
+				{
+					/* BeginDirectModify has been called from pgspider_core_fdw */
+					elog(WARNING, "Modification query is executing in non-autocommit mode.\n"
+								"Foreign table can not read un-commited data.\n"
+								"Multitenant table might get inconsistent data randomly.");
+				}
+				else
+				{
+					/* other FDWs */
+					elog(WARNING, "Modification query is executing in non-autocommit mode.\n"
+								  "Multitenant table can not read un-commited data.");
+				}
+			}
+		}
+#endif
 	}
 	else
 		fdwroutine->BeginForeignScan(scanstate, eflags);
