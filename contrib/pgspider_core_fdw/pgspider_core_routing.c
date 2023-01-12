@@ -37,27 +37,29 @@
 #include "pgspider_core_routing.h"
 
 /* Structure for data stored in dsa. */
-typedef struct SpdInststShared {
-	dshash_table_handle	hash_handle;
-	int					tranche_id;
-} SpdInststShared;
+typedef struct SpdInststShared
+{
+	dshash_table_handle hash_handle;
+	int			tranche_id;
+}			SpdInststShared;
 
 /* Structure for data stored in global variable. */
-typedef struct SpdInststGlb {
-	SpdInststShared	   *shared;
-	dsa_area		   *area;
-	dshash_table	   *hash;
-} SpdInststGlb;
+typedef struct SpdInststGlb
+{
+	SpdInststShared *shared;
+	dsa_area   *area;
+	dshash_table *hash;
+}			SpdInststGlb;
 
 typedef struct SpdInstgtElem
 {
-	Oid		parent;		/* Parent table oid: hash key (must be first) */
-	Oid		child;		/* Child table oid */
-	char	tablename[NAMEDATALEN];	/* Child table name */
+	Oid			parent;			/* Parent table oid: hash key (must be first) */
+	Oid			child;			/* Child table oid */
+	char		tablename[NAMEDATALEN]; /* Child table name */
 }			SpdInstgtElem;
 
-extern bool				throwCandidateError;
-static SpdInststGlb		spd_instst_glb;
+extern bool throwCandidateError;
+static SpdInststGlb spd_instst_glb;
 
 #define g_spd_instst_shared		(spd_instst_glb.shared)
 #define g_spd_instst_area		(spd_instst_glb.area)
@@ -65,12 +67,12 @@ static SpdInststGlb		spd_instst_glb;
 
 /**
  * spd_inscand_updatable
- * 		
+ *
  */
 static void
-spd_inscand_updatable(ChildInfo *pChildInfo, int node_num)
+spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 {
-	int		i;
+	int			i;
 
 	for (i = 0; i < node_num; i++)
 	{
@@ -83,13 +85,14 @@ spd_inscand_updatable(ChildInfo *pChildInfo, int node_num)
 			Oid			server_oid = spd_serverid_of_relation(pChild->oid);
 			FdwRoutine *fdwroutine = GetFdwRoutineByServerId(server_oid);
 
-			rel = table_open(pChild->oid, NoLock); // ToDo close
+			rel = table_open(pChild->oid, NoLock);
+			/* ToDo close */
 
 			updatable = fdwroutine->IsForeignRelUpdatable(rel);
 		}
 		PG_CATCH();
 		{
-			int		elevel;
+			int			elevel;
 
 			pChild->child_node_status = ServerStatusDead;
 			FlushErrorState();
@@ -97,7 +100,8 @@ spd_inscand_updatable(ChildInfo *pChildInfo, int node_num)
 				elevel = ERROR;
 			else
 				elevel = WARNING;
-			ereport(elevel, (errmsg("GetForeignPlan of child[%d] failed.", i))); // ToDo :message
+			ereport(elevel, (errmsg("GetForeignPlan of child[%d] failed.", i)));
+			/* ToDo: message */
 		}
 		PG_END_TRY();
 
@@ -105,7 +109,8 @@ spd_inscand_updatable(ChildInfo *pChildInfo, int node_num)
 			table_close(rel, NoLock);
 
 		if ((updatable & (1 << CMD_INSERT)) == 0)
-			pChild->child_node_status = ServerStatusDead; // ToDo: un-updatable state
+			pChild->child_node_status = ServerStatusDead;
+/* ToDo: un - updatable state */
 	}
 
 	/* ToDo: Check the number of candidates. */
@@ -113,24 +118,24 @@ spd_inscand_updatable(ChildInfo *pChildInfo, int node_num)
 }
 
 /**
- * 
+ *
  */
 static void
-spd_inscand_alive(ChildInfo *pChildInfo, int node_num)
+spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 {
-	int		i;
+	int			i;
 
 	for (i = 0; i < node_num; i++)
 	{
 		char		ip[NAMEDATALEN] = {0};
 		Oid			server_oid;
-		ForeignServer	*fs;
+		ForeignServer *fs;
 		ForeignDataWrapper *fdw;
 
 		server_oid = spd_serverid_of_relation(pChildInfo[i].oid);
 		fs = GetForeignServer(server_oid);
 		fdw = GetForeignDataWrapper(fs->fdwid);
-		
+
 		spd_ip_from_server_name(fs->servername, ip);
 #ifndef WITHOUT_KEEPALIVE
 		if (check_server_ipname(fs->servername, ip))
@@ -141,18 +146,19 @@ spd_inscand_alive(ChildInfo *pChildInfo, int node_num)
 		}
 		else
 		{
-			int		elevel;
+			int			elevel;
 
 			pChildInfo->child_node_status = ServerStatusDead;
 			if (throwCandidateError)
 				elevel = ERROR;
 			else
 				elevel = WARNING;
-			ereport(elevel, (errmsg("."))); // ToDo
+			ereport(elevel, (errmsg(".")));
+			/* ToDo */
 		}
 #endif
 	}
-	
+
 	/* Check the number of candidates. */
 }
 
@@ -161,10 +167,10 @@ spd_inscand_alive(ChildInfo *pChildInfo, int node_num)
  * 		Get a candidates of insert target on prepare phase.
  */
 void
-spd_inscand_get(ChildInfo *pChildInfo, int node_num)
+spd_inscand_get(ChildInfo * pChildInfo, int node_num)
 {
-	int		i;
-	int		num_targets = 0;
+	int			i;
+	int			num_targets = 0;
 
 	/* Check the number of candidates. */
 	for (i = 0; i < node_num; i++)
@@ -185,17 +191,17 @@ spd_inscand_get(ChildInfo *pChildInfo, int node_num)
  * 		Get SPDURL column value as string in slot.
  */
 static char *
-spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc	tupdesc)
+spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc tupdesc)
 {
-	int			attnum;		/* Attrnum of SPDURL column */
+	int			attnum;			/* Attrnum of SPDURL column */
 	Form_pg_attribute attr;
 	Datum		value;
 	bool		isnull;
 	Oid			typefnoid;
 	bool		isvarlena;
 	FmgrInfo	flinfo;
-	char	  *spdurl;
-	
+	char	   *spdurl;
+
 	/* Get SPDURL column value as Datum. */
 	attnum = tupdesc->natts;
 	attr = TupleDescAttr(tupdesc, attnum - 1);
@@ -220,10 +226,10 @@ spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc	tupdesc)
 static const char *
 spd_get_server_from_slot(TupleTableSlot *slot, TupleDesc tupdesc)
 {
-	char   *spdurl;
-	List		 *url_list;
-	List		 *url_parse_list;
-	const char   *spdurl_server;
+	char	   *spdurl;
+	List	   *url_list;
+	List	   *url_parse_list;
+	const char *spdurl_server;
 
 	/* Get SPDURL value. */
 	spdurl = spd_get_spdurl_in_slot(slot, tupdesc);
@@ -244,15 +250,15 @@ spd_get_server_from_slot(TupleTableSlot *slot, TupleDesc tupdesc)
  * spd_inscand_spdurl
  * 		Remove un-related tables from candidates based on SPDURL
  * 		column value.
- * 
+ *
  * 		child_node_status will be set to {DoTo} from ServerStatusAlive if un-related table.
  */
 void
-spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo *pChildInfo, int node_num)
+spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, int node_num)
 {
-	TupleDesc			tupdesc;
-	const char	  *spdurl_server;
-	int					i;
+	TupleDesc	tupdesc;
+	const char *spdurl_server;
+	int			i;
 
 	/* Get a server name. */
 	tupdesc = RelationGetDescr(rel);
@@ -264,15 +270,16 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo *pChildInfo, in
 
 	for (i = 0; i < node_num; i++)
 	{
-		char			srvname[NAMEDATALEN];
-		ChildInfo	  *pChild = &pChildInfo[i];
-		
+		char		srvname[NAMEDATALEN];
+		ChildInfo  *pChild = &pChildInfo[i];
+
 		if (pChild->child_node_status != ServerStatusAlive)
 			continue;
 
 		spd_servername_from_tableoid(pChild->oid, srvname);
 		if (strcmp(spdurl_server, srvname) != 0)
-			pChild->child_node_status = ServerStatusDead; /* ToDo: not spdurl target state */
+			pChild->child_node_status = ServerStatusDead;	/* ToDo: not spdurl
+															 * target state */
 	}
 
 	/* Check the number of candidates. */
@@ -290,11 +297,11 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo *pChildInfo, in
 static SpdInstgtElem *
 spd_instgt_last_table(Oid parent, bool *found)
 {
-	SpdInstgtElem  *entry;
-	char		   *relname;
+	SpdInstgtElem *entry;
+	char	   *relname;
 
 	entry = dshash_find_or_insert(g_spd_instst_hash, &parent, found);
-	
+
 	if (!(*found))
 		return entry;
 
@@ -307,7 +314,7 @@ spd_instgt_last_table(Oid parent, bool *found)
 		*found = false;
 		return entry;
 	}
-	
+
 	return entry;
 }
 
@@ -316,20 +323,20 @@ spd_instgt_last_table(Oid parent, bool *found)
  * 		Choose one child table from candidate for insert.
  */
 static int
-spd_instgt_choose(char *prev_name, ChildInfo *pChildInfo, int node_num)
+spd_instgt_choose(char *prev_name, ChildInfo * pChildInfo, int node_num)
 {
-	int				i;
+	int			i;
 
 	/*
-	 * If the previous inserted table is memorized, search the position
-	 * in candidates and choose the next one. 
+	 * If the previous inserted table is memorized, search the position in
+	 * candidates and choose the next one.
 	 */
 	if (prev_name != NULL)
 	{
 		for (i = 0; i < node_num; i++)
 		{
-			char *relname = get_rel_name(pChildInfo[i].oid);
-			int cmp = strcmp(prev_name, relname);
+			char	   *relname = get_rel_name(pChildInfo[i].oid);
+			int			cmp = strcmp(prev_name, relname);
 
 			if (cmp >= 0)
 				continue;
@@ -338,9 +345,9 @@ spd_instgt_choose(char *prev_name, ChildInfo *pChildInfo, int node_num)
 				return i;
 		}
 
-		/* 
-		 * Here, the previous table name is larget in candidates.
-		 * So the first child table in candidate will be choosen.
+		/*
+		 * Here, the previous table name is larget in candidates. So the first
+		 * child table in candidate will be choosen.
 		 */
 	}
 
@@ -357,17 +364,17 @@ spd_instgt_choose(char *prev_name, ChildInfo *pChildInfo, int node_num)
 
 /**
  * spd_instst_get_target
- * 		Choose one child table from candidate for insert 
+ * 		Choose one child table from candidate for insert
  * 		and memorize it in shared memory.
  */
 int
-spd_instst_get_target(Oid parent, ChildInfo *pChildInfo, int node_num)
+spd_instst_get_target(Oid parent, ChildInfo * pChildInfo, int node_num)
 {
-	SpdInstgtElem  *entry;
-	bool			found;
-	char		   *prev_name;
-	int				i;
-	char		   *relname;
+	SpdInstgtElem *entry;
+	bool		found;
+	char	   *prev_name;
+	int			i;
+	char	   *relname;
 
 	/* Find the last target and get a lock for the shared hash. */
 	entry = spd_instgt_last_table(parent, &found);
@@ -401,6 +408,7 @@ spd_instgt_dshash_params(int tranche_id)
 		dshash_memhash,
 		tranche_id
 	};
+
 	return params;
 }
 
@@ -411,21 +419,24 @@ spd_instgt_dshash_params(int tranche_id)
  *		One of the shared data is a hash table which manages an insert target.
  */
 static void
-spd_instgt_init_dsa(SpdInstgtLocation *location)
+spd_instgt_init_dsa(SpdInstgtLocation * location)
 {
-	dsa_area		   *area;
-	dsa_pointer			dp;
-	SpdInststShared	   *its;
-	int					tranche_id;
-	dshash_parameters	hash_params;
-	MemoryContext		oldMemoryContext;
+	dsa_area   *area;
+	dsa_pointer dp;
+	SpdInststShared *its;
+	int			tranche_id;
+	dshash_parameters hash_params;
+	MemoryContext oldMemoryContext;
 
-	/* Use the top memory context to keep global variables during a worker process alive. */
+	/*
+	 * Use the top memory context to keep global variables during a worker
+	 * process alive.
+	 */
 	oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
 
 	/*
-	 * Create a duynamic shared memory area.
-	 * This area is kept even if backend is detached or query is finished.
+	 * Create a duynamic shared memory area. This area is kept even if backend
+	 * is detached or query is finished.
 	 */
 	area = dsa_create(LWLockNewTrancheId());
 	dsa_pin(area);
@@ -456,7 +467,7 @@ spd_instgt_init_dsa(SpdInstgtLocation *location)
  * spd_instgt_init_shm
  *		Initialize a shared memory for insert target. The shared memory stores
  *		a location for a dynamic shared memory for insert target.
- * 
+ *
  *		Node:
  *			RequestAddinShmemSpace(sizeof(SpdInstgtLocation)); should be
  *			called in CreateSharedMemoryAndSemaphores() during server
@@ -465,7 +476,7 @@ spd_instgt_init_dsa(SpdInstgtLocation *location)
 void
 spd_instgt_init_shm(void)
 {
-	SpdInstgtLocation	*location;
+	SpdInstgtLocation *location;
 	bool		found;
 
 	/* Get a lock for use of shared memory. */
@@ -485,8 +496,8 @@ spd_instgt_init_shm(void)
 	}
 	else
 	{
-		dshash_parameters	hash_params;
-		MemoryContext		oldMemoryContext;
+		dshash_parameters hash_params;
+		MemoryContext oldMemoryContext;
 
 		oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
 
@@ -505,4 +516,4 @@ spd_instgt_init_shm(void)
 	LWLockRelease(AddinShmemInitLock);
 }
 
-#endif  /* OMIT_INSERT_ROUNDROBIN */
+#endif							/* OMIT_INSERT_ROUNDROBIN */
