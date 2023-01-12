@@ -120,4 +120,12 @@ extern void *dsa_get_address(dsa_area *area, dsa_pointer dp);
 extern void dsa_trim(dsa_area *area);
 extern void dsa_dump(dsa_area *area);
 
+#ifdef PGSPIDER
+/* Structure for data stored in shmem for the insert routing management. */
+typedef struct SpdInstgtLocation {
+	dsa_handle	handle;
+	dsa_pointer	pointer;
+} SpdInstgtLocation;
+#endif
+
 #endif							/* DSA_H */

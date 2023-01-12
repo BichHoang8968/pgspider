@@ -64,6 +64,7 @@ PG_MODULE_MAGIC;
 #include "funcapi.h"
 #include "catalog/pg_operator.h"
 #include "pgspider_core_fdw.h"
+#include "pgspider_core_routing.h"
 #include "pgspider_core_timemeasure.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
@@ -320,13 +321,6 @@ static const char *SpdServerstatusStr[] = {
 	"Dead"
 };
 
-enum SpdServerstatus
-{
-	ServerStatusAlive,
-	ServerStatusIn,
-	ServerStatusDead,
-};
-
 const char *AggtypeStr[] = {"NON-AGG", "NON-SPLIT", "AVG", "VARIANCE", "STDDEV", "SPREAD"};
 
 enum Aggtype
@@ -424,50 +418,6 @@ typedef struct Extractcells
 	bool		is_contain_group_by;	/* True if expression contains a Var
 										 * which existed in GROUP BY */
 }			Extractcells;
-
-/* This structure stores child pushdown information about child path. */
-typedef struct ChildPushdownInfo
-{
-	RelOptKind	relkind;			/* Child relation kind. */
-	Path		*path;				/* The best child path for child GetForeignPlan. */
-
-	bool		orderby_pushdown;	/* True if child node can pushdown ORDER BY to remote server. */
-	bool		limit_pushdown;		/* True if child node can pushdown LIMIT/OFFSET to remote server. */
-}			ChildPushdownInfo;
-
-/* This structure stores child information about plan. */
-typedef struct ChildInfo
-{
-	/* USE ONLY IN PLANNING */
-	RelOptInfo *baserel;
-	RelOptInfo *input_rel_local;	/* Child input relation for creating child upper paths. */
-	List	   *url_list;
-	AggPath    *aggpath;
-#ifdef ENABLE_PARALLEL_S3
-	Value	   *s3file;
-#endif
-	RelOptInfo *joinrel;		/* Child relation info for join pushdown */
-	FdwRoutine *fdwroutine;
-
-	ChildPushdownInfo pushdown_info;	/* Child pushdown information */
-
-	/* USE IN BOTH PLANNING AND EXECUTION */
-	PlannerInfo *root;
-	Plan	   *plan;
-	enum SpdServerstatus child_node_status;
-	Oid			server_oid;		/* child table's server oid */
-	Oid			oid;			/* child table's table oid */
-	Agg		   *pAgg;			/* "Aggref" for Disable of aggregation push
-								 * down servers */
-	bool		pseudo_agg;		/* True if aggregate function is calcuated on
-								 * pgspider_core. It mean that it is not
-								 * pushed down. This is a cache for searching
-								 * pPseudoAggList by server oid. */
-	List	   *fdw_private;	/* Private information of child fdw */
-
-	/* USE ONLY IN EXECUTION */
-	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
-}			ChildInfo;
 
 /*
  * FDW-specific planner information is kept in RelOptInfo.fdw_private for a
@@ -803,6 +753,7 @@ static void spd_GetRootQueryPathkeys(PlannerInfo *root, PlannerInfo *root_child)
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
 static bool isPrintError;
+bool	throwCandidateError;
 
 /* We need to make postgres_fdw_options variable initial one time */
 static volatile bool isPostgresFdwInit = false;
@@ -2677,14 +2628,15 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	return tlist;
 }
 
+
 /**
  * Get serverid of the foreign table from id.
  *
  * @param[in] foreigntableid Foreign table id
  * @return Foreign server id
  */
-static Oid
-serverid_of_relation(Oid foreigntableid)
+Oid
+spd_serverid_of_relation(Oid foreigntableid)
 {
 	ForeignTable *ft = GetForeignTable(foreigntableid);
 
@@ -2699,7 +2651,7 @@ serverid_of_relation(Oid foreigntableid)
  * @param[in] foreigntableid Foreign table id
  * @param[out] srvname Foreign server name
  */
-static void
+void
 spd_servername_from_tableoid(Oid foreigntableid, char *srvname)
 {
 	ForeignServer *server;
@@ -2725,7 +2677,7 @@ spd_servername_from_tableoid(Oid foreigntableid, char *srvname)
  * @param[in] serverName Server name
  * @param[out] ip IP address
  */
-static void
+void
 spd_ip_from_server_name(char *serverName, char *ip)
 {
 	char		sql[NAMEDATALEN * 2] = {0};
@@ -3759,7 +3711,7 @@ THREAD_EXIT:
  *			  The 1st element is an original URL, the 2nd element
  *			  is a throwing URL.
  */
-static List *
+List *
 spd_ParseUrl(List *spd_url_list)
 {
 	ListCell   *lc;
@@ -3808,19 +3760,20 @@ spd_ParseUrl(List *spd_url_list)
  * @param[in] spd_url_list URL of parent
  * @param[in,out] fdw_private Parsed URLs are stored in fdw_private->url_list
  */
-static void
-spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_private)
+List *
+spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo, int node_num)
 {
+	List	   *url_list;
 	ListCell   *lc;
 
 	/*
 	 * Entry is first parsing word(, then entry is "foo", entry2 is "bar")
 	 */
-	fdw_private->url_list = spd_ParseUrl(spd_url_list);
-	if (fdw_private->url_list == NULL)
+	url_list = spd_ParseUrl(spd_url_list);
+	if (url_list == NULL)
 		elog(ERROR, "IN clause is used but no URL found. Please specify URL.");
 
-	foreach(lc, fdw_private->url_list)
+	foreach(lc, url_list)
 	{
 		int			i;
 		char	   *original_url = NULL;
@@ -3833,10 +3786,10 @@ spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_priv
 			throwing_url = (char *) list_nth(url_parse_list, 1);
 		}
 		/* If IN clause is used, then store parsed URL. */
-		for (i = 0; i < childnums; i++)
+		for (i = 0; i < node_num; i++)
 		{
 			char		srvname[NAMEDATALEN] = {0};
-			Oid			temp_oid = fdw_private->childinfo[i].oid;
+			Oid			temp_oid = pChildInfo[i].oid;
 			Oid			temp_tableid;
 			ForeignServer *temp_server;
 			ForeignDataWrapper *temp_fdw = NULL;
@@ -3847,11 +3800,11 @@ spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_priv
 			{
 				elog(DEBUG1, "Can not find a child node of '%s'.", original_url);
 				/* for multi in node */
-				if (fdw_private->childinfo[i].child_node_status != ServerStatusAlive)
-					fdw_private->childinfo[i].child_node_status = ServerStatusIn;
+				if (pChildInfo[i].child_node_status != ServerStatusAlive)
+					pChildInfo[i].child_node_status = ServerStatusIn;
 				continue;
 			}
-			fdw_private->childinfo[i].child_node_status = ServerStatusAlive;
+			pChildInfo[i].child_node_status = ServerStatusAlive;
 
 			/*
 			 * If child-child node exists, then create New IN clause. New IN
@@ -3867,10 +3820,12 @@ spd_create_child_url(int childnums, List *spd_url_list, SpdFdwPrivate * fdw_priv
 				{
 					elog(ERROR, "Trying to pushdown IN clause. But child node is not %s.", PGSPIDER_FDW_NAME);
 				}
-				fdw_private->childinfo[i].url_list = lappend(fdw_private->childinfo[i].url_list, throwing_url);
+				pChildInfo[i].url_list = lappend(pChildInfo[i].url_list, throwing_url);
 			}
 		}
 	}
+
+	return url_list;
 }
 
 /**
@@ -4217,7 +4172,7 @@ spd_calculate_datasource_tableoid(Oid parent_table, Oid child_server)
 	/* Search the oid of which foreign server is a target. */
 	for (i = 0; i < nums; i++)
 	{
-		Oid			oid_server = serverid_of_relation(oids[i]);
+		Oid			oid_server = spd_serverid_of_relation(oids[i]);
 
 		if (oid_server == child_server)
 		{
@@ -4436,7 +4391,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		if (rel_oid == 0)
 			continue;
 
-		oid_server = serverid_of_relation(rel_oid);
+		oid_server = spd_serverid_of_relation(rel_oid);
 		childinfo[i].server_oid = oid_server;
 		childinfo[i].fdwroutine = GetFdwRoutineByServerId(oid_server);
 
@@ -4723,7 +4678,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 
 	/* Check to IN clause and execute only IN URL server */
 	if (r_entry->spd_url_list != NULL)
-		spd_create_child_url(nums, r_entry->spd_url_list, fdw_private);
+		fdw_private->url_list = spd_create_child_url(r_entry->spd_url_list,
+													 fdw_private->childinfo, nums);
 	else
 	{
 		for (i = 0; i < nums; i++)
@@ -7223,7 +7179,7 @@ spd_GetForeignPaths(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid)
 			ForeignServer *fs;
 			ForeignDataWrapper *fdw;
 
-			oid_server = serverid_of_relation(pChildInfo->oid);
+			oid_server = spd_serverid_of_relation(pChildInfo->oid);
 			fs = GetForeignServer(oid_server);
 			fdw = GetForeignDataWrapper(fs->fdwid);
 
@@ -11685,7 +11641,7 @@ spd_IsForeignRelUpdatable(Relation rel)
 			if (rel_oid == 0)
 				continue;
 
-			oid_server = serverid_of_relation(rel_oid);
+			oid_server = spd_serverid_of_relation(rel_oid);
 			fdwroutine = GetFdwRoutineByServerId(oid_server);
 			
 			if (fdwroutine->IsForeignRelUpdatable == NULL)
@@ -12741,7 +12697,9 @@ spd_InitPrivate(Oid foreigntableid, List *spd_url_list, int *nums)
 	}
 
 	if (spd_url_list != NULL)
-		spd_create_child_url((*nums), spd_url_list, fdw_private);
+		fdw_private->url_list = spd_create_child_url(spd_url_list,
+													 fdw_private->childinfo,
+													 (*nums));
 	else
 	{
 		for (i = 0; i < (*nums); i++)
@@ -12795,7 +12753,7 @@ spd_AddForeignUpdateTargetsChild(PlannerInfo *root, Index relid,
 		if (rel_oid == 0)
 			continue;
 
-		oid_server = serverid_of_relation(rel_oid);
+		oid_server = spd_serverid_of_relation(rel_oid);
 		fs = GetForeignServer(oid_server);
 		fdw = GetForeignDataWrapper(fs->fdwid);
 		childinfo[i].server_oid = oid_server;
@@ -12993,12 +12951,6 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		if (pChildInfo->child_node_status != ServerStatusAlive)
 			continue;
 
-		/* In case INSERT, only choose 1 node to INSERT data, other nodes are DEAD. */
-		if (insertNodeIsChosen)
-		{
-			pChildInfo->child_node_status = ServerStatusDead;
-			continue;
-		}
 		fs = GetForeignServer(pChildInfo->server_oid);
 
 		pChildInfo->root = spd_GetChildRoot(root, resultRelation, pChildInfo->oid,
@@ -13123,11 +13075,6 @@ spd_PlanForeignModify(PlannerInfo *root,
 	int			nums = 0;
 	CmdType		operation = plan->operation;
 
-	if (rte->spd_url_list && operation == CMD_INSERT)
-	{
-		elog (ERROR, "Can not use INSERT with IN");
-	}
-
 	if (plan->returningLists)
 		ereport(ERROR,
 				(errcode(ERRCODE_FDW_UNABLE_TO_CREATE_EXECUTION),
@@ -13172,6 +13119,9 @@ spd_PlanForeignModify(PlannerInfo *root,
 				elog(ERROR, "__spd_url column update is not supported");
 		}
 	}
+
+	if (operation == CMD_INSERT)
+		spd_inscand_get(fdw_private->childinfo, fdw_private->node_num);
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	spd_PlanForeignModifyChild(root, plan, resultRelation, subplan_index, fdw_private->childinfo, operation);
@@ -13760,7 +13710,6 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 	int			node_incr;		/* node_incr is variable of number of
 								 * mtThrdInfo. */
 	int			i;
-	int			node_num = 1;
 	CallbackList *callback_list;
 	int			rtn = 0;
 
@@ -13791,10 +13740,7 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 		fdw_private->is_explain = true;
 
-	if (fdw_private->operation != CMD_INSERT)
-		node_num = fdw_private->node_num;
-
-	mtThrdInfo = (ModifyThreadInfo *) palloc0(sizeof(ModifyThreadInfo) * node_num);
+	mtThrdInfo = (ModifyThreadInfo *) palloc0(sizeof(ModifyThreadInfo) * fdw_private->node_num);
 	resultRelInfo->spd_mtstate = mtThrdInfo;
 
 	node_incr = 0;
@@ -13966,10 +13912,21 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 	g_node_offset += fdw_private->node_num;
 
 	/* Skip thread creation in explain case. */
-	if (eflags & EXEC_FLAG_EXPLAIN_ONLY || fdw_private->operation == CMD_INSERT)
+	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
 	{
 		return;
 	}
+
+	if (fdw_private->operation == CMD_INSERT)
+	{
+		RangeTblEntry *rte;
+		rte = exec_rt_fetch(resultRelInfo->ri_RangeTableIndex,
+							mtstate->ps.state);
+		resultRelInfo->ri_FdwState = palloc0(sizeof(Oid));
+		*((Oid*)resultRelInfo->ri_FdwState) = rte->relid;
+		return;
+	}
+
 
 	/*
 	 * PGSpider needs to notify all childs node thread to quit or pending
@@ -14073,53 +14030,52 @@ spd_ExecForeignInsert(EState *estate,
 	ModifyThreadInfo *mtThrdInfo = resultRelInfo->spd_mtstate;
 	TupleTableSlot *returning_slot = NULL;
 	SpdFdwPrivate *fdw_private;
-	int			node_incr;
-	char	   *spd_value = get_spd_value_from_slot(planSlot);
+	Relation	rel = resultRelInfo->ri_RelationDesc;
+	Oid		   *foreigntableoid = (Oid *) resultRelInfo->ri_FdwState;
+	int			idx;
+	ChildInfo  *pChildInfo;
+	ChildNodeInfo  *child_node_info;
+	FdwRoutine *fdwroutine;
+	ModifyTableState *mtstate;
 
 	fdw_private = (SpdFdwPrivate *) mtThrdInfo[0].private;
 
 	if (fdw_private == NULL)
 		fdw_private = spd_DeserializeSpdFdwPrivate(resultRelInfo->ri_FdwState, SpdForeignModify);
 
-	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
+	spd_inscand_spdurl(planSlot, rel, fdw_private->childinfo, fdw_private->node_num);
+	idx = spd_instst_get_target(*foreigntableoid, fdw_private->childinfo, fdw_private->node_num);
+
+	pChildInfo = &fdw_private->childinfo[idx];
+	child_node_info = spd_get_child_node_info(pChildInfo->server_oid, pChildInfo->oid);
+	fdwroutine = GetFdwRoutineByServerId(pChildInfo->server_oid);
+	mtstate = mtThrdInfo[idx].mtstate;
+
+	if (child_node_info != NULL)
 	{
-		ChildInfo  *pChildInfo = &fdw_private->childinfo[mtThrdInfo[node_incr].childInfoIndex];
-		FdwRoutine *fdwroutine = GetFdwRoutineByServerId(pChildInfo->server_oid);
-		ModifyTableState *mtstate = mtThrdInfo[node_incr].mtstate;
-		ForeignServer *fs = GetForeignServer(pChildInfo->server_oid);
-		ChildNodeInfo *child_node_info = spd_get_child_node_info(pChildInfo->server_oid, pChildInfo->oid);
-
-		if (spd_value != NULL && strcmp(fs->servername, spd_value) != 0)
-			elog(WARNING, "__spd_url value will be ignored and can not added into child table");
-
-		if (child_node_info != NULL)
+		/*
+		 * Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
+		 * execution. Therefore, we need to use 1 mutex to lock all threads of oracle_fdw.
+		 */
+		if (strcmp(mtThrdInfo[idx].fdw->fdwname, ORACLE_FDW_NAME) == 0)
 		{
-			/*
-			 * Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
-			 * execution. Therefore, we need to use 1 mutex to lock all threads of oracle_fdw.
-			 */
-			if (strcmp(mtThrdInfo[node_incr].fdw->fdwname, ORACLE_FDW_NAME) == 0)
-			{
-				SPD_LOCK_TRY(&oracle_fdw_mutex);
-				returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
-				SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
-			}
-			else
-			{
-				/*
-				 * Need mutex to avoid concurrency conflict between Scan (including
-				 * Main query and Subquery if have) and Modify threads.
-				 */
-				SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
-				returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
-				SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
-			}
+			SPD_LOCK_TRY(&oracle_fdw_mutex);
+			returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
+			SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
 		}
 		else
+		{
+			/*
+			 * Need mutex to avoid concurrency conflict between Scan (including
+			 * Main query and Subquery if have) and Modify threads.
+			 */
+			SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
 			returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
-
-		break;
+			SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+		}
 	}
+	else
+		returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
 
 	return returning_slot ? slot : NULL;
 }
@@ -14320,8 +14276,7 @@ spd_EndForeignModify(EState *estate,
 	if (!mtThrdInfo)
 		return;
 
-	if (!fdw_private)
-		fdw_private = (SpdFdwPrivate *) mtThrdInfo[0].private;
+	fdw_private = (SpdFdwPrivate *) mtThrdInfo[0].private;
 
 	if (!fdw_private)
 		return;
@@ -14445,6 +14400,20 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
+
+	/* Get the configuration: throw_candidate_error option. */
+	DefineCustomBoolVariable("pgspider_core_fdw.throw_candidate_error",
+							 "raise an error if one of candidates is error during insert",
+							 NULL,
+							 &throwCandidateError,
+							 false,
+							 PGC_USERSET,
+							 0,
+							 NULL,
+							 NULL,
+							 NULL);
+	spd_instgt_init_shm();
+
 #ifdef ENABLE_PARALLEL_S3
 	parquet_s3_init();
 #endif

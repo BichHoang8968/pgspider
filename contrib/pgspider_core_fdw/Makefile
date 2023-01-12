@@ -1,7 +1,7 @@
 # contrib/pgspider_core_fdw/Makefile
 
 MODULE_big = pgspider_core_fdw
-OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_timemeasure.o $(WIN32RES)
+OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_routing.o pgspider_core_timemeasure.o $(WIN32RES)
 PGFILEDESC = "pgspider_core_fdw - PGSpider core module"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../ -lpthread -lpq -lm -lpgspider_keepalive -z defs
