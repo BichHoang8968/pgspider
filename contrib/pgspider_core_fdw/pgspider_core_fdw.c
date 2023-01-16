@@ -270,44 +270,6 @@ typedef struct ForeignScanThreadArg
 	ForeignScanThreadInfo *childThreadsInfo;
 }			ForeignScanThreadArg;
 
-typedef enum
-{
-	SPD_MDF_STATE_INIT,
-	SPD_MDF_STATE_BEGIN,
-	SPD_MDF_STATE_EXEC,
-	SPD_MDF_STATE_PRE_END,
-	SPD_MDF_STATE_END,
-	SPD_MDF_STATE_FINISH,
-	SPD_MDF_STATE_ERROR
-}			SpdModifyThreadState;
-
-typedef struct ModifyThreadInfo
-{
-	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
-	struct ModifyTableState *mtstate;	/* ModifyTable state data */
-	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
-								 * the flag bits ) */
-	Oid			serverId;		/* use it for server id */
-	ForeignServer *foreignServer;	/* cache this for performance */
-	ForeignDataWrapper *fdw;	/* cache this for performance */
-	bool		requestExecModify; /* main thread request ExecForeignModify to
-									* child thread */
-	bool		requestEndModify; /* main thread request EndForeignModify to child
-								 * thread */
-	TupleTableSlot *slot;
-	TupleTableSlot *planSlot;
-	int			childInfoIndex; /* index of child info array */
-	MemoryContext threadMemoryContext;
-	MemoryContext threadTopMemoryContext;
-	SpdModifyThreadState state;
-	pthread_t	me;
-	ResourceOwner thrd_ResourceOwner;
-	void	   *private;
-	int			transaction_level;
-	bool		is_joined;
-	int			subplan_index;
-}			ModifyThreadInfo;
-
 typedef struct ModifyThreadArg
 {
 	ModifyThreadInfo *mainThreadsInfo;
@@ -12935,7 +12897,6 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) root->fdw_private;
 	int			i;
 	int			alive_node_num = 0;
-	bool		insertNodeIsChosen = false;
 	MemoryContext oldcontext = CurrentMemoryContext;
 
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -12979,26 +12940,6 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 
 		PG_TRY();
 		{
-			if (operation == CMD_INSERT)
-			{
-				if (pChildInfo->fdwroutine->PlanForeignModify != NULL &&
-					pChildInfo->fdwroutine->BeginForeignModify != NULL &&
-					pChildInfo->fdwroutine->ExecForeignInsert != NULL &&
-					pChildInfo->fdwroutine->EndForeignModify != NULL)
-				{
-					child_fdw_private = pChildInfo->fdwroutine->PlanForeignModify(pChildInfo->root, plan, resultRelation, subplan_index);
-					insertNodeIsChosen = true;
-				}
-				else
-				{
-					ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
-
-					/* fdw does not support Modify => skip */
-					elog(WARNING, "%s will be skipped because it does not support INSERT", fdw->fdwname);
-					pChildInfo->child_node_status = ServerStatusDead;
-				}
-			}
-			else
 			{
 				if (pChildInfo->fdwroutine->PlanForeignModify != NULL &&
 					pChildInfo->fdwroutine->BeginForeignModify != NULL &&
@@ -13040,13 +12981,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		pChildInfo->fdw_private = child_fdw_private;
 	}
 
-	if (operation == CMD_INSERT)
-	{
-		/* Can not find node to INSERT */
-		if (!insertNodeIsChosen)
-			elog(ERROR, "No child node support INSERT.");
-	}
-	else if (alive_node_num == 0)
+	if (alive_node_num == 0)
 		elog(ERROR, "No child node support modification.");
 }
 
@@ -14032,6 +13967,7 @@ spd_ExecForeignInsert(EState *estate,
 	SpdFdwPrivate *fdw_private;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	Oid		   *foreigntableoid = (Oid *) resultRelInfo->ri_FdwState;
+	int			i;
 	int			idx;
 	ChildInfo  *pChildInfo;
 	ChildNodeInfo  *child_node_info;
@@ -14044,12 +13980,13 @@ spd_ExecForeignInsert(EState *estate,
 		fdw_private = spd_DeserializeSpdFdwPrivate(resultRelInfo->ri_FdwState, SpdForeignModify);
 
 	spd_inscand_spdurl(planSlot, rel, fdw_private->childinfo, fdw_private->node_num);
-	idx = spd_instst_get_target(*foreigntableoid, fdw_private->childinfo, fdw_private->node_num);
+	i = spd_instst_get_target(*foreigntableoid, mtThrdInfo, fdw_private->childinfo, fdw_private->node_num);
 
+	idx = mtThrdInfo[i].childInfoIndex;
 	pChildInfo = &fdw_private->childinfo[idx];
 	child_node_info = spd_get_child_node_info(pChildInfo->server_oid, pChildInfo->oid);
 	fdwroutine = GetFdwRoutineByServerId(pChildInfo->server_oid);
-	mtstate = mtThrdInfo[idx].mtstate;
+	mtstate = mtThrdInfo[i].mtstate;
 
 	if (child_node_info != NULL)
 	{
@@ -14057,7 +13994,7 @@ spd_ExecForeignInsert(EState *estate,
 		 * Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
 		 * execution. Therefore, we need to use 1 mutex to lock all threads of oracle_fdw.
 		 */
-		if (strcmp(mtThrdInfo[idx].fdw->fdwname, ORACLE_FDW_NAME) == 0)
+		if (strcmp(mtThrdInfo[i].fdw->fdwname, ORACLE_FDW_NAME) == 0)
 		{
 			SPD_LOCK_TRY(&oracle_fdw_mutex);
 			returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);

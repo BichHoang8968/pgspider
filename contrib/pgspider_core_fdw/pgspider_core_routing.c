@@ -65,6 +65,53 @@ static SpdInststGlb spd_instst_glb;
 #define g_spd_instst_area		(spd_instst_glb.area)
 #define g_spd_instst_hash		(spd_instst_glb.hash)
 
+static void
+handle_datasource_error(MemoryContext ccxt, char *relname)
+{
+	int			elevel;
+	MemoryContext ecxt = MemoryContextSwitchTo(ccxt);
+	ErrorData  *errdata = CopyErrorData();
+	char	   *message;
+
+	/* Get an error message occurred in datasource FDW. */
+	message = pstrdup(errdata->message);
+	FreeErrorData(errdata);
+	FlushErrorState();
+
+	if (throwCandidateError)
+	{
+		elevel = ERROR;
+		MemoryContextSwitchTo(ecxt);
+	}
+	else
+		elevel = WARNING;
+
+	ereport(elevel,
+			(errcode(ERRCODE_FDW_ERROR),
+			errmsg("could not know whether a child \"%s\"is updatable or not.",
+					relname),
+			errdetail_internal("%s", message)));
+}
+
+/**
+ * check_candidate_count
+ * 		Check the number of candidates is greater than 0.
+ */
+static void
+check_candidate_count(ChildInfo * pChildInfo, int node_num)
+{
+	int			i;
+	int			num_targets = 0;
+
+	for (i = 0; i < node_num; i++)
+	{
+		if (pChildInfo[i].child_node_status == ServerStatusAlive)
+			num_targets++;
+	}
+	if (num_targets == 0)
+		ereport(ERROR, (errmsg("There is no candidate for insert.")));
+}
+
 /**
  * spd_inscand_updatable
  *
@@ -73,48 +120,38 @@ static void
 spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
+	MemoryContext ccxt = CurrentMemoryContext;
 
 	for (i = 0; i < node_num; i++)
 	{
-		Relation	rel = NULL;
 		int			updatable = 0;
 		ChildInfo  *pChild = &pChildInfo[i];
+		Relation	rel = table_open(pChild->oid, NoLock);
 
 		PG_TRY();
 		{
 			Oid			server_oid = spd_serverid_of_relation(pChild->oid);
 			FdwRoutine *fdwroutine = GetFdwRoutineByServerId(server_oid);
 
-			rel = table_open(pChild->oid, NoLock);
-			/* ToDo close */
-
-			updatable = fdwroutine->IsForeignRelUpdatable(rel);
+			if (fdwroutine->IsForeignRelUpdatable)
+				updatable = fdwroutine->IsForeignRelUpdatable(rel);
 		}
 		PG_CATCH();
 		{
-			int			elevel;
-
-			pChild->child_node_status = ServerStatusDead;
-			FlushErrorState();
-			if (throwCandidateError)
-				elevel = ERROR;
-			else
-				elevel = WARNING;
-			ereport(elevel, (errmsg("GetForeignPlan of child[%d] failed.", i)));
-			/* ToDo: message */
+			char   *relname = RelationGetRelationName(rel);
+			handle_datasource_error(ccxt, relname);
+			pChild->child_node_status = ServerStatusNotTarget;
 		}
 		PG_END_TRY();
 
-		if (rel)
-			table_close(rel, NoLock);
+		table_close(rel, NoLock);
 
 		if ((updatable & (1 << CMD_INSERT)) == 0)
-			pChild->child_node_status = ServerStatusDead;
-/* ToDo: un - updatable state */
+			pChild->child_node_status = ServerStatusNotTarget;
 	}
 
-	/* ToDo: Check the number of candidates. */
-
+	/* Check the number of candidates. */
+	check_candidate_count(pChildInfo, node_num);
 }
 
 /**
@@ -124,17 +161,16 @@ static void
 spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
+	MemoryContext ccxt = CurrentMemoryContext;
 
 	for (i = 0; i < node_num; i++)
 	{
 		char		ip[NAMEDATALEN] = {0};
 		Oid			server_oid;
 		ForeignServer *fs;
-		ForeignDataWrapper *fdw;
 
 		server_oid = spd_serverid_of_relation(pChildInfo[i].oid);
 		fs = GetForeignServer(server_oid);
-		fdw = GetForeignDataWrapper(fs->fdwid);
 
 		spd_ip_from_server_name(fs->servername, ip);
 #ifndef WITHOUT_KEEPALIVE
@@ -146,15 +182,12 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 		}
 		else
 		{
-			int			elevel;
+			Relation	rel = table_open(pChildInfo[i].oid, NoLock);
+			char   *relname = RelationGetRelationName(rel);
 
-			pChildInfo->child_node_status = ServerStatusDead;
-			if (throwCandidateError)
-				elevel = ERROR;
-			else
-				elevel = WARNING;
-			ereport(elevel, (errmsg(".")));
-			/* ToDo */
+			handle_datasource_error(ccxt, relname);
+			pChildInfo[i].child_node_status = ServerStatusDead;
+			table_close(rel, NoLock);
 		}
 #endif
 	}
@@ -169,17 +202,8 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 void
 spd_inscand_get(ChildInfo * pChildInfo, int node_num)
 {
-	int			i;
-	int			num_targets = 0;
 
-	/* Check the number of candidates. */
-	for (i = 0; i < node_num; i++)
-	{
-		if (pChildInfo[i].child_node_status == ServerStatusAlive)
-			num_targets++;
-	}
-	if (num_targets == 0)
-		ereport(ERROR, (errmsg("There is no candidate for insert.")));
+	check_candidate_count(pChildInfo, node_num);
 
 	spd_inscand_updatable(pChildInfo, node_num);
 
@@ -251,7 +275,7 @@ spd_get_server_from_slot(TupleTableSlot *slot, TupleDesc tupdesc)
  * 		Remove un-related tables from candidates based on SPDURL
  * 		column value.
  *
- * 		child_node_status will be set to {DoTo} from ServerStatusAlive if un-related table.
+ * 		child_node_status will be set to ServerStatusNotTarget from ServerStatusAlive if un-related table.
  */
 void
 spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, int node_num)
@@ -278,12 +302,11 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, i
 
 		spd_servername_from_tableoid(pChild->oid, srvname);
 		if (strcmp(spdurl_server, srvname) != 0)
-			pChild->child_node_status = ServerStatusDead;	/* ToDo: not spdurl
-															 * target state */
+			pChild->child_node_status = ServerStatusNotTarget;
 	}
 
 	/* Check the number of candidates. */
-
+	check_candidate_count(pChildInfo, node_num);
 }
 
 /**
@@ -323,7 +346,8 @@ spd_instgt_last_table(Oid parent, bool *found)
  * 		Choose one child table from candidate for insert.
  */
 static int
-spd_instgt_choose(char *prev_name, ChildInfo * pChildInfo, int node_num)
+spd_instgt_choose(char *prev_name, ModifyThreadInfo *mtThrdInfo,
+				  ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
 
@@ -335,13 +359,14 @@ spd_instgt_choose(char *prev_name, ChildInfo * pChildInfo, int node_num)
 	{
 		for (i = 0; i < node_num; i++)
 		{
-			char	   *relname = get_rel_name(pChildInfo[i].oid);
+			int			idx = mtThrdInfo[i].childInfoIndex;
+			char	   *relname = get_rel_name(pChildInfo[idx].oid);
 			int			cmp = strcmp(prev_name, relname);
 
 			if (cmp >= 0)
 				continue;
 
-			if (pChildInfo[i].child_node_status == ServerStatusAlive)
+			if (pChildInfo[idx].child_node_status == ServerStatusAlive)
 				return i;
 		}
 
@@ -354,7 +379,8 @@ spd_instgt_choose(char *prev_name, ChildInfo * pChildInfo, int node_num)
 	/* Find the first child table in candidates. */
 	for (i = 0; i < node_num; i++)
 	{
-		if (pChildInfo[i].child_node_status == ServerStatusAlive)
+		int			idx = mtThrdInfo[i].childInfoIndex;
+		if (pChildInfo[idx].child_node_status == ServerStatusAlive)
 			return i;
 	}
 
@@ -368,12 +394,14 @@ spd_instgt_choose(char *prev_name, ChildInfo * pChildInfo, int node_num)
  * 		and memorize it in shared memory.
  */
 int
-spd_instst_get_target(Oid parent, ChildInfo * pChildInfo, int node_num)
+spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
+					  ChildInfo * pChildInfo, int node_num)
 {
 	SpdInstgtElem *entry;
 	bool		found;
 	char	   *prev_name;
 	int			i;
+	int			idx;
 	char	   *relname;
 
 	/* Find the last target and get a lock for the shared hash. */
@@ -385,11 +413,12 @@ spd_instst_get_target(Oid parent, ChildInfo * pChildInfo, int node_num)
 	else
 		prev_name = NULL;
 
-	i = spd_instgt_choose(prev_name, pChildInfo, node_num);
+	i = spd_instgt_choose(prev_name, mtThrdInfo, pChildInfo, node_num);
 
 	/* Update target information in shared memory. */
-	relname = get_rel_name(pChildInfo[i].oid);
-	entry->child = pChildInfo[i].oid;
+	idx = mtThrdInfo[i].childInfoIndex;
+	relname = get_rel_name(pChildInfo[idx].oid);
+	entry->child = pChildInfo[idx].oid;
 	strcpy(entry->tablename, relname);
 
 	/* Release the lock. */

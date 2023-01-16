@@ -18,6 +18,7 @@
 #include "lib/stringinfo.h"
 #include "nodes/pathnodes.h"
 #include "utils/relcache.h"
+#include "utils/resowner.h"
 #include "catalog/pg_operator.h"
 #include "optimizer/planner.h"
 
@@ -30,6 +31,7 @@ enum SpdServerstatus
 	ServerStatusAlive,
 	ServerStatusIn,
 	ServerStatusDead,
+	ServerStatusNotTarget,
 };
 
 /* This structure stores child pushdown information about child path. */
@@ -75,6 +77,44 @@ typedef struct ChildInfo
 	/* USE ONLY IN EXECUTION */
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
 }			ChildInfo;
+
+typedef enum
+{
+	SPD_MDF_STATE_INIT,
+	SPD_MDF_STATE_BEGIN,
+	SPD_MDF_STATE_EXEC,
+	SPD_MDF_STATE_PRE_END,
+	SPD_MDF_STATE_END,
+	SPD_MDF_STATE_FINISH,
+	SPD_MDF_STATE_ERROR
+}			SpdModifyThreadState;
+
+typedef struct ModifyThreadInfo
+{
+	struct FdwRoutine *fdwroutine;	/* Foreign Data wrapper  routine */
+	struct ModifyTableState *mtstate;	/* ModifyTable state data */
+	int			eflags;			/* it used to set on Plan nodes(bitwise OR of
+								 * the flag bits ) */
+	Oid			serverId;		/* use it for server id */
+	ForeignServer *foreignServer;	/* cache this for performance */
+	ForeignDataWrapper *fdw;	/* cache this for performance */
+	bool		requestExecModify; /* main thread request ExecForeignModify to
+									* child thread */
+	bool		requestEndModify; /* main thread request EndForeignModify to child
+								 * thread */
+	TupleTableSlot *slot;
+	TupleTableSlot *planSlot;
+	int			childInfoIndex; /* index of child info array */
+	MemoryContext threadMemoryContext;
+	MemoryContext threadTopMemoryContext;
+	SpdModifyThreadState state;
+	pthread_t	me;
+	ResourceOwner thrd_ResourceOwner;
+	void	   *private;
+	int			transaction_level;
+	bool		is_joined;
+	int			subplan_index;
+}			ModifyThreadInfo;
 
  /* in pgspider_core_deparse.c */
 extern bool spd_is_foreign_expr(PlannerInfo *, RelOptInfo *, Expr *);
