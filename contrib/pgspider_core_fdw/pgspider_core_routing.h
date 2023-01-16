@@ -20,8 +20,8 @@ void		spd_instgt_init_shm(void);
 void		spd_inscand_get(ChildInfo * pChildInfo, int node_num);
 void		spd_inscand_spdurl(TupleTableSlot *slot, Relation rel,
 							   ChildInfo * pChildInfo, int node_num);
-int			spd_instst_get_target(Oid parent, ChildInfo * pChildInfo,
-								  int node_num);
+int			spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
+								  ChildInfo * pChildInfo, int node_num);
 
 #endif							/* PGSPIDER_CORE_ROUTING */
 #endif							/* OMIT_INSERT_ROUNDROBIN */
