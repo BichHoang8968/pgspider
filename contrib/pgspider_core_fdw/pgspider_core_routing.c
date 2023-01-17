@@ -334,7 +334,7 @@ spd_instgt_last_table(Oid parent, bool *found)
 	relname = get_rel_name(entry->child);
 
 	/* Check whether child table was renamed. */
-	if (strcmp(relname, entry->tablename) != 0)
+	if (!relname || strcmp(relname, entry->tablename) != 0)
 	{
 		*found = false;
 		return entry;
