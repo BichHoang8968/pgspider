@@ -126,7 +126,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 	{
 		int			updatable = 0;
 		ChildInfo  *pChild = &pChildInfo[i];
-		Relation	rel = table_open(pChild->oid, NoLock);
+		Relation	rel = RelationIdGetRelation(pChild->oid);
 
 		PG_TRY();
 		{
@@ -144,7 +144,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 		}
 		PG_END_TRY();
 
-		table_close(rel, NoLock);
+		RelationClose(rel);
 
 		if ((updatable & (1 << CMD_INSERT)) == 0)
 			pChild->child_node_status = ServerStatusNotTarget;
@@ -182,12 +182,12 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 		}
 		else
 		{
-			Relation	rel = table_open(pChildInfo[i].oid, NoLock);
+			Relation	rel = RelationIdGetRelation(pChildInfo[i].oid);
 			char   *relname = RelationGetRelationName(rel);
 
 			handle_datasource_error(ccxt, relname);
 			pChildInfo[i].child_node_status = ServerStatusDead;
-			table_close(rel, NoLock);
+			RelationClose(rel);
 		}
 #endif
 	}
