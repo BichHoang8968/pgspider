@@ -12953,9 +12953,17 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 					ForeignDataWrapper *fdw = GetForeignDataWrapper(fs->fdwid);
 
 					/* fdw does not support Modify => skip */
-					elog(WARNING, "%s will be skipped because it does not support modification", fdw->fdwname);
+					if (operation == CMD_INSERT)
+					{
+						elog(WARNING, "%s is ignored as an insert target because it does not support modification", fdw->fdwname);
+						pChildInfo->child_node_status = ServerStatusNotTarget;
+					}
+					else
+					{
+						elog(WARNING, "%s will be skipped because it does not support modification", fdw->fdwname);
+						pChildInfo->child_node_status = ServerStatusDead;
+					}
 					pChildInfo->root = root;
-					pChildInfo->child_node_status = ServerStatusDead;
 				}
 			}
 		}
