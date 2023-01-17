@@ -13980,7 +13980,7 @@ spd_ExecForeignInsert(EState *estate,
 		fdw_private = spd_DeserializeSpdFdwPrivate(resultRelInfo->ri_FdwState, SpdForeignModify);
 
 	spd_inscand_spdurl(planSlot, rel, fdw_private->childinfo, fdw_private->node_num);
-	i = spd_instst_get_target(*foreigntableoid, mtThrdInfo, fdw_private->childinfo, fdw_private->node_num);
+	i = spd_instst_get_target(*foreigntableoid, mtThrdInfo, fdw_private->childinfo, fdw_private->nThreads);
 
 	idx = mtThrdInfo[i].childInfoIndex;
 	pChildInfo = &fdw_private->childinfo[idx];

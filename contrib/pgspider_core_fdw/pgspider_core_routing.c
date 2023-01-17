@@ -124,7 +124,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 
 	for (i = 0; i < node_num; i++)
 	{
-		int			updatable = 0;
+		int			updatable;
 		ChildInfo  *pChild = &pChildInfo[i];
 		Relation	rel = RelationIdGetRelation(pChild->oid);
 
@@ -135,6 +135,8 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 
 			if (fdwroutine->IsForeignRelUpdatable)
 				updatable = fdwroutine->IsForeignRelUpdatable(rel);
+			else
+				updatable = (1 << CMD_INSERT);
 		}
 		PG_CATCH();
 		{
@@ -392,6 +394,7 @@ spd_instgt_choose(char *prev_name, ModifyThreadInfo *mtThrdInfo,
  * spd_instst_get_target
  * 		Choose one child table from candidate for insert
  * 		and memorize it in shared memory.
+ * 		This function returns an index of target in ModifyThreadInfo array.
  */
 int
 spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
