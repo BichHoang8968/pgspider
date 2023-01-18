@@ -3,7 +3,7 @@
  * deparse.c
  *		  FDW deparsing module for pgspider_core_fdw
  *
- * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_core_fdw/deparse.c

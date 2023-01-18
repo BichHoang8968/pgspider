@@ -4,7 +4,7 @@
  *		  FDW and GUC option handling for pgspider_fdw
  *
  * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
- * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_fdw/option.c
