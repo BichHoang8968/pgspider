@@ -12907,6 +12907,8 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		RangeTblEntry *parentrte = planner_rt_fetch(resultRelation, root);
 		List	   *rtable = NIL;
 		ListCell   *lc;
+		Relation	rel;
+		int			refcnt;
 
 		/* Skip dead node. */
 		if (pChildInfo->child_node_status != ServerStatusAlive)
@@ -12937,6 +12939,13 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 
 		/* Set up RTE/RelOptInfo arrays. */
 		setup_simple_rel_arrays(pChildInfo->root);
+
+		/*
+		 * Memorize the current reference count so that we can detect to call table_close()
+		 * in case of error.
+		 */
+		rel = RelationIdGetRelation(pChildInfo->oid);
+		refcnt = rel->rd_refcnt;
 
 		PG_TRY();
 		{
@@ -12969,22 +12978,36 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 		}
 		PG_CATCH();
 		{
-			/* Emit ERROR report here to get detail ERROR message from child fdw */
-			EmitErrorReport();
+			if (operation == CMD_INSERT)
+			{
+				char   *relname = RelationGetRelationName(rel);
 
-			/*
-			 * If fail to get child plan, then set
-			 * fdw_private->child_node_status to ServerStatusDead.
-			 */
-			pChildInfo->child_node_status = ServerStatusDead;
-			elog(WARNING, "PlanForeignModify of child[%d] failed.", i);
-			if (throwErrorIfDead)
-				spd_aliveError(fs);
+				spd_inscand_handle_error(oldcontext, relname);
+				pChildInfo->child_node_status = ServerStatusNotTarget;
+			}
+			else
+			{
+				/* Emit ERROR report here to get detail ERROR message from child fdw */
+				EmitErrorReport();
 
-			MemoryContextSwitchTo(oldcontext);
-			FlushErrorState();
+				/*
+				 * If fail to get child plan, then set
+				 * fdw_private->child_node_status to ServerStatusDead.
+				 */
+				pChildInfo->child_node_status = ServerStatusDead;
+				elog(WARNING, "PlanForeignModify of child[%d] failed.", i);
+				if (throwErrorIfDead)
+					spd_aliveError(fs);
+
+				MemoryContextSwitchTo(oldcontext);
+				FlushErrorState();
+			}
 		}
 		PG_END_TRY();
+
+		if (refcnt != rel->rd_refcnt)
+			table_close(rel, NoLock);
+		RelationClose(rel);
 
 		pChildInfo->fdw_private = child_fdw_private;
 	}
@@ -13040,7 +13063,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	if (fdw_private == NULL)
 	{
 		fdw_private = (void *) spd_InitPrivate(rte->relid, rte->spd_url_list, &nums);
-		spd_AddForeignUpdateTargetsChild(root, rte->relid, 0, nums, fdw_private->childinfo, true);
+		spd_AddForeignUpdateTargetsChild(root, rte->relid, 1, nums, fdw_private->childinfo, true);
 		root->fdw_private = (void *) fdw_private;
 	}
 

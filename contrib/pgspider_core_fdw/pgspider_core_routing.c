@@ -65,8 +65,8 @@ static SpdInststGlb spd_instst_glb;
 #define g_spd_instst_area		(spd_instst_glb.area)
 #define g_spd_instst_hash		(spd_instst_glb.hash)
 
-static void
-handle_datasource_error(MemoryContext ccxt, char *relname)
+void
+spd_inscand_handle_error(MemoryContext ccxt, char *relname)
 {
 	int			elevel;
 	MemoryContext ecxt = MemoryContextSwitchTo(ccxt);
@@ -126,7 +126,12 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 	{
 		int			updatable;
 		ChildInfo  *pChild = &pChildInfo[i];
-		Relation	rel = RelationIdGetRelation(pChild->oid);
+		Relation	rel;
+		
+		if (pChild->child_node_status != ServerStatusAlive)
+			continue;
+
+		rel = RelationIdGetRelation(pChild->oid);
 
 		PG_TRY();
 		{
@@ -141,7 +146,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 		PG_CATCH();
 		{
 			char   *relname = RelationGetRelationName(rel);
-			handle_datasource_error(ccxt, relname);
+			spd_inscand_handle_error(ccxt, relname);
 			pChild->child_node_status = ServerStatusNotTarget;
 		}
 		PG_END_TRY();
@@ -171,6 +176,9 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 		Oid			server_oid;
 		ForeignServer *fs;
 
+		if (pChildInfo[i].child_node_status != ServerStatusAlive)
+			continue;
+
 		server_oid = spd_serverid_of_relation(pChildInfo[i].oid);
 		fs = GetForeignServer(server_oid);
 
@@ -187,7 +195,7 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 			Relation	rel = RelationIdGetRelation(pChildInfo[i].oid);
 			char   *relname = RelationGetRelationName(rel);
 
-			handle_datasource_error(ccxt, relname);
+			spd_inscand_handle_error(ccxt, relname);
 			pChildInfo[i].child_node_status = ServerStatusDead;
 			RelationClose(rel);
 		}
