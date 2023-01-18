@@ -88,7 +88,7 @@ spd_inscand_handle_error(MemoryContext ccxt, char *relname)
 
 	ereport(elevel,
 			(errcode(ERRCODE_FDW_ERROR),
-			errmsg("could not know whether a child \"%s\"is updatable or not.",
+			errmsg("Error occurred on a child table \"%s\".",
 					relname),
 			errdetail_internal("%s", message)));
 }
