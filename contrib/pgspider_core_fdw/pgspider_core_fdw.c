@@ -13906,32 +13906,45 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 		else if (fdw_private->operation == CMD_INSERT)
 		{
 			ChildNodeInfo *child_node_info = spd_get_child_node_info(pChildInfo->server_oid, pChildInfo->oid);
-
-			if (child_node_info != NULL)
+			MemoryContext oldcontext = CurrentMemoryContext;
+			
+			PG_TRY();
 			{
-				/*
-				 * Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
-				 * execution. Therefore, we need to use 1 mutex to lock all threads of oracle_fdw.
-				 */
-				if (strcmp(mtThrdInfo[node_incr].fdw->fdwname, ORACLE_FDW_NAME) == 0)
-				{
-					SPD_LOCK_TRY(&oracle_fdw_mutex);
-					mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
-					SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
-				}
-				else
+				if (child_node_info != NULL)
 				{
 					/*
-					* Need mutex to avoid concurrency conflict between Scan (including
-					* Main query and Subquery if have) and Modify threads.
+					* Multiple sessions of oracle_fdw can have the same connection. It causes error when concurrency
+					* execution. Therefore, we need to use 1 mutex to lock all threads of oracle_fdw.
 					*/
-					SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
-					mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
-					SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					if (strcmp(mtThrdInfo[node_incr].fdw->fdwname, ORACLE_FDW_NAME) == 0)
+					{
+						SPD_LOCK_TRY(&oracle_fdw_mutex);
+						mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
+						SPD_UNLOCK_CATCH(&oracle_fdw_mutex);
+					}
+					else
+					{
+						/*
+						* Need mutex to avoid concurrency conflict between Scan (including
+						* Main query and Subquery if have) and Modify threads.
+						*/
+						SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
+						mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
+						SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
+					}
 				}
+				else
+					mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
 			}
-			else
-				mtThrdInfo[node_incr].fdwroutine->BeginForeignModify(mtstate_child, mtstate_child->resultRelInfo, pChildInfo->fdw_private, subplan_index, eflags);
+			PG_CATCH();
+			{
+				char   *relname = RelationGetRelationName(rd);
+
+				spd_inscand_handle_error(oldcontext, relname);
+				pChildInfo->child_node_status = ServerStatusNotTarget;
+			}
+			PG_END_TRY();
+			
 		}
 
 		node_incr++;
