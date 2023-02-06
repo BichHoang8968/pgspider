@@ -139,6 +139,13 @@ extern int	set_transmission_modes(void);
 extern void reset_transmission_modes(int nestlevel);
 extern void process_pending_request(AsyncRequest *areq);
 
+#ifdef PGSPIDER
+extern int	ExecForeignDDL(Oid serverOid,
+						   Relation rel,
+						   int operation,
+						   bool if_not_exists);
+#endif
+
 /* in connection.c */
 extern PGconn *GetConnection(UserMapping *user, bool will_prep_stmt,
 							 PgFdwConnState **state);
@@ -232,6 +239,13 @@ extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 									bool is_subquery,
 									List **retrieved_attrs, List **params_list);
 extern const char *get_jointype_name(JoinType jointype);
+
+#ifdef PGSPIDER
+extern void deparseCreateTableSql(StringInfo buf, Relation rel,
+								  bool if_not_exist);
+extern void deparseDropTableSql(StringInfo buf, Relation rel,
+								bool exists_flag);
+#endif
 
 /* in shippable.c */
 extern bool is_builtin(Oid objectId);

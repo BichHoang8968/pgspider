@@ -126,6 +126,14 @@ typedef struct ImportQual
 	List	   *table_names;
 } ImportQual;
 
+/* Private struct for the result of migrate_table_qualification production */
+typedef struct MigrateTableQual
+{
+	MigrateTableType migrate_type;
+	RangeVar	*dest_relation;
+	List		*dest_table_options;
+} MigrateTableQual;
+
 /* Private struct for the result of opt_select_limit production */
 typedef struct SelectLimit
 {
@@ -283,6 +291,8 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	MergeWhenClause *mergewhen;
 	struct KeyActions *keyactions;
 	struct KeyAction *keyaction;
+	struct MigrateTableQual	    *migratetablequal;
+	struct MigrateServerItem	*migrateserveritem;
 }
 
 %type <node>	stmt toplevel_stmt schema_stmt routine_body_stmt
@@ -324,6 +334,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 		CreateMatViewStmt RefreshMatViewStmt CreateAmStmt
 		CreatePublicationStmt AlterPublicationStmt
 		CreateSubscriptionStmt AlterSubscriptionStmt DropSubscriptionStmt
+		MigrateTableStmt CreateDatasourceTableStmt DropDatasourceTableStmt
 
 %type <node>	select_no_parens select_with_parens select_clause
 				simple_select values_clause
@@ -418,6 +429,9 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 %type <node>	vacuum_relation
 %type <selectlimit> opt_select_limit select_limit limit_clause
 
+%type <migratetablequal>	migrate_table_qualification
+%type <migrateserveritem>	migrate_server_item
+
 %type <list>	parse_toplevel stmtmulti routine_body_stmt_list
 				OptTableElementList TableElementList OptInherit definition
 				OptTypedTableElementList TypedTableElementList
@@ -451,6 +465,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 				TriggerTransitions TriggerReferencing
 				vacuum_relation_list opt_vacuum_relation_list
 				drop_option_list pub_obj_list
+				dest_table_options dest_server_list dest_server_options
 
 %type <node>	opt_routine_body
 %type <groupclause> group_clause
@@ -689,7 +704,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	DATA_P DATABASE DAY_P DEALLOCATE DEC DECIMAL_P DECLARE DEFAULT DEFAULTS
 	DEFERRABLE DEFERRED DEFINER DELETE_P DELIMITER DELIMITERS DEPENDS DEPTH DESC
 	DETACH DICTIONARY DISABLE_P DISCARD DISTINCT DO DOCUMENT_P DOMAIN_P
-	DOUBLE_P DROP
+	DOUBLE_P DROP DATASOURCE
 
 	EACH ELSE ENABLE_P ENCODING ENCRYPTED END_P ENUM_P ESCAPE EVENT EXCEPT
 	EXCLUDE EXCLUDING EXCLUSIVE EXECUTE EXISTS EXPLAIN EXPRESSION
@@ -716,7 +731,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOGGED
 
 	MAPPING MATCH MATCHED MATERIALIZED MAXVALUE MERGE METHOD
-	MINUTE_P MINVALUE MODE MONTH_P MOVE MULTI
+	MINUTE_P MINVALUE MODE MONTH_P MOVE MULTI MIGRATE
 
 	NAME_P NAMES NATIONAL NATURAL NCHAR NEW NEXT NFC NFD NFKC NFKD NO NONE
 	NORMALIZE NORMALIZED
@@ -1065,6 +1080,9 @@ stmt:
 			| VariableSetStmt
 			| VariableShowStmt
 			| ViewStmt
+			| MigrateTableStmt
+			| CreateDatasourceTableStmt
+			| DropDatasourceTableStmt
 			| /*EMPTY*/
 				{ $$ = NULL; }
 		;
@@ -5169,6 +5187,54 @@ AlterExtensionContentsStmt:
 					n->object = (Node *) $6;
 					$$ = (Node *) n;
 				}
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             CREATE DATASOURCE TABLE [IF NOT EXISTS] qualified_name;
+ *
+ *****************************************************************************/
+
+CreateDatasourceTableStmt: CREATE DATASOURCE TABLE qualified_name
+					{
+						CreateDatasourceTableStmt *n = makeNode(CreateDatasourceTableStmt);
+						n->relation = $4;
+						n->if_not_exists = false;
+						$$ = (Node *) n;
+					}
+					| CREATE DATASOURCE TABLE IF_P NOT EXISTS qualified_name
+					{
+						CreateDatasourceTableStmt *n = makeNode(CreateDatasourceTableStmt);
+						n->relation = $7;
+						n->if_not_exists = true;
+						$$ = (Node *) n;
+					}
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *             DROP DATASOURCE TABLE qualified_name;
+ *
+ *****************************************************************************/
+
+DropDatasourceTableStmt: DROP DATASOURCE TABLE qualified_name
+					{
+						DropDatasourceTableStmt *n = makeNode(DropDatasourceTableStmt);
+						n->relation = $4;
+						n->missing_ok = false;
+
+						$$ = (Node *) n;
+					}
+					| DROP DATASOURCE TABLE IF_P EXISTS qualified_name
+					{
+						DropDatasourceTableStmt *n = makeNode(DropDatasourceTableStmt);
+						n->relation = $6;
+						n->missing_ok = true;
+
+						 $$ = (Node *) n;
+					}
 		;
 
 /*****************************************************************************
@@ -16812,6 +16878,85 @@ role_list:	RoleSpec
 				{ $$ = lappend($1, $3); }
 		;
 
+/***********************************************************************************************
+ *
+ *    QUERY :
+ *        MIGRATE TABLE src_table [ REPLACE | TO dest_table [ OPTIONS (opt1 …) ] ]
+ *        SERVER dest_server [ OPTIONS (opt2 ...) ] [, dest_server [ OPTIONS (opt2 ...) ] ... ]
+ *
+ ***********************************************************************************************/
+
+MigrateTableStmt:
+		MIGRATE TABLE qualified_name migrate_table_qualification
+				SERVER dest_server_list
+				{
+					MigrateTableStmt *n = makeNode(MigrateTableStmt);
+					n->source_relation = $3;
+					n->migrate_type = $4->migrate_type;
+					n->dest_relation = $4->dest_relation;
+					n->dest_table_options = $4->dest_table_options;
+					n->dest_server_list = $6;
+
+					$$ = (Node *)n;
+				}
+		;
+
+migrate_table_qualification:
+		REPLACE
+			{
+				MigrateTableQual *n = (MigrateTableQual *) palloc(sizeof(MigrateTableQual));
+				n->migrate_type = MIGRATE_REPLACE;
+				n->dest_relation = NULL;
+				n->dest_table_options = NIL;
+
+				$$ = n;
+			}
+		| TO qualified_name dest_table_options
+			{
+				MigrateTableQual *n = (MigrateTableQual *) palloc(sizeof(MigrateTableQual));
+				n->migrate_type = MIGRATE_TO;
+				n->dest_relation = $2;
+				n->dest_table_options = $3;
+
+				$$ = n;
+			}
+		| /*EMPTY*/
+			{
+				MigrateTableQual *n = (MigrateTableQual *) palloc(sizeof(MigrateTableQual));
+				n->migrate_type = MIGRATE_NONE;
+				n->dest_relation = NULL;
+				n->dest_table_options = NIL;
+
+				$$ = n;
+			}
+		;
+
+dest_table_options:
+				OPTIONS '(' generic_option_list ')'			{ $$ = $3; }
+				| /*EMPTY*/	    	{ $$ = NIL; }
+		;
+
+dest_server_list:
+				migrate_server_item							{ $$ = list_make1($1); }
+				| dest_server_list ',' migrate_server_item		{ $$ = lappend($1, $3); }
+		;
+
+migrate_server_item:
+			name dest_server_options
+				{
+					MigrateServerItem *n = (MigrateServerItem *) palloc (sizeof(MigrateServerItem));
+
+					n->dest_server_name = $1;
+					n->dest_server_options = $2;
+
+					$$ = n;
+				}
+		;
+
+dest_server_options:
+				OPTIONS '(' generic_option_list ')'			{ $$ = $3; }
+				| /*EMPTY*/									{ $$ = NIL; }
+		;
 
 /*****************************************************************************
  *
@@ -17004,6 +17149,7 @@ unreserved_keyword:
 			| CYCLE
 			| DATA_P
 			| DATABASE
+			| DATASOURCE
 			| DAY_P
 			| DEALLOCATE
 			| DECLARE
@@ -17096,6 +17242,7 @@ unreserved_keyword:
 			| MAXVALUE
 			| MERGE
 			| METHOD
+			| MIGRATE
 			| MINUTE_P
 			| MINVALUE
 			| MODE
@@ -17544,6 +17691,7 @@ bare_label_keyword:
 			| CYCLE
 			| DATA_P
 			| DATABASE
+			| DATASOURCE
 			| DEALLOCATE
 			| DEC
 			| DECIMAL_P
@@ -17668,6 +17816,7 @@ bare_label_keyword:
 			| MAXVALUE
 			| MERGE
 			| METHOD
+			| MIGRATE
 			| MINVALUE
 			| MODE
 			| MOVE
