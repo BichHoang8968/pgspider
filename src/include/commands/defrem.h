@@ -130,6 +130,12 @@ extern ObjectAddress CreateUserMapping(CreateUserMappingStmt *stmt);
 extern ObjectAddress AlterUserMapping(AlterUserMappingStmt *stmt);
 extern Oid	RemoveUserMapping(DropUserMappingStmt *stmt);
 extern void CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid);
+#ifdef PGSPIDER
+extern void CreateDatasourceTable(CreateDatasourceTableStmt *stmt);
+extern void DropDatasourceTable(DropDatasourceTableStmt *stmt);
+extern void CreateMigrateCommands(MigrateTableStmt *stmt, List **cmds, List **c_cmds);
+extern void spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oids);
+#endif
 extern void ImportForeignSchema(ImportForeignSchemaStmt *stmt);
 extern Datum transformGenericOptions(Oid catalogId,
 									 Datum oldOptions,
