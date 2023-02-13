@@ -3,7 +3,7 @@
  * pgspider_core_fdw.c
  *		  Main source code of pgspider_core_fdw
  *
- * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPORATION
  *
  * IDENTIFICATION
  *		  contrib/pgspider_core_fdw/pgspider_core_fdw.c
@@ -157,7 +157,7 @@ PG_MODULE_MAGIC;
 	}
 
 /* Code version is updated at new release. */
-#define CODE_VERSION   20200
+#define CODE_VERSION   30000
 
 /*
  * Same as COMPARE_SCALAR_FIELD of equalfuncs.c
@@ -2597,10 +2597,10 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
  *
  * @param[in] foreigntableid Parent table's oid
  * @param[out] nums The number of child nodes
- * @param[out] oid Oid list of child table
+ * @param[out] oids Oid list of child table
  */
 void
-spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid)
+spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oids)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
@@ -2642,7 +2642,7 @@ spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid)
 	}
 	spi_temp = SPI_processed;
 	spicontext = MemoryContextSwitchTo(oldcontext);
-	*oid = (Oid *) palloc0(sizeof(Oid) * spi_temp);
+	*oids = (Oid *) palloc0(sizeof(Oid) * spi_temp);
 	MemoryContextSwitchTo(spicontext);
 
 	if (SPI_processed > 0)
@@ -2651,7 +2651,7 @@ spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid)
 		{
 			bool		isnull;
 
-			oid[0][i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
+			oids[0][i] = DatumGetObjectId(SPI_getbinval(SPI_tuptable->vals[i], SPI_tuptable->tupdesc, 1, &isnull));
 		}
 	}
 

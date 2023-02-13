@@ -6,7 +6,7 @@
  * This file is for using FDW safely in multithread by appending normalized thread id
  * to connection cache hashtable key in FDW without changes to FDW.
  *
- * Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+ * Portions Copyright (c) 2018, TOSHIBA CORPORATION
  *
  *-------------------------------------------------------------------------
  */

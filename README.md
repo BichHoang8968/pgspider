@@ -317,6 +317,68 @@ SELECT * FROM t1;
 (4 rows)
 </pre>
 
+### Create/Drop datasource table
+According to the information of a foreign table, you can create/drop a table on remote database.   
+  - The query syntax:
+    <pre>
+    CREATE DATASOURCE TABLE [ IF NOT EXISTS ] table_name;
+    DROP DATASOURCE TABLE [ IF EXISTS ] table_name;
+    </pre>
+  - Parameters:
+    - IF NOT EXISTS (in CREATE DATASOURCE TABLE)   
+      Do not throw any error if a relation/table with the same name with datasource table already exists in remote server. Note that there is no guarantee that the existing datasouce table is anything like the one that would have been created.
+    - IF EXISTS (in DROP DATASOURCE TABLE)   
+      Do not throw any error if the datasource table does not exist.
+    - table_name   
+      The name (optionally schema-qualified) of the foreign table that we can derive the datasource table need to be created.
+
+  - Examples:
+    ```sql
+    CREATE FOREIGN TABLE ft1(i int, t text) SERVER postgres_svr OPTIONS (table_name 't1');
+    CREATE DATASOURCE TABLE ft1; -- new datasource table `t1` is created in remote server
+    DROP DATASOURCE TABLE ft1 -- datasource table `t1` is dropped in remote server
+    ```
+
+### Migrate table
+You can migrate data from source tables to destination tables.   
+Source table can be local table, foreign table or multi-tenant table. Destination table can be foreign table or multi-tenant table.
+
+  - The query syntax:
+    <pre>
+    MIGRATE TABLE source_table
+    [REPLACE|TO dest_table OPTIONS (USE_MULTITENANT_SERVER <multitenant_server_name>)]
+    SERVER [dest_server OPTIONS ( option 'value' [, ...] ), dest_server OPTIONS ( option 'value' [, ...] ),...]
+    </pre>
+  - Parameters:
+    - source_table   
+      The name (optionally schema-qualified) of the source table. Source table can be local table, foreign table or multi-tenant table.
+    - REPLACE (optional)   
+      If this option is specified, destination table must not be specified, source table will be replaced by a new foreign table/multi-tenant table (with the name sane as source table) remoting to a new data source table. It means source table no longer exists.
+    - TO (optional)   
+      If it is specified, destination table must be specified. And the name of destination table must be different from the name of source table. After migration, source table is kept, new destination foreign table will be created to remoting to new data source table.   
+      - dest_table   
+        The name (optionally schema-qualified) of destination table. If destination table already exists, an error will be reported.
+        Destination table can be specified with option `USE_MULTITENANT_SERVER`, a multi-tenant destination table will be created same as the destination table.
+    - dest_server   
+      Foreign server of destination server. If there are many destination servers or there is a signle destination server with `USE_MULTITENANT_SERVER` option is specified, a multi-tenant destination table will be created same as the destination table name.
+      - OPTIONS ( option 'value' [, ...] )   
+        destination server options, foreign table will be created with these options and datasource table will be created in remote server based on these options.
+
+  - Examples:
+    ```sql
+    MIGRATE TABLE t1 SERVER postgres_svr;
+
+    MIGRATE TABLE t1 REPLACE SERVER postgres_svr;
+
+    MIGRATE TABLE t1 REPLACE SERVER postgres_svr, postgres_svr;
+
+    MIGRATE TABLE t1 TO t2 SERVER postgres_svr;
+
+    MIGRATE TABLE t1 TO t2 SERVER postgres_svr, postgres_svr;
+
+    MIGRATE TABLE t1 to t2 OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_svr') SERVER postgres_svr;
+    ```
+
 ## Note
 When a query to foreign tables fails, you can find why it fails by seeing a query executed in PGSpider with `EXPLAIN (VERBOSE)`.  
 PGSpider has a table option: `disable_transaction_feature_check`:  
@@ -336,7 +398,7 @@ Limitation with modification and transaction:
 Opening issues and pull requests are welcome.
 
 ## License
-Portions Copyright (c) 2018-2021, TOSHIBA CORPORATION
+Portions Copyright (c) 2018, TOSHIBA CORPORATION
 
 Permission to use, copy, modify, and distribute this software and its documentation for any purpose, without fee, and without a written agreement is hereby granted, provided that the above copyright notice and this paragraph and the following two paragraphs appear in all copies.
 
