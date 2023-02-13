@@ -36,21 +36,22 @@
 #endif
 #include "pgspider_core_routing.h"
 
-/* Structure for data stored in dsa. */
+/* Structure for data stored in DSA (Dynamic Shared memory Area) . */
 typedef struct SpdInststShared
 {
-	dshash_table_handle hash_handle;
-	int			tranche_id;
+	dshash_table_handle hash_handle;	/* Handle of hash table on DSA which storing last insert tergets */
+	int			tranche_id;		/* A tranche ID of DSA for insert routing */
 }			SpdInststShared;
 
 /* Structure for data stored in global variable. */
 typedef struct SpdInststGlb
 {
-	SpdInststShared *shared;
-	dsa_area   *area;
-	dshash_table *hash;
+	SpdInststShared *shared;	/* Address of shared data via DSA */
+	dsa_area   *area;			/* DSA handle */
+	dshash_table *hash;			/* Hash table storing last insert tergets */
 }			SpdInststGlb;
 
+/* An element of hash table on DSA storing a last insert terget. */
 typedef struct SpdInstgtElem
 {
 	Oid			parent;			/* Parent table oid: hash key (must be first) */
@@ -58,12 +59,21 @@ typedef struct SpdInstgtElem
 	char		tablename[NAMEDATALEN]; /* Child table name */
 }			SpdInstgtElem;
 
+/* Common data used by insert routing feature shared in a process. */
 static SpdInststGlb spd_instst_glb;
 
+/* Macros to access a global variable. */
 #define g_spd_instst_shared		(spd_instst_glb.shared)
 #define g_spd_instst_area		(spd_instst_glb.area)
 #define g_spd_instst_hash		(spd_instst_glb.hash)
 
+/*
+ * spd_inscand_handle_error
+ *		Handles an error occurred on child table.
+ *
+ *	If throwCandidateError is true, this function throws an error. Else,  
+ *	report a warning.
+ */
 void
 spd_inscand_handle_error(MemoryContext ccxt, char *relname)
 {
@@ -113,7 +123,10 @@ spd_check_candidate_count(ChildInfo * pChildInfo, int node_num)
 
 /**
  * spd_inscand_updatable
+ *		Check if each child table is updatable or not.
  *
+ * If a child table is not updatable, child_node_status is set to 
+ * ServerStatusNotTarget.
  */
 static void
 spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
@@ -162,7 +175,11 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 }
 
 /**
+ * spd_inscand_alive
+ *		Check if each child table is alive or not.
  *
+ * If a child table is not alive, child_node_status is set to 
+ * ServerStatusDead.
  */
 static void
 spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
@@ -208,6 +225,10 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 /**
  * spd_inscand_validate
  * 		Validate candidates of insert targets on prepare phase.
+ * 		On this phase, we can check (1) whether child table is updatable or not, 
+ * 		and (2) whether child table is alive or not.
+ * 		If a child table is detected as not target, child_node_status is set to 
+ * 		ServerStatusNotTarget.
  */
 void
 spd_inscand_validate(ChildInfo * pChildInfo, int node_num)
@@ -285,7 +306,7 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, i
  * 		Find the last insert target. If it is found, the 2nd argument will
  * 		be set to true. Even if the table has been renamed, the 2nd argument
  * 		will be set to false.
- * 		This function returns a hasn entry for the target.
+ * 		This function returns a hash entry for the target.
  * 		Write lock for shared hash will be acquired.
  */
 static SpdInstgtElem *
@@ -342,7 +363,7 @@ spd_instgt_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 		}
 
 		/*
-		 * Here, the previous table name is larget in candidates. So the first
+		 * Here, the previous table name is a last element in candidates. So the first
 		 * child table in candidate will be choosen.
 		 */
 	}
@@ -437,7 +458,7 @@ spd_instgt_init_dsa(SpdInstgtLocation * location)
 	oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
 
 	/*
-	 * Create a duynamic shared memory area. This area is kept even if backend
+	 * Create a dynamic shared memory area. This area is kept even if backend
 	 * is detached or query is finished.
 	 */
 	area = dsa_create(LWLockNewTrancheId());
