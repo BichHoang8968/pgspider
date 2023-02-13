@@ -10,8 +10,6 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef OMIT_INSERT_ROUNDROBIN
-
 #include <stddef.h>
 #include "postgres.h"
 #include "access/table.h"
@@ -31,51 +29,52 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/relcache.h"
+
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
 #include "pgspider_core_routing.h"
 
 /* Structure for data stored in DSA (Dynamic Shared memory Area) . */
-typedef struct SpdInststShared
+typedef struct SpdRoutingShared
 {
 	dshash_table_handle hash_handle;	/* Handle of hash table on DSA which storing last insert tergets */
 	int			tranche_id;		/* A tranche ID of DSA for insert routing */
-}			SpdInststShared;
+}			SpdRoutingShared;
 
 /* Structure for data stored in global variable. */
-typedef struct SpdInststGlb
+typedef struct SpdRoutingGlb
 {
-	SpdInststShared *shared;	/* Address of shared data via DSA */
+	SpdRoutingShared *shared;	/* Address of shared data via DSA */
 	dsa_area   *area;			/* DSA handle */
 	dshash_table *hash;			/* Hash table storing last insert tergets */
-}			SpdInststGlb;
+}			SpdRoutingGlb;
 
 /* An element of hash table on DSA storing a last insert terget. */
-typedef struct SpdInstgtElem
+typedef struct SpdRoutingElem
 {
 	Oid			parent;			/* Parent table oid: hash key (must be first) */
 	Oid			child;			/* Child table oid */
 	char		tablename[NAMEDATALEN]; /* Child table name */
-}			SpdInstgtElem;
+}			SpdRoutingElem;
 
 /* Common data used by insert routing feature shared in a process. */
-static SpdInststGlb spd_instst_glb;
+static SpdRoutingGlb spd_routing_glb;
 
 /* Macros to access a global variable. */
-#define g_spd_instst_shared		(spd_instst_glb.shared)
-#define g_spd_instst_area		(spd_instst_glb.area)
-#define g_spd_instst_hash		(spd_instst_glb.hash)
+#define g_spd_routing_shared		(spd_routing_glb.shared)
+#define g_spd_routing_area		(spd_routing_glb.area)
+#define g_spd_routing_hash		(spd_routing_glb.hash)
 
 /*
- * spd_inscand_handle_error
+ * spd_routing_handle_candidate_error
  *		Handles an error occurred on child table.
  *
  *	If throwCandidateError is true, this function throws an error. Else,  
  *	report a warning.
  */
 void
-spd_inscand_handle_error(MemoryContext ccxt, char *relname)
+spd_routing_handle_candidate_error(MemoryContext ccxt, char *relname)
 {
 	int			elevel;
 	MemoryContext ecxt = MemoryContextSwitchTo(ccxt);
@@ -122,14 +121,14 @@ spd_check_candidate_count(ChildInfo * pChildInfo, int node_num)
 }
 
 /**
- * spd_inscand_updatable
+ * spd_candidate_updatable
  *		Check if each child table is updatable or not.
  *
  * If a child table is not updatable, child_node_status is set to 
  * ServerStatusNotTarget.
  */
 static void
-spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
+spd_candidate_updatable(ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
 	MemoryContext ccxt = CurrentMemoryContext;
@@ -159,7 +158,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 		{
 			char	   *relname = RelationGetRelationName(rel);
 
-			spd_inscand_handle_error(ccxt, relname);
+			spd_routing_handle_candidate_error(ccxt, relname);
 			pChild->child_node_status = ServerStatusNotTarget;
 		}
 		PG_END_TRY();
@@ -175,14 +174,14 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 }
 
 /**
- * spd_inscand_alive
+ * spd_candidate_alive
  *		Check if each child table is alive or not.
  *
  * If a child table is not alive, child_node_status is set to 
  * ServerStatusDead.
  */
 static void
-spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
+spd_candidate_alive(ChildInfo * pChildInfo, int node_num)
 {
 #ifndef WITHOUT_KEEPALIVE
 	int			i;
@@ -207,7 +206,7 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 			Relation	rel = RelationIdGetRelation(pChildInfo[i].oid);
 			char	   *relname = RelationGetRelationName(rel);
 
-			spd_inscand_handle_error(ccxt, relname);
+			spd_routing_handle_candidate_error(ccxt, relname);
 			pChildInfo[i].child_node_status = ServerStatusDead;
 			RelationClose(rel);
 		}
@@ -219,7 +218,7 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 }
 
 /**
- * spd_inscand_validate
+ * spd_routing_candidate_validate
  * 		Validate candidates of insert targets on prepare phase.
  * 		On this phase, we can check (1) whether child table is updatable or not, 
  * 		and (2) whether child table is alive or not.
@@ -227,14 +226,14 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
  * 		ServerStatusNotTarget.
  */
 void
-spd_inscand_validate(ChildInfo * pChildInfo, int node_num)
+spd_routing_candidate_validate(ChildInfo * pChildInfo, int node_num)
 {
 
 	spd_check_candidate_count(pChildInfo, node_num);
 
-	spd_inscand_updatable(pChildInfo, node_num);
+	spd_candidate_alive(pChildInfo, node_num);
 
-	spd_inscand_alive(pChildInfo, node_num);
+	spd_candidate_updatable(pChildInfo, node_num);
 }
 
 /**
@@ -271,14 +270,14 @@ spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc tupdesc)
 }
 
 /**
- * spd_inscand_spdurl
+ * spd_routing_candidate_spdurl
  * 		Remove un-related tables from candidates based on SPDURL
  * 		column value.
  *
  * 		child_node_status will be set to ServerStatusNotTarget from ServerStatusAlive if un-related table.
  */
 void
-spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, int node_num)
+spd_routing_candidate_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, int node_num)
 {
 	TupleDesc	tupdesc;
 	char	   *spdurl;
@@ -298,20 +297,20 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, i
 }
 
 /**
- * spd_instgt_last_table
+ * spd_routing_last_table
  * 		Find the last insert target. If it is found, the 2nd argument will
  * 		be set to true. Even if the table has been renamed, the 2nd argument
  * 		will be set to false.
  * 		This function returns a hash entry for the target.
  * 		Write lock for shared hash will be acquired.
  */
-static SpdInstgtElem *
-spd_instgt_last_table(Oid parent, bool *found)
+static SpdRoutingElem *
+spd_routing_last_table(Oid parent, bool *found)
 {
-	SpdInstgtElem *entry;
+	SpdRoutingElem *entry;
 	char	   *relname;
 
-	entry = dshash_find_or_insert(g_spd_instst_hash, &parent, found);
+	entry = dshash_find_or_insert(g_spd_routing_hash, &parent, found);
 
 	if (!(*found))
 		return entry;
@@ -327,11 +326,11 @@ spd_instgt_last_table(Oid parent, bool *found)
 }
 
 /**
- * spd_instgt_choose
+ * spd_routing_choose
  * 		Choose one child table from candidate for insert.
  */
 static int
-spd_instgt_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
+spd_routing_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 				  ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
@@ -375,16 +374,16 @@ spd_instgt_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 }
 
 /**
- * spd_instst_get_target
+ * spd_routing_get_target
  * 		Choose one child table from candidate for insert
  * 		and memorize it in shared memory.
  * 		This function returns an index of target in ModifyThreadInfo array.
  */
 int
-spd_instst_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
-					  ChildInfo * pChildInfo, int node_num)
+spd_routing_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
+							 ChildInfo * pChildInfo, int node_num)
 {
-	SpdInstgtElem *entry;
+	SpdRoutingElem *entry;
 	bool		found;
 	char	   *prev_name;
 	int			i;
@@ -392,7 +391,7 @@ spd_instst_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
 	char	   *relname;
 
 	/* Find the last target and get a lock for the shared hash. */
-	entry = spd_instgt_last_table(parent, &found);
+	entry = spd_routing_last_table(parent, &found);
 
 	/* Choose the insert target. */
 	if (found)
@@ -400,7 +399,7 @@ spd_instst_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
 	else
 		prev_name = NULL;
 
-	i = spd_instgt_choose(prev_name, mtThrdInfo, pChildInfo, node_num);
+	i = spd_routing_choose(prev_name, mtThrdInfo, pChildInfo, node_num);
 
 	/* Update target information in shared memory. */
 	idx = mtThrdInfo[i].childInfoIndex;
@@ -409,17 +408,17 @@ spd_instst_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
 	strcpy(entry->tablename, relname);
 
 	/* Release the lock. */
-	dshash_release_lock(g_spd_instst_hash, entry);
+	dshash_release_lock(g_spd_routing_hash, entry);
 
 	return i;
 }
 
 static dshash_parameters
-spd_instgt_dshash_params(int tranche_id)
+spd_routing_dshash_params(int tranche_id)
 {
 	dshash_parameters params = {
 		sizeof(Oid),
-		sizeof(SpdInstgtElem),
+		sizeof(SpdRoutingElem),
 		dshash_memcmp,
 		dshash_memhash,
 		tranche_id
@@ -429,17 +428,17 @@ spd_instgt_dshash_params(int tranche_id)
 }
 
 /**
- * spd_instgt_init_dsa
+ * spd_routing_init_dsa
  * 		Create a dynamic shared memory area and a shared data in it.
  *		The location for the shared data is stored in the first argument.
  *		One of the shared data is a hash table which manages an insert target.
  */
 static void
-spd_instgt_init_dsa(SpdInstgtLocation * location)
+spd_routing_init_dsa(SpdInsertTargetLocation * location)
 {
 	dsa_area   *area;
 	dsa_pointer dp;
-	SpdInststShared *its;
+	SpdRoutingShared *its;
 	int			tranche_id;
 	dshash_parameters hash_params;
 	MemoryContext oldMemoryContext;
@@ -459,19 +458,19 @@ spd_instgt_init_dsa(SpdInstgtLocation * location)
 	dsa_pin_mapping(area);
 
 	/* Set the global variable. */
-	g_spd_instst_area = area;
+	g_spd_routing_area = area;
 
 	/* Create the hash table. */
 	tranche_id = LWLockNewTrancheId();
-	hash_params = spd_instgt_dshash_params(tranche_id);
-	g_spd_instst_hash = dshash_create(area, &hash_params, NULL);
+	hash_params = spd_routing_dshash_params(tranche_id);
+	g_spd_routing_hash = dshash_create(area, &hash_params, NULL);
 
 	MemoryContextSwitchTo(oldMemoryContext);
 
 	/* Create and set shared variables. */
-	dp = dsa_allocate0(area, sizeof(SpdInststShared));
-	its = (SpdInststShared *) dsa_get_address(area, dp);
-	its->hash_handle = dshash_get_hash_table_handle(g_spd_instst_hash);
+	dp = dsa_allocate0(area, sizeof(SpdRoutingShared));
+	its = (SpdRoutingShared *) dsa_get_address(area, dp);
+	its->hash_handle = dshash_get_hash_table_handle(g_spd_routing_hash);
 	its->tranche_id = tranche_id;
 
 	/* Register the location of shared variables in shared memory. */
@@ -480,35 +479,35 @@ spd_instgt_init_dsa(SpdInstgtLocation * location)
 }
 
 /**
- * spd_instgt_init_shm
+ * spd_routing_init_shm
  *		Initialize a shared memory for insert target. The shared memory stores
  *		a location for a dynamic shared memory for insert target.
  *
  *		Node:
- *			RequestAddinShmemSpace(sizeof(SpdInstgtLocation)); should be
+ *			RequestAddinShmemSpace(sizeof(SpdInsertTargetLocation)); should be
  *			called in CreateSharedMemoryAndSemaphores() during server
  *			initialization.
  */
 void
-spd_instgt_init_shm(void)
+spd_routing_init_shm(void)
 {
-	SpdInstgtLocation *location;
+	SpdInsertTargetLocation *location;
 	bool		found;
 
 	/* Get a lock for use of shared memory. */
 	LWLockAcquire(AddinShmemInitLock, LW_EXCLUSIVE);
 
-	location = (SpdInstgtLocation *) ShmemInitStruct("location of insert target",
-													 sizeof(SpdInstgtLocation),
-													 &found);
+	location = (SpdInsertTargetLocation *) ShmemInitStruct("location of insert target",
+														   sizeof(SpdInsertTargetLocation),
+														   &found);
 
 	if (!found)
 	{
 		/* Initialize the variable in dynamic shared memory. */
-		spd_instgt_init_dsa(location);
+		spd_routing_init_dsa(location);
 
 		/* Set the global variable. */
-		g_spd_instst_shared = (SpdInststShared *) dsa_get_address(g_spd_instst_area, location->pointer);
+		g_spd_routing_shared = (SpdRoutingShared *) dsa_get_address(g_spd_routing_area, location->pointer);
 	}
 	else
 	{
@@ -518,18 +517,16 @@ spd_instgt_init_shm(void)
 		oldMemoryContext = MemoryContextSwitchTo(TopMemoryContext);
 
 		/* Set global variables. */
-		g_spd_instst_area = dsa_attach(location->handle);
-		dsa_pin_mapping(g_spd_instst_area);
+		g_spd_routing_area = dsa_attach(location->handle);
+		dsa_pin_mapping(g_spd_routing_area);
 
-		g_spd_instst_shared = (SpdInststShared *) dsa_get_address(g_spd_instst_area, location->pointer);
-		hash_params = spd_instgt_dshash_params(g_spd_instst_shared->tranche_id);
+		g_spd_routing_shared = (SpdRoutingShared *) dsa_get_address(g_spd_routing_area, location->pointer);
+		hash_params = spd_routing_dshash_params(g_spd_routing_shared->tranche_id);
 
-		g_spd_instst_hash = dshash_attach(g_spd_instst_area, &hash_params, g_spd_instst_shared->hash_handle, NULL);
+		g_spd_routing_hash = dshash_attach(g_spd_routing_area, &hash_params, g_spd_routing_shared->hash_handle, NULL);
 
 		MemoryContextSwitchTo(oldMemoryContext);
 	}
 
 	LWLockRelease(AddinShmemInitLock);
 }
-
-#endif							/* OMIT_INSERT_ROUNDROBIN */

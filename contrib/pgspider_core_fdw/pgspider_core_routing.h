@@ -10,19 +10,16 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef OMIT_INSERT_ROUNDROBIN
-
 #ifndef PGSPIDER_CORE_ROUTING_H
-#define PGSPIDER_CORE_ROUTING
+#define PGSPIDER_CORE_ROUTING_H
 #include "pgspider_core_fdw.h"
 
-void		spd_instgt_init_shm(void);
-void		spd_inscand_handle_error(MemoryContext ccxt, char *relname);
-void		spd_inscand_validate(ChildInfo * pChildInfo, int node_num);
-void		spd_inscand_spdurl(TupleTableSlot *slot, Relation rel,
-							   ChildInfo * pChildInfo, int node_num);
-int			spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
-								  ChildInfo * pChildInfo, int node_num);
+void		spd_routing_init_shm(void);
+void		spd_routing_handle_candidate_error(MemoryContext ccxt, char *relname);
+void		spd_routing_candidate_validate(ChildInfo * pChildInfo, int node_num);
+void		spd_routing_candidate_spdurl(TupleTableSlot *slot, Relation rel,
+										 ChildInfo * pChildInfo, int node_num);
+int			spd_routing_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
+								   ChildInfo * pChildInfo, int node_num);
 
-#endif							/* PGSPIDER_CORE_ROUTING */
-#endif							/* OMIT_INSERT_ROUNDROBIN */
+#endif							/* PGSPIDER_CORE_ROUTING_H */

@@ -13067,7 +13067,7 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
 			{
 				char   *relname = RelationGetRelationName(rel);
 
-				spd_inscand_handle_error(oldcontext, relname);
+				spd_routing_handle_candidate_error(oldcontext, relname);
 				pChildInfo->child_node_status = ServerStatusNotTarget;
 			}
 			else
@@ -13171,7 +13171,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	}
 
 	if (operation == CMD_INSERT)
-		spd_inscand_validate(fdw_private->childinfo, fdw_private->node_num);
+		spd_routing_candidate_validate(fdw_private->childinfo, fdw_private->node_num);
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	spd_PlanForeignModifyChild(root, plan, resultRelation, subplan_index, fdw_private->childinfo, operation);
@@ -13956,7 +13956,7 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 			{
 				char   *relname = RelationGetRelationName(rd);
 
-				spd_inscand_handle_error(oldcontext, relname);
+				spd_routing_handle_candidate_error(oldcontext, relname);
 				pChildInfo->child_node_status = ServerStatusNotTarget;
 			}
 			PG_END_TRY();
@@ -14107,8 +14107,8 @@ spd_ExecForeignInsert(EState *estate,
 	if (fdw_private == NULL)
 		fdw_private = spd_DeserializeSpdFdwPrivate(resultRelInfo->ri_FdwState, SpdForeignModify);
 
-	spd_inscand_spdurl(planSlot, rel, fdw_private->childinfo, fdw_private->node_num);
-	i = spd_instst_get_target(*foreigntableoid, mtThrdInfo, fdw_private->childinfo, fdw_private->nThreads);
+	spd_routing_candidate_spdurl(planSlot, rel, fdw_private->childinfo, fdw_private->node_num);
+	i = spd_routing_get_target(*foreigntableoid, mtThrdInfo, fdw_private->childinfo, fdw_private->nThreads);
 
 	idx = mtThrdInfo[i].childInfoIndex;
 	pChildInfo = &fdw_private->childinfo[idx];
@@ -14477,7 +14477,7 @@ _PG_init(void)
 							 NULL,
 							 NULL,
 							 NULL);
-	spd_instgt_init_shm();
+	spd_routing_init_shm();
 
 #ifdef ENABLE_PARALLEL_S3
 	parquet_s3_init();
