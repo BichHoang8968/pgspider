@@ -184,6 +184,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 static void
 spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 {
+#ifndef WITHOUT_KEEPALIVE
 	int			i;
 	MemoryContext ccxt = CurrentMemoryContext;
 
@@ -200,14 +201,8 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 		fs = GetForeignServer(server_oid);
 
 		spd_ip_from_server_name(fs->servername, ip);
-#ifndef WITHOUT_KEEPALIVE
-		if (check_server_ipname(fs->servername, ip))
-		{
-#endif
 
-#ifndef WITHOUT_KEEPALIVE
-		}
-		else
+		if (!check_server_ipname(fs->servername, ip))
 		{
 			Relation	rel = RelationIdGetRelation(pChildInfo[i].oid);
 			char	   *relname = RelationGetRelationName(rel);
@@ -216,11 +211,11 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 			pChildInfo[i].child_node_status = ServerStatusDead;
 			RelationClose(rel);
 		}
-#endif
 	}
 
 	/* Check the number of candidates. */
 	spd_check_candidate_count(pChildInfo, node_num);
+#endif
 }
 
 /**
@@ -326,10 +321,7 @@ spd_instgt_last_table(Oid parent, bool *found)
 
 	/* Check whether child table was renamed. */
 	if (!relname || strcmp(relname, entry->tablename) != 0)
-	{
 		*found = false;
-		return entry;
-	}
 
 	return entry;
 }
