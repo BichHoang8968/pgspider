@@ -152,4 +152,6 @@ List *spd_ParseUrl(List *spd_url_list);
 List *spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo,
 						   int node_num, bool status_is_set);
 
+extern bool throwCandidateError;
+
 #endif							/* PGSPIDER_CORE_FDW_H */

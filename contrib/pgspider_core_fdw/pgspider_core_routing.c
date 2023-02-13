@@ -58,7 +58,6 @@ typedef struct SpdInstgtElem
 	char		tablename[NAMEDATALEN]; /* Child table name */
 }			SpdInstgtElem;
 
-extern bool throwCandidateError;
 static SpdInststGlb spd_instst_glb;
 
 #define g_spd_instst_shared		(spd_instst_glb.shared)
