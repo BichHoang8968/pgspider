@@ -38,7 +38,8 @@
 /* Structure for data stored in DSA (Dynamic Shared memory Area) . */
 typedef struct SpdRoutingShared
 {
-	dshash_table_handle hash_handle;	/* Handle of hash table on DSA which storing last insert tergets */
+	dshash_table_handle hash_handle;	/* Handle of hash table on DSA which
+										 * storing last insert tergets */
 	int			tranche_id;		/* A tranche ID of DSA for insert routing */
 }			SpdRoutingShared;
 
@@ -70,7 +71,7 @@ static SpdRoutingGlb spd_routing_glb;
  * spd_routing_handle_candidate_error
  *		Handles an error occurred on child table.
  *
- *	If throwCandidateError is true, this function throws an error. Else,  
+ *	If throwCandidateError is true, this function throws an error. Else,
  *	report a warning.
  */
 void
@@ -124,7 +125,7 @@ spd_check_candidate_count(ChildInfo * pChildInfo, int node_num)
  * spd_candidate_updatable
  *		Check if each child table is updatable or not.
  *
- * If a child table is not updatable, child_node_status is set to 
+ * If a child table is not updatable, child_node_status is set to
  * ServerStatusNotTarget.
  */
 static void
@@ -177,7 +178,7 @@ spd_candidate_updatable(ChildInfo * pChildInfo, int node_num)
  * spd_candidate_alive
  *		Check if each child table is alive or not.
  *
- * If a child table is not alive, child_node_status is set to 
+ * If a child table is not alive, child_node_status is set to
  * ServerStatusDead.
  */
 static void
@@ -220,9 +221,9 @@ spd_candidate_alive(ChildInfo * pChildInfo, int node_num)
 /**
  * spd_routing_candidate_validate
  * 		Validate candidates of insert targets on prepare phase.
- * 		On this phase, we can check (1) whether child table is updatable or not, 
+ * 		On this phase, we can check (1) whether child table is updatable or not,
  * 		and (2) whether child table is alive or not.
- * 		If a child table is detected as not target, child_node_status is set to 
+ * 		If a child table is detected as not target, child_node_status is set to
  * 		ServerStatusNotTarget.
  */
 void
@@ -331,7 +332,7 @@ spd_routing_last_table(Oid parent, bool *found)
  */
 static int
 spd_routing_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
-				  ChildInfo * pChildInfo, int node_num)
+				   ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
 
@@ -355,8 +356,8 @@ spd_routing_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 		}
 
 		/*
-		 * Here, the previous table name is a last element in candidates. So the first
-		 * child table in candidate will be choosen.
+		 * Here, the previous table name is a last element in candidates. So
+		 * the first child table in candidate will be choosen.
 		 */
 	}
 
@@ -381,7 +382,7 @@ spd_routing_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
  */
 int
 spd_routing_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
-							 ChildInfo * pChildInfo, int node_num)
+					   ChildInfo * pChildInfo, int node_num)
 {
 	SpdRoutingElem *entry;
 	bool		found;
