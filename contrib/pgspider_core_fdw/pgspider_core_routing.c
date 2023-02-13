@@ -93,11 +93,11 @@ spd_inscand_handle_error(MemoryContext ccxt, char *relname)
 }
 
 /**
- * check_candidate_count
+ * spd_check_candidate_count
  * 		Check the number of candidates is greater than 0.
  */
 static void
-check_candidate_count(ChildInfo * pChildInfo, int node_num)
+spd_check_candidate_count(ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
 	int			num_targets = 0;
@@ -158,7 +158,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 	}
 
 	/* Check the number of candidates. */
-	check_candidate_count(pChildInfo, node_num);
+	spd_check_candidate_count(pChildInfo, node_num);
 }
 
 /**
@@ -206,14 +206,14 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 }
 
 /**
- * spd_inscand_get
- * 		Get a candidates of insert target on prepare phase.
+ * spd_inscand_validate
+ * 		Validate candidates of insert targets on prepare phase.
  */
 void
-spd_inscand_get(ChildInfo * pChildInfo, int node_num)
+spd_inscand_validate(ChildInfo * pChildInfo, int node_num)
 {
 
-	check_candidate_count(pChildInfo, node_num);
+	spd_check_candidate_count(pChildInfo, node_num);
 
 	spd_inscand_updatable(pChildInfo, node_num);
 
@@ -277,7 +277,7 @@ spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, i
 	spd_create_child_url(list_make1(spdurl), pChildInfo, node_num, true);
 
 	/* Check the number of candidates. */
-	check_candidate_count(pChildInfo, node_num);
+	spd_check_candidate_count(pChildInfo, node_num);
 }
 
 /**

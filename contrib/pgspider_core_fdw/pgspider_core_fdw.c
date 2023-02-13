@@ -13171,7 +13171,7 @@ spd_PlanForeignModify(PlannerInfo *root,
 	}
 
 	if (operation == CMD_INSERT)
-		spd_inscand_get(fdw_private->childinfo, fdw_private->node_num);
+		spd_inscand_validate(fdw_private->childinfo, fdw_private->node_num);
 
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
 	spd_PlanForeignModifyChild(root, plan, resultRelation, subplan_index, fdw_private->childinfo, operation);

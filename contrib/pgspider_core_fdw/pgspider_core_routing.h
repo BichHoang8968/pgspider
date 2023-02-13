@@ -18,7 +18,7 @@
 
 void		spd_instgt_init_shm(void);
 void		spd_inscand_handle_error(MemoryContext ccxt, char *relname);
-void		spd_inscand_get(ChildInfo * pChildInfo, int node_num);
+void		spd_inscand_validate(ChildInfo * pChildInfo, int node_num);
 void		spd_inscand_spdurl(TupleTableSlot *slot, Relation rel,
 							   ChildInfo * pChildInfo, int node_num);
 int			spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
