@@ -88,9 +88,9 @@ spd_inscand_handle_error(MemoryContext ccxt, char *relname)
 
 	ereport(elevel,
 			(errcode(ERRCODE_FDW_ERROR),
-			errmsg("Error occurred on a child table \"%s\".",
+			 errmsg("Error occurred on a child table \"%s\".",
 					relname),
-			errdetail_internal("%s", message)));
+			 errdetail_internal("%s", message)));
 }
 
 /**
@@ -127,7 +127,7 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 		int			updatable;
 		ChildInfo  *pChild = &pChildInfo[i];
 		Relation	rel;
-		
+
 		if (pChild->child_node_status != ServerStatusAlive)
 			continue;
 
@@ -145,7 +145,8 @@ spd_inscand_updatable(ChildInfo * pChildInfo, int node_num)
 		}
 		PG_CATCH();
 		{
-			char   *relname = RelationGetRelationName(rel);
+			char	   *relname = RelationGetRelationName(rel);
+
 			spd_inscand_handle_error(ccxt, relname);
 			pChild->child_node_status = ServerStatusNotTarget;
 		}
@@ -193,7 +194,7 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 		else
 		{
 			Relation	rel = RelationIdGetRelation(pChildInfo[i].oid);
-			char   *relname = RelationGetRelationName(rel);
+			char	   *relname = RelationGetRelationName(rel);
 
 			spd_inscand_handle_error(ccxt, relname);
 			pChildInfo[i].child_node_status = ServerStatusDead;
@@ -254,33 +255,6 @@ spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc tupdesc)
 }
 
 /**
- * spd_get_server_from_slot
- * 		Get a server name of SPDURL in slot.
- */
-static const char *
-spd_get_server_from_slot(TupleTableSlot *slot, TupleDesc tupdesc)
-{
-	char	   *spdurl;
-	List	   *url_list;
-	List	   *url_parse_list;
-	const char *spdurl_server;
-
-	/* Get SPDURL value. */
-	spdurl = spd_get_spdurl_in_slot(slot, tupdesc);
-
-	/* Do nothing if SPDURL is not specified. */
-	if (spdurl == NULL)
-		return NULL;
-
-	/* Get a server name in SPDURL. */
-	url_list = spd_ParseUrl(list_make1(spdurl));
-	url_parse_list = (List *) list_nth(url_list, 0);
-	spdurl_server = (char *) list_nth(url_parse_list, 0);
-
-	return spdurl_server;
-}
-
-/**
  * spd_inscand_spdurl
  * 		Remove un-related tables from candidates based on SPDURL
  * 		column value.
@@ -291,29 +265,17 @@ void
 spd_inscand_spdurl(TupleTableSlot *slot, Relation rel, ChildInfo * pChildInfo, int node_num)
 {
 	TupleDesc	tupdesc;
-	const char *spdurl_server;
-	int			i;
+	char	   *spdurl;
 
-	/* Get a server name. */
+	/* Get SPDURL value. */
 	tupdesc = RelationGetDescr(rel);
-	spdurl_server = spd_get_server_from_slot(slot, tupdesc);
+	spdurl = spd_get_spdurl_in_slot(slot, tupdesc);
 
-	/* Do nothing if server name is not specified. */
-	if (spdurl_server == NULL)
+	/* Do nothing if SPDURL is not specified. */
+	if (!spdurl)
 		return;
 
-	for (i = 0; i < node_num; i++)
-	{
-		char		srvname[NAMEDATALEN];
-		ChildInfo  *pChild = &pChildInfo[i];
-
-		if (pChild->child_node_status != ServerStatusAlive)
-			continue;
-
-		spd_servername_from_tableoid(pChild->oid, srvname);
-		if (strcmp(spdurl_server, srvname) != 0)
-			pChild->child_node_status = ServerStatusNotTarget;
-	}
+	spd_create_child_url(list_make1(spdurl), pChildInfo, node_num, true);
 
 	/* Check the number of candidates. */
 	check_candidate_count(pChildInfo, node_num);
@@ -356,7 +318,7 @@ spd_instgt_last_table(Oid parent, bool *found)
  * 		Choose one child table from candidate for insert.
  */
 static int
-spd_instgt_choose(char *prev_name, ModifyThreadInfo *mtThrdInfo,
+spd_instgt_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 				  ChildInfo * pChildInfo, int node_num)
 {
 	int			i;
@@ -390,6 +352,7 @@ spd_instgt_choose(char *prev_name, ModifyThreadInfo *mtThrdInfo,
 	for (i = 0; i < node_num; i++)
 	{
 		int			idx = mtThrdInfo[i].childInfoIndex;
+
 		if (pChildInfo[idx].child_node_status == ServerStatusAlive)
 			return i;
 	}
@@ -405,7 +368,7 @@ spd_instgt_choose(char *prev_name, ModifyThreadInfo *mtThrdInfo,
  * 		This function returns an index of target in ModifyThreadInfo array.
  */
 int
-spd_instst_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
+spd_instst_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
 					  ChildInfo * pChildInfo, int node_num)
 {
 	SpdInstgtElem *entry;

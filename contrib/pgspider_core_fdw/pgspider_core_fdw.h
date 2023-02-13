@@ -149,6 +149,7 @@ void spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid);
 void spd_servername_from_tableoid(Oid foreigntableid, char *srvname);
 void spd_ip_from_server_name(char *serverName, char *ip);
 List *spd_ParseUrl(List *spd_url_list);
-List *spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo, int node_num);
+List *spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo,
+						   int node_num, bool status_is_set);
 
 #endif							/* PGSPIDER_CORE_FDW_H */

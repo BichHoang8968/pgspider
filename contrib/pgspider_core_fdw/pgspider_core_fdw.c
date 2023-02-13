@@ -3785,13 +3785,27 @@ spd_ParseUrl(List *spd_url_list)
 /**
  * Create new URL with deleting first node name from parent URL string.
  * For example, if the input URL is "/foo/bar/",
- *
+ * 
+ * About the argument "status_is_set":
+ * Currently, this function is called on 2 kinds of situations. On the
+ * first situation, it is called immediately after child status is
+ * initialized. Thus, this function assumes child status is
+ * ServerStatusDead at the beginning of this function. This function
+ * sets a state of valid child to ServerStatusAlive. 
+ * On the second situation, it is called during INSERT execution. With
+ * this tisuation, child status is already set. If a child is not an
+ * insertion target, this function set a state of valid child to
+ * ServerStatusNotTarget. We distinguishe them by the argument
+ * "status_is_set".
+ * 
  * @param[in] childnums The number of child tables
  * @param[in] spd_url_list URL of parent
  * @param[in,out] fdw_private Parsed URLs are stored in fdw_private->url_list
+ * @param[in] phase Phase number
  */
 List *
-spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo, int node_num)
+spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo, int node_num,
+					 bool status_is_set)
 {
 	List	   *url_list;
 	ListCell   *lc;
@@ -3832,6 +3846,8 @@ spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo, int node_num)
 				/* for multi in node */
 				if (pChildInfo[i].child_node_status != ServerStatusAlive)
 					pChildInfo[i].child_node_status = ServerStatusIn;
+				if (status_is_set != 0)
+					pChildInfo[i].child_node_status = ServerStatusNotTarget;
 				continue;
 			}
 			pChildInfo[i].child_node_status = ServerStatusAlive;
@@ -4709,7 +4725,8 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	/* Check to IN clause and execute only IN URL server */
 	if (r_entry->spd_url_list != NULL)
 		fdw_private->url_list = spd_create_child_url(r_entry->spd_url_list,
-													 fdw_private->childinfo, nums);
+													 fdw_private->childinfo,
+													 nums, false);
 	else
 	{
 		for (i = 0; i < nums; i++)
@@ -12729,7 +12746,7 @@ spd_InitPrivate(Oid foreigntableid, List *spd_url_list, int *nums)
 	if (spd_url_list != NULL)
 		fdw_private->url_list = spd_create_child_url(spd_url_list,
 													 fdw_private->childinfo,
-													 (*nums));
+													 (*nums), false);
 	else
 	{
 		for (i = 0; i < (*nums); i++)
@@ -13090,7 +13107,6 @@ spd_PlanForeignModifyChild(PlannerInfo *root,
  * Add column(s) needed for update/delete on a foreign table,
  * we are using first column as row identification column, so we are adding that into target
  * list.
- * And check IN clause. Currently, IN must be used.
  *
  * @param[in] root
  * @param[in] plan
