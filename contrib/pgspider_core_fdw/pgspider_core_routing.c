@@ -220,6 +220,7 @@ spd_inscand_alive(ChildInfo * pChildInfo, int node_num)
 	}
 
 	/* Check the number of candidates. */
+	spd_check_candidate_count(pChildInfo, node_num);
 }
 
 /**
