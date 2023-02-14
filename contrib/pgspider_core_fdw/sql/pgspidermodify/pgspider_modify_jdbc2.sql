@@ -112,7 +112,7 @@ INSERT INTO tntbl3 VALUES(repeat('x', 25), 20, 4.0, 40.0, 5000);
 SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, _id;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 213:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
@@ -174,7 +174,7 @@ UPDATE tntbl3 SET (_id, c1, c2) = ('bugle', c1 + 11, DEFAULT) WHERE c2 = 8.0;
 --Testcase 228:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 --Testcase 229:
-UPDATE tntbl3 SET (_id, c3) = ('car1', c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
+UPDATE tntbl3 SET (_id, c3) = (_id || 'car1', c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
 --Testcase 230:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 -- fail, multi assignment to same column:
@@ -184,7 +184,7 @@ UPDATE tntbl3 SET (_id, c2) = ('car2', c2 + c3), c2 = c1 + 1 WHERE c4 = 3000;
 -- uncorrelated sub-SELECT:
 --Testcase 232:
 UPDATE tntbl3
-  SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'car1')
+  SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'jdbccar1')
   WHERE c2 = 2.0 AND c3 = 20.0;
 --Testcase 233:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;

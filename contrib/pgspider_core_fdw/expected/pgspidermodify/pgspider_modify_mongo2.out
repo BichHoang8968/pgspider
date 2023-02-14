@@ -136,15 +136,6 @@ SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY c1, c2, c3
 (9 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
---
---Testcase 28:
-INSERT INTO tntbl2 IN ('/mongo_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
-ERROR:  Can not use INSERT with IN
---Testcase 29:
-INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  Can not use INSERT with IN
---
 -- UPDATE
 --
 --Testcase 30:
@@ -538,6 +529,13 @@ UPDATE tntbl2 IN ('/mongo_svr/') SET c4 = 56563.1212;
 UPDATE tntbl2 IN ('/odbc_post_svr/', '/jdbc_mysql_svr/') SET c4 = 22.2;
 ERROR:  No child node support modification.
 --
+-- INSERT with IN feature
+--
+--Testcase 28:
+INSERT INTO tntbl2 IN ('/mongo_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
+--Testcase 29:
+INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
+--
 -- DELETE
 --
 -- allow an alias to be specified for DELETE's target table
@@ -555,7 +553,9 @@ HINT:  Perhaps you meant to reference the table alias "dt".
 SELECT char_length(_id), c1, char_length(c2) FROM tntbl2 ORDER BY c1, c2, c3, c5;
  char_length | c1 | char_length 
 -------------+----+-------------
+          24 | 10 |          14
           24 | 14 |            
+          24 | 20 |          14
           24 | 42 |            
           24 |    |           2
           24 |    |           4
@@ -572,7 +572,7 @@ SELECT char_length(_id), c1, char_length(c2) FROM tntbl2 ORDER BY c1, c2, c3, c5
           24 |    |            
           24 |    |            
           24 |    |            
-(17 rows)
+(19 rows)
 
 -- delete a row with a TOASTed value
 --Testcase 67:
@@ -581,7 +581,9 @@ DELETE FROM tntbl2 WHERE c2 = 'car';
 SELECT c1, char_length(_id) FROM tntbl2 ORDER BY 1, 2;
  c1 | char_length 
 ----+-------------
+ 10 |          24
  14 |          24
+ 20 |          24
  42 |          24
     |          24
     |          24
@@ -598,7 +600,7 @@ SELECT c1, char_length(_id) FROM tntbl2 ORDER BY 1, 2;
     |          24
     |          24
     |          24
-(17 rows)
+(19 rows)
 
 --
 -- DELETE with IN feature
@@ -619,12 +621,13 @@ INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2', true);
 ERROR:  Child node mongo_svr does not support transaction.
 --Testcase 73:
 INSERT INTO tntbl2 IN ('/mongo_svr/') VALUES ('xin3', 10, 'tst_in_feature', true, 5.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  Child node mongo_svr does not support transaction.
 --Testcase 74:
 SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
  c1 |             c2              | c3 |     c4     |  c5  |  __spd_url  
 ----+-----------------------------+----+------------+------+-------------
  14 |                             | t  | 56563.1212 | 6000 | /mongo_svr/
+ 20 | tst_in_feature              | t  |          6 | 6000 | /mongo_svr/
  42 |                             | t  | 56563.1212 | 2000 | /mongo_svr/
     | 3q                          |    | 56563.1212 |      | /mongo_svr/
     | 3q@@                        |    | 56563.1212 |      | /mongo_svr/
@@ -641,7 +644,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
-(17 rows)
+(18 rows)
 
 --Testcase 75:
 UPDATE tntbl2 IN ('/dynamodb_svr/') SET c4 = 7000;
@@ -651,6 +654,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
  c1 |             c2              | c3 |     c4     |  c5  |  __spd_url  
 ----+-----------------------------+----+------------+------+-------------
  14 |                             | t  | 56563.1212 | 6000 | /mongo_svr/
+ 20 | tst_in_feature              | t  |          6 | 6000 | /mongo_svr/
  42 |                             | t  | 56563.1212 | 2000 | /mongo_svr/
     | 3q                          |    | 56563.1212 |      | /mongo_svr/
     | 3q@@                        |    | 56563.1212 |      | /mongo_svr/
@@ -667,7 +671,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
-(17 rows)
+(18 rows)
 
 --Testcase 77:
 DELETE FROM tntbl2 WHERE c2 = '2';
@@ -677,6 +681,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
  c1 |             c2              | c3 |     c4     |  c5  |  __spd_url  
 ----+-----------------------------+----+------------+------+-------------
  14 |                             | t  | 56563.1212 | 6000 | /mongo_svr/
+ 20 | tst_in_feature              | t  |          6 | 6000 | /mongo_svr/
  42 |                             | t  | 56563.1212 | 2000 | /mongo_svr/
     | 3q                          |    | 56563.1212 |      | /mongo_svr/
     | 3q@@                        |    | 56563.1212 |      | /mongo_svr/
@@ -693,7 +698,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
-(17 rows)
+(18 rows)
 
 --Testcase 79:
 DELETE FROM tntbl2 IN ('/mongo_svr/') WHERE c1 = 10;
@@ -703,6 +708,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
  c1 |             c2              | c3 |     c4     |  c5  |  __spd_url  
 ----+-----------------------------+----+------------+------+-------------
  14 |                             | t  | 56563.1212 | 6000 | /mongo_svr/
+ 20 | tst_in_feature              | t  |          6 | 6000 | /mongo_svr/
  42 |                             | t  | 56563.1212 | 2000 | /mongo_svr/
     | 3q                          |    | 56563.1212 |      | /mongo_svr/
     | 3q@@                        |    | 56563.1212 |      | /mongo_svr/
@@ -719,7 +725,7 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY c1, c2, c3, c5;
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
     |                             |    | 56563.1212 |      | /mongo_svr/
-(17 rows)
+(18 rows)
 
 --Testcase 81:
 ALTER FOREIGN TABLE tntbl2 OPTIONS (SET disable_transaction_feature_check 'true');
@@ -793,6 +799,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY c1
 -------------+----+-------------+----+------------+------
           24 | 12 |             |    |            |     
           24 | 14 |             | t  | 56563.1212 | 6000
+          24 | 20 |          14 | t  |          6 | 6000
           24 | 42 |             | t  | 56563.1212 | 2000
           24 |    |           2 |    | 56563.1212 |     
           24 |    |           4 |    | 56563.1212 |     
@@ -809,7 +816,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY c1
           24 |    |             |    | 56563.1212 |     
           24 |    |             |    | 56563.1212 |     
           24 |    |             |    | 56563.1212 |     
-(18 rows)
+(19 rows)
 
 --Testcase 93:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -831,6 +838,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY c1
 -------------+----+-------------+----+------------+------
           24 | 12 |             |    |            |     
           24 | 14 |             | t  | 56563.1212 | 6000
+          24 | 20 |          14 | t  |          6 | 6000
           24 | 42 |             | t  | 56563.1212 | 2000
           24 |    |           2 |    | 56563.1212 |     
           24 |    |           4 |    | 56563.1212 |     
@@ -847,7 +855,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY c1
           24 |    |             |    | 56563.1212 |     
           24 |    |             |    | 56563.1212 |     
           24 |    |             |    | 56563.1212 |     
-(18 rows)
+(19 rows)
 
 --Testcase 98:
 DROP VIEW rw_view;

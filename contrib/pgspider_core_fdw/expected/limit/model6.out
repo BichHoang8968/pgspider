@@ -5042,7 +5042,7 @@ SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT
 EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, __spd_url HAVING c4 BETWEEN -11000 AND 10000 ORDER BY c1, c2, c3, c4, __spd_url;
                                                                    QUERY PLAN                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=340.11..340.12 rows=1 width=1124)
+ Sort  (cost=339.95..339.95 rows=1 width=1124)
    Output: c1, c2, c3, __spd_url, c4
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.__spd_url
    ->  Foreign Scan  (cost=200.12..339.94 rows=1 width=1124)

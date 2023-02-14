@@ -90,7 +90,7 @@ INSERT INTO tntbl2 VALUES(repeat('a', 255), 30, repeat('x', 255), true, 512.0, 2
 SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 29:
 INSERT INTO tntbl2 IN ('/pgspider_core_svr/pgspider_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
