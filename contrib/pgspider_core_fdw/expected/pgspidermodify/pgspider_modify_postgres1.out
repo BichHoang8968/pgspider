@@ -144,12 +144,6 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 (10 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
---
---Testcase 28:
-INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
-ERROR:  Can not use INSERT with IN
---
 -- UPDATE
 --
 --Testcase 29:
@@ -550,6 +544,11 @@ SELECT c2, c3, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 --Testcase 61:
 UPDATE tntbl1 IN ('/postgres_svr/', '/sqlite_svr/') SET c3 = 22.2;
 --
+-- INSERT with IN feature
+--
+--Testcase 28:
+INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
+--
 -- DELETE
 --
 -- allow an alias to be specified for DELETE's target table
@@ -565,29 +564,30 @@ LINE 1: DELETE FROM tntbl1 dt WHERE tntbl1.c1 > 25;
 HINT:  Perhaps you meant to reference the table alias "dt".
 --Testcase 64:
 SELECT c1, c2, c9 FROM tntbl1 ORDER BY 1, 2, 3;
- c1 | c2  |            c9             
-----+-----+---------------------------
-  1 |     | 
-  2 |     | John Does
- 11 | 902 | xxxxxxxxxxxxxxxxxxxxxxxxx
- 13 |     | foo
- 19 |     | 
- 20 |   1 | varchar array
- 20 |   3 | abc
- 21 |     | 
- 22 |   4 | 
- 30 | 902 | 
- 40 |   1 | 
- 40 |   3 | 
-    |   3 | 
-    |   3 | 
-    |     | 
-    |     | 
-    |     | 
-    |     | 
-    |     | 
-    |     | 
-(20 rows)
+ c1  | c2  |            c9             
+-----+-----+---------------------------
+ -10 |  20 | OneOne
+   1 |     | 
+   2 |     | John Does
+  11 | 902 | xxxxxxxxxxxxxxxxxxxxxxxxx
+  13 |     | foo
+  19 |     | 
+  20 |   1 | varchar array
+  20 |   3 | abc
+  21 |     | 
+  22 |   4 | 
+  30 | 902 | 
+  40 |   1 | 
+  40 |   3 | 
+     |   3 | 
+     |   3 | 
+     |     | 
+     |     | 
+     |     | 
+     |     | 
+     |     | 
+     |     | 
+(21 rows)
 
 -- delete a row with a TOASTed value
 --Testcase 65:
@@ -663,76 +663,67 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ALTER FOREIGN TABLE tntbl1 OPTIONS (disable_transaction_feature_check 'false');
 --Testcase 72:
 INSERT INTO tntbl1 VALUES (200, 70, 2.0, 200.0, 3000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', DEFAULT, 'abc', 'foo');
-WARNING:  __spd_url value will be ignored and can not added into child table
+ERROR:  Failed t parse URL 'foo' in IN clause. The first character should be '/'.
 --Testcase 73:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
- c1  | c2 |  c3  | c4  |  c5  |         c6          |           c7           |               c8               |    c9     |   __spd_url    
------+----+------+-----+------+---------------------+------------------------+--------------------------------+-----------+----------------
-   1 |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-   2 |    | 22.2 |     |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
-  13 |    | 22.2 |     |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
-  19 |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-  21 |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-  40 |  1 | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
- 200 | 70 |    2 | 200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc       | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-     |    | 22.2 |     |      |                     |                        |                                |           | /postgres_svr/
-(13 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 74:
 INSERT INTO tntbl1 VALUES (100, 20, 3.0, 300.0, 4000, '2038-01-19 03:14:07', '2004-10-19 10:23:54+02', interval '2 months ago', '40', 'abc'), (-100, 30, DEFAULT, DEFAULT, 2000, '2004-10-19 10:23:54', '1970-01-01 00:00:01+07', interval '1 year 3 hours 20 minutes', 'Beera', 'John Does'),
     ((SELECT 200), (SELECT i FROM (VALUES(3)) as foo (i)), 250, 400.212, 5000, '2007-10-19 10:23:54', '2007-10-19 10:23:54+02', interval '1 year 2 months 3 days', 'VALUES are fun!', 'foo');
+ERROR:  Failed t parse URL 'abc' in IN clause. The first character should be '/'.
 --Testcase 75:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 20 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(16 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 76:
 INSERT INTO tntbl1 VALUES (900, 80, 6.0, 400.03, 6000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', interval '1 months ago', repeat('x', 10), repeat('a', 20));
-WARNING:  __spd_url value will be ignored and can not added into child table
+ERROR:  Failed t parse URL 'aaaaaaaaaaaaaaaaaaaa' in IN clause. The first character should be '/'.
 --Testcase 77:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 20 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(17 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 78:
 UPDATE tntbl1 SET c2 = 10.001 WHERE c1 = 100;
@@ -744,104 +735,84 @@ LINE 1: DELETE FROM tntbl1 dt WHERE tntbl1.c1 > 100;
 HINT:  Perhaps you meant to reference the table alias "dt".
 --Testcase 80:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(17 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 81:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 82:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(17 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 83:
 UPDATE tntbl1 IN ('/dynamodb_svr/') SET c4 = 60.0;
 ERROR:  No child node support modification.
 --Testcase 84:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(17 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 85:
 DELETE FROM tntbl1 IN ('/sqlite_svr/', '/tiny_svr/', '/mysql_svr/') WHERE c5 = 4000;
 ERROR:  No child node support modification.
 --Testcase 86:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(17 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(12 rows)
 
 --Testcase 87:
 ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
@@ -914,27 +885,22 @@ INSERT INTO rw_view(c1, c2) VALUES (0, 15); -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 98:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   11 | 12 |      |         |      |                     |                        |                                |                 | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(18 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 11 | 12 |      |    |    |    |                        |                                |           | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(13 rows)
 
 --Testcase 99:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -952,27 +918,22 @@ UPDATE rw_view SET c2 = c2 + 15; -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 103:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
-  c1  | c2 |  c3  |   c4    |  c5  |         c6          |           c7           |               c8               |       c9        |   __spd_url    
-------+----+------+---------+------+---------------------+------------------------+--------------------------------+-----------------+----------------
- -100 | 30 |      |         | 2000 | 2004-10-19 10:23:54 | 1969-12-31 17:00:01+00 | @ 1 year 3 hours 20 mins       | Beera           | /postgres_svr/
-    1 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-    2 |    | 22.2 |         |      |                     | 1970-01-01 00:00:01+00 | Beera                          | John Does       | /postgres_svr/
-   11 | 12 |      |         |      |                     |                        |                                |                 | /postgres_svr/
-   13 |    | 22.2 |         |      |                     | 2007-10-19 08:23:54+00 | bugle                          | foo             | /postgres_svr/
-   19 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   21 |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-   40 |  1 | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-  100 | 10 |    3 |     300 | 4000 | 2038-01-19 03:14:07 | 2004-10-19 08:23:54+00 | @ 2 mons ago                   | 40              | /postgres_svr/
-  200 |  3 |  250 | 400.212 | 5000 | 2007-10-19 10:23:54 | 2007-10-19 08:23:54+00 | @ 1 year 2 mons 3 days         | VALUES are fun! | /postgres_svr/
-  200 | 70 |    2 |     200 | 3000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 |                                | abc             | /postgres_svr/
-  900 | 80 |    6 |  400.03 | 6000 | 2030-02-20 03:00:07 | 2005-10-20 08:20:54+00 | @ 1 mon ago                    | xxxxxxxxxx      | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-      |    | 22.2 |         |      |                     |                        |                                |                 | /postgres_svr/
-(18 rows)
+ c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
+----+----+------+----+----+----+------------------------+--------------------------------+-----------+----------------
+  1 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+  2 |    | 22.2 |    |    |    | 1970-01-01 00:00:01+00 | Beera                          | John Does | /postgres_svr/
+ 11 | 12 |      |    |    |    |                        |                                |           | /postgres_svr/
+ 13 |    | 22.2 |    |    |    | 2007-10-19 08:23:54+00 | bugle                          | foo       | /postgres_svr/
+ 19 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 21 |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+ 40 |  1 | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+    |    | 22.2 |    |    |    |                        |                                |           | /postgres_svr/
+(13 rows)
 
 --Testcase 104:
 DROP VIEW rw_view;

@@ -115,7 +115,7 @@ INSERT INTO tntbl1 VALUES (9, 9, 902.12, 9545.03, 3122, '2030-02-20 03:00:07', '
 SELECT c1, c2, c3, c4, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 42:
 INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne'); 
@@ -325,7 +325,7 @@ INSERT INTO tntbl2 VALUES(repeat('a', 25), 30, repeat('x', 25), true, 512.0, 200
 SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 99:
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
@@ -542,7 +542,7 @@ INSERT INTO tntbl3 VALUES(repeat('x', 25), 20, 4.0, 40.0, 5000);
 SELECT c1, c2, _id FROM tntbl3 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 157:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
@@ -753,7 +753,7 @@ INSERT INTO tntbl4 VALUES(30, repeat('x', 25));
 SELECT c1, c3, char_length(c2) FROM tntbl4 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 210:
 INSERT INTO tntbl4 IN ('/postgres_svr/') VALUES (12, '_test', true, 5.0, 5000);

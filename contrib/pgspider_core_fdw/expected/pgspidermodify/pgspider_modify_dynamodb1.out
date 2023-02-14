@@ -140,11 +140,11 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 (9 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 28:
 INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, 'One', 'OneOne');
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -763,7 +763,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
 --Testcase 81:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, 'Two', 'TwoTwo');
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 82:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |   __spd_url    

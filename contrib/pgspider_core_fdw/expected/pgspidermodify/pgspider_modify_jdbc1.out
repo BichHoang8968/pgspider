@@ -153,14 +153,14 @@ SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2;
 (9 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 155:
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 156:
 INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -621,7 +621,7 @@ INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES ('121', 29, 'DEFAULT', true,
 INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2', true);
 --Testcase 340:
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('xin3', 10, 'tst_in_feature', true, 5.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 341:
 SELECT * FROM tntbl2;
              _id             | c1 |             c2              | c3 |  c4  |  c5  |    __spd_url     
@@ -986,14 +986,14 @@ SELECT c1, c2, _id FROM tntbl3;
 (10 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 213:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 214:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -1394,7 +1394,7 @@ SELECT * FROM tntbl3;
 
 --Testcase 352:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 353:
 SELECT * FROM tntbl3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url    
@@ -1487,7 +1487,7 @@ DELETE FROM tntbl3 WHERE __spd_url = '/mongo_svr/';
 DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 364:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES ('foo', 30, 5.0, 50.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 365:
 INSERT INTO tntbl3 SELECT * FROM tntbl3;
 --Testcase 366:
@@ -1525,14 +1525,13 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 374:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/postgres_svr/');
-WARNING:  __spd_url value will be ignored and can not added into child table
+ERROR:  There is no candidate for insert.
 --Testcase 375:
 SELECT * FROM tntbl3;
     _id     | c1 | c2 | c3 |  c4  |    __spd_url    
 ------------+----+----+----+------+-----------------
  xxxxxxxxxx | 20 |  4 | 40 | 5000 | /jdbc_post_svr/
- foo        | 30 |  5 | 50 | 6000 | /jdbc_post_svr/
-(2 rows)
+(1 row)
 
 --
 -- Test with optional options: tntbl3
@@ -1601,9 +1600,8 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3;
     _id     | c1 | c2 | c3 |  c4  
 ------------+----+----+----+------
  xxxxxxxxxx | 20 |  4 | 40 | 5000
- foo        | 30 |  5 | 50 | 6000
  key$       | 12 |    |    |     
-(3 rows)
+(2 rows)
 
 --Testcase 431:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -1624,9 +1622,8 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3;
     _id     | c1 | c2 | c3 |  c4  
 ------------+----+----+----+------
  xxxxxxxxxx | 20 |  4 | 40 | 5000
- foo        | 30 |  5 | 50 | 6000
  key$       | 12 |    |    |     
-(3 rows)
+(2 rows)
 
 --Testcase 436:
 DROP VIEW rw_view;

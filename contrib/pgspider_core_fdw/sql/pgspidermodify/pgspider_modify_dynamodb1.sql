@@ -93,7 +93,7 @@ INSERT INTO tntbl1 VALUES (9, 9, 902.12, 9545.03, 3122, repeat('x', 25), repeat(
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 28:
 INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, 'One', 'OneOne');

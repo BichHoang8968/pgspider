@@ -3297,6 +3297,2068 @@ drop cascades to foreign table tbl03_5
 drop cascades to user mapping for public on server server2
 drop cascades to foreign table tbl03_4
 drop cascades to user mapping for public on server server1
+--
+-- Test case routing insert feature
+--
+-- Test in case of throw_candidate_error = false
+-- there are 4 nodes support modification with order: mysql_svr, post_svr, sqlite_svr, tiny_svr
+-- file_fdw does not support modification, it's not included in candidate list
+CREATE FOREIGN TABLE test2 (i int, __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+SET pgspider_core_fdw.throw_error_ifdead to false;
+SET pgspider_core_fdw.throw_candidate_error to false;
+--Testcase 335:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- First, single insert
+--Testcase 336:
+INSERT INTO test2 VALUES (1);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url  
+---+-------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(5 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 1
+(1 row)
+
+--Testcase 337:
+INSERT INTO test2 VALUES (2);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url  
+---+-------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(6 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+ 2
+(1 row)
+
+--Testcase 338:
+INSERT INTO test2 VALUES (3);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 3 | /sqlite_svr/
+ 4 | /file_svr/
+(7 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+ 3
+(1 row)
+
+--Testcase 339:
+INSERT INTO test2 VALUES (4);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 3 | /sqlite_svr/
+ 4 | /file_svr/
+ 4 | /tiny_svr/
+(8 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+ 4
+(1 row)
+
+--Testcase 340:
+INSERT INTO test2 VALUES (5);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 3 | /sqlite_svr/
+ 4 | /file_svr/
+ 4 | /tiny_svr/
+ 5 | /mysql_svr/
+(9 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 1
+ 5
+(2 rows)
+
+--Testcase 341:
+INSERT INTO test2 VALUES (6);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 3 | /sqlite_svr/
+ 4 | /file_svr/
+ 4 | /tiny_svr/
+ 5 | /mysql_svr/
+ 6 | /post_svr/
+(10 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+ 2
+ 6
+(2 rows)
+
+--Testcase 342:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 343:
+INSERT INTO test2 VALUES (7);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 7 | /sqlite_svr/
+(5 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+ 7
+(1 row)
+
+--Testcase 344:
+INSERT INTO test2 VALUES (8);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 7 | /sqlite_svr/
+ 8 | /tiny_svr/
+(6 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+ 8
+(1 row)
+
+--Testcase 345:
+INSERT INTO test2 VALUES (9);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 7 | /sqlite_svr/
+ 8 | /tiny_svr/
+ 9 | /mysql_svr/
+(7 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 9
+(1 row)
+
+--Testcase 346:
+INSERT INTO test2 VALUES (10);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+(8 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 10
+(1 row)
+
+--Testcase 347:
+INSERT INTO test2 VALUES (11);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+ 11 | /sqlite_svr/
+(9 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+  7
+ 11
+(2 rows)
+
+--Testcase 348:
+INSERT INTO test2 VALUES (12);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+(10 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+  8
+ 12
+(2 rows)
+
+-- Insert multi values
+--Testcase 349:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 350:
+INSERT INTO test2 VALUES (13), (14);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url  
+----+-------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+(6 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+(1 row)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 351:
+INSERT INTO test2 VALUES (15), (16), (17);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+(9 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+ 17
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 16
+(1 row)
+
+--Testcase 352:
+INSERT INTO test2 VALUES (18), (19), (20);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+ 18 | /post_svr/
+ 19 | /sqlite_svr/
+ 20 | /tiny_svr/
+(12 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+ 17
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+ 18
+(2 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 15
+ 19
+(2 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 16
+ 20
+(2 rows)
+
+--Testcase 353:
+INSERT INTO test2 VALUES (21), (22), (23), (24), (25), (26), (27), (28), (29);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+ 18 | /post_svr/
+ 19 | /sqlite_svr/
+ 20 | /tiny_svr/
+ 21 | /mysql_svr/
+ 22 | /post_svr/
+ 23 | /sqlite_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /post_svr/
+ 27 | /sqlite_svr/
+ 28 | /tiny_svr/
+ 29 | /mysql_svr/
+(21 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+ 17
+ 21
+ 25
+ 29
+(5 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+ 18
+ 22
+ 26
+(4 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 15
+ 19
+ 23
+ 27
+(4 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 16
+ 20
+ 24
+ 28
+(4 rows)
+
+--Testcase 354:
+INSERT INTO test2 VALUES (30), (31), (32), (33), (34);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+ 18 | /post_svr/
+ 19 | /sqlite_svr/
+ 20 | /tiny_svr/
+ 21 | /mysql_svr/
+ 22 | /post_svr/
+ 23 | /sqlite_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /post_svr/
+ 27 | /sqlite_svr/
+ 28 | /tiny_svr/
+ 29 | /mysql_svr/
+ 30 | /post_svr/
+ 31 | /sqlite_svr/
+ 32 | /tiny_svr/
+ 33 | /mysql_svr/
+ 34 | /post_svr/
+(26 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+ 17
+ 21
+ 25
+ 29
+ 33
+(6 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+ 18
+ 22
+ 26
+ 30
+ 34
+(6 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 15
+ 19
+ 23
+ 27
+ 31
+(5 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 16
+ 20
+ 24
+ 28
+ 32
+(5 rows)
+
+--Testcase 355:
+INSERT INTO test2 VALUES (35), (36), (37), (38), (39);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+ 18 | /post_svr/
+ 19 | /sqlite_svr/
+ 20 | /tiny_svr/
+ 21 | /mysql_svr/
+ 22 | /post_svr/
+ 23 | /sqlite_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /post_svr/
+ 27 | /sqlite_svr/
+ 28 | /tiny_svr/
+ 29 | /mysql_svr/
+ 30 | /post_svr/
+ 31 | /sqlite_svr/
+ 32 | /tiny_svr/
+ 33 | /mysql_svr/
+ 34 | /post_svr/
+ 35 | /sqlite_svr/
+ 36 | /tiny_svr/
+ 37 | /mysql_svr/
+ 38 | /post_svr/
+ 39 | /sqlite_svr/
+(31 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 13
+ 17
+ 21
+ 25
+ 29
+ 33
+ 37
+(7 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 14
+ 18
+ 22
+ 26
+ 30
+ 34
+ 38
+(7 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 15
+ 19
+ 23
+ 27
+ 31
+ 35
+ 39
+(7 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 16
+ 20
+ 24
+ 28
+ 32
+ 36
+(6 rows)
+
+--Testcase 356:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- Insert with IN
+--Testcase 357:
+INSERT INTO test2 IN ('/post_svr/') VALUES (23);
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 23
+(1 row)
+
+--Testcase 358:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (24);
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 24
+(1 row)
+
+--Testcase 359:
+INSERT INTO test2 VALUES (25);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url  
+----+-------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+(7 rows)
+
+--Testcase 360:
+INSERT INTO test2 IN ('/mysql_svr/') VALUES (26);
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 25
+ 26
+(2 rows)
+
+--Testcase 361:
+INSERT INTO test2 VALUES (27);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url  
+----+-------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /mysql_svr/
+ 27 | /post_svr/
+(9 rows)
+
+--Testcase 362:
+INSERT INTO test2 IN ('/sqlite_svr/') VALUES (28);
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 28
+(1 row)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /mysql_svr/
+ 27 | /post_svr/
+ 28 | /sqlite_svr/
+(10 rows)
+
+--Testcase 363:
+INSERT INTO test2 IN ('/mysql_svr/') VALUES (29);
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 25
+ 26
+ 29
+(3 rows)
+
+--Testcase 364:
+INSERT INTO test2 VALUES (30);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /mysql_svr/
+ 27 | /post_svr/
+ 28 | /sqlite_svr/
+ 29 | /mysql_svr/
+ 30 | /post_svr/
+(12 rows)
+
+-- Insert multiple with IN
+--Testcase 365:
+INSERT INTO test2 IN ('/tiny_svr/', '/sqlite_svr/') VALUES (31), (32), (33), (34), (35);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /mysql_svr/
+ 27 | /post_svr/
+ 28 | /sqlite_svr/
+ 29 | /mysql_svr/
+ 30 | /post_svr/
+ 31 | /sqlite_svr/
+ 32 | /tiny_svr/
+ 33 | /sqlite_svr/
+ 34 | /tiny_svr/
+ 35 | /sqlite_svr/
+(17 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 24
+ 32
+ 34
+(3 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 28
+ 31
+ 33
+ 35
+(4 rows)
+
+--Testcase 366:
+INSERT INTO test2 IN ('/file_svr/') VALUES (36), (37);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 23 | /post_svr/
+ 24 | /tiny_svr/
+ 25 | /mysql_svr/
+ 26 | /mysql_svr/
+ 27 | /post_svr/
+ 28 | /sqlite_svr/
+ 29 | /mysql_svr/
+ 30 | /post_svr/
+ 31 | /sqlite_svr/
+ 32 | /tiny_svr/
+ 33 | /sqlite_svr/
+ 34 | /tiny_svr/
+ 35 | /sqlite_svr/
+(17 rows)
+
+-- Insert with changing candidate
+--Testcase 367:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- Remove next target, in this case, tiny candidate table
+DROP FOREIGN TABLE test2__tiny_svr__0;
+--Testcase 368:
+INSERT INTO test2 VALUES (1);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url  
+---+-------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(5 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 1
+(1 row)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+-- Remove previous target
+DROP FOREIGN TABLE test2__mysql_svr__0;
+--Testcase 369:
+INSERT INTO test2 VALUES (2);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 2 | /post_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(5 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+ 2
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+-- Remove all targets
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+--Testcase 370:
+INSERT INTO test2 VALUES (3), (4), (5), (6);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+-- Create error for child node
+--Testcase 371:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+ERROR:  No child node support modification.
+ALTER SERVER post_svr OPTIONS (SET port '15421');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+--Testcase 372:
+INSERT INTO test2 VALUES (4), (5), (6), (7);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+WARNING:  Error occurred on a child table "test2__post_svr__0".
+DETAIL:  could not connect to server "post_svr"
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 1 | /mysql_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 4 | /mysql_svr/
+ 5 | /sqlite_svr/
+ 6 | /tiny_svr/
+ 7 | /mysql_svr/
+(9 rows)
+
+ALTER SERVER post_svr OPTIONS (SET port '15432');
+-- Combine insert routing and batch insert
+SET client_min_messages = INFO;
+--Testcase 373:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+--Testcase 374:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14), (15), (16), (17), (18), (19), (20), (21), (22);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  1 | /post_svr/
+  2 | /file_svr/
+  2 | /sqlite_svr/
+  3 | /file_svr/
+  3 | /tiny_svr/
+  4 | /file_svr/
+  4 | /mysql_svr/
+  5 | /post_svr/
+  6 | /sqlite_svr/
+  7 | /tiny_svr/
+  8 | /mysql_svr/
+  9 | /post_svr/
+ 10 | /sqlite_svr/
+ 11 | /tiny_svr/
+ 12 | /mysql_svr/
+ 13 | /post_svr/
+ 14 | /sqlite_svr/
+ 15 | /tiny_svr/
+ 16 | /mysql_svr/
+ 17 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+ 21 | /post_svr/
+ 22 | /sqlite_svr/
+(26 rows)
+
+--Testcase 375:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+SET client_min_messages = NOTICE;
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+-- Test in case of throw_candidate_error = true
+-- these below test create error on child node before insert
+SET pgspider_core_fdw.throw_candidate_error to true;
+-- Single insert
+-- Rename a table cannot be reached due to wrong server name
+CREATE SERVER sqlite_svr1 FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/not_existed_pgtest.db');
+CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS(table 'test2');
+--Testcase 376:
+INSERT INTO test2 VALUES (1);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__sqlite_svr1__0".
+DETAIL:  SQL error during prepare: no such table: main.test2 INSERT INTO main."test2"(`i`) VALUES (?)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 377:
+INSERT INTO test2 VALUES (2);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__sqlite_svr1__0".
+DETAIL:  SQL error during prepare: no such table: main.test2 INSERT INTO main."test2"(`i`) VALUES (?)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 378:
+INSERT INTO test2 VALUES (3);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__sqlite_svr1__0".
+DETAIL:  SQL error during prepare: no such table: main.test2 INSERT INTO main."test2"(`i`) VALUES (?)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__sqlite_svr1__0;
+ERROR:  SQL error during prepare: no such table: main.test2 SELECT `i` FROM main."test2"
+--Testcase 379:
+INSERT INTO test2 VALUES (4);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__sqlite_svr1__0".
+DETAIL:  SQL error during prepare: no such table: main.test2 INSERT INTO main."test2"(`i`) VALUES (?)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+(0 rows)
+
+-- Revert previous table name, and create a non exist table
+DROP SERVER sqlite_svr1 CASCADE;
+NOTICE:  drop cascades to foreign table test2__sqlite_svr1__0
+CREATE SERVER mysql_svr1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr1 OPTIONS(username 'root',password 'Mysql_1234');
+CREATE FOREIGN TABLE test2__mysql_svr1__0 (i int OPTIONS (key 'true')) SERVER mysql_svr1 OPTIONS (dbname 'not_existed',table_name 'test2');
+--Testcase 380:
+INSERT INTO test2 VALUES (5);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__mysql_svr1__0".
+DETAIL:  failed to connect to MySQL: Unknown database 'not_existed'
+SELECT * FROM test2 ORDER BY i, __spd_url;
+WARNING:  GetForeignRelSize of child[1] failed.
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 381:
+INSERT INTO test2 VALUES (6);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__mysql_svr1__0".
+DETAIL:  failed to connect to MySQL: Unknown database 'not_existed'
+SELECT * FROM test2 ORDER BY i, __spd_url;
+WARNING:  GetForeignRelSize of child[1] failed.
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__mysql_svr1__0;
+ERROR:  failed to connect to MySQL: Unknown database 'not_existed'
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 382:
+DELETE FROM test2__mysql_svr1__0;
+ERROR:  failed to connect to MySQL: Unknown database 'not_existed'
+--Testcase 383:
+INSERT INTO test2 VALUES (7);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__mysql_svr1__0".
+DETAIL:  failed to connect to MySQL: Unknown database 'not_existed'
+SELECT * FROM test2 ORDER BY i, __spd_url;
+WARNING:  GetForeignRelSize of child[1] failed.
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 384:
+INSERT INTO test2 VALUES (8);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__mysql_svr1__0".
+DETAIL:  failed to connect to MySQL: Unknown database 'not_existed'
+SELECT * FROM test2 ORDER BY i, __spd_url;
+WARNING:  GetForeignRelSize of child[1] failed.
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+(0 rows)
+
+DROP FOREIGN TABLE test2__mysql_svr1__0;
+DROP SERVER mysql_svr1 CASCADE;
+NOTICE:  drop cascades to user mapping for public on server mysql_svr1
+-- More than 1 foreign table error
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS(table_name 'test_not_existed');
+--Testcase 385:
+INSERT INTO test2 VALUES (9);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "test_not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 386:
+INSERT INTO test2 VALUES (10);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "test_not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+--Testcase 387:
+INSERT INTO test2 VALUES (11);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "test_not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
+--Testcase 388:
+INSERT INTO test2 VALUES (12);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "test_not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__tiny_svr__1;
+ERROR:  tinybrace error stmt. 6
+ sql is SELECT `i` FROM "test_not_existed"
+
+--Testcase 389:
+DELETE FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: DELETE FROM public.test_not_existed
+DROP FOREIGN TABLE test2__tiny_svr__1;
+-- Insert multi values
+-- At this step, there is 1 invalid candidate test2__post_svr__1. Because postgres_fdw returns an error only after calling postgresIterateForeignScan(), 
+-- pgspider_core_fdw cannot detect it (postgres) is an invalid candidate at the listing candidate phase such as PlanForeignModify or BeginForeignModify.
+-- So setting invalid table name for foreign table on postgres_fdw is not the case of candidate error.
+-- It means that after the insert target is decided, if the chosen postgres is invalid then it raises error, otherwise it succeeds (invalid is not chosen)
+--Testcase 390:
+INSERT INTO test2 VALUES (13), (14), (15);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url  
+----+-------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+(7 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+(1 row)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+(1 row)
+
+SELECT * FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
+--Testcase 391:
+INSERT INTO test2 VALUES (16), (17);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url  
+----+-------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+(7 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+(1 row)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+(1 row)
+
+SELECT * FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
+--Testcase 392:
+INSERT INTO test2 VALUES (18), (19), (20);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+(10 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+ 20
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 18
+(1 row)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+ 19
+(2 rows)
+
+SELECT * FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
+--Testcase 393:
+INSERT INTO test2 VALUES (21), (22), (23), (24);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+(10 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+ 20
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 18
+(1 row)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+ 19
+(2 rows)
+
+SELECT * FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
+--Testcase 394:
+DELETE FROM test2__post_svr__1;
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: DELETE FROM public.test_not_existed
+--Testcase 395:
+INSERT INTO test2 VALUES (25), (26), (27), (28), (29), (30), (31), (32), (33), (34), (35), (36), (37), (38);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  relation "public.test_not_existed" does not exist
+CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+(10 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+ 20
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+(1 row)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 18
+(1 row)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+ 19
+(2 rows)
+
+DROP FOREIGN TABLE test2__post_svr__1;
+--Testcase 396:
+INSERT INTO test2 VALUES (39), (40), (41), (42), (43);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+ 39 | /mysql_svr/
+ 40 | /post_svr/
+ 41 | /sqlite_svr/
+ 42 | /tiny_svr/
+ 43 | /mysql_svr/
+(15 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+ 20
+ 39
+ 43
+(4 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+ 40
+(2 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 18
+ 41
+(2 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+ 19
+ 42
+(3 rows)
+
+--Testcase 397:
+INSERT INTO test2 VALUES (44), (45), (46), (47), (48);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 13 | /tiny_svr/
+ 14 | /mysql_svr/
+ 15 | /post_svr/
+ 18 | /sqlite_svr/
+ 19 | /tiny_svr/
+ 20 | /mysql_svr/
+ 39 | /mysql_svr/
+ 40 | /post_svr/
+ 41 | /sqlite_svr/
+ 42 | /tiny_svr/
+ 43 | /mysql_svr/
+ 44 | /post_svr/
+ 45 | /sqlite_svr/
+ 46 | /tiny_svr/
+ 47 | /mysql_svr/
+ 48 | /post_svr/
+(20 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 14
+ 20
+ 39
+ 43
+ 47
+(5 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 15
+ 40
+ 44
+ 48
+(4 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 18
+ 41
+ 45
+(3 rows)
+
+SELECT * FROM test2__tiny_svr__0;
+ i  
+----
+ 13
+ 19
+ 42
+ 46
+(4 rows)
+
+--Testcase 398:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- Insert with changing candidate
+-- Remove previous target, tiny node and change its position
+ALTER SERVER tiny_svr RENAME TO atiny_svr;
+CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test2');
+DROP FOREIGN TABLE test2__tiny_svr__0;
+CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test_not_existed');
+-- The existing tiny foreign table become unreachable, order is atiny, tiny (invalid), mysql, post, sqlite
+--Testcase 399:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__atiny_svr__0".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "test_not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__atiny_svr__1;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__atiny_svr__0;
+ERROR:  tinybrace error stmt. 6
+ sql is SELECT `i` FROM "test_not_existed"
+
+--Testcase 400:
+DELETE FROM test2__atiny_svr__0;
+ERROR:  tinybrace error stmt. 6
+ sql is DELETE FROM "test_not_existed"
+
+DROP FOREIGN TABLE test2__atiny_svr__0;
+-- After previous insert, the next target is sqlite node
+-- Remove next target, change its position
+ALTER SERVER sqlite_svr RENAME TO bsqlite_svr;
+ALTER FOREIGN TABLE test2__sqlite_svr__0 RENAME TO test2__bsqlite_svr__0;
+-- The order now is atiny, bsqlite, mysql, post
+--Testcase 401:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |   __spd_url   
+---+---------------
+ 1 | /atiny_svr/
+ 1 | /file_svr/
+ 2 | /bsqlite_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 3 | /mysql_svr/
+ 4 | /file_svr/
+ 4 | /post_svr/
+ 5 | /atiny_svr/
+ 6 | /bsqlite_svr/
+ 7 | /mysql_svr/
+ 8 | /post_svr/
+(12 rows)
+
+SELECT * FROM test2__atiny_svr__1;
+ i 
+---
+ 1
+ 5
+(2 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 3
+ 7
+(2 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+ 4
+ 8
+(2 rows)
+
+SELECT * FROM test2__bsqlite_svr__0;
+ i 
+---
+ 2
+ 6
+(2 rows)
+
+-- Remove all targets
+DELETE FROM test2__atiny_svr__1;
+DELETE FROM test2__mysql_svr__0;
+DELETE FROM test2__post_svr__0;
+DELETE FROM test2__bsqlite_svr__0;
+DROP FOREIGN TABLE test2__atiny_svr__1;
+DROP FOREIGN TABLE test2__mysql_svr__0;
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__bsqlite_svr__0;
+--Testcase 402:
+INSERT INTO test2 VALUES (11), (12), (13), (14), (15);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+--Testcase 403:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+ERROR:  No child node support modification.
+-- Now revert server and table name, order become mysql, post, sqlite, tiny
+ALTER SERVER atiny_svr RENAME TO tiny_svr;
+ALTER SERVER bsqlite_svr RENAME TO sqlite_svr;
+-- Create an invalid table test2__tiny_svr__1
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'not_existed');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+-- Insert with IN in case of error with foreign table
+--Testcase 404:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (1);
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+--Testcase 405:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (2);
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__tiny_svr__1;
+ERROR:  tinybrace error stmt. 6
+ sql is SELECT `i` FROM "not_existed"
+
+--Testcase 406:
+INSERT INTO test2 IN ('/file_svr/') VALUES (3);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__file_svr__0;
+ i 
+---
+ 1
+ 2
+ 3
+ 4
+(4 rows)
+
+--Testcase 407:
+INSERT INTO test2 VALUES (4);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+--Testcase 408:
+INSERT INTO test2 IN ('/post_svr/') VALUES (5);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 5 | /post_svr/
+(5 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+ 5
+(1 row)
+
+--Testcase 409:
+INSERT INTO test2 VALUES (6);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 5 | /post_svr/
+(5 rows)
+
+--Testcase 410:
+INSERT INTO test2 IN ('/sqlite_svr/', '/mysql_svr/') VALUES (7), (8);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 5 | /post_svr/
+ 7 | /sqlite_svr/
+ 8 | /mysql_svr/
+(7 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+ 7
+(1 row)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+ 8
+(1 row)
+
+--Testcase 411:
+INSERT INTO test2 VALUES (9);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i |  __spd_url   
+---+--------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+ 5 | /post_svr/
+ 7 | /sqlite_svr/
+ 8 | /mysql_svr/
+(7 rows)
+
+--Testcase 412:
+INSERT INTO test2 IN ('/sqlite_svr/') VALUES (10);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+  5 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /mysql_svr/
+ 10 | /sqlite_svr/
+(8 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+  7
+ 10
+(2 rows)
+
+--Testcase 413:
+INSERT INTO test2 VALUES (11);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+  5 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /mysql_svr/
+ 10 | /sqlite_svr/
+(8 rows)
+
+--Testcase 414:
+DELETE FROM test2__tiny_svr__1;
+ERROR:  tinybrace error stmt. 6
+ sql is DELETE FROM "not_existed"
+
+DELETE FROM test2__mysql_svr__0;
+DELETE FROM test2__sqlite_svr__0;
+DELETE FROM test2__post_svr__0;
+-- Combine insert routing and batch insert in case of error with foreign table
+SET client_min_messages = INFO;
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '3');
+--Testcase 415:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14), (15), (16), (17), (18), (19), (20), (21), (22), (23), (24), (25);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  Error occurred on a child table "test2__tiny_svr__1".
+DETAIL:  tinybrace_fdw: failed to prepare the TinyBrace query: 6, INSERT INTO "not_existed"(`i`) VALUES (?)
+
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i 
+---
+(0 rows)
+
+SELECT * FROM test2__tiny_svr__1;
+ERROR:  tinybrace error stmt. 6
+ sql is SELECT `i` FROM "not_existed"
+
+--Testcase 416:
+DROP FOREIGN TABLE test2__tiny_svr__1;
+INSERT INTO test2 VALUES (31), (32), (33), (34), (35), (36), (37), (38), (39), (40), (41), (42), (43), (44), (45), (46), (47), (48), (49), (50), (51), (52), (53), (54), (55);
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+SELECT * FROM test2 ORDER BY i, __spd_url;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  2 | /file_svr/
+  3 | /file_svr/
+  4 | /file_svr/
+ 31 | /mysql_svr/
+ 32 | /post_svr/
+ 33 | /sqlite_svr/
+ 34 | /mysql_svr/
+ 35 | /post_svr/
+ 36 | /sqlite_svr/
+ 37 | /mysql_svr/
+ 38 | /post_svr/
+ 39 | /sqlite_svr/
+ 40 | /mysql_svr/
+ 41 | /post_svr/
+ 42 | /sqlite_svr/
+ 43 | /mysql_svr/
+ 44 | /post_svr/
+ 45 | /sqlite_svr/
+ 46 | /mysql_svr/
+ 47 | /post_svr/
+ 48 | /sqlite_svr/
+ 49 | /mysql_svr/
+ 50 | /post_svr/
+ 51 | /sqlite_svr/
+ 52 | /mysql_svr/
+ 53 | /post_svr/
+ 54 | /sqlite_svr/
+ 55 | /mysql_svr/
+(29 rows)
+
+SELECT * FROM test2__mysql_svr__0;
+ i  
+----
+ 31
+ 34
+ 37
+ 40
+ 43
+ 46
+ 49
+ 52
+ 55
+(9 rows)
+
+SELECT * FROM test2__post_svr__0;
+ i  
+----
+ 32
+ 35
+ 38
+ 41
+ 44
+ 47
+ 50
+ 53
+(8 rows)
+
+SELECT * FROM test2__sqlite_svr__0;
+ i  
+----
+ 33
+ 36
+ 39
+ 42
+ 45
+ 48
+ 51
+ 54
+(8 rows)
+
+SET client_min_messages = NOTICE;
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+--Testcase 417:
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+DROP FOREIGN TABLE test2__mysql_svr__0;
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+DROP FOREIGN TABLE test2__file_svr__0;
+DROP FOREIGN TABLE test2;
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:

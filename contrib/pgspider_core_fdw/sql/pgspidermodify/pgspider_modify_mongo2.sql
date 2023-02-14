@@ -93,14 +93,6 @@ INSERT INTO tntbl2 VALUES(repeat('a', 25), 30, repeat('x', 25), true, 512.0, 200
 SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY c1, c2, c3, c5;
 
 --
--- INSERT with IN feature, this feature not work yet
---
---Testcase 28:
-INSERT INTO tntbl2 IN ('/mongo_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
---Testcase 29:
-INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-
---
 -- UPDATE
 --
 --Testcase 30:
@@ -223,6 +215,15 @@ SELECT c1, c5, char_length(c2) FROM tntbl2 ORDER BY c1, c2, c3, c5;
 UPDATE tntbl2 IN ('/mongo_svr/') SET c4 = 56563.1212;
 --Testcase 63:
 UPDATE tntbl2 IN ('/odbc_post_svr/', '/jdbc_mysql_svr/') SET c4 = 22.2;
+
+--
+-- INSERT with IN feature
+--
+--Testcase 28:
+INSERT INTO tntbl2 IN ('/mongo_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
+--Testcase 29:
+INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
+
 --
 -- DELETE
 --
