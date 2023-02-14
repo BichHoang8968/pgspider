@@ -840,6 +840,473 @@ DROP FOREIGN TABLE tbl03__server3__0;
 DROP FOREIGN TABLE tbl03;
 --Testcase 334:
 DROP SERVER server1, server2, server3 CASCADE;
+--
+-- Test case routing insert feature
+--
+-- Test in case of throw_candidate_error = false
+-- there are 4 nodes support modification with order: mysql_svr, post_svr, sqlite_svr, tiny_svr
+-- file_fdw does not support modification, it's not included in candidate list
+CREATE FOREIGN TABLE test2 (i int, __spd_url text) SERVER pgspider_svr;
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+
+SET pgspider_core_fdw.throw_error_ifdead to false;
+SET pgspider_core_fdw.throw_candidate_error to false;
+--Testcase 335:
+DELETE FROM test2;
+-- First, single insert
+--Testcase 336:
+INSERT INTO test2 VALUES (1);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 337:
+INSERT INTO test2 VALUES (2);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 338:
+INSERT INTO test2 VALUES (3);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 339:
+INSERT INTO test2 VALUES (4);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 340:
+INSERT INTO test2 VALUES (5);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 341:
+INSERT INTO test2 VALUES (6);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 342:
+DELETE FROM test2;
+--Testcase 343:
+INSERT INTO test2 VALUES (7);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 344:
+INSERT INTO test2 VALUES (8);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 345:
+INSERT INTO test2 VALUES (9);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 346:
+INSERT INTO test2 VALUES (10);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 347:
+INSERT INTO test2 VALUES (11);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 348:
+INSERT INTO test2 VALUES (12);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+-- Insert multi values
+--Testcase 349:
+DELETE FROM test2;
+--Testcase 350:
+INSERT INTO test2 VALUES (13), (14);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 351:
+INSERT INTO test2 VALUES (15), (16), (17);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 352:
+INSERT INTO test2 VALUES (18), (19), (20);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 353:
+INSERT INTO test2 VALUES (21), (22), (23), (24), (25), (26), (27), (28), (29);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 354:
+INSERT INTO test2 VALUES (30), (31), (32), (33), (34);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 355:
+INSERT INTO test2 VALUES (35), (36), (37), (38), (39);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 356:
+DELETE FROM test2;
+
+-- Insert with IN
+--Testcase 357:
+INSERT INTO test2 IN ('/post_svr/') VALUES (23);
+SELECT * FROM test2__post_svr__0;
+--Testcase 358:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (24);
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 359:
+INSERT INTO test2 VALUES (25);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 360:
+INSERT INTO test2 IN ('/mysql_svr/') VALUES (26);
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 361:
+INSERT INTO test2 VALUES (27);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 362:
+INSERT INTO test2 IN ('/sqlite_svr/') VALUES (28);
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 363:
+INSERT INTO test2 IN ('/mysql_svr/') VALUES (29);
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 364:
+INSERT INTO test2 VALUES (30);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+-- Insert multiple with IN
+--Testcase 365:
+INSERT INTO test2 IN ('/tiny_svr/', '/sqlite_svr/') VALUES (31), (32), (33), (34), (35);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 366:
+INSERT INTO test2 IN ('/file_svr/') VALUES (36), (37);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+-- Insert with changing candidate
+--Testcase 367:
+DELETE FROM test2;
+-- Remove next target, in this case, tiny candidate table
+DROP FOREIGN TABLE test2__tiny_svr__0;
+--Testcase 368:
+INSERT INTO test2 VALUES (1);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+-- Remove previous target
+DROP FOREIGN TABLE test2__mysql_svr__0;
+--Testcase 369:
+INSERT INTO test2 VALUES (2);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+-- Remove all targets
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+--Testcase 370:
+INSERT INTO test2 VALUES (3), (4), (5), (6);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+-- Create error for child node
+--Testcase 371:
+DELETE FROM test2;
+ALTER SERVER post_svr OPTIONS (SET port '15421');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+
+--Testcase 372:
+INSERT INTO test2 VALUES (4), (5), (6), (7);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+
+ALTER SERVER post_svr OPTIONS (SET port '15432');
+-- Combine insert routing and batch insert
+SET client_min_messages = INFO;
+
+--Testcase 373:
+DELETE FROM test2;
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+--Testcase 374:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14), (15), (16), (17), (18), (19), (20), (21), (22);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+
+--Testcase 375:
+DELETE FROM test2;
+SET client_min_messages = NOTICE;
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+
+-- Test in case of throw_candidate_error = true
+-- these below test create error on child node before insert
+SET pgspider_core_fdw.throw_candidate_error to true;
+-- Single insert
+-- Rename a table cannot be reached due to wrong server name
+CREATE SERVER sqlite_svr1 FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/not_existed_pgtest.db');
+CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS(table 'test2');
+--Testcase 376:
+INSERT INTO test2 VALUES (1);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 377:
+INSERT INTO test2 VALUES (2);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 378:
+INSERT INTO test2 VALUES (3);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr1__0;
+--Testcase 379:
+INSERT INTO test2 VALUES (4);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+-- Revert previous table name, and create a non exist table
+DROP SERVER sqlite_svr1 CASCADE;
+CREATE SERVER mysql_svr1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
+CREATE USER mapping for public server mysql_svr1 OPTIONS(username 'root',password 'Mysql_1234');
+CREATE FOREIGN TABLE test2__mysql_svr1__0 (i int OPTIONS (key 'true')) SERVER mysql_svr1 OPTIONS (dbname 'not_existed',table_name 'test2');
+--Testcase 380:
+INSERT INTO test2 VALUES (5);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 381:
+INSERT INTO test2 VALUES (6);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__mysql_svr1__0;
+SELECT * FROM test2__post_svr__0;
+--Testcase 382:
+DELETE FROM test2__mysql_svr1__0;
+--Testcase 383:
+INSERT INTO test2 VALUES (7);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 384:
+INSERT INTO test2 VALUES (8);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+DROP FOREIGN TABLE test2__mysql_svr1__0;
+DROP SERVER mysql_svr1 CASCADE;
+-- More than 1 foreign table error
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS(table_name 'test_not_existed');
+--Testcase 385:
+INSERT INTO test2 VALUES (9);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 386:
+INSERT INTO test2 VALUES (10);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 387:
+INSERT INTO test2 VALUES (11);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__post_svr__1;
+--Testcase 388:
+INSERT INTO test2 VALUES (12);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__tiny_svr__1;
+--Testcase 389:
+DELETE FROM test2__post_svr__1;
+DROP FOREIGN TABLE test2__tiny_svr__1;
+-- Insert multi values
+-- At this step, there is 1 invalid candidate test2__post_svr__1. Because postgres_fdw returns an error only after calling postgresIterateForeignScan(), 
+-- pgspider_core_fdw cannot detect it (postgres) is an invalid candidate at the listing candidate phase such as PlanForeignModify or BeginForeignModify.
+-- So setting invalid table name for foreign table on postgres_fdw is not the case of candidate error.
+-- It means that after the insert target is decided, if the chosen postgres is invalid then it raises error, otherwise it succeeds (invalid is not chosen)
+--Testcase 390:
+INSERT INTO test2 VALUES (13), (14), (15);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__post_svr__1;
+--Testcase 391:
+INSERT INTO test2 VALUES (16), (17);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__post_svr__1;
+--Testcase 392:
+INSERT INTO test2 VALUES (18), (19), (20);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__post_svr__1;
+--Testcase 393:
+INSERT INTO test2 VALUES (21), (22), (23), (24);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+SELECT * FROM test2__post_svr__1;
+--Testcase 394:
+DELETE FROM test2__post_svr__1;
+
+--Testcase 395:
+INSERT INTO test2 VALUES (25), (26), (27), (28), (29), (30), (31), (32), (33), (34), (35), (36), (37), (38);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+DROP FOREIGN TABLE test2__post_svr__1;
+--Testcase 396:
+INSERT INTO test2 VALUES (39), (40), (41), (42), (43);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 397:
+INSERT INTO test2 VALUES (44), (45), (46), (47), (48);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__0;
+
+--Testcase 398:
+DELETE FROM test2;
+-- Insert with changing candidate
+-- Remove previous target, tiny node and change its position
+ALTER SERVER tiny_svr RENAME TO atiny_svr;
+CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test2');
+DROP FOREIGN TABLE test2__tiny_svr__0;
+CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test_not_existed');
+-- The existing tiny foreign table become unreachable, order is atiny, tiny (invalid), mysql, post, sqlite
+--Testcase 399:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__atiny_svr__1;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__atiny_svr__0;
+--Testcase 400:
+DELETE FROM test2__atiny_svr__0;
+DROP FOREIGN TABLE test2__atiny_svr__0;
+-- After previous insert, the next target is sqlite node
+-- Remove next target, change its position
+ALTER SERVER sqlite_svr RENAME TO bsqlite_svr;
+ALTER FOREIGN TABLE test2__sqlite_svr__0 RENAME TO test2__bsqlite_svr__0;
+-- The order now is atiny, bsqlite, mysql, post
+--Testcase 401:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__atiny_svr__1;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__bsqlite_svr__0;
+-- Remove all targets
+DELETE FROM test2__atiny_svr__1;
+DELETE FROM test2__mysql_svr__0;
+DELETE FROM test2__post_svr__0;
+DELETE FROM test2__bsqlite_svr__0;
+DROP FOREIGN TABLE test2__atiny_svr__1;
+DROP FOREIGN TABLE test2__mysql_svr__0;
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__bsqlite_svr__0;
+--Testcase 402:
+INSERT INTO test2 VALUES (11), (12), (13), (14), (15);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 403:
+DELETE FROM test2;
+-- Now revert server and table name, order become mysql, post, sqlite, tiny
+ALTER SERVER atiny_svr RENAME TO tiny_svr;
+ALTER SERVER bsqlite_svr RENAME TO sqlite_svr;
+-- Create an invalid table test2__tiny_svr__1
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'not_existed');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+-- Insert with IN in case of error with foreign table
+--Testcase 404:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (1);
+--Testcase 405:
+INSERT INTO test2 IN ('/tiny_svr/') VALUES (2);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__tiny_svr__1;
+--Testcase 406:
+INSERT INTO test2 IN ('/file_svr/') VALUES (3);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__file_svr__0;
+--Testcase 407:
+INSERT INTO test2 VALUES (4);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 408:
+INSERT INTO test2 IN ('/post_svr/') VALUES (5);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__post_svr__0;
+--Testcase 409:
+INSERT INTO test2 VALUES (6);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 410:
+INSERT INTO test2 IN ('/sqlite_svr/', '/mysql_svr/') VALUES (7), (8);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 411:
+INSERT INTO test2 VALUES (9);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 412:
+INSERT INTO test2 IN ('/sqlite_svr/') VALUES (10);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 413:
+INSERT INTO test2 VALUES (11);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+--Testcase 414:
+DELETE FROM test2__tiny_svr__1;
+DELETE FROM test2__mysql_svr__0;
+DELETE FROM test2__sqlite_svr__0;
+DELETE FROM test2__post_svr__0;
+-- Combine insert routing and batch insert in case of error with foreign table
+SET client_min_messages = INFO;
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '3');
+--Testcase 415:
+INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14), (15), (16), (17), (18), (19), (20), (21), (22), (23), (24), (25);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+SELECT * FROM test2__tiny_svr__1;
+--Testcase 416:
+DROP FOREIGN TABLE test2__tiny_svr__1;
+INSERT INTO test2 VALUES (31), (32), (33), (34), (35), (36), (37), (38), (39), (40), (41), (42), (43), (44), (45), (46), (47), (48), (49), (50), (51), (52), (53), (54), (55);
+SELECT * FROM test2 ORDER BY i, __spd_url;
+SELECT * FROM test2__mysql_svr__0;
+SELECT * FROM test2__post_svr__0;
+SELECT * FROM test2__sqlite_svr__0;
+
+SET client_min_messages = NOTICE;
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+--Testcase 417:
+DELETE FROM test2;
+DROP FOREIGN TABLE test2__mysql_svr__0;
+DROP FOREIGN TABLE test2__post_svr__0;
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+DROP FOREIGN TABLE test2__file_svr__0;
+DROP FOREIGN TABLE test2;
 
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;

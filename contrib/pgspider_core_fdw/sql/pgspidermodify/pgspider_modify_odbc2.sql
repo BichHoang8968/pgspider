@@ -95,7 +95,7 @@ INSERT INTO tntbl3 VALUES(repeat('x', 25), 20, 4.0, 40.0, 5000);
 SELECT c1, c2, _id FROM tntbl3 ORDER BY _id;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 31:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);

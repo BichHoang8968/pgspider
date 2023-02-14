@@ -55,10 +55,10 @@ SELECT * FROM tntbl3 ORDER BY _id;
       _id      | c1 | c2  | c3  |  c4   |    __spd_url     
 ---------------+----+-----+-----+-------+------------------
  @             |    |     |     |       | /odbc_mysql_svr/
- _3            |    |   3 |     |       | /odbc_mysql_svr/
+ _3            |    |   3 |     |       | /odbc_post_svr/
  _4            |    |   5 |     |       | /odbc_mysql_svr/
  odbc postgres |  1 | 1.1 | 100 | 10000 | /odbc_post_svr/
- test1         |    |   5 | 600 |  1000 | /odbc_mysql_svr/
+ test1         |    |   5 | 600 |  1000 | /odbc_post_svr/
  test2         |    |   7 |     |       | /odbc_mysql_svr/
 (6 rows)
 
@@ -90,10 +90,10 @@ SELECT * FROM tntbl3 ORDER BY _id;
       _id      | c1 | c2  | c3  |  c4   |    __spd_url     
 ---------------+----+-----+-----+-------+------------------
  @             |    |     |     |       | /odbc_mysql_svr/
- _3            |    |   3 |     |       | /odbc_mysql_svr/
+ _3            |    |   3 |     |       | /odbc_post_svr/
  _4            |    |   5 |     |       | /odbc_mysql_svr/
  odbc postgres |  1 | 1.1 | 100 | 10000 | /odbc_post_svr/
- test1         |    |   5 | 600 |  1000 | /odbc_mysql_svr/
+ test1         |    |   5 | 600 |  1000 | /odbc_post_svr/
  test2         |    |   7 |     |       | /odbc_mysql_svr/
 (6 rows)
 
@@ -108,14 +108,14 @@ SELECT * FROM tntbl3 ORDER BY _id;
       _id      | c1 | c2  | c3  |  c4   |    __spd_url     
 ---------------+----+-----+-----+-------+------------------
  @             |    |     |     |       | /odbc_mysql_svr/
- _3            |    |   3 |     |       | /odbc_mysql_svr/
+ _3            |    |   3 |     |       | /odbc_post_svr/
  _4            |    |   5 |     |       | /odbc_mysql_svr/
  odbc postgres |  1 | 1.1 | 100 | 10000 | /odbc_post_svr/
- test1         |    |   5 | 600 |  1000 | /odbc_mysql_svr/
+ test1         |    |   5 | 600 |  1000 | /odbc_post_svr/
  test2         |    |   7 |     |       | /odbc_mysql_svr/
- test3         | 10 |   2 |  20 |  2000 | /odbc_mysql_svr/
+ test3         | 10 |   2 |  20 |  2000 | /odbc_post_svr/
  test4         | -1 |   2 |     |  3000 | /odbc_mysql_svr/
- test5         | 90 |   3 |  30 |  4000 | /odbc_mysql_svr/
+ test5         | 90 |   3 |  30 |  4000 | /odbc_post_svr/
 (9 rows)
 
 --
@@ -140,14 +140,14 @@ SELECT c1, c2, _id FROM tntbl3 ORDER BY _id;
 (10 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 31:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 32:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -296,6 +296,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |   5 |    |   
  _41                        |    |   6 |    |   
  bugle                      | 21 |     |    |   
+ bugle                      | 21 |     |    |   
  odbc postgres              |  1 | 1.1 |    |   
  odbc postgres1             |  2 | 2.1 |    |   
  test1                      |    |   5 |    |   
@@ -303,7 +304,6 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  test2                      |    |   7 |    |   
  test21                     |    |   8 |    |   
  test31                     | 11 |   3 |    |   
- test4                      | 10 |   2 |    |   
  test41                     | 11 |   3 |    |   
  test5                      | 90 |   3 |    |   
  test51                     | 91 |   4 |    |   
@@ -324,7 +324,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |   5 |    |   
  _41                        |    |   6 |    |   
  bugle                      | 21 |     |    |   
- car1                       | 11 |   2 |    |   
+ bugle                      | 21 |     |    |   
  odbc postgres              |  1 | 1.1 |    |   
  odbc postgres1             |  2 | 2.1 |    |   
  test1                      |    |   5 |    |   
@@ -359,7 +359,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |   5 |    |   
  _41                        |    |   6 |    |   
  bugle                      | 21 |     |    |   
- car1                       | 11 |   2 |    |   
+ bugle                      | 21 |     |    |   
  odbc postgres              |  1 | 1.1 |    |   
  odbc postgres1             |  2 | 2.1 |    |   
  test1                      |    |   5 |    |   
@@ -390,7 +390,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |    |    |   
  _41                        |    |    |    |   
  bugle                      | 21 |    |    |   
- car1                       | 11 |    |    |   
+ bugle                      | 21 |    |    |   
  odbc postgres              |  1 |    |    |   
  odbc postgres1             |  2 |    |    |   
  test1                      |    |    |    |   
@@ -424,7 +424,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |    |    |   
  _41                        |    |    |    |   
  bugle                      | 21 |    |    |   
- car1                       | 11 |    |    |   
+ bugle                      | 21 |    |    |   
  odbc postgres              |  1 |    |    |   
  odbc postgres1             |  2 |    |    |   
  test1                      |    |    |    |   
@@ -472,7 +472,7 @@ SELECT c1, c2, _id FROM tntbl3 ORDER BY _id;
     |    | _4
     |    | _41
  21 |    | bugle
- 11 |    | car1
+ 21 |    | bugle
   1 |    | odbc postgres
   2 |    | odbc postgres1
     |    | test1
@@ -535,7 +535,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
  _4                         |    |    |    |   
  _41                        |    |    |    |   
  bugle                      | 21 |    |    |   
- car1                       | 11 |    |    |   
+ bugle                      | 21 |    |    |   
  odbc postgres              |  1 |    |    |   
  odbc postgres1             |  2 |    |    |   
  test1                      |    |    |    |   
@@ -576,23 +576,23 @@ SELECT c1, c3, _id FROM tntbl3 ORDER BY _id;
  c1 |  c3   |            _id             
 ----+-------+----------------------------
     |   222 | @
-    |   222 | @1
-    |   222 | _3
-    |   222 | _31
+    | 56563 | @1
+    | 56563 | _3
+    | 56563 | _31
     |   222 | _4
-    |   222 | _41
+    | 56563 | _41
+ 21 | 56563 | bugle
  21 |   222 | bugle
- 11 |   222 | car1
   1 | 56563 | odbc postgres
   2 |   222 | odbc postgres1
-    |   222 | test1
+    | 56563 | test1
     |   222 | test11
     |   222 | test2
     |   222 | test21
  11 |   222 | test31
  11 |   222 | test41
  30 |   222 | xxxxxxxxxxxxxxxxxxxxxxxxx
- 31 |   222 | xxxxxxxxxxxxxxxxxxxxxxxxx1
+ 31 | 56563 | xxxxxxxxxxxxxxxxxxxxxxxxx1
 (18 rows)
 
 -- delete a row with a TOASTed value
@@ -603,14 +603,14 @@ SELECT c1, c3, _id FROM tntbl3 ORDER BY _id;
  c1 |  c3   |      _id       
 ----+-------+----------------
     |   222 | @
-    |   222 | @1
-    |   222 | _3
-    |   222 | _31
+    | 56563 | @1
+    | 56563 | _3
+    | 56563 | _31
     |   222 | _4
-    |   222 | _41
+    | 56563 | _41
   1 | 56563 | odbc postgres
   2 |   222 | odbc postgres1
-    |   222 | test1
+    | 56563 | test1
     |   222 | test11
     |   222 | test2
     |   222 | test21
@@ -644,20 +644,30 @@ ERROR:  Child node odbc_mysql_svr does not support transaction.
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 80:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  Child node odbc_mysql_svr does not support transaction.
 --Testcase 81:
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 82:
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1 , c3 FROM tntbl3);
@@ -666,9 +676,14 @@ ERROR:  Child node odbc_mysql_svr does not support transaction.
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 84:
 UPDATE tntbl3 IN ('/odbc_mysql_svr/') SET c3 = 56.0;
@@ -677,9 +692,14 @@ ERROR:  Child node odbc_mysql_svr does not support transaction.
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 86:
 DELETE FROM tntbl3 WHERE c1 > 10;
@@ -688,9 +708,14 @@ ERROR:  Child node odbc_mysql_svr does not support transaction.
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 88:
 DELETE FROM tntbl3 IN ('/odbc_post_svr/') WHERE c3 = 56.0;
@@ -699,9 +724,14 @@ ERROR:  Child node odbc_mysql_svr does not support transaction.
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 |  c3   | c4 |    __spd_url     
 ----------------+----+----+-------+----+------------------
+ @1             |    |    | 56563 |    | /odbc_post_svr/
+ _3             |    |    | 56563 |    | /odbc_post_svr/
+ _31            |    |    | 56563 |    | /odbc_post_svr/
+ _41            |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres  |  1 |    | 56563 |    | /odbc_post_svr/
  odbc postgres1 |  2 |    |   222 |    | /odbc_mysql_svr/
-(2 rows)
+ test1          |    |    | 56563 |    | /odbc_post_svr/
+(7 rows)
 
 --Testcase 90:
 ALTER FOREIGN TABLE tntbl3 OPTIONS (SET disable_transaction_feature_check 'true');
@@ -714,8 +744,13 @@ DELETE FROM tntbl3 WHERE __spd_url = '/odbc_mysql_svr/';
 SELECT * FROM tntbl3 ORDER BY _id;
       _id      | c1 | c2 |  c3   | c4 |    __spd_url    
 ---------------+----+----+-------+----+-----------------
+ @1            |    |    | 56563 |    | /odbc_post_svr/
+ _3            |    |    | 56563 |    | /odbc_post_svr/
+ _31           |    |    | 56563 |    | /odbc_post_svr/
+ _41           |    |    | 56563 |    | /odbc_post_svr/
  odbc postgres |  1 |    | 56563 |    | /odbc_post_svr/
-(1 row)
+ test1         |    |    | 56563 |    | /odbc_post_svr/
+(6 rows)
 
 --Testcase 93:
 DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
@@ -729,25 +764,27 @@ INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE _
 INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/';
 --Testcase 98:
 SELECT * FROM tntbl3 ORDER BY _id;
-      _id       | c1 | c2 | c3 |  c4  |    __spd_url     
-----------------+----+----+----+------+------------------
- xxxxxxxxxx     | 20 |  4 | 40 | 5000 | /odbc_post_svr/
- xxxxxxxxxx_bar |    |  4 | 40 |      | /odbc_mysql_svr/
- yyyyyyyyyy     | 20 |  4 | 40 | 5000 | /odbc_mysql_svr/
- yyyyyyyyyy_foo |    |  4 | 40 |      | /odbc_mysql_svr/
-(4 rows)
+        _id         | c1 | c2 | c3 |  c4  |    __spd_url     
+--------------------+----+----+----+------+------------------
+ xxxxxxxxxx         | 20 |  4 | 40 | 5000 | /odbc_post_svr/
+ xxxxxxxxxx_bar     |    |  4 | 40 |      | /odbc_mysql_svr/
+ yyyyyyyyyy         | 20 |  4 | 40 | 5000 | /odbc_mysql_svr/
+ yyyyyyyyyy_foo     |    |  4 | 40 |      | /odbc_post_svr/
+ yyyyyyyyyy_foo_bar |    |  4 | 40 |      | /odbc_post_svr/
+(5 rows)
 
 --Testcase 99:
 UPDATE tntbl3 SET _id = _id || '@' WHERE __spd_url = '/odbc_post_svr/';
 --Testcase 100:
 SELECT * FROM tntbl3 ORDER BY _id;
-      _id       | c1 | c2 | c3 |  c4  |    __spd_url     
-----------------+----+----+----+------+------------------
- xxxxxxxxxx@    | 20 |  4 | 40 | 5000 | /odbc_post_svr/
- xxxxxxxxxx_bar |    |  4 | 40 |      | /odbc_mysql_svr/
- yyyyyyyyyy     | 20 |  4 | 40 | 5000 | /odbc_mysql_svr/
- yyyyyyyyyy_foo |    |  4 | 40 |      | /odbc_mysql_svr/
-(4 rows)
+         _id         | c1 | c2 | c3 |  c4  |    __spd_url     
+---------------------+----+----+----+------+------------------
+ xxxxxxxxxx@         | 20 |  4 | 40 | 5000 | /odbc_post_svr/
+ xxxxxxxxxx_bar      |    |  4 | 40 |      | /odbc_mysql_svr/
+ yyyyyyyyyy          | 20 |  4 | 40 | 5000 | /odbc_mysql_svr/
+ yyyyyyyyyy_foo@     |    |  4 | 40 |      | /odbc_post_svr/
+ yyyyyyyyyy_foo_bar@ |    |  4 | 40 |      | /odbc_post_svr/
+(5 rows)
 
 --Testcase 101:
 DELETE FROM tntbl3;
@@ -770,12 +807,11 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 106:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/odbc_post_svr/');
-WARNING:  __spd_url value will be ignored and can not added into child table
 --Testcase 107:
 SELECT * FROM tntbl3 ORDER BY _id;
     _id     | c1 | c2 | c3 |  c4  |    __spd_url     
 ------------+----+----+----+------+------------------
- foo        | 30 |  5 | 50 | 6000 | /odbc_mysql_svr/
+ foo        | 30 |  5 | 50 | 6000 | /odbc_post_svr/
  xxxxxxxxxx | 20 |  4 | 40 | 5000 | /odbc_mysql_svr/
 (2 rows)
 

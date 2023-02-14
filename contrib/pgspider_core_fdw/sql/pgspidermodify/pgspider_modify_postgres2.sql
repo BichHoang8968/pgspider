@@ -107,7 +107,7 @@ INSERT INTO tntbl4 VALUES(30, repeat('x', 25));
 SELECT c1, c3, char_length(c2) FROM tntbl4 ORDER BY c1, c2, c3, c4, c5;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 33:
 INSERT INTO tntbl4 IN ('/postgres_svr/') VALUES (12, '_test', true, 5.0, 5000);

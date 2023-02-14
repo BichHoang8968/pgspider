@@ -35,3 +35,7 @@ insert into tbl03_4 select i from generate_series(30001,40000) i;
 
 DROP TABLE IF EXISTS tbl03_5;
 CREATE TABLE tbl03_5 (i int);
+
+DROP TABLE IF EXISTS test2;
+CREATE TABLE test2 (i int);
+INSERT INTO test2 VALUES(1111);

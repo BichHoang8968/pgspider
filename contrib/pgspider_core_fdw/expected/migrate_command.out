@@ -1080,33 +1080,35 @@ SELECT * FROM ft1_server1 LIMIT 1;
 SELECT count(*) FROM ft1_server1;
  count 
 -------
-  1000
+   334
 (1 row)
 
 --Testcase 164:
 SELECT * FROM ft1_server2 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 165:
 SELECT count(*) FROM ft1_server2;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 166:
 SELECT * FROM ft1_server3 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 167:
 SELECT count(*) FROM ft1_server3;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 168:
@@ -1205,33 +1207,35 @@ SELECT * FROM ft1__server1__0 LIMIT 1;
 SELECT count(*) FROM ft1__server1__0;
  count 
 -------
-  1000
+   334
 (1 row)
 
 --Testcase 184:
 SELECT * FROM ft1__server2__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 185:
 SELECT count(*) FROM ft1__server2__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 186:
 SELECT * FROM ft1__server3__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 187:
 SELECT count(*) FROM ft1__server3__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 188:
@@ -1331,33 +1335,35 @@ SELECT * FROM ft2__server1__0 LIMIT 1;
 SELECT count(*) FROM ft2__server1__0;
  count 
 -------
-  1000
+   334
 (1 row)
 
 --Testcase 205:
 SELECT * FROM ft2__server2__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 206:
 SELECT count(*) FROM ft2__server2__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 207:
 SELECT * FROM ft2__server3__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 208:
 SELECT count(*) FROM ft2__server3__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 209:
@@ -1477,33 +1483,35 @@ SELECT * FROM ft1_server1 LIMIT 1;
 SELECT count(*) FROM ft1_server1;
  count 
 -------
-  1000
+   334
 (1 row)
 
 --Testcase 229:
 SELECT * FROM ft1_server2 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 230:
 SELECT count(*) FROM ft1_server2;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 231:
 SELECT * FROM ft1_server3 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 232:
 SELECT count(*) FROM ft1_server3;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 233:
@@ -1611,7 +1619,7 @@ SELECT * FROM ft1 ORDER BY 1 LIMIT 1;
 SELECT count(*) FROM ft2__server1__0;
  count 
 -------
-  1000
+   334
 (1 row)
 
 --Testcase 252:
@@ -1625,27 +1633,29 @@ SELECT * FROM ft2__server1__0 LIMIT 1;
 SELECT count(*) FROM ft2__server2__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 254:
 SELECT * FROM ft2__server2__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 255:
 SELECT count(*) FROM ft2__server3__0;
  count 
 -------
-     0
+   333
 (1 row)
 
 --Testcase 256:
 SELECT * FROM ft2__server3__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 257:
 DROP DATASOURCE TABLE ft2__server1__0;
@@ -1800,53 +1810,57 @@ SELECT * FROM ft1__server1__0 LIMIT 1;
 SELECT count(*) FROM ft2__server1__1;
  count 
 -------
-     0
+   200
 (1 row)
 
 --Testcase 280:
 SELECT * FROM ft2__server1__1 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  2 |  2 | 00002 | Sat Jan 03 00:00:00 1970 PST | Sat Jan 03 00:00:00 1970 | 2  | 2          | foo       
+(1 row)
 
 --Testcase 281:
 SELECT count(*) FROM ft2__server2__0;
  count 
 -------
-     0
+   200
 (1 row)
 
 --Testcase 282:
 SELECT * FROM ft2__server2__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  3 |  3 | 00003 | Sun Jan 04 00:00:00 1970 PST | Sun Jan 04 00:00:00 1970 | 3  | 3          | foo       
+(1 row)
 
 --Testcase 283:
 SELECT count(*) FROM ft2__server2__1;
  count 
 -------
-     0
+   200
 (1 row)
 
 --Testcase 284:
 SELECT * FROM ft2__server2__1 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  4 |  4 | 00004 | Mon Jan 05 00:00:00 1970 PST | Mon Jan 05 00:00:00 1970 | 4  | 4          | foo       
+(1 row)
 
 --Testcase 285:
 SELECT count(*) FROM ft2__server3__0;
  count 
 -------
-     0
+   200
 (1 row)
 
 --Testcase 286:
 SELECT * FROM ft2__server3__0 LIMIT 1;
- c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 
-----+----+----+----+----+----+----+----
-(0 rows)
+ c1 | c2 |  c3   |              c4              |            c5            | c6 |     c7     |     c8     
+----+----+-------+------------------------------+--------------------------+----+------------+------------
+  5 |  5 | 00005 | Tue Jan 06 00:00:00 1970 PST | Tue Jan 06 00:00:00 1970 | 5  | 5          | foo       
+(1 row)
 
 --Testcase 287:
 DROP DATASOURCE TABLE ft2__server1__1;

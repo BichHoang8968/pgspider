@@ -77,9 +77,9 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  jdbc       | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  jdbc_mysql | 10 | 10 | 1000 | 10000 | /jdbc_mysql_svr/
  @          |    |    |      |       | /jdbc_mysql_svr/
- _3         |    |  3 |      |       | /jdbc_mysql_svr/
+ _3         |    |  3 |      |       | /jdbc_post_svr/
  _4         |    |  5 |      |       | /jdbc_mysql_svr/
- test1      |    |  5 |  600 |  1000 | /jdbc_mysql_svr/
+ test1      |    |  5 |  600 |  1000 | /jdbc_post_svr/
  test2      |    |  7 |      |       | /jdbc_mysql_svr/
 (7 rows)
 
@@ -113,9 +113,9 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  jdbc       | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  jdbc_mysql | 10 | 10 | 1000 | 10000 | /jdbc_mysql_svr/
  @          |    |    |      |       | /jdbc_mysql_svr/
- _3         |    |  3 |      |       | /jdbc_mysql_svr/
+ _3         |    |  3 |      |       | /jdbc_post_svr/
  _4         |    |  5 |      |       | /jdbc_mysql_svr/
- test1      |    |  5 |  600 |  1000 | /jdbc_mysql_svr/
+ test1      |    |  5 |  600 |  1000 | /jdbc_post_svr/
  test2      |    |  7 |      |       | /jdbc_mysql_svr/
 (7 rows)
 
@@ -132,12 +132,12 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  test4      | -1 |  2 |      |  3000 | /jdbc_mysql_svr/
  jdbc       | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  jdbc_mysql | 10 | 10 | 1000 | 10000 | /jdbc_mysql_svr/
- test3      | 10 |  2 |   20 |  2000 | /jdbc_mysql_svr/
- test5      | 90 |  3 |   30 |  4000 | /jdbc_mysql_svr/
+ test3      | 10 |  2 |   20 |  2000 | /jdbc_post_svr/
+ test5      | 90 |  3 |   30 |  4000 | /jdbc_post_svr/
  @          |    |    |      |       | /jdbc_mysql_svr/
- _3         |    |  3 |      |       | /jdbc_mysql_svr/
+ _3         |    |  3 |      |       | /jdbc_post_svr/
  _4         |    |  5 |      |       | /jdbc_mysql_svr/
- test1      |    |  5 |  600 |  1000 | /jdbc_mysql_svr/
+ test1      |    |  5 |  600 |  1000 | /jdbc_post_svr/
  test2      |    |  7 |      |       | /jdbc_mysql_svr/
 (10 rows)
 
@@ -164,14 +164,14 @@ SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, _id;
 (11 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 213:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 214:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -346,19 +346,19 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 (22 rows)
 
 --Testcase 229:
-UPDATE tntbl3 SET (_id, c3) = ('car1', c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
+UPDATE tntbl3 SET (_id, c3) = (_id || 'car1', c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
 --Testcase 230:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
             _id             | c1 | c2 | c3 | c4 
 ----------------------------+----+----+----+----
- test3                      | 10 |  2 |    |   
- test4                      | 10 |  2 |    |   
- car1                       | 11 | 10 |    |   
- car1                       | 11 | 10 |    |   
  jdbc1                      | 11 | 11 |    |   
+ jdbccar1                   | 11 | 10 |    |   
  jdbc_mysql1                | 11 | 11 |    |   
+ jdbc_mysqlcar1             | 11 | 10 |    |   
  test31                     | 11 |  3 |    |   
+ test3car1                  | 11 |  2 |    |   
  test41                     | 11 |  3 |    |   
+ test4car1                  | 11 |  2 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx  | 30 |  4 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx1 | 31 |  5 |    |   
  test5                      | 90 |  3 |    |   
@@ -382,20 +382,20 @@ ERROR:  multiple assignments to same column "c2"
 -- uncorrelated sub-SELECT:
 --Testcase 232:
 UPDATE tntbl3
-  SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'car1')
+  SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'jdbccar1')
   WHERE c2 = 2.0 AND c3 = 20.0;
 --Testcase 233:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
             _id             | c1 | c2 | c3 | c4 
 ----------------------------+----+----+----+----
- test3                      | 10 |  2 |    |   
- test4                      | 10 |  2 |    |   
- car1                       | 11 | 10 |    |   
- car1                       | 11 | 10 |    |   
  jdbc1                      | 11 | 11 |    |   
+ jdbccar1                   | 11 | 10 |    |   
  jdbc_mysql1                | 11 | 11 |    |   
+ jdbc_mysqlcar1             | 11 | 10 |    |   
  test31                     | 11 |  3 |    |   
+ test3car1                  | 11 |  2 |    |   
  test41                     | 11 |  3 |    |   
+ test4car1                  | 11 |  2 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx  | 30 |  4 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx1 | 31 |  5 |    |   
  test5                      | 90 |  3 |    |   
@@ -421,14 +421,14 @@ UPDATE tntbl3 o
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
             _id             | c1 | c2 | c3 | c4 
 ----------------------------+----+----+----+----
- test3                      | 10 |    |    |   
- test4                      | 10 |    |    |   
- car1                       | 11 |    |    |   
- car1                       | 11 |    |    |   
  jdbc1                      | 11 |    |    |   
+ jdbccar1                   | 11 |    |    |   
  jdbc_mysql1                | 11 |    |    |   
+ jdbc_mysqlcar1             | 11 |    |    |   
  test31                     | 11 |    |    |   
+ test3car1                  | 11 |    |    |   
  test41                     | 11 |    |    |   
+ test4car1                  | 11 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx  | 30 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx1 | 31 |    |    |   
  test5                      | 90 |    |    |   
@@ -457,14 +457,14 @@ UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1, c3 FROM tntbl3 where c4 = 1000)
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
             _id             | c1 | c2 | c3 | c4 
 ----------------------------+----+----+----+----
- test3                      | 10 |    |    |   
- test4                      | 10 |    |    |   
- car1                       | 11 |    |    |   
- car1                       | 11 |    |    |   
  jdbc1                      | 11 |    |    |   
+ jdbccar1                   | 11 |    |    |   
  jdbc_mysql1                | 11 |    |    |   
+ jdbc_mysqlcar1             | 11 |    |    |   
  test31                     | 11 |    |    |   
+ test3car1                  | 11 |    |    |   
  test41                     | 11 |    |    |   
+ test4car1                  | 11 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx  | 30 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx1 | 31 |    |    |   
  test5                      | 90 |    |    |   
@@ -507,14 +507,14 @@ UPDATE tntbl3 SET _id = repeat('x', 25) WHERE c1 = 20 and c2 = 41;
 SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, _id;
  c1 | c2 |            _id             
 ----+----+----------------------------
- 10 |    | test3
- 10 |    | test4
- 11 |    | car1
- 11 |    | car1
  11 |    | jdbc1
+ 11 |    | jdbccar1
  11 |    | jdbc_mysql1
+ 11 |    | jdbc_mysqlcar1
  11 |    | test31
+ 11 |    | test3car1
  11 |    | test41
+ 11 |    | test4car1
  30 |    | xxxxxxxxxxxxxxxxxxxxxxxxx
  31 |    | xxxxxxxxxxxxxxxxxxxxxxxxx1
  90 |    | test5
@@ -579,17 +579,17 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id, c1;
  _4                         |    |    |    |   
  _41                        |    |    |    |   
  bugle                      |    |    |    |   
- car1                       | 11 |    |    |   
- car1                       | 11 |    |    |   
  jdbc1                      | 11 |    |    |   
+ jdbccar1                   | 11 |    |    |   
  jdbc_mysql1                | 11 |    |    |   
+ jdbc_mysqlcar1             | 11 |    |    |   
  test1                      |    |    |    |   
  test11                     |    |    |    |   
  test2                      |    |    |    |   
- test3                      | 10 |    |    |   
  test31                     | 11 |    |    |   
- test4                      | 10 |    |    |   
+ test3car1                  | 11 |    |    |   
  test41                     | 11 |    |    |   
+ test4car1                  | 11 |    |    |   
  test5                      | 90 |    |    |   
  test51                     | 91 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx  | 30 |    |    |   
@@ -621,24 +621,24 @@ HINT:  Perhaps you meant to reference the table alias "dt".
 SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, c3, _id;
  c1 |  c3   |            _id             
 ----+-------+----------------------------
- 10 | 56563 | test3
- 10 | 56563 | test4
- 11 |   222 | car1
- 11 | 56563 | car1
+ 11 |   222 | jdbccar1
+ 11 |   222 | test31
+ 11 |   222 | test3car1
+ 11 |   222 | test41
  11 | 56563 | jdbc1
  11 | 56563 | jdbc_mysql1
- 11 | 56563 | test31
- 11 | 56563 | test41
+ 11 | 56563 | jdbc_mysqlcar1
+ 11 | 56563 | test4car1
  30 | 56563 | xxxxxxxxxxxxxxxxxxxxxxxxx
- 31 | 56563 | xxxxxxxxxxxxxxxxxxxxxxxxx1
+ 31 |   222 | xxxxxxxxxxxxxxxxxxxxxxxxx1
+    |   222 | @1
+    |   222 | _3
+    |   222 | _31
+    |   222 | _41
+    |   222 | test1
     | 56563 | @
-    | 56563 | @1
-    | 56563 | _3
-    | 56563 | _31
     | 56563 | _4
-    | 56563 | _41
     | 56563 | bugle
-    | 56563 | test1
     | 56563 | test11
     | 56563 | test2
 (20 rows)
@@ -650,19 +650,17 @@ DELETE FROM tntbl3 WHERE c1 > 10;
 SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, _id;
  c1 |  c3   |  _id   
 ----+-------+--------
- 10 | 56563 | test3
- 10 | 56563 | test4
     | 56563 | @
-    | 56563 | @1
-    | 56563 | _3
-    | 56563 | _31
+    |   222 | @1
+    |   222 | _3
+    |   222 | _31
     | 56563 | _4
-    | 56563 | _41
+    |   222 | _41
     | 56563 | bugle
-    | 56563 | test1
+    |   222 | test1
     | 56563 | test11
     | 56563 | test2
-(12 rows)
+(10 rows)
 
 --
 -- DELETE with IN feature
@@ -692,32 +690,32 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
 
 --Testcase 352:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  Child node jdbc_mysql_svr does not support transaction.
 --Testcase 353:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
@@ -730,13 +728,13 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
@@ -749,13 +747,13 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
@@ -768,13 +766,13 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
@@ -787,13 +785,13 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
 --------+----+----+-------+----+------------------
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
- @1     |    |    | 56563 |    | /jdbc_mysql_svr/
- _3     |    |    | 56563 |    | /jdbc_mysql_svr/
- _31    |    |    | 56563 |    | /jdbc_mysql_svr/
+ @1     |    |    |   222 |    | /jdbc_post_svr/
+ _3     |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    |   222 |    | /jdbc_post_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
- _41    |    |    | 56563 |    | /jdbc_mysql_svr/
+ _41    |    |    |   222 |    | /jdbc_post_svr/
  bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
- test1  |    |    | 56563 |    | /jdbc_mysql_svr/
+ test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
 (10 rows)
@@ -807,9 +805,14 @@ ALTER FOREIGN TABLE tntbl3 OPTIONS (SET disable_transaction_feature_check 'true'
 --Testcase 362:
 DELETE FROM tntbl3 WHERE __spd_url = '/jdbc_mysql_svr/';
 SELECT * FROM tntbl3 ORDER BY c1, _id;
- _id | c1 | c2 | c3 | c4 | __spd_url 
------+----+----+----+----+-----------
-(0 rows)
+  _id  | c1 | c2 | c3  | c4 |    __spd_url    
+-------+----+----+-----+----+-----------------
+ @1    |    |    | 222 |    | /jdbc_post_svr/
+ _3    |    |    | 222 |    | /jdbc_post_svr/
+ _31   |    |    | 222 |    | /jdbc_post_svr/
+ _41   |    |    | 222 |    | /jdbc_post_svr/
+ test1 |    |    | 222 |    | /jdbc_post_svr/
+(5 rows)
 
 --Testcase 363:
 DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
@@ -861,14 +864,13 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 374:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/postgres_svr/');
-WARNING:  __spd_url value will be ignored and can not added into child table
+ERROR:  There is no candidate for insert.
 --Testcase 375:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
-    _id     | c1 | c2 | c3 |  c4  |    __spd_url     
-------------+----+----+----+------+------------------
- xxxxxxxxxx | 20 |  4 | 40 | 5000 | /jdbc_mysql_svr/
- foo        | 30 |  5 | 50 | 6000 | /jdbc_mysql_svr/
-(2 rows)
+    _id     | c1 | c2 | c3 |  c4  |    __spd_url    
+------------+----+----+----+------+-----------------
+ xxxxxxxxxx | 20 |  4 | 40 | 5000 | /jdbc_post_svr/
+(1 row)
 
 --
 -- Test with optional options: tntbl3
@@ -938,8 +940,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 ------------+----+----+----+------
  key$       | 12 |    |    |     
  xxxxxxxxxx | 20 |  4 | 40 | 5000
- foo        | 30 |  5 | 50 | 6000
-(3 rows)
+(2 rows)
 
 --Testcase 431:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -961,8 +962,7 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 ------------+----+----+----+------
  key$       | 12 |    |    |     
  xxxxxxxxxx | 20 |  4 | 40 | 5000
- foo        | 30 |  5 | 50 | 6000
-(3 rows)
+(2 rows)
 
 --Testcase 436:
 DROP VIEW rw_view;

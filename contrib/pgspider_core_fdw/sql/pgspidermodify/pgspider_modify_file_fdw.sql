@@ -73,6 +73,88 @@ DELETE FROM tntbl5 WHERE c2 = 'foo';
 --Testcase 28:
 DELETE FROM tntbl5 IN ('/file_svr/');
 
+--
+-- Test case routing insert feature
+--
+-- Test in case of throw_candidate_error = false
+--Testcase 47:
+SET pgspider_core_fdw.throw_candidate_error = false;
+-- First, single insert for nodes
+--Testcase 48:
+INSERT INTO tntbl5 VALUES (60, 'awefaAW#');
+--Testcase 49:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 50:
+INSERT INTO tntbl5 VALUES (61, 'AEFA');
+--Testcase 51:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 52:
+INSERT INTO tntbl5 VALUES (62, 'e4rw3fr');
+--Testcase 53:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 54:
+INSERT INTO tntbl5 VALUES (63, 'sreg32sf aef');
+--Testcase 55:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 56:
+INSERT INTO tntbl5 VALUES (64, 'sgwegaw3');
+--Testcase 57:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 58:
+INSERT INTO tntbl5 VALUES (65, 'a3rq2raeff');
+--Testcase 59:
+SELECT * FROM tntbl5 ORDER BY 1;
+-- Multi insert to nodes
+--Testcase 60:
+INSERT INTO tntbl5 VALUES (66, 'awefaAW#'), (67, '42342q');
+--Testcase 61:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 62:
+INSERT INTO tntbl5 VALUES (68, 'w3r3wrfa#'), (69, '32423'), (70, 'agaw'), (71, 'seg3agawega'), (72, 'rj34yerg');
+--Testcase 63:
+SELECT * FROM tntbl5 ORDER BY 1;
+--
+-- Test in case of throw_candidate_error = true
+-- If at least one child node has an error, pgspider_core_fdw raises an error
+--Testcase 64:
+SET pgspider_core_fdw.throw_candidate_error = true;
+ALTER FOREIGN TABLE tntbl5__file_svr__0 OPTIONS (SET filename '/tmp/pg_modify_file_not_existed.csv');
+-- Insert single value
+--Testcase 65:
+INSERT INTO tntbl5 VALUES (80, 'A#KRA#');
+--Testcase 66:
+SELECT * FROM tntbl5 ORDER BY 1;
+ALTER FOREIGN TABLE tntbl5__file_svr__0 OPTIONS (SET filename '/tmp/pg_modify_file1.csv');
+--Testcase 67:
+INSERT INTO tntbl5 VALUES ('81', '2ea3r2');
+--Testcase 68:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 69:
+INSERT INTO tntbl5 VALUES (82, 42452);
+--Testcase 70:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 71:
+INSERT INTO tntbl5 VALUES (83, '32r21rawf');
+--Testcase 72:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 73:
+INSERT INTO tntbl5 VALUES (84, 'A#afwf#');
+--Testcase 74:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 75:
+INSERT INTO tntbl5 VALUES (85, 'a3r2e');
+--Testcase 76:
+SELECT * FROM tntbl5 ORDER BY 1;
+-- Insert multi value
+--Testcase 77:
+INSERT INTO tntbl5 VALUES ('86', '3wra'), (87, 452);
+--Testcase 78:
+SELECT * FROM tntbl5 ORDER BY 1;
+--Testcase 79:
+INSERT INTO tntbl5 VALUES (88, '3wra'), (89, 'taw35ta'), (90, 'erfawfa'), (91, 'avaewvaf'), (92, 'avAEGAWRG'), (93, 'AMEF_awe.fawlfe');
+--Testcase 80:
+SELECT * FROM tntbl5 ORDER BY 1;
+
 --Clean
 --Testcase 29:
 DROP FOREIGN TABLE tntbl5 CASCADE;

@@ -137,14 +137,14 @@ SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2;
 (9 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 29:
 INSERT INTO tntbl2 IN ('/pgspider_core_svr/pgspider_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 30:
 INSERT INTO tntbl2 IN ('/pgspider_core_svr/pgspider_svr/dynamodb_svr/', '/pgspider_core_svr/pgspider_svr/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --

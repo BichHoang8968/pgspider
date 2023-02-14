@@ -85,7 +85,7 @@ INSERT INTO tntbl1 VALUES (9, 9, 902.12, 9545.03, 3122, '2030-02-20 03:00:07', '
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 
 INSERT INTO tntbl1 IN ('/oracle_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
@@ -127,7 +127,7 @@ UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 --
 -- Test multiple-set-clause syntax
 --
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY c1;
 
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 

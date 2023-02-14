@@ -65,9 +65,9 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3  |    c4    |  c5  | c8 | c9 |    __spd_url    
 ----+----+-----+----------+------+----+----+-----------------
   1 |    |     |          |      |    |    | /dynamodb_svr1/
-  3 |    |     |          |      |    |    | /dynamodb_svr1/
+  3 |    |     |          |      |    |    | /dynamodb_svr2/
   4 |  5 |     |          |      |    |    | /dynamodb_svr1/
-  5 |  6 | 2.6 | 5453.454 | 5989 |    |    | /dynamodb_svr1/
+  5 |  6 | 2.6 | 5453.454 | 5989 |    |    | /dynamodb_svr2/
   6 |  7 |     |          |      |    |    | /dynamodb_svr1/
 (5 rows)
 
@@ -99,9 +99,9 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3  |    c4    |  c5  | c8 | c9 |    __spd_url    
 ----+----+-----+----------+------+----+----+-----------------
   1 |    |     |          |      |    |    | /dynamodb_svr1/
-  3 |    |     |          |      |    |    | /dynamodb_svr1/
+  3 |    |     |          |      |    |    | /dynamodb_svr2/
   4 |  5 |     |          |      |    |    | /dynamodb_svr1/
-  5 |  6 | 2.6 | 5453.454 | 5989 |    |    | /dynamodb_svr1/
+  5 |  6 | 2.6 | 5453.454 | 5989 |    |    | /dynamodb_svr2/
   6 |  7 |     |          |      |    |    | /dynamodb_svr1/
 (5 rows)
 
@@ -117,12 +117,12 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ----+----+-----+----------+-------+--------------------------------+-----------+-----------------
  -1 |  2 |     |          | 69845 | Beera                          | John Does | /dynamodb_svr1/
   1 |    |     |          |       |                                |           | /dynamodb_svr1/
-  2 |  3 |   4 |  656.212 |  5944 | VALUES are fun!                | foo       | /dynamodb_svr1/
-  3 |    |     |          |       |                                |           | /dynamodb_svr1/
+  2 |  3 |   4 |  656.212 |  5944 | VALUES are fun!                | foo       | /dynamodb_svr2/
+  3 |    |     |          |       |                                |           | /dynamodb_svr2/
   4 |  5 |     |          |       |                                |           | /dynamodb_svr1/
-  5 |  6 | 2.6 | 5453.454 |  5989 |                                |           | /dynamodb_svr1/
+  5 |  6 | 2.6 | 5453.454 |  5989 |                                |           | /dynamodb_svr2/
   6 |  7 |     |          |       |                                |           | /dynamodb_svr1/
- 10 | 20 |   3 |  452.254 |   599 | 40                             | abc       | /dynamodb_svr1/
+ 10 | 20 |   3 |  452.254 |   599 | 40                             | abc       | /dynamodb_svr2/
 (8 rows)
 
 --
@@ -136,21 +136,21 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ----+----+--------+----------+-------+--------------------------------+---------------------------+-----------------
  -1 |  2 |        |          | 69845 | Beera                          | John Does                 | /dynamodb_svr1/
   1 |    |        |          |       |                                |                           | /dynamodb_svr1/
-  2 |  3 |      4 |  656.212 |  5944 | VALUES are fun!                | foo                       | /dynamodb_svr1/
-  3 |    |        |          |       |                                |                           | /dynamodb_svr1/
+  2 |  3 |      4 |  656.212 |  5944 | VALUES are fun!                | foo                       | /dynamodb_svr2/
+  3 |    |        |          |       |                                |                           | /dynamodb_svr2/
   4 |  5 |        |          |       |                                |                           | /dynamodb_svr1/
-  5 |  6 |    2.6 | 5453.454 |  5989 |                                |                           | /dynamodb_svr1/
+  5 |  6 |    2.6 | 5453.454 |  5989 |                                |                           | /dynamodb_svr2/
   6 |  7 |        |          |       |                                |                           | /dynamodb_svr1/
   9 |  9 | 902.12 |  9545.03 |  3122 | xxxxxxxxxxxxxxxxxxxxxxxxx      | aaaaaaaaaaaaaaaaaaaaaaaaa | /dynamodb_svr1/
- 10 | 20 |      3 |  452.254 |   599 | 40                             | abc                       | /dynamodb_svr1/
+ 10 | 20 |      3 |  452.254 |   599 | 40                             | abc                       | /dynamodb_svr2/
 (9 rows)
 
 --
--- INSERT with IN feature, this feature not work yet
+-- INSERT with IN feature
 --
 --Testcase 28:
 INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, 'One', 'OneOne');
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --
 -- UPDATE
 --
@@ -613,22 +613,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 69:
@@ -639,22 +639,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --
@@ -671,22 +671,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 74:
@@ -698,22 +698,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 76:
@@ -724,22 +724,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 78:
@@ -753,50 +753,50 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 87:
 ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
 --Testcase 81:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, 'Two', 'TwoTwo');
-ERROR:  Can not use INSERT with IN
+ERROR:  There is no candidate for insert.
 --Testcase 82:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 83:
@@ -807,22 +807,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --Testcase 85:
@@ -833,22 +833,22 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
 --
@@ -919,23 +919,23 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  11 | 12 |    |    |    |                                |                           | /dynamodb_svr1/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (18 rows)
 
 --Testcase 99:
@@ -957,23 +957,23 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
 ----+----+----+----+----+--------------------------------+---------------------------+-----------------
   1 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr1/
-  3 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  2 |    |    |    |    | bugle                          | foo                       | /dynamodb_svr2/
+  3 |    |    |    |    |                                |                           | /dynamodb_svr2/
   4 |    |    |    |    |                                |                           | /dynamodb_svr1/
-  5 |    |    |    |    |                                |                           | /dynamodb_svr1/
+  5 |    |    |    |    |                                |                           | /dynamodb_svr2/
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
- 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr1/
+ 10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  11 | 12 |    |    |    |                                |                           | /dynamodb_svr1/
  19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
  22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 24 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
  26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 30 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (18 rows)
 
 --Testcase 104:
