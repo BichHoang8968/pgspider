@@ -3293,6 +3293,13 @@ ExecBuildAggTrans(AggState *aggstate, AggStatePerPhase phase,
 	{
 		AggStatePerTrans pertrans = &aggstate->pertrans[transno];
 
+#ifdef PD_STORED
+		/* ***** Async support (start) ***** */
+		if (!pertrans->aggref)
+			continue;
+		/* ***** Async support (end) ***** */
+#endif
+
 		get_last_attnums_walker((Node *) pertrans->aggref->aggdirectargs,
 								&deform);
 		get_last_attnums_walker((Node *) pertrans->aggref->args,
@@ -3318,6 +3325,13 @@ ExecBuildAggTrans(AggState *aggstate, AggStatePerPhase phase,
 		bool	   *strictnulls = NULL;
 		int			argno;
 		ListCell   *bail;
+
+#ifdef PD_STORED
+		/* ***** Async support (start) ***** */
+		if (!pertrans->aggref)
+			continue;
+		/* ***** Async support (end) ***** */
+#endif
 
 		/*
 		 * If filter present, emit. Do so before evaluating the input, to

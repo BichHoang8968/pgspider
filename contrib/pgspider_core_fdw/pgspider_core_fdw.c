@@ -762,7 +762,7 @@ typedef struct ChildNodeInfo
 pthread_mutex_t error_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 pthread_mutex_t thread_running_mutex = PTHREAD_MUTEX_INITIALIZER;
-static size_t	num_child_thread_running = 0;
+static size_t			num_child_thread_running = 0;
 
 typedef struct CallbackList
 {
@@ -1513,55 +1513,55 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private, int planType)
 
 	if (planType == SpdForeignScan)
 	{
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->idx_url_tlist));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->agg_query));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->isFirst));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->groupby_has_spdurl));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->has_stub_star_regex_function));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->record_function));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->idx_url_tlist));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->agg_query));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->isFirst));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->groupby_has_spdurl));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->has_stub_star_regex_function));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->record_function));
 
-		if (fdw_private->agg_query)
+	if (fdw_private->agg_query)
+	{
+		lfdw_private = lappend(lfdw_private, fdw_private->groupby_target);
+		lfdw_private = lappend(lfdw_private, fdw_private->child_comp_tlist);
+		lfdw_private = lappend(lfdw_private, fdw_private->child_tlist);
+
+		/* Save length of mapping tlist */
+		lfdw_private = lappend(lfdw_private, makeInteger(list_length(fdw_private->mapping_tlist)));
+
+		foreach(lc, fdw_private->mapping_tlist)
 		{
-			lfdw_private = lappend(lfdw_private, fdw_private->groupby_target);
-			lfdw_private = lappend(lfdw_private, fdw_private->child_comp_tlist);
-			lfdw_private = lappend(lfdw_private, fdw_private->child_tlist);
+			Extractcells *extcells = (Extractcells *) lfirst(lc);
+			ListCell   *tmplc;
 
-			/* Save length of mapping tlist */
-			lfdw_private = lappend(lfdw_private, makeInteger(list_length(fdw_private->mapping_tlist)));
+			/* Save length of extracted list */
+			lfdw_private = lappend(lfdw_private, makeInteger(list_length(extcells->cells)));
 
-			foreach(lc, fdw_private->mapping_tlist)
+			foreach(tmplc, extcells->cells)
 			{
-				Extractcells *extcells = (Extractcells *) lfirst(lc);
-				ListCell   *tmplc;
+				Mappingcells *cells = lfirst(tmplc);
 
-				/* Save length of extracted list */
-				lfdw_private = lappend(lfdw_private, makeInteger(list_length(extcells->cells)));
-
-				foreach(tmplc, extcells->cells)
+				for (i = 0; i < MAX_SPLIT_NUM; i++)
 				{
-					Mappingcells *cells = lfirst(tmplc);
-
-					for (i = 0; i < MAX_SPLIT_NUM; i++)
-					{
-						lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[i]));
-					}
-					lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
-					lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
-					lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
-					lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
+					lfdw_private = lappend(lfdw_private, makeInteger(cells->mapping[i]));
 				}
-				lfdw_private = lappend(lfdw_private, extcells->expr);
-				lfdw_private = lappend(lfdw_private, makeInteger(extcells->ext_num));
-				lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_truncated) ? 1 : 0));
-				lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_having_qual) ? 1 : 0));
-				lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_contain_group_by) ? 1 : 0));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->aggtype));
+				lfdw_private = lappend(lfdw_private, makeString(cells->agg_command ? cells->agg_command->data : ""));
+				lfdw_private = lappend(lfdw_private, makeString(cells->agg_const ? cells->agg_const->data : ""));
+				lfdw_private = lappend(lfdw_private, makeInteger(cells->original_attnum));
 			}
-			lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
-			lfdw_private = lappend(lfdw_private, makeInteger((fdw_private->has_having_quals) ? 1 : 0));
+			lfdw_private = lappend(lfdw_private, extcells->expr);
+			lfdw_private = lappend(lfdw_private, makeInteger(extcells->ext_num));
+			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_truncated) ? 1 : 0));
+			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_having_qual) ? 1 : 0));
+			lfdw_private = lappend(lfdw_private, makeInteger((extcells->is_contain_group_by) ? 1 : 0));
 		}
+		lfdw_private = lappend(lfdw_private, makeString(fdw_private->groupby_string ? fdw_private->groupby_string->data : ""));
+		lfdw_private = lappend(lfdw_private, makeInteger((fdw_private->has_having_quals) ? 1 : 0));
+	}
 
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->orderby_query));
-		lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->limit_query));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->orderby_query));
+	lfdw_private = lappend(lfdw_private, makeInteger(fdw_private->limit_query));
 	}
 
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -1581,9 +1581,9 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private, int planType)
 			lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pushdown_info.orderby_pushdown));
 			lfdw_private = lappend(lfdw_private, makeInteger(pChildInfo->pushdown_info.limit_pushdown));
 
-			/* Agg plan */
-			if (pChildInfo->pseudo_agg)
-				lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->pAgg));
+		/* Agg plan */
+		if (pChildInfo->pseudo_agg)
+			lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->pAgg));
 		}
 		/* Plan */
 		lfdw_private = lappend(lfdw_private, copyObject(pChildInfo->plan));
@@ -1602,7 +1602,7 @@ spd_SerializeSpdFdwPrivate(SpdFdwPrivate * fdw_private, int planType)
 	}
 
 	if (planType != SpdForeignModify)
-		spd_tm_serialize_info(&fdw_private->tm_info, lfdw_private);
+	spd_tm_serialize_info(&fdw_private->tm_info, lfdw_private);
 
 	return lfdw_private;
 }
@@ -1637,96 +1637,96 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private, int planType)
 
 	if (planType == SpdForeignScan)
 	{
-		fdw_private->idx_url_tlist = intVal(lfirst(lc));
+	fdw_private->idx_url_tlist = intVal(lfirst(lc));
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->agg_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->isFirst = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->groupby_has_spdurl = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->has_stub_star_regex_function = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->record_function = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	if (fdw_private->agg_query)
+	{
+		fdw_private->groupby_target = (List *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->agg_query = intVal(lfirst(lc)) ? true : false;
+		fdw_private->child_comp_tlist = (List *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->isFirst = intVal(lfirst(lc)) ? true : false;
+		fdw_private->child_tlist = (List *) lfirst(lc);
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->groupby_has_spdurl = intVal(lfirst(lc)) ? true : false;
+		/* Get length of mapping_tlist */
+		mapping_tlist_len = intVal(lfirst(lc));
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->has_stub_star_regex_function = intVal(lfirst(lc)) ? true : false;
-		lc = lnext(lfdw_private, lc);
-
-		fdw_private->record_function = intVal(lfirst(lc)) ? true : false;
-		lc = lnext(lfdw_private, lc);
-
-		if (fdw_private->agg_query)
+		fdw_private->mapping_tlist = NIL;
+		for (i = 0; i < mapping_tlist_len; i++)
 		{
-			fdw_private->groupby_target = (List *) lfirst(lc);
+			int			ext_tlist_num = 0;
+			Extractcells *extcells = (Extractcells *) palloc0(sizeof(Extractcells));
+
+			ext_tlist_num = intVal(lfirst(lc));
 			lc = lnext(lfdw_private, lc);
 
-			fdw_private->child_comp_tlist = (List *) lfirst(lc);
-			lc = lnext(lfdw_private, lc);
-
-			fdw_private->child_tlist = (List *) lfirst(lc);
-			lc = lnext(lfdw_private, lc);
-
-			/* Get length of mapping_tlist */
-			mapping_tlist_len = intVal(lfirst(lc));
-			lc = lnext(lfdw_private, lc);
-
-			fdw_private->mapping_tlist = NIL;
-			for (i = 0; i < mapping_tlist_len; i++)
+			for (j = 0; j < ext_tlist_num; j++)
 			{
-				int			ext_tlist_num = 0;
-				Extractcells *extcells = (Extractcells *) palloc0(sizeof(Extractcells));
+				int			k;
+				Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
 
-				ext_tlist_num = intVal(lfirst(lc));
-				lc = lnext(lfdw_private, lc);
-
-				for (j = 0; j < ext_tlist_num; j++)
+				for (k = 0; k < MAX_SPLIT_NUM; k++)
 				{
-					int			k;
-					Mappingcells *cells = (Mappingcells *) palloc0(sizeof(Mappingcells));
-
-					for (k = 0; k < MAX_SPLIT_NUM; k++)
-					{
-						cells->mapping[k] = intVal(lfirst(lc));
-						lc = lnext(lfdw_private, lc);
-					}
-					cells->aggtype = intVal(lfirst(lc));
+					cells->mapping[k] = intVal(lfirst(lc));
 					lc = lnext(lfdw_private, lc);
-					cells->agg_command = makeStringInfo();
-					appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
-					lc = lnext(lfdw_private, lc);
-					cells->agg_const = makeStringInfo();
-					appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
-					lc = lnext(lfdw_private, lc);
-					cells->original_attnum = intVal(lfirst(lc));
-					lc = lnext(lfdw_private, lc);
-					extcells->cells = lappend(extcells->cells, cells);
 				}
-				extcells->expr = lfirst(lc);
+				cells->aggtype = intVal(lfirst(lc));
 				lc = lnext(lfdw_private, lc);
-				extcells->ext_num = intVal(lfirst(lc));
+				cells->agg_command = makeStringInfo();
+				appendStringInfoString(cells->agg_command, strVal(lfirst(lc)));
 				lc = lnext(lfdw_private, lc);
-				extcells->is_truncated = (intVal(lfirst(lc)) ? true : false);
+				cells->agg_const = makeStringInfo();
+				appendStringInfoString(cells->agg_const, strVal(lfirst(lc)));
 				lc = lnext(lfdw_private, lc);
-				extcells->is_having_qual = (intVal(lfirst(lc)) ? true : false);
+				cells->original_attnum = intVal(lfirst(lc));
 				lc = lnext(lfdw_private, lc);
-				extcells->is_contain_group_by = (intVal(lfirst(lc)) ? true : false);
-				lc = lnext(lfdw_private, lc);
-				fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
+				extcells->cells = lappend(extcells->cells, cells);
 			}
-
-			fdw_private->groupby_string = makeStringInfo();
-			appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
+			extcells->expr = lfirst(lc);
 			lc = lnext(lfdw_private, lc);
-
-			fdw_private->has_having_quals = (intVal(lfirst(lc)) ? true : false);
+			extcells->ext_num = intVal(lfirst(lc));
 			lc = lnext(lfdw_private, lc);
+			extcells->is_truncated = (intVal(lfirst(lc)) ? true : false);
+			lc = lnext(lfdw_private, lc);
+			extcells->is_having_qual = (intVal(lfirst(lc)) ? true : false);
+			lc = lnext(lfdw_private, lc);
+			extcells->is_contain_group_by = (intVal(lfirst(lc)) ? true : false);
+			lc = lnext(lfdw_private, lc);
+			fdw_private->mapping_tlist = lappend(fdw_private->mapping_tlist, extcells);
 		}
 
-		fdw_private->orderby_query = intVal(lfirst(lc)) ? true : false;
+		fdw_private->groupby_string = makeStringInfo();
+		appendStringInfoString(fdw_private->groupby_string, strVal(lfirst(lc)));
 		lc = lnext(lfdw_private, lc);
 
-		fdw_private->limit_query = intVal(lfirst(lc)) ? true : false;
+		fdw_private->has_having_quals = (intVal(lfirst(lc)) ? true : false);
 		lc = lnext(lfdw_private, lc);
+	}
+
+	fdw_private->orderby_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
+
+	fdw_private->limit_query = intVal(lfirst(lc)) ? true : false;
+	lc = lnext(lfdw_private, lc);
 	}
 
 	fdw_private->childinfo = (ChildInfo *) palloc0(sizeof(ChildInfo) * fdw_private->node_num);
@@ -1749,20 +1749,20 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private, int planType)
 		if (planType == SpdForeignScan)
 		{
 			pChildInfo->pseudo_agg = intVal(lfirst(lc));
-			lc = lnext(lfdw_private, lc);
+		lc = lnext(lfdw_private, lc);
 
 			pChildInfo->pushdown_info.orderby_pushdown = intVal(lfirst(lc));
-			lc = lnext(lfdw_private, lc);
+		lc = lnext(lfdw_private, lc);
 
 			pChildInfo->pushdown_info.limit_pushdown = intVal(lfirst(lc));
-			lc = lnext(lfdw_private, lc);
+		lc = lnext(lfdw_private, lc);
 
-			/* Agg plan */
-			if (pChildInfo->pseudo_agg)
-			{
-				pChildInfo->pAgg = (Agg *) lfirst(lc);
-				lc = lnext(lfdw_private, lc);
-			}
+		/* Agg plan */
+		if (pChildInfo->pseudo_agg)
+		{
+			pChildInfo->pAgg = (Agg *) lfirst(lc);
+			lc = lnext(lfdw_private, lc);
+		}
 		}
 
 		/* Plan */
@@ -1787,7 +1787,7 @@ spd_DeserializeSpdFdwPrivate(List *lfdw_private, int planType)
 	}
 
 	if (planType != SpdForeignModify)
-		spd_tm_deserialize_info(&fdw_private->tm_info, lfdw_private, lc);
+	spd_tm_deserialize_info(&fdw_private->tm_info, lfdw_private, lc);
 
 	return fdw_private;
 }
@@ -2899,7 +2899,7 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 					fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 					*is_first = false;
 					fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-															fssthrdInfo->eflags);
+															  fssthrdInfo->eflags);
 				}
 			}
 			else
@@ -2927,8 +2927,8 @@ spd_BeginForeignScanChild(ForeignScanThreadInfo * fssthrdInfo, ChildInfo * pChil
 						 * Main query and Subquery if have) and Modify threads.
 						 */
 						SPD_LOCK_TRY(&child_node_info->scan_modify_mutex);
-						fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-															fssthrdInfo->eflags);
+				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
+														  fssthrdInfo->eflags);
 						SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
 					}
 				}
@@ -3055,8 +3055,8 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 			spdurl_slot = MakeSingleTupleTableSlot(fssthrdInfo->parent_tupledesc,
 												fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
 		else
-			spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc,
-													fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
+		spdurl_slot = MakeSingleTupleTableSlot(fdw_private_main->child_comp_tupdesc,
+												fssthrdInfo->fsstate->ss.ss_ScanTupleSlot->tts_ops);
 
 		while (!force_end_child_threads_flag)
 		{
@@ -3163,7 +3163,7 @@ spd_IterateForeignScanChildLoop(ForeignScanThreadInfo * fssthrdInfo, ChildInfo *
 				}
 				else
 				{
-					slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
+				slot = fssthrdInfo->fdwroutine->IterateForeignScan(fssthrdInfo->fsstate);
 				}
 
 				spd_tm_count_iterateforeignscan(&fdw_private_main->tm_info, pChildInfo->index_threadinfo);
@@ -3593,7 +3593,7 @@ RESCAN:
 				fssthrdInfo->state = SPD_FS_STATE_BEGIN;
 				is_first = false;
 				fssthrdInfo->fdwroutine->BeginForeignScan(fssthrdInfo->fsstate,
-													fssthrdInfo->eflags);
+														fssthrdInfo->eflags);
 				if (fssthrdInfo->requestRescan)
 				{
 					fssthrdInfo->state = SPD_FS_STATE_ITERATE;
@@ -3749,12 +3749,12 @@ spd_ParseUrl(List *spd_url_list)
 
 	foreach(lc, spd_url_list)
 	{
-		char	   *tp;
-		char	   *throw_tp;
-		char	   *url_option;
-		char	   *next = NULL;
-		char	   *throwing_url = NULL;
-		int			original_len;
+	char	   *tp;
+	char	   *throw_tp;
+	char	   *url_option;
+	char	   *next = NULL;
+	char	   *throwing_url = NULL;
+	int			original_len;
 		char	   *url_str = (char *) lfirst(lc);
 		List	   *url_parse_list = NULL;
 
@@ -3785,7 +3785,7 @@ spd_ParseUrl(List *spd_url_list)
 /**
  * Create new URL with deleting first node name from parent URL string.
  * For example, if the input URL is "/foo/bar/",
- * 
+ *
  * About the argument "status_is_set":
  * Currently, this function is called on 2 kinds of situations. On the
  * first situation, it is called immediately after child status is
@@ -7722,7 +7722,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 						list_difference(fdw_private->rinfo.remote_conds, fdw_private->base_remote_conds) == NIL)
 						*push_scan_clauses = fdw_private->rinfo.remote_conds;
 					else
-						*push_scan_clauses = fdw_private->base_remote_conds;
+					*push_scan_clauses = fdw_private->base_remote_conds;
 				}
 				else if (IS_JOIN_REL(rel_child))
 				{
@@ -7825,7 +7825,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 					list_difference(fdw_private->rinfo.remote_conds, fdw_private->base_remote_conds) == NIL)
 					*push_scan_clauses = fdw_private->rinfo.remote_conds;
 				else
-					*push_scan_clauses = fdw_private->base_remote_conds;
+				*push_scan_clauses = fdw_private->base_remote_conds;
 				fsplan = pChildInfo->fdwroutine->GetForeignPlan((PlannerInfo *) pChildInfo->root,
 																rel_child,
 																oid_child,
@@ -8714,11 +8714,11 @@ spd_sub_xact_callback(SubXactEvent event, SubTransactionId mySubid,
 				ForeignScanState *fsstate = (ForeignScanState *)arg;
 				ForeignScanThreadInfo *fssThrdInfo = fsstate->spd_fsstate;
 
-				if (!fssThrdInfo)
-					return;
+			if (!fssThrdInfo)
+				return;
 
-				/* wake up all child thread */
-				spd_request_child_thread_pending(&fssThrdInfo[0], SPD_WAKE_UP);
+			/* wake up all child thread */
+			spd_request_child_thread_pending(&fssThrdInfo[0], SPD_WAKE_UP);
 			}
 			else
 			{
@@ -8903,7 +8903,7 @@ spd_CreateChildFsstate(ForeignScanState *node, ChildInfo * pChildInfo, int eflag
 	}
 	else
 	{
-		fsplan_child->fdw_exprs = ((ForeignScan *) pChildInfo->plan)->fdw_exprs;
+	fsplan_child->fdw_exprs = ((ForeignScan *) pChildInfo->plan)->fdw_exprs;
 	}
 
 	fsplan_child->fs_server = pChildInfo->server_oid;
@@ -8921,13 +8921,13 @@ spd_CreateChildFsstate(ForeignScanState *node, ChildInfo * pChildInfo, int eflag
 	if (planType == SpdForeignScan || planType == SpdDirectModify)
 	{
 		fsplan_child->scan.scanrelid = ((ForeignScan *) pChildInfo->plan)->scan.scanrelid;
-		/*
-		 * Init range table, in which we use range table array for exec_rt_fetch()
-		 * because it is faster than rt_fetch().
-		 */
-		ExecInitRangeTable(fsstate_child->ss.ps.state, rtable);
-		fsstate_child->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
-		fsstate_child->ss.ps.state->es_plannedstmt->planTree = copyObject(fsstate_child->ss.ps.plan);
+	/*
+	 * Init range table, in which we use range table array for exec_rt_fetch()
+	 * because it is faster than rt_fetch().
+	 */
+	ExecInitRangeTable(fsstate_child->ss.ps.state, rtable);
+	fsstate_child->ss.ps.state->es_plannedstmt = copyObject(node->ss.ps.state->es_plannedstmt);
+	fsstate_child->ss.ps.state->es_plannedstmt->planTree = copyObject(fsstate_child->ss.ps.plan);
 	}
 	else
 	{
@@ -9202,7 +9202,7 @@ spd_makeChildTupleSlotAndQueue(ForeignScanState *node, ChildInfo * pChildInfo,
 		}
 		else
 		{
-			tupledesc_child = tupledesc;
+		tupledesc_child = tupledesc;
 			pFssThrdInfo->parent_tupledesc = NULL;
 		}
 	}
@@ -12515,7 +12515,7 @@ spd_BeginDirectModify(ForeignScanState *node, int eflags)
 
 	/* Skip thread creation in explain case. */
 	if (eflags & EXEC_FLAG_EXPLAIN_ONLY)
-	{
+{
 		return;
 	}
 
@@ -12569,7 +12569,7 @@ spd_BeginDirectModify(ForeignScanState *node, int eflags)
  */
 static TupleTableSlot *
 spd_IterateDirectModify(ForeignScanState *node)
-{
+	{
 	ForeignScan *fsplan = (ForeignScan *) node->ss.ps.plan;
 	int			count = 0;
 	EState	   *estate = node->ss.ps.state;
@@ -12789,7 +12789,7 @@ spd_AddForeignUpdateTargetsChild(PlannerInfo *root, Index relid,
 
 	for (i = 0; i < oid_nums; i++)
 	{
-		Oid			oid_server;
+	Oid			oid_server;
 		Oid			rel_oid = 0;
 		PlannerInfo *child_root = NULL;
 		RangeTblEntry *child_target_rte;
@@ -13524,7 +13524,7 @@ spd_EndForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 		mtThrdInfo->state = SPD_MDF_STATE_ERROR;
 		elog(DEBUG1, "Thread error occurred during EndForeignModify(). %s:%d",
 			 __FILE__, __LINE__);
-		MemoryContextSwitchTo(oldcontext);
+	MemoryContextSwitchTo(oldcontext);
 		FlushErrorState();
 	}
 	PG_END_TRY();
@@ -14138,7 +14138,7 @@ spd_ExecForeignInsert(EState *estate,
 			returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
 			SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
 		}
-	}
+}
 	else
 		returning_slot = fdwroutine->ExecForeignInsert(mtstate->ps.state, mtstate->resultRelInfo, slot, planSlot);
 

@@ -1,7 +1,7 @@
 # contrib/pgspider_core_fdw/Makefile
 
 MODULE_big = pgspider_core_fdw
-OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_routing.o pgspider_core_timemeasure.o $(WIN32RES)
+OBJS = deparse.o pgspider_core_fdw.o pgspider_core_option.o pgspider_core_routing.o pgspider_core_timemeasure.o pgspider_core_remoteproc.o $(WIN32RES)
 PGFILEDESC = "pgspider_core_fdw - PGSpider core module"
 
 PG_CPPFLAGS = -I$(libpq_srcdir) -I../ -lpthread -lpq -lm -lpgspider_keepalive -z defs
@@ -17,7 +17,7 @@ endif
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql
 
-REGRESS = pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2
+REGRESS = pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2 pd_stored
 
 EXTRA_INSTALL = contrib/pgspider_keepalive
 

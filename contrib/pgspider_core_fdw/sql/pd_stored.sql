@@ -1,0 +1,70 @@
+-- Memorize the current database name in order to reconnect to it later after connecting to the other databases.
+\set firstdb :DBNAME
+
+-- Child 1
+CREATE DATABASE db1;
+\c db1
+CREATE TABLE tbl_child1 (val text);
+INSERT INTO tbl_child1 VALUES('A');
+INSERT INTO tbl_child1 VALUES('B');
+INSERT INTO tbl_child1 VALUES('C');
+INSERT INTO tbl_child1 VALUES('D');
+INSERT INTO tbl_child1 VALUES('E');
+-- Child 2
+CREATE DATABASE db2;
+\c db2
+CREATE TABLE tbl_child2 (val text);
+INSERT INTO tbl_child2 VALUES('F');
+INSERT INTO tbl_child2 VALUES('G');
+INSERT INTO tbl_child2 VALUES('H');
+
+-- Back to the original database.
+\c :firstdb
+CREATE EXTENSION postgres_fdw;
+
+DO $d$
+    BEGIN
+        EXECUTE $$CREATE SERVER loopback1 FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (dbname 'db1',
+                     port '$$||current_setting('port')||$$'
+            )$$;
+        EXECUTE $$CREATE SERVER loopback2 FOREIGN DATA WRAPPER postgres_fdw
+            OPTIONS (dbname 'db2',
+                     port '$$||current_setting('port')||$$'
+            )$$;
+    END;
+$d$;
+CREATE USER MAPPING FOR CURRENT_USER SERVER loopback1;
+CREATE USER MAPPING FOR CURRENT_USER SERVER loopback2;
+
+CREATE EXTENSION pgspider_core_fdw;
+CREATE SERVER pgspider FOREIGN DATA WRAPPER pgspider_core_fdw;
+CREATE USER MAPPING FOR public SERVER pgspider;
+CREATE FOREIGN TABLE tbl (val text, __spd_url text) SERVER pgspider;
+
+CREATE FOREIGN TABLE tbl__loopback1__0(val text) SERVER loopback1 OPTIONS (table_name 'tbl_child1');
+CREATE FOREIGN TABLE tbl__loopback2__0(val text) SERVER loopback2 OPTIONS (table_name 'tbl_child2');
+
+-- Child function
+CREATE OR REPLACE FUNCTION trans_child (internal text, col text) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+BEGIN
+    return internal || col;
+END;
+$$;
+CREATE OR REPLACE AGGREGATE agg_child (col text) (sfunc = trans_child, stype = text, INITCOND = '');
+-- Parent function
+CREATE OR REPLACE FUNCTION trans_parent (internal text, col text) RETURNS text LANGUAGE plpgsql AS $$
+DECLARE
+BEGIN
+    return internal || '_' || col;
+END;
+$$;
+CREATE OR REPLACE AGGREGATE agg_parent (col text) (sfunc = trans_parent, stype = text, INITCOND = '');
+
+-- Distributed function
+CREATE OR REPLACE DISTRIBUTED_FUNC agg_dist (col text) PARENT agg_parent(text) CHILD agg_child(col text);
+
+SELECT agg_dist(val) FROM tbl;
+
+
