@@ -21,6 +21,9 @@
 #include "utils/resowner.h"
 #include "catalog/pg_operator.h"
 #include "optimizer/planner.h"
+#ifdef PD_STORED
+#include "funcapi.h"
+#endif
 
 /* For checking single node or multiple node */
 #define SPD_SINGLE_NODE	1
@@ -153,5 +156,15 @@ List *spd_create_child_url(List *spd_url_list, ChildInfo *pChildInfo,
 						   int node_num, bool status_is_set);
 
 extern bool throwCandidateError;
+
+#ifdef PD_STORED
+/* in pgspider_core_remotefunc.c */
+void spdExecuteFunction(Oid funcoid, Oid tableoid, List *args,
+					    bool async, void **private);
+bool spdGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
+							 Datum *values, bool *nulls);
+void spdFinalizeFunction(void *private);
+
+#endif
 
 #endif							/* PGSPIDER_CORE_FDW_H */

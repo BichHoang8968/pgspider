@@ -3996,3 +3996,86 @@ deparseDropTableSql(StringInfo buf, Relation rel, bool exists_flag)
 }
 
 #endif	/* PGSPIDER */
+
+#ifdef PD_STORED
+static void
+deparseFunctionName(StringInfo buf, Oid funcoid)
+{
+	HeapTuple	tuple;
+	Form_pg_proc pform;
+	char	   *nsp;
+
+	tuple = SearchSysCache1(PROCOID,
+							ObjectIdGetDatum(funcoid));
+	if (!HeapTupleIsValid(tuple))	/* should not happen */
+		elog(ERROR, "cache lookup failed for function %u", funcoid);
+	pform = (Form_pg_proc) GETSTRUCT(tuple);
+
+
+	nsp = get_namespace_name(pform->pronamespace);
+	appendStringInfoString(buf,
+						   quote_qualified_identifier(nsp,
+					 								  NameStr(pform->proname)));
+	ReleaseSysCache(tuple);
+}
+
+static void
+deparseFunctionArgs(StringInfo buf, Oid tableoid,
+					List *tlist)
+{
+	ListCell   *lc;
+	bool		first = true;
+
+	appendStringInfoString(buf, "(");
+	foreach(lc, tlist)
+	{
+		Expr	   *node = (Expr *) lfirst(lc);
+		TargetEntry *tle;
+		Expr	   *expr;
+
+		if (nodeTag(node) != T_TargetEntry)
+			elog(ERROR, "Unexpected expression type (%d) for distributed function argument", nodeTag(node));
+
+		tle = (TargetEntry *) node;
+		expr = tle->expr;
+
+		if (!first)
+			appendStringInfoString(buf, ", ");
+		first = false;
+			
+		//deparseExpr(expr, context);
+
+		switch (nodeTag(expr))
+		{
+			case T_Var:
+			{
+				Var		   *var = (Var *) expr;
+				char	   *colname = get_attname(tableoid, var->varattno, false);
+				appendStringInfoString(buf, colname);
+				break;
+			}
+			case T_TargetEntry:
+			
+			default:
+				elog(ERROR, "Not supported expression type (%d) for distributed function argument", nodeTag(node));
+		}
+	}
+	appendStringInfoString(buf, ")");
+}
+
+void
+deparseFunctionQuery(StringInfo buf, Oid funcoid, Oid tableoid, List *args)
+{
+	Relation	rel;
+
+	appendStringInfoString(buf, "SELECT ");
+	deparseFunctionName(buf, funcoid);
+	deparseFunctionArgs(buf, tableoid, args);
+	appendStringInfoString(buf, " FROM ");
+
+	rel = table_open(tableoid, NoLock);
+	deparseRelation(buf, rel);
+	table_close(rel, NoLock);
+}
+#endif	/* PD_STORED */
+

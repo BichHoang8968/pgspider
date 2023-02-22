@@ -438,7 +438,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 				reloptions opt_reloptions
 				OptWith opt_definition func_args func_args_list
 				func_args_with_defaults func_args_with_defaults_list
-				aggr_args aggr_args_list
+				aggr_args aggr_args_list opt_aggr_args
 				func_as createfunc_opt_list opt_createfunc_opt_list alterfunc_opt_list
 				old_aggr_definition old_aggr_list
 				oper_argtypes RuleActionList RuleActionMulti
@@ -693,7 +693,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	BOOLEAN_P BOTH BREADTH BY
 
 	CACHE CALL CALLED CASCADE CASCADED CASE CAST CATALOG_P CHAIN CHAR_P
-	CHARACTER CHARACTERISTICS CHECK CHECKPOINT CLASS CLOSE
+	CHARACTER CHARACTERISTICS CHECK CHECKPOINT CHILD CLASS CLOSE
 	CLUSTER COALESCE COLLATE COLLATION COLUMN COLUMNS COMMENT COMMENTS COMMIT
 	COMMITTED COMPRESSION CONCURRENTLY CONFIGURATION CONFLICT
 	CONNECTION CONSTRAINT CONSTRAINTS CONTENT_P CONTINUE_P CONVERSION_P COPY
@@ -703,7 +703,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 
 	DATA_P DATABASE DAY_P DEALLOCATE DEC DECIMAL_P DECLARE DEFAULT DEFAULTS
 	DEFERRABLE DEFERRED DEFINER DELETE_P DELIMITER DELIMITERS DEPENDS DEPTH DESC
-	DETACH DICTIONARY DISABLE_P DISCARD DISTINCT DO DOCUMENT_P DOMAIN_P
+	DETACH DICTIONARY DISABLE_P DISCARD DISTINCT DISTRIBUTED_FUNC DO DOCUMENT_P DOMAIN_P
 	DOUBLE_P DROP DATASOURCE
 
 	EACH ELSE ENABLE_P ENCODING ENCRYPTED END_P ENUM_P ESCAPE EVENT EXCEPT
@@ -742,7 +742,7 @@ static Node *makeRecursiveViewSelect(char *relname, List *aliases, Node *query);
 	ORDER ORDINALITY OTHERS OUT_P OUTER_P
 	OVER OVERLAPS OVERLAY OVERRIDING OWNED OWNER
 
-	PARALLEL PARAMETER PARSER PARTIAL PARTITION PASSING PASSWORD
+	PARENT PARALLEL PARAMETER PARSER PARTIAL PARTITION PASSING PASSWORD
 	PLACING PLANS POLICY
 	POSITION PRECEDING PRECISION PRESERVE PREPARE PREPARED PRIMARY
 	PRIOR PRIVILEGES PROCEDURAL PROCEDURE PROCEDURES PROGRAM PUBLICATION
@@ -6482,6 +6482,34 @@ DefineStmt:
 					n->if_not_exists = true;
 					$$ = (Node *) n;
 				}
+			| CREATE opt_or_replace DISTRIBUTED_FUNC func_name aggr_args
+				PARENT func_name opt_aggr_args
+				CHILD func_name opt_aggr_args
+				{
+					DefineStmt *n = makeNode(DefineStmt);
+					n->kind = OBJECT_AGGREGATE;
+					n->oldstyle = false;
+					n->replace = $2;
+					n->defnames = $4;
+					n->args = $5;
+					n->definition = list_make2(
+						makeDefElem("parent", (Node *) $7, @7),
+						makeDefElem("child", (Node *) $10, @10)
+					);
+					if ($8 != NIL)
+						n->definition = lappend(n->definition, makeDefElem("parentargs", (Node *) $8, @8));
+					if ($11 != NIL)
+						n->definition = lappend(n->definition, makeDefElem("childargs", (Node *) $11, @11));
+					$$ = (Node *)n;
+				}
+		;
+
+opt_aggr_args: 
+				'(' aggr_args_list ')'
+					{
+						$$ = list_make2($2, makeInteger(-1));
+					}
+				| '(' ')'							{ $$ = NIL; }
 		;
 
 definition: '(' def_list ')'						{ $$ = $2; }
@@ -17124,6 +17152,7 @@ unreserved_keyword:
 			| CHAIN
 			| CHARACTERISTICS
 			| CHECKPOINT
+			| CHILD
 			| CLASS
 			| CLOSE
 			| CLUSTER
@@ -17165,6 +17194,7 @@ unreserved_keyword:
 			| DICTIONARY
 			| DISABLE_P
 			| DISCARD
+			| DISTRIBUTED_FUNC
 			| DOCUMENT_P
 			| DOMAIN_P
 			| DOUBLE_P
@@ -17279,6 +17309,7 @@ unreserved_keyword:
 			| OWNER
 			| PARALLEL
 			| PARAMETER
+			| PARENT
 			| PARSER
 			| PARTIAL
 			| PARTITION
@@ -17652,6 +17683,7 @@ bare_label_keyword:
 			| CHARACTERISTICS
 			| CHECK
 			| CHECKPOINT
+			| CHILD
 			| CLASS
 			| CLOSE
 			| CLUSTER
@@ -17712,6 +17744,7 @@ bare_label_keyword:
 			| DISABLE_P
 			| DISCARD
 			| DISTINCT
+			| DISTRIBUTED_FUNC
 			| DO
 			| DOCUMENT_P
 			| DOMAIN_P
@@ -17864,6 +17897,7 @@ bare_label_keyword:
 			| OWNER
 			| PARALLEL
 			| PARAMETER
+			| PARENT
 			| PARSER
 			| PARTIAL
 			| PARTITION
