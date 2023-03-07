@@ -2162,7 +2162,7 @@ ExecAgg(PlanState *pstate)
 			case AGG_PLAIN:
 			case AGG_SORTED:
 #ifdef PD_STORED
-				if (OidIsValid(node->peragg->parentfn_oid))
+				if (node->numaggs > 0 && OidIsValid(node->peragg->parentfn_oid))
 					result = agg_retrieve_distributed_func(node);
 				else
 #endif

@@ -2902,7 +2902,7 @@ pg_get_functiondef(PG_FUNCTION_ARGS)
 #ifdef PD_STORED
 	bool		qualified;
 	
-	if (fcinfo->nargs >= 1)
+	if (fcinfo->nargs >= 2)
 		qualified = PG_GETARG_BOOL(1);
 	else
 		qualified = false;
@@ -3159,7 +3159,7 @@ pg_get_function_arguments(PG_FUNCTION_ARGS)
 #ifdef PD_STORED
 	bool		qualified;
 
-	if (fcinfo->nargs >= 1)
+	if (fcinfo->nargs >= 2)
 		qualified = PG_GETARG_BOOL(1);
 	else
 		qualified = false;

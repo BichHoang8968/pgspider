@@ -469,14 +469,21 @@ agg_retrieve_distributed_func(AggState *aggstate)
 bool
 is_distributed_function(PlanState *planstate)
 {
+
 	List	   *targetList = planstate->plan->targetlist;
-	TargetEntry *tle = linitial_node(TargetEntry, targetList);
-	Expr	   *node = tle->expr;
+	TargetEntry *tle;
+	Expr	   *node;
 	Aggref	   *aggref;
 	HeapTuple	aggTuple;
 	Oid			parentfn;
 	bool		is_dist_func;
-	
+
+	if (targetList == NIL)
+		return false;
+
+	tle = linitial_node(TargetEntry, targetList);
+	node = tle->expr;
+
 	if (nodeTag(node) != T_Aggref)
 		return false;
 
