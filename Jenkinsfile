@@ -1,23 +1,23 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
-def MAIL_TO = '$DEFAULT_RECIPIENTS'
+def MAIL_TO = 'anh1.nguyenthivan@toshiba.co.jp'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 
 def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
-def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'port15.0'
-def BRANCH_MYSQL_FDW = 'port15.0'
-def BRANCH_SQLITE_FDW = 'port15.0'
-def BRANCH_GRIDDB_FDW = 'port15.0'
-def BRANCH_INFLUXDB_FDW = 'port15.0'
-def BRANCH_PARQUET_S3_FDW = 'port15.0'
-def BRANCH_MONGO_FDW = 'port15.0'
-def BRANCH_DYNAMODB_FDW = 'port15.0'
-def BRANCH_ORACLE_FDW = 'port15'
-def BRANCH_ODBC_FDW = 'port15.0'
-def BRANCH_JDBC_FDW = 'port15.0'
+def BRANCH_PGSPIDER = 'fix_crash_nil_pointer'
+def BRANCH_TINYBRACE_FDW = 'master'
+def BRANCH_MYSQL_FDW = 'master'
+def BRANCH_SQLITE_FDW = 'master'
+def BRANCH_GRIDDB_FDW = 'master'
+def BRANCH_INFLUXDB_FDW = 'master'
+def BRANCH_PARQUET_S3_FDW = 'master'
+def BRANCH_MONGO_FDW = 'master'
+def BRANCH_DYNAMODB_FDW = 'master'
+def BRANCH_ORACLE_FDW = 'master'
+def BRANCH_ODBC_FDW = 'master'
+def BRANCH_JDBC_FDW = 'master'
 
 pipeline {
     agent {
@@ -374,6 +374,65 @@ pipeline {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify_multi', state: 'failed'
                     } else {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_pgmodify_multi', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('pgspider_migrate_postgres') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_migrate.sh ${BRANCH_PGSPIDER}" postgres'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_migrate.sh" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_migrate_postgres" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out test_migrate_postgres_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'test_migrate_postgres_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] test_migrate_postgres_make_check Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="test_migrate_postgres_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs test_migrate_postgres_make_check.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results test_migrate_postgres_make_check'
+                        sh 'cat test_migrate_postgres_make_check.diffs || true'
+
+                    } else {
+                        updateGitlabCommitStatus name: 'test_migrate_postgres', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('pgspider_migrate_multi') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_migrate_multi.sh"
+                        docker exec influxserver_multi_existed_test /bin/bash -c 'systemctl stop influxd'
+                        docker exec -d influxserver_multi_existed_test /bin/bash -c 'influxd -config /etc/influxdb/influxdb.conf'
+                        docker exec influxserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_migrate_multi.sh"
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_migrate_multi_1.sh"
+                        docker exec gridserver_multi1_existed_test /bin/bash -c "/home/test/start_existed_test_pgspider_migrate_multi_2.sh"
+
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_migrate_multi.sh" postgres'
+                        docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_migrate_multi.sh'
+                        
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_migrate_multi" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_migrate_multi_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_migrate_multi_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_migrate_multi Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_migrate_multi_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_migrate_multi.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_fdw_migrate_multi'
+                        sh 'cat pgspider_core_fdw_migrate_multi.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_migrate_multi', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_migrate_multi', state: 'success'
                     }
                 }
             }
