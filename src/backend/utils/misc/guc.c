@@ -695,7 +695,11 @@ int			huge_page_size;
 static char *syslog_ident_str;
 static double phony_random_seed;
 static char *client_encoding_string;
+#ifdef PGSPIDER
+static __thread char *datestyle_string;
+#else
 static char *datestyle_string;
+#endif
 static char *locale_collate;
 static char *locale_ctype;
 static char *server_encoding_string;
@@ -3041,7 +3045,12 @@ static struct config_int ConfigureNamesInt[] =
 						 "number of digits (FLT_DIG or DBL_DIG as appropriate). "
 						 "Any value greater than zero selects precise output mode.")
 		},
+
+#ifdef PGSPIDER
+		NULL,
+#else
 		&extra_float_digits,
+#endif
 		1, -15, 3,
 		NULL, NULL, NULL
 	},
@@ -4138,7 +4147,12 @@ static struct config_string ConfigureNamesString[] =
 						 "date inputs."),
 			GUC_LIST_INPUT | GUC_REPORT
 		},
+
+#ifdef PGSPIDER
+		NULL,
+#else
 		&datestyle_string,
+#endif
 		"ISO, MDY",
 		check_datestyle, assign_datestyle, NULL
 	},
@@ -4840,7 +4854,11 @@ static struct config_enum ConfigureNamesEnum[] =
 			NULL,
 			GUC_REPORT
 		},
+#ifdef PGSPIDER
+		NULL,
+#else
 		&IntervalStyle,
+#endif
 		INTSTYLE_POSTGRES, intervalstyle_options,
 		NULL, NULL, NULL
 	},
@@ -5479,7 +5497,10 @@ build_guc_variables(void)
 	for (i = 0; ConfigureNamesInt[i].gen.name; i++)
 	{
 		struct config_int *conf = &ConfigureNamesInt[i];
-
+		if (strcmp(conf->gen.name, "extra_float_digits") == 0)
+		{
+			conf->variable = &extra_float_digits;
+		}
 		conf->gen.vartype = PGC_INT;
 		num_vars++;
 	}
@@ -5500,6 +5521,11 @@ build_guc_variables(void)
 		{
 			conf->variable = &namespace_search_path;
 		}
+		else if (strcmp(conf->gen.name, "DateStyle") == 0)
+		{
+			conf->variable = &datestyle_string;
+		}
+
 		conf->gen.vartype = PGC_STRING;
 		num_vars++;
 	}
@@ -5508,6 +5534,10 @@ build_guc_variables(void)
 	{
 		struct config_enum *conf = &ConfigureNamesEnum[i];
 
+		if(strcmp(conf->gen.name, "IntervalStyle") == 0)
+		{
+			conf->variable = &IntervalStyle;
+		}
 		conf->gen.vartype = PGC_ENUM;
 		num_vars++;
 	}
