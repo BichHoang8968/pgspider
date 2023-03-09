@@ -6,7 +6,7 @@ def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 
-def BRANCH_PGSPIDER = 'fix_crash_nil_pointer'
+def BRANCH_PGSPIDER = env.BRANCH_NAME
 def BRANCH_TINYBRACE_FDW = 'master'
 def BRANCH_MYSQL_FDW = 'master'
 def BRANCH_SQLITE_FDW = 'master'
