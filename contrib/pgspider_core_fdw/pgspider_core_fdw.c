@@ -680,6 +680,7 @@ static void spd_request_child_thread_pending(ForeignScanThreadInfo *threadInfo, 
 static void spd_wait_transaction_thread_safe(ForeignScanThreadInfo *fssThrdInfo);
 static void spd_check_pending_request(ForeignScanThreadInfo * threadInfo, SpdTimeMeasureInfo * tm_info);
 static void spd_request_end_all_child_thread(void *arg);
+static bool spd_rel_has_spdurl(Oid relid);
 
 /* Queue functions */
 static bool spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeMeasureInfo * tm_info, int thread_index, Oid serveroid, Oid tableoid);
@@ -4364,7 +4365,7 @@ spd_GetChildRoot(PlannerInfo *root, Index relid, Oid child_tableoid, Oid oid_ser
  * @param[in] fdwname FDW name
  */
 static RelOptInfo *
-spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *baserel, char *fdwname)
+spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *baserel, char *fdwname, Oid child_relid)
 {
 	RelOptInfo *child_baserel;
 
@@ -4389,8 +4390,11 @@ spd_CreateChildBaserel(PlannerInfo *child_root, PlannerInfo *root, RelOptInfo *b
 	memcpy(child_baserel->attr_widths, baserel->attr_widths,
 		   sizeof(int32) * (child_baserel->max_attr - child_baserel->min_attr + 1));
 
-	/* Remove SPDURL from target lists if a child is not pgspider_fdw. */
-	if (strcmp(fdwname, PGSPIDER_FDW_NAME) != 0)
+	/*
+	 * Remove SPDURL from target lists if a child is not pgspider_fdw,
+	 * or foreign table of pgspider_fdw does not has __spd_url column.
+	 */
+	if (strcmp(fdwname, PGSPIDER_FDW_NAME) != 0 || !spd_rel_has_spdurl(child_relid))
 	{
 		child_baserel->reltarget->exprs = remove_spdurl_from_targets(child_baserel->reltarget->exprs, root);
 	}
@@ -4453,7 +4457,7 @@ spd_GetForeignRelSizeChild(PlannerInfo *root, RelOptInfo *baserel,
 		fdw = GetForeignDataWrapper(fs->fdwid);
 
 		/* Create child base relation. */
-		child_baserel = spd_CreateChildBaserel(child_root, root, baserel, fdw->fdwname);
+		child_baserel = spd_CreateChildBaserel(child_root, root, baserel, fdw->fdwname, rel_oid);
 
 		if (strcmp(fdw->fdwname, PARQUET_S3_FDW_NAME) == 0)
 		{
@@ -6706,6 +6710,42 @@ spd_expr_has_spdurl(PlannerInfo *root, Node *expr, List **target_exprs)
 		return true;
 	else
 		return false;
+}
+
+/**
+ * Return true if there is SPDURL column in relation.
+ *
+ * @param relid relation oid
+ */
+static bool
+spd_rel_has_spdurl(Oid relid)
+{
+	Relation	rel = RelationIdGetRelation(relid);
+	TupleDesc	tupdesc = RelationGetDescr(rel);
+	int			i;
+	bool		has_spdurl = false;
+
+	for (i = tupdesc->natts - 1; i >= 0 ; i--)
+	{
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, i);
+
+		/* Ignore dropped attributes. */
+		if (attr->attisdropped)
+			continue;
+
+		/* __spd_url found! */
+		if (strcmp(attr->attname.data, SPDURL) == 0)
+			has_spdurl = true;
+
+		/*
+		 * The SPDURL column must be the last column,
+		 * so just checking the last column is enough.
+		 */
+		break;
+	}
+
+	RelationClose(rel);
+	return has_spdurl;
 }
 
 /**
