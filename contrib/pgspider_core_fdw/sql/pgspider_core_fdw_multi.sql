@@ -296,6 +296,13 @@ SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
 DROP FOREIGN TABLE test2__pgspider_srv_2__1;
 --Testcase 63:
 SELECT * FROM test2 ORDER BY i, t, t2, __spd_url;
+-- PGSpider child node does not have __spd_url
+--Testcase 132:
+CREATE FOREIGN TABLE test1__pgspider_srv_1__1 (i int) SERVER pgspider_srv_1 OPTIONS (table_name 'test1');
+--Testcase 133:
+SELECT * FROM test1 ORDER BY i;
+--Testcase 134:
+DROP FOREIGN TABLE test1__pgspider_srv_1__1;
 -- Clean up
 --Testcase 122:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
