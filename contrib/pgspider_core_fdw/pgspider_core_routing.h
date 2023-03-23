@@ -21,5 +21,7 @@ void		spd_routing_candidate_spdurl(TupleTableSlot *slot, Relation rel,
 										 ChildInfo * pChildInfo, int node_num);
 int			spd_routing_get_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
 								   ChildInfo * pChildInfo, int node_num);
+bool			spd_routing_set_target(Oid parent, ModifyThreadInfo *mtThrdInfo,
+								   ChildInfo * pChildInfo, int node_num);
 
 #endif							/* PGSPIDER_CORE_ROUTING_H */

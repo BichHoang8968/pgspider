@@ -165,7 +165,7 @@ UPDATE tntbl3 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 
 --Testcase 225:
 -- Commmented, fail due to oracle_fdw. Not reported yet.
-INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
+INSERT INTO tntbl3 (SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 226:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
 
@@ -325,7 +325,7 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000);
 --Duplicate key column when INSERT with SELECT *. Expect error.
 --Testcase 365:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 366:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
 --Testcase 367:
@@ -335,7 +335,7 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 --Testcase 369:
 DELETE FROM tntbl3;
 --Testcase 370:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 371:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
 --Testcase 372:
@@ -410,6 +410,30 @@ DELETE FROM tntbl3 WHERE c3 = 50.0 RETURNING _id, c1, c2;
 --Testcase 441:
 DELETE FROM tntbl3 RETURNING *;
 -- *** Finish test for tntbl3 *** --
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 442:
+DELETE FROM tntbl3;
+--Testcase 443:
+SELECT * FROM tntbl3;
+
+SET client_min_messages = INFO;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 444:
+INSERT INTO tntbl3
+	SELECT to_char(id, 'FM00000'), id, id/10, id * 20.5, id * 100	FROM generate_series(1, 30) id;
+--Testcase 445:
+SELECT * FROM tntbl3 ORDER BY 1,2;
+--Testcase 446:
+SELECT * FROM tntbl3__jdbc_mysql_svr__0 ORDER BY 1,2;
+--Testcase 447:
+SELECT * FROM tntbl3__jdbc_post_svr__0 ORDER BY 1,2;
 
 --Clean
 --Testcase 110:

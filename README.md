@@ -10,9 +10,15 @@ Usage of PGSpider is the same as PostgreSQL except its program name is `pgspider
 
 * Modification  
     User can modify data at Multi-Tenant table by using INSERT/UPDATE/DELETE query.  
-    For INSERT feature, PGSpider will choose 1 alive node that supports INSERT feature to INSERT data.  
+    For INSERT feature, PGSpider will use round robin method to choose 1 alive node that supports INSERT feature and is the next to the previous target as rotation to INSERT data.  
     For UPDATE/DELETE feature, PGSpider will execute UPDATE/DELETE at all alive nodes that support UPDATE/DELETE feature.  
-    PGSpider can support both Direct and Foreign Modification.
+    PGSpider supports both Direct and Foreign Modification.  
+    PGSpider supports bulk INSERT by using batch_size option.  
+    - If user specifies batch size option, we can get batch size from foreign table or foreign server option.
+    - If batch_size is 1, tell child nodes to execute simple insert. Otherwise, execute batch insert if child node can do.
+    - If batch_size is not specified by user on multi-tenant table, automatically calculation based on batch size of child tables and the number of child nodes using LCM method (Least Common Multiple).  
+      If batch size is too large, we use the limited value (6553500) as batch size.  
+      PGSpider distributes records to data sources evenly, not only for one query but also for many queries.
 
 * Parallel processing  
     PGSpider executes queries and fetches results from child nodes in parallel.  
@@ -211,7 +217,6 @@ SELECT * FROM t1;
 
 ### Modify Multi-Tenant table using node filter
 You can choose modifying node with 'IN' clause after table name.
-Currently, INSERT query does not support IN clause.
 
 <pre>
 SELECT * FROM t1;
@@ -222,14 +227,14 @@ SELECT * FROM t1;
 (2 rows)
 
 INSERT INTO t1 IN ('/postgres_svr/') VALUES (4, 'c');
-ERROR:  Can not use INSERT with IN
 
 SELECT * FROM t1;
   i |  t  | __spd_url 
 ----+-----+----------------
   1 | aaa | /sqlite_svr/
+  4 | c   | /postgres_svr/
  11 | b   | /postgres_svr/
-(2 rows)
+(3 rows)
 
 UPDATE t1 IN ('/postgres_svr/') SET i = 5;
 UPDATE 1
@@ -238,17 +243,19 @@ SELECT * FROM t1;
  i |  t  | __spd_url 
 ---+-----+----------------
  1 | aaa | /sqlite_svr/
+ 5 | c   | /postgres_svr/
  5 | b   | /postgres_svr/
-(2 rows)
+(3 rows)
 
 DELETE FROM t1 IN ('/sqlite_svr/');
 DELETE 1
 
 SELECT * FROM t1;
- i | t | __spd_url
+ i | t | __spd_url 
 ---+---+----------------
+ 5 | c | /postgres_svr/
  5 | b | /postgres_svr/
-(1 rows)
+(2 rows)
 </pre>
 
 ## Tree Structure
@@ -391,7 +398,6 @@ PGSpider has a table option: `disable_transaction_feature_check`:
 Limitation with modification and transaction:
 - Sometimes, PGSpider cannot read modified data in a transaction.
 - It is recommended to execute a modify query(INSERT/UPDATE/DELETE) in auto-commit mode. If not, a warning "Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data." is shown.
-- Can not execute INSERT query with IN clause.
 - RETURNING, WITH CHECK OPTION and ON CONFLICT are not supported with Modification.
 
 ## Contributing

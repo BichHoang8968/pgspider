@@ -150,7 +150,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 --
 --Testcase 28:
 INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, 'One', 'OneOne');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
@@ -254,7 +254,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |   c3   | c4 |  c5   |               c8               |            c9             
@@ -620,14 +620,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -646,14 +646,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -678,14 +678,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -705,14 +705,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -731,14 +731,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -760,14 +760,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -775,7 +775,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ALTER FOREIGN TABLE tntbl1 OPTIONS (SET disable_transaction_feature_check 'true');
 --Testcase 81:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, 'Two', 'TwoTwo');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 82:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 | c3 | c4 | c5 |               c8               |            c9             |    __spd_url    
@@ -788,14 +788,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -814,14 +814,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -840,14 +840,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   6 |    |    |    |    |                                |                           | /dynamodb_svr1/
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (17 rows)
 
@@ -927,14 +927,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  11 | 12 |    |    |    |                                |                           | /dynamodb_svr1/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (18 rows)
 
@@ -965,14 +965,14 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
   9 |    |    |    |    | xxxxxxxxxxxxxxxxxxxxxxxxx      | xxxxxxxxxxxxxxxxxxxxxxxxx | /dynamodb_svr1/
  10 |    |    |    |    | 40                             | abc                       | /dynamodb_svr2/
  11 | 12 |    |    |    |                                |                           | /dynamodb_svr1/
- 19 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 21 |    |    |    |    |                                |                           | /dynamodb_svr2/
- 22 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 23 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 19 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 21 |    |    |    |    |                                |                           | /dynamodb_svr1/
+ 22 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 23 |    |    |    |    |                                |                           | /dynamodb_svr1/
  24 |    |    |    |    |                                |                           | /dynamodb_svr2/
  25 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 26 |    |    |    |    |                                |                           | /dynamodb_svr1/
- 29 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 26 |    |    |    |    |                                |                           | /dynamodb_svr2/
+ 29 |    |    |    |    |                                |                           | /dynamodb_svr1/
  30 |    |    |    |    |                                |                           | /dynamodb_svr2/
 (18 rows)
 
@@ -993,6 +993,169 @@ ERROR:  RETURNING clause is not supported
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
 ERROR:  RETURNING clause is not supported
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1;
+ c1 | c2 | c3 | c4 | c5 | c8 | c9 | __spd_url 
+----+----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 4, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+-- dynamodb_fdw not support batch_size
+--Testcase 117:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '4');
+--Testcase 118:
+INSERT INTO tntbl1 
+    SELECT id, id % 10, id/10, id * 100, id * 1000, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 20) id;
+--Testcase 119:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  |    __spd_url    
+----+----+----+------+-------+--------------------------------+-----+-----------------
+  1 |  1 |  0 |  100 |  1000 | 00001                          | foo | /dynamodb_svr2/
+  2 |  2 |  0 |  200 |  2000 | 00002                          | foo | /dynamodb_svr1/
+  3 |  3 |  0 |  300 |  3000 | 00003                          | foo | /dynamodb_svr2/
+  4 |  4 |  0 |  400 |  4000 | 00004                          | foo | /dynamodb_svr1/
+  5 |  5 |  0 |  500 |  5000 | 00005                          | foo | /dynamodb_svr2/
+  6 |  6 |  0 |  600 |  6000 | 00006                          | foo | /dynamodb_svr1/
+  7 |  7 |  0 |  700 |  7000 | 00007                          | foo | /dynamodb_svr2/
+  8 |  8 |  0 |  800 |  8000 | 00008                          | foo | /dynamodb_svr1/
+  9 |  9 |  0 |  900 |  9000 | 00009                          | foo | /dynamodb_svr2/
+ 10 |  0 |  1 | 1000 | 10000 | 00010                          | foo | /dynamodb_svr1/
+ 11 |  1 |  1 | 1100 | 11000 | 00011                          | foo | /dynamodb_svr2/
+ 12 |  2 |  1 | 1200 | 12000 | 00012                          | foo | /dynamodb_svr1/
+ 13 |  3 |  1 | 1300 | 13000 | 00013                          | foo | /dynamodb_svr2/
+ 14 |  4 |  1 | 1400 | 14000 | 00014                          | foo | /dynamodb_svr1/
+ 15 |  5 |  1 | 1500 | 15000 | 00015                          | foo | /dynamodb_svr2/
+ 16 |  6 |  1 | 1600 | 16000 | 00016                          | foo | /dynamodb_svr1/
+ 17 |  7 |  1 | 1700 | 17000 | 00017                          | foo | /dynamodb_svr2/
+ 18 |  8 |  1 | 1800 | 18000 | 00018                          | foo | /dynamodb_svr1/
+ 19 |  9 |  1 | 1900 | 19000 | 00019                          | foo | /dynamodb_svr2/
+ 20 |  0 |  2 | 2000 | 20000 | 00020                          | foo | /dynamodb_svr1/
+(20 rows)
+
+--Testcase 120:
+SELECT * FROM tntbl1__dynamodb_svr1__0 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  
+----+----+----+------+-------+--------------------------------+-----
+  2 |  2 |  0 |  200 |  2000 | 00002                          | foo
+  4 |  4 |  0 |  400 |  4000 | 00004                          | foo
+  6 |  6 |  0 |  600 |  6000 | 00006                          | foo
+  8 |  8 |  0 |  800 |  8000 | 00008                          | foo
+ 10 |  0 |  1 | 1000 | 10000 | 00010                          | foo
+ 12 |  2 |  1 | 1200 | 12000 | 00012                          | foo
+ 14 |  4 |  1 | 1400 | 14000 | 00014                          | foo
+ 16 |  6 |  1 | 1600 | 16000 | 00016                          | foo
+ 18 |  8 |  1 | 1800 | 18000 | 00018                          | foo
+ 20 |  0 |  2 | 2000 | 20000 | 00020                          | foo
+(10 rows)
+
+--Testcase 121:
+SELECT * FROM tntbl1__dynamodb_svr2__0 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  
+----+----+----+------+-------+--------------------------------+-----
+  1 |  1 |  0 |  100 |  1000 | 00001                          | foo
+  3 |  3 |  0 |  300 |  3000 | 00003                          | foo
+  5 |  5 |  0 |  500 |  5000 | 00005                          | foo
+  7 |  7 |  0 |  700 |  7000 | 00007                          | foo
+  9 |  9 |  0 |  900 |  9000 | 00009                          | foo
+ 11 |  1 |  1 | 1100 | 11000 | 00011                          | foo
+ 13 |  3 |  1 | 1300 | 13000 | 00013                          | foo
+ 15 |  5 |  1 | 1500 | 15000 | 00015                          | foo
+ 17 |  7 |  1 | 1700 | 17000 | 00017                          | foo
+ 19 |  9 |  1 | 1900 | 19000 | 00019                          | foo
+(10 rows)
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+DELETE FROM tntbl1;
+--Testcase 122:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 123:
+INSERT INTO tntbl1 
+    SELECT id, id % 10, id/10, id * 100, id * 1000, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 30) id;
+--Testcase 124:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  |    __spd_url    
+----+----+----+------+-------+--------------------------------+-----+-----------------
+  1 |  1 |  0 |  100 |  1000 | 00001                          | foo | /dynamodb_svr2/
+  2 |  2 |  0 |  200 |  2000 | 00002                          | foo | /dynamodb_svr1/
+  3 |  3 |  0 |  300 |  3000 | 00003                          | foo | /dynamodb_svr2/
+  4 |  4 |  0 |  400 |  4000 | 00004                          | foo | /dynamodb_svr1/
+  5 |  5 |  0 |  500 |  5000 | 00005                          | foo | /dynamodb_svr2/
+  6 |  6 |  0 |  600 |  6000 | 00006                          | foo | /dynamodb_svr1/
+  7 |  7 |  0 |  700 |  7000 | 00007                          | foo | /dynamodb_svr2/
+  8 |  8 |  0 |  800 |  8000 | 00008                          | foo | /dynamodb_svr1/
+  9 |  9 |  0 |  900 |  9000 | 00009                          | foo | /dynamodb_svr2/
+ 10 |  0 |  1 | 1000 | 10000 | 00010                          | foo | /dynamodb_svr1/
+ 11 |  1 |  1 | 1100 | 11000 | 00011                          | foo | /dynamodb_svr2/
+ 12 |  2 |  1 | 1200 | 12000 | 00012                          | foo | /dynamodb_svr1/
+ 13 |  3 |  1 | 1300 | 13000 | 00013                          | foo | /dynamodb_svr2/
+ 14 |  4 |  1 | 1400 | 14000 | 00014                          | foo | /dynamodb_svr1/
+ 15 |  5 |  1 | 1500 | 15000 | 00015                          | foo | /dynamodb_svr2/
+ 16 |  6 |  1 | 1600 | 16000 | 00016                          | foo | /dynamodb_svr1/
+ 17 |  7 |  1 | 1700 | 17000 | 00017                          | foo | /dynamodb_svr2/
+ 18 |  8 |  1 | 1800 | 18000 | 00018                          | foo | /dynamodb_svr1/
+ 19 |  9 |  1 | 1900 | 19000 | 00019                          | foo | /dynamodb_svr2/
+ 20 |  0 |  2 | 2000 | 20000 | 00020                          | foo | /dynamodb_svr1/
+ 21 |  1 |  2 | 2100 | 21000 | 00021                          | foo | /dynamodb_svr2/
+ 22 |  2 |  2 | 2200 | 22000 | 00022                          | foo | /dynamodb_svr1/
+ 23 |  3 |  2 | 2300 | 23000 | 00023                          | foo | /dynamodb_svr2/
+ 24 |  4 |  2 | 2400 | 24000 | 00024                          | foo | /dynamodb_svr1/
+ 25 |  5 |  2 | 2500 | 25000 | 00025                          | foo | /dynamodb_svr2/
+ 26 |  6 |  2 | 2600 | 26000 | 00026                          | foo | /dynamodb_svr1/
+ 27 |  7 |  2 | 2700 | 27000 | 00027                          | foo | /dynamodb_svr2/
+ 28 |  8 |  2 | 2800 | 28000 | 00028                          | foo | /dynamodb_svr1/
+ 29 |  9 |  2 | 2900 | 29000 | 00029                          | foo | /dynamodb_svr2/
+ 30 |  0 |  3 | 3000 | 30000 | 00030                          | foo | /dynamodb_svr1/
+(30 rows)
+
+--Testcase 125:
+SELECT * FROM tntbl1__dynamodb_svr1__0 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  
+----+----+----+------+-------+--------------------------------+-----
+  2 |  2 |  0 |  200 |  2000 | 00002                          | foo
+  4 |  4 |  0 |  400 |  4000 | 00004                          | foo
+  6 |  6 |  0 |  600 |  6000 | 00006                          | foo
+  8 |  8 |  0 |  800 |  8000 | 00008                          | foo
+ 10 |  0 |  1 | 1000 | 10000 | 00010                          | foo
+ 12 |  2 |  1 | 1200 | 12000 | 00012                          | foo
+ 14 |  4 |  1 | 1400 | 14000 | 00014                          | foo
+ 16 |  6 |  1 | 1600 | 16000 | 00016                          | foo
+ 18 |  8 |  1 | 1800 | 18000 | 00018                          | foo
+ 20 |  0 |  2 | 2000 | 20000 | 00020                          | foo
+ 22 |  2 |  2 | 2200 | 22000 | 00022                          | foo
+ 24 |  4 |  2 | 2400 | 24000 | 00024                          | foo
+ 26 |  6 |  2 | 2600 | 26000 | 00026                          | foo
+ 28 |  8 |  2 | 2800 | 28000 | 00028                          | foo
+ 30 |  0 |  3 | 3000 | 30000 | 00030                          | foo
+(15 rows)
+
+--Testcase 126:
+SELECT * FROM tntbl1__dynamodb_svr2__0 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |               c8               | c9  
+----+----+----+------+-------+--------------------------------+-----
+  1 |  1 |  0 |  100 |  1000 | 00001                          | foo
+  3 |  3 |  0 |  300 |  3000 | 00003                          | foo
+  5 |  5 |  0 |  500 |  5000 | 00005                          | foo
+  7 |  7 |  0 |  700 |  7000 | 00007                          | foo
+  9 |  9 |  0 |  900 |  9000 | 00009                          | foo
+ 11 |  1 |  1 | 1100 | 11000 | 00011                          | foo
+ 13 |  3 |  1 | 1300 | 13000 | 00013                          | foo
+ 15 |  5 |  1 | 1500 | 15000 | 00015                          | foo
+ 17 |  7 |  1 | 1700 | 17000 | 00017                          | foo
+ 19 |  9 |  1 | 1900 | 19000 | 00019                          | foo
+ 21 |  1 |  2 | 2100 | 21000 | 00021                          | foo
+ 23 |  3 |  2 | 2300 | 23000 | 00023                          | foo
+ 25 |  5 |  2 | 2500 | 25000 | 00025                          | foo
+ 27 |  7 |  2 | 2700 | 27000 | 00027                          | foo
+ 29 |  9 |  2 | 2900 | 29000 | 00029                          | foo
+(15 rows)
+
 --Clean
 DELETE FROM tntbl1;
 --Testcase 110:

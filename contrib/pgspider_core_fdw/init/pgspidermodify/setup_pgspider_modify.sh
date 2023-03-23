@@ -153,8 +153,10 @@ sqlite3 /tmp/pgmodifytest1.db < pg_modify_sqlite.dat
 #Setup File_fdw
 rm /tmp/pg_modify_file1.csv
 rm /tmp/pg_modify_file2.csv
+rm /tmp/pg_modify_bulk_insert.csv
 cp pg_modify_file1.csv /tmp/
 cp pg_modify_file2.csv /tmp/
+cp pg_modify_bulk_insert.csv /tmp/
 
 # Setup oracle
 sqlplus / as sysdba << EOF

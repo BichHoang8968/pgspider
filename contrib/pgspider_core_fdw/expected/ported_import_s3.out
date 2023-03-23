@@ -301,7 +301,7 @@ SELECT * FROM parquets3tbl;
 (3 rows)
 
 --Testcase 31:
-SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;; 
+SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;
      one     |    two     | three |        four         |    five    | six | seven |    __spd_url     
 -------------+------------+-------+---------------------+------------+-----+-------+------------------
  -2147483648 | {1,2,3}    | foo   | 2018-01-01 00:00:00 | 1975-06-18 | t   |   0.5 | /parquet_s3_svr/

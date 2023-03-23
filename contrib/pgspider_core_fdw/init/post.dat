@@ -2,6 +2,7 @@ DROP TABLE test1;
 DROP TABLE t1;
 DROP TABLE t2;
 DROP TABLE large_t;
+
 CREATE TABLE test1 (i int);
 INSERT INTO test1 VALUES(1111);
 CREATE TABLE t1 (i int, t text);

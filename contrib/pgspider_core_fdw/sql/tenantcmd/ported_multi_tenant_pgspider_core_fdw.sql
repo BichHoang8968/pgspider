@@ -684,19 +684,19 @@ INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
 SELECT pg_sleep(2);
 Set pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 168:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.throw_error_ifdead to true;
 --Testcase 169:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 170:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.print_error_nodes to true;
 --Testcase 171:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.print_error_nodes to false;
 --Testcase 172:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 --Testcase 262:
 CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
 --Testcase 263:

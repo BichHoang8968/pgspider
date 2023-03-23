@@ -60,6 +60,41 @@ ERROR:  No child node support modification.
 DELETE FROM tntbl5 IN ('/file_svr/');
 WARNING:  file_fdw will be skipped because it does not support modification
 ERROR:  No child node support modification.
+--
+-- Test case bulk insert, 1 node file_fdw
+--
+--Testcase 34:
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+--Testcase 35:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 36:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(1, 10) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+--Testcase 37:
+SELECT * FROM tntbl5 ORDER BY 1;
+ c1 |  c2  | __spd_url  
+----+------+------------
+ 10 | test | /file_svr/
+(1 row)
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+--Testcase 38:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 39:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(11, 35) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+--Testcase 40:
+SELECT * FROM tntbl5 ORDER BY 1;
+ c1 |  c2  | __spd_url  
+----+------+------------
+ 10 | test | /file_svr/
+(1 row)
+
 -- *** Start test for 2 nodes file_fdw *** --
 --Testcase 20:
 CREATE FOREIGN TABLE tntbl5__file_svr__2 (c1 int, c2 text) SERVER file_svr_2 OPTIONS (filename '/tmp/pg_modify_file2.csv', format 'csv');
@@ -233,7 +268,7 @@ ERROR:  No child node support modification.
 --Testcase 66:
 SELECT * FROM tntbl5 ORDER BY 1;
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:could not open file "/tmp/pg_modify_file_not_existed.csv" for reading: No such file or directory
+ DETAIL: could not open file "/tmp/pg_modify_file_not_existed.csv" for reading: No such file or directory
 ALTER FOREIGN TABLE tntbl5__file_svr__0 OPTIONS (SET filename '/tmp/pg_modify_file1.csv');
 --Testcase 67:
 INSERT INTO tntbl5 VALUES ('81', '2ea3r2');
@@ -320,6 +355,43 @@ WARNING:  file_fdw is ignored as an insert target because it does not support mo
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
 ERROR:  No child node support modification.
 --Testcase 80:
+SELECT * FROM tntbl5 ORDER BY 1;
+ c1 |  c2  |  __spd_url   
+----+------+--------------
+ 10 | test | /file_svr/
+ 40 | foo1 | /file_svr_2/
+(2 rows)
+
+-- Test case bulk insert, 2 nodes file_fdw
+--
+-- Manual config: batch_size server = 4, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+-- file_fdw not support batch_size
+--Testcase 41:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '4');
+--Testcase 42:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(36, 55) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+--Testcase 43:
+SELECT * FROM tntbl5 ORDER BY 1;
+ c1 |  c2  |  __spd_url   
+----+------+--------------
+ 10 | test | /file_svr/
+ 40 | foo1 | /file_svr_2/
+(2 rows)
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+--Testcase 44:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 45:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(56, 85) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+ERROR:  No child node support modification.
+--Testcase 46:
 SELECT * FROM tntbl5 ORDER BY 1;
  c1 |  c2  |  __spd_url   
 ----+------+--------------

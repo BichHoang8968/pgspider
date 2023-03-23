@@ -141,10 +141,10 @@ SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2;
 --
 --Testcase 29:
 INSERT INTO tntbl2 IN ('/pgspider_core_svr/pgspider_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 30:
 INSERT INTO tntbl2 IN ('/pgspider_core_svr/pgspider_svr/dynamodb_svr/', '/pgspider_core_svr/pgspider_svr/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
@@ -248,7 +248,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 41:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 ERROR:  value too long for type character varying(255)
 --Testcase 42:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2;
@@ -738,6 +738,80 @@ ERROR:  RETURNING clause is not supported
 --Testcase 104:
 DELETE FROM tntbl2 RETURNING *;
 ERROR:  RETURNING clause is not supported
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 110:
+DELETE FROM tntbl2;
+--Testcase 111:
+SELECT * FROM tntbl2;
+ _id | c1 | c2 | c3 | c4 | c5 | __spd_url 
+-----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table = 6, batch_size of FDW not set, insert 10 records
+-- mongo_fdw not support batch_size
+--Testcase 112:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 113:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 10) id;
+--Testcase 114:
+SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1,2;
+ c1 | c2  | c3 | c4 |  c5   |  __spd_url  
+----+-----+----+----+-------+-------------
+  1 | foo | t  |  0 |  1000 | /mongo_svr/
+  2 | foo | t  |  0 |  2000 | /mongo_svr/
+  3 | foo | t  |  0 |  3000 | /mongo_svr/
+  4 | foo | t  |  0 |  4000 | /mongo_svr/
+  5 | foo | t  |  0 |  5000 | /mongo_svr/
+  6 | foo | t  |  0 |  6000 | /mongo_svr/
+  7 | foo | t  |  0 |  7000 | /mongo_svr/
+  8 | foo | t  |  0 |  8000 | /mongo_svr/
+  9 | foo | t  |  0 |  9000 | /mongo_svr/
+ 10 | foo | t  |  1 | 10000 | /mongo_svr/
+(10 rows)
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl2;
+--Testcase 115:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 116:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 117:
+SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1,2;
+ c1 | c2  | c3 | c4 |  c5   |  __spd_url  
+----+-----+----+----+-------+-------------
+  1 | foo | t  |  0 |  1000 | /mongo_svr/
+  2 | foo | t  |  0 |  2000 | /mongo_svr/
+  3 | foo | t  |  0 |  3000 | /mongo_svr/
+  4 | foo | t  |  0 |  4000 | /mongo_svr/
+  5 | foo | t  |  0 |  5000 | /mongo_svr/
+  6 | foo | t  |  0 |  6000 | /mongo_svr/
+  7 | foo | t  |  0 |  7000 | /mongo_svr/
+  8 | foo | t  |  0 |  8000 | /mongo_svr/
+  9 | foo | t  |  0 |  9000 | /mongo_svr/
+ 10 | foo | t  |  1 | 10000 | /mongo_svr/
+ 11 | foo | t  |  1 | 11000 | /mongo_svr/
+ 12 | foo | t  |  1 | 12000 | /mongo_svr/
+ 13 | foo | t  |  1 | 13000 | /mongo_svr/
+ 14 | foo | t  |  1 | 14000 | /mongo_svr/
+ 15 | foo | t  |  1 | 15000 | /mongo_svr/
+ 16 | foo | t  |  1 | 16000 | /mongo_svr/
+ 17 | foo | t  |  1 | 17000 | /mongo_svr/
+ 18 | foo | t  |  1 | 18000 | /mongo_svr/
+ 19 | foo | t  |  1 | 19000 | /mongo_svr/
+ 20 | foo | t  |  2 | 20000 | /mongo_svr/
+ 21 | foo | t  |  2 | 21000 | /mongo_svr/
+ 22 | foo | t  |  2 | 22000 | /mongo_svr/
+ 23 | foo | t  |  2 | 23000 | /mongo_svr/
+ 24 | foo | t  |  2 | 24000 | /mongo_svr/
+ 25 | foo | t  |  2 | 25000 | /mongo_svr/
+(25 rows)
+
 --Clean
 DELETE FROM tntbl2;
 --Reset data

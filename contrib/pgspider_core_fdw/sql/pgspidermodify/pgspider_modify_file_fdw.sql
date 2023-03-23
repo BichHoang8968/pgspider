@@ -48,6 +48,30 @@ UPDATE tntbl5 IN ('/file_svr/', '/file_svr_2/') SET c2 = DEFAULT;
 DELETE FROM tntbl5 WHERE c2 = 'foo';
 --Testcase 19:
 DELETE FROM tntbl5 IN ('/file_svr/');
+--
+-- Test case bulk insert, 1 node file_fdw
+--
+--Testcase 34:
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+--Testcase 35:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+
+--Testcase 36:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(1, 10) id;
+--Testcase 37:
+SELECT * FROM tntbl5 ORDER BY 1;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+--Testcase 38:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 39:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(11, 35) id;
+--Testcase 40:
+SELECT * FROM tntbl5 ORDER BY 1;
 
 -- *** Start test for 2 nodes file_fdw *** --
 --Testcase 20:
@@ -153,6 +177,31 @@ SELECT * FROM tntbl5 ORDER BY 1;
 --Testcase 79:
 INSERT INTO tntbl5 VALUES (88, '3wra'), (89, 'taw35ta'), (90, 'erfawfa'), (91, 'avaewvaf'), (92, 'avAEGAWRG'), (93, 'AMEF_awe.fawlfe');
 --Testcase 80:
+SELECT * FROM tntbl5 ORDER BY 1;
+
+-- Test case bulk insert, 2 nodes file_fdw
+--
+-- Manual config: batch_size server = 4, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+-- file_fdw not support batch_size
+--Testcase 41:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '4');
+
+--Testcase 42:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(36, 55) id;
+
+--Testcase 43:
+SELECT * FROM tntbl5 ORDER BY 1;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+--Testcase 44:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 45:
+INSERT INTO tntbl5
+	SELECT id, to_char(id, 'FM00000') FROM generate_series(56, 85) id;
+
+--Testcase 46:
 SELECT * FROM tntbl5 ORDER BY 1;
 
 --Clean

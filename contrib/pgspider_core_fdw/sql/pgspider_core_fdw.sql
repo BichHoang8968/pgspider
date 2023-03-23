@@ -6,7 +6,7 @@ CREATE EXTENSION pgspider_core_fdw;
 --Testcase 184:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 --Testcase 185:
-CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server pgspider_svr OPTIONS (user 'postgres',password 'postgres');
 --Testcase 186:
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 187:
@@ -23,7 +23,7 @@ CREATE EXTENSION mysql_fdw;
 --Testcase 192:
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
 --Testcase 193:
-CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 194:
 CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 2:
@@ -38,11 +38,11 @@ SELECT * FROM public.pgspider_core_fdw_version();
 SELECT pgspider_core_fdw_version();
 
 --Testcase 196:
-CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 3:
 SELECT * FROM test1;
 --Testcase 197:
-CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 4:
 SELECT * FROM test1 order by i,__spd_url;
 --Testcase 5:
@@ -53,9 +53,9 @@ SELECT * FROM test1 IN ('/file_svr/') where i = 1;
 --Testcase 198:
 CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
 --Testcase 199:
-CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
+CREATE USER mapping for public server tiny_svr OPTIONS (username 'user',password 'testuser');
 --Testcase 200:
-CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS (table_name 'test1');
 --Testcase 7:
 SELECT * FROM test1__tiny_svr__0 ORDER BY i;
 --Testcase 8:
@@ -67,9 +67,9 @@ SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
 --Testcase 201:
 CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 --Testcase 202:
-CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr OPTIONS (user 'postgres',password 'postgres');
 --Testcase 203:
-CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test1');
 --Testcase 11:
 SELECT * FROM test1__post_svr__0 ORDER BY i;
 --Testcase 12:
@@ -81,7 +81,7 @@ SELECT * FROM test1 IN ('/post_svr/') where i = 1 ORDER BY i,__spd_url;
 --Testcase 204:
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
 --Testcase 205:
-CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS (table 'test1');
 --Testcase 15:
 SELECT * FROM test1 ORDER BY i,__spd_url;
 --Testcase 16:
@@ -91,9 +91,9 @@ SELECT * FROM test1 IN ('/sqlite_svr/') where i = 4 ORDER BY i,__spd_url;
 --Testcase 206:
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 --Testcase 207:
-CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+CREATE USER mapping for public server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
 --Testcase 208:
-CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test1');
 --Testcase 18:
 SELECT * FROM test1 ORDER BY i,__spd_url;
 --Testcase 19:
@@ -157,13 +157,13 @@ SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') UNION ALL SELECT * FROM t
 --Testcase 209:
 CREATE FOREIGN TABLE test1_1 (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 210:
-CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS (table_name 'test1');
 --Testcase 211:
-CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test1');
 --Testcase 212:
-CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS (table 'test1');
 --Testcase 213:
-CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test1');
 
 --Testcase 47:
 SELECT * FROM test1 IN ('/mysql_svr/'), test1_1 IN ('/sqlite_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
@@ -317,7 +317,7 @@ DEALLOCATE stmt;
 --Testcase 225:
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 --Testcase 226:
-CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
+CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS (table_name 't1');
 --Testcase 76:
 SELECT * FROM t1;
 --Testcase 77:
@@ -444,7 +444,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
 --Testcase 238:
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 239:
-CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 
 --Testcase 108:
 SELECT count(t) FROM t3;
@@ -504,9 +504,9 @@ Set pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 240:
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 --Testcase 241:
-CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+CREATE USER mapping for public server mysql_svr2 OPTIONS (username 'root',password 'wrongpass');
 --Testcase 242:
-CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 125:
 SELECT count(t) FROM t3;
 --Testcase 126:
@@ -605,11 +605,11 @@ END; $$;
 --Testcase 246:
 CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 247:
-CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 248:
-CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 249:
-CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 
 DO $$
 BEGIN
@@ -621,11 +621,11 @@ END; $$;
 --Testcase 250:
 CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
 --Testcase 251:
-CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 --Testcase 252:
-CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 --Testcase 253:
-CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 
 --Testcase 157:
 SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
@@ -649,15 +649,15 @@ END; $$;
 --Testcase 254:
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 --Testcase 255:
-CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 159:
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 --Testcase 256:
-CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 257:
-CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 258:
-CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 
 -- random cannot be pushed down and i=2 is pushed down
 --Testcase 160:
@@ -678,9 +678,9 @@ SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 --Testcase 259:
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '49503');
 --Testcase 260:
-CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr2 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 261:
-CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS (table_name 't2');
 --Testcase 165:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 --Testcase 166:
@@ -689,25 +689,25 @@ INSERT INTO pg_spd_node_info VALUES(0,'post_svr2','postgres_fdw','127.0.0.1');
 SELECT pg_sleep(2);
 Set pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 168:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.throw_error_ifdead to true;
 --Testcase 169:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 170:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.print_error_nodes to true;
 --Testcase 171:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 SET pgspider_core_fdw.print_error_nodes to false;
 --Testcase 172:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 --Testcase 262:
 CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
 --Testcase 263:
-CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr3 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 264:
-CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS (table_name 't2');
 --Testcase 173:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
 --Testcase 174:
@@ -741,7 +741,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 --Testcase 282:
 CREATE FOREIGN TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER pgspider_svr;
 --Testcase 283:
-CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS(table 'tbl01');
+CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS (table 'tbl01');
 --Testcase 284:
 SELECT * FROM tbl01;
 --Testcase 285:
@@ -755,7 +755,7 @@ DROP FOREIGN TABLE tbl01;
 --Testcase 288:
 CREATE FOREIGN TABLE tbl02 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric,__spd_url text) SERVER pgspider_svr;
 --Testcase 289:
-CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS(table 'tbl02');
+CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS (table 'tbl02');
 --Testcase 290:
 SELECT * FROM tbl02;
 --Testcase 291:
@@ -786,22 +786,22 @@ CREATE SERVER server2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1
 CREATE SERVER server3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 
 --Testcase 313:
-CREATE USER MAPPING FOR public SERVER server1 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server1 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 314:
-CREATE USER MAPPING FOR public SERVER server2 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server2 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 315:
-CREATE USER MAPPING FOR public SERVER server3 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server3 OPTIONS (user 'postgres',password 'postgres');
 
 --Testcase 316:
-CREATE FOREIGN TABLE tbl03__server1__0 (i int) SERVER server1 OPTIONS(table_name 'tbl03_1');
+CREATE FOREIGN TABLE tbl03__server1__0 (i int) SERVER server1 OPTIONS (table_name 'tbl03_1');
 --Testcase 317:
-CREATE FOREIGN TABLE tbl03__server2__0 (i int) SERVER server2 OPTIONS(table_name 'tbl03_2');
+CREATE FOREIGN TABLE tbl03__server2__0 (i int) SERVER server2 OPTIONS (table_name 'tbl03_2');
 --Testcase 318:
-CREATE FOREIGN TABLE tbl03__server3__0 (i int) SERVER server3 OPTIONS(table_name 'tbl03_3');
+CREATE FOREIGN TABLE tbl03__server3__0 (i int) SERVER server3 OPTIONS (table_name 'tbl03_3');
 --Testcase 319:
-CREATE FOREIGN TABLE tbl03_4 (i int) SERVER server2 OPTIONS(table_name 'tbl03_4');
+CREATE FOREIGN TABLE tbl03_4 (i int) SERVER server2 OPTIONS (table_name 'tbl03_4');
 --Testcase 320:
-CREATE FOREIGN TABLE tbl03_5 (i int) SERVER server3 OPTIONS(table_name 'tbl03_5');
+CREATE FOREIGN TABLE tbl03_5 (i int) SERVER server3 OPTIONS (table_name 'tbl03_5');
 
 --Testcase 321:
 CREATE FOREIGN TABLE tbl03 (i int, __spd_url text) SERVER pgspider_svr;
@@ -830,6 +830,8 @@ UPDATE tbl03 SET i = 102 WHERE i = 100;
 DELETE FROM tbl03 WHERE i = 102 OR i = 101;
 ROLLBACK;
 
+SET pgspider_core_fdw.throw_error_ifdead to false;
+
 --Testcase 330:
 DROP FOREIGN TABLE tbl03__server1__0;
 --Testcase 331:
@@ -847,11 +849,11 @@ DROP SERVER server1, server2, server3 CASCADE;
 -- there are 4 nodes support modification with order: mysql_svr, post_svr, sqlite_svr, tiny_svr
 -- file_fdw does not support modification, it's not included in candidate list
 CREATE FOREIGN TABLE test2 (i int, __spd_url text) SERVER pgspider_svr;
-CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
-CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 
 SET pgspider_core_fdw.throw_error_ifdead to false;
 SET pgspider_core_fdw.throw_candidate_error to false;
@@ -1019,10 +1021,10 @@ SELECT * FROM test2 ORDER BY i, __spd_url;
 --Testcase 371:
 DELETE FROM test2;
 ALTER SERVER post_svr OPTIONS (SET port '15421');
-CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 
 --Testcase 372:
 INSERT INTO test2 VALUES (4), (5), (6), (7);
@@ -1052,7 +1054,7 @@ SET pgspider_core_fdw.throw_candidate_error to true;
 -- Single insert
 -- Rename a table cannot be reached due to wrong server name
 CREATE SERVER sqlite_svr1 FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/not_existed_pgtest.db');
-CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS (table 'test2');
 --Testcase 376:
 INSERT INTO test2 VALUES (1);
 SELECT * FROM test2 ORDER BY i, __spd_url;
@@ -1072,7 +1074,7 @@ SELECT * FROM test2__tiny_svr__0;
 -- Revert previous table name, and create a non exist table
 DROP SERVER sqlite_svr1 CASCADE;
 CREATE SERVER mysql_svr1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
-CREATE USER mapping for public server mysql_svr1 OPTIONS(username 'root',password 'Mysql_1234');
+CREATE USER mapping for public server mysql_svr1 OPTIONS (username 'root',password 'Mysql_1234');
 CREATE FOREIGN TABLE test2__mysql_svr1__0 (i int OPTIONS (key 'true')) SERVER mysql_svr1 OPTIONS (dbname 'not_existed',table_name 'test2');
 --Testcase 380:
 INSERT INTO test2 VALUES (5);
@@ -1098,7 +1100,7 @@ DROP FOREIGN TABLE test2__mysql_svr1__0;
 DROP SERVER mysql_svr1 CASCADE;
 -- More than 1 foreign table error
 CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test_not_existed');
-CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS(table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS (table_name 'test_not_existed');
 --Testcase 385:
 INSERT INTO test2 VALUES (9);
 SELECT * FROM test2 ORDER BY i, __spd_url;
@@ -1188,9 +1190,9 @@ DELETE FROM test2;
 -- Insert with changing candidate
 -- Remove previous target, tiny node and change its position
 ALTER SERVER tiny_svr RENAME TO atiny_svr;
-CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS (table_name 'test2');
 DROP FOREIGN TABLE test2__tiny_svr__0;
-CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS (table_name 'test_not_existed');
 -- The existing tiny foreign table become unreachable, order is atiny, tiny (invalid), mysql, post, sqlite
 --Testcase 399:
 INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6);
@@ -1233,10 +1235,10 @@ DELETE FROM test2;
 ALTER SERVER atiny_svr RENAME TO tiny_svr;
 ALTER SERVER bsqlite_svr RENAME TO sqlite_svr;
 -- Create an invalid table test2__tiny_svr__1
-CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'not_existed');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'not_existed');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 -- Insert with IN in case of error with foreign table
 --Testcase 404:
 INSERT INTO test2 IN ('/tiny_svr/') VALUES (1);
@@ -1308,6 +1310,120 @@ DROP FOREIGN TABLE test2__sqlite_svr__0;
 DROP FOREIGN TABLE test2__file_svr__0;
 DROP FOREIGN TABLE test2;
 
+--
+-- Test case bulk insert
+--
+--Testcase 304:
+CREATE FOREIGN TABLE test2 (i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 305:
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
+--Testcase 306:
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+--Testcase 307:
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+--Testcase 308:
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+--Testcase 309:
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
+
+--Testcase 310:
+SET client_min_messages = INFO;
+-- Manual config:
+-- batch_size server = 6, batch_size table = 6553500, batch_size of FDW (if support) not set, insert 120 records
+--Testcase 312:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6');
+ALTER FOREIGN TABLE test2__tiny_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__sqlite_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (ADD batch_size '6553500');
+
+INSERT INTO test2 SELECT id FROM generate_series(1, 120) id;
+
+SELECT * FROM test2 ORDER BY 1, 2;
+
+DELETE FROM test2;
+SELECT * FROM test2 ORDER BY 1, 2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__tiny_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__sqlite_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (DROP batch_size);
+
+-- batch_size server = 20, batch_size table not set, batch_size of FDW (if support) difference values, insert 120 records
+--Testcase 313:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '20');
+ALTER SERVER post_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '7');
+
+INSERT INTO test2 SELECT id FROM generate_series(1, 120) id;
+
+SELECT * FROM test2 ORDER BY 1, 2;
+
+DELETE FROM test2;
+SELECT * FROM test2 ORDER BY 1, 2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+
+-- batch_size server = 8, batch_size table not set, batch_size of FDW (if support) difference values, insert 20 records
+--Testcase 316:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '8');
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+
+INSERT INTO test2 SELECT id FROM generate_series(1, 20) id;
+
+SELECT * FROM test2 ORDER BY 1, 2;
+
+DELETE FROM test2;
+SELECT * FROM test2 ORDER BY 1, 2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+
+-- Auto config:
+-- batch size of fdw (if support) difference values
+--Testcase 314:
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+
+INSERT INTO test2 SELECT id FROM generate_series(1, 200) id;
+
+SELECT * FROM test2 ORDER BY 1, 2;
+
+DELETE FROM test2;
+SELECT * FROM test2 ORDER BY 1, 2;
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+
+-- batch size of fdw (if support) difference values for FDW but  LCM < limit
+--Testcase 315:
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '7');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+
+INSERT INTO test2 SELECT id FROM generate_series(1, 1000) id;
+
+SELECT * FROM test2 ORDER BY 1, 2;
+
+DELETE FROM test2;
+
+DROP FOREIGN TABLE test2 CASCADE;
+
+SET client_min_messages = NOTICE;
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:

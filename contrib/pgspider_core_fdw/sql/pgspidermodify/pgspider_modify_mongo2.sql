@@ -137,7 +137,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 40:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 41:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY c1, c2, c3, c5;
 
@@ -340,6 +340,31 @@ UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RET
 DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
 --Testcase 103:
 DELETE FROM tntbl2 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 109:
+DELETE FROM tntbl2;
+--Testcase 110:
+SELECT * FROM tntbl2;
+
+SET client_min_messages = INFO;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 111:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 30) id;
+
+--Testcase 112:
+SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1,2;
+--Testcase 113:
+SELECT c1, c2, c3, c4, c5 FROM tntbl2__mongo_svr__0 ORDER BY 1,2;
+--Testcase 114:
+SELECT c1, c2, c3, c4, c5 FROM tntbl2__mongo_svr__1 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl2;

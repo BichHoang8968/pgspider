@@ -29,6 +29,11 @@
 #define SPD_SINGLE_NODE	1
 #define IS_SPD_MULTI_NODES(nodenum) (nodenum > SPD_SINGLE_NODE)
 
+/* For bulk insert */
+#define SPD_SINGLE_NODE_BULK_INSERT 0
+#define SPD_MULTIPLE_NODE_BULK_INSERT 1
+#define SPD_BATCH_SIZE_MAX_LIMIT 6553500
+
 enum SpdServerstatus
 {
 	ServerStatusAlive,
@@ -85,10 +90,14 @@ typedef enum
 {
 	SPD_MDF_STATE_INIT,
 	SPD_MDF_STATE_BEGIN,
+	SPD_MDF_STATE_PRE_EXEC,
+	SPD_MDF_STATE_EXEC_SIMPLE_INSERT,
+	SPD_MDF_STATE_EXEC_BATCH_INSERT,
 	SPD_MDF_STATE_EXEC,
 	SPD_MDF_STATE_PRE_END,
 	SPD_MDF_STATE_END,
 	SPD_MDF_STATE_FINISH,
+	SPD_MDF_STATE_ERROR_INIT,
 	SPD_MDF_STATE_ERROR
 }			SpdModifyThreadState;
 
@@ -107,16 +116,27 @@ typedef struct ModifyThreadInfo
 								 * thread */
 	TupleTableSlot *slot;
 	TupleTableSlot *planSlot;
+	TupleTableSlot *rslot;
+
 	int			childInfoIndex; /* index of child info array */
 	MemoryContext threadMemoryContext;
 	MemoryContext threadTopMemoryContext;
+	MemoryContext temp_cxt;		/* context for temporary data */
 	SpdModifyThreadState state;
-	pthread_t	me;
+	pthread_mutex_t stateMutex;	/* Use for state mutex */
 	ResourceOwner thrd_ResourceOwner;
 	void	   *private;
 	int			transaction_level;
 	bool		is_joined;
 	int			subplan_index;
+	char	   *child_thread_error_msg; /* child thread error message to transfer to main thread */
+
+	/* FOR BATCH INSERT */
+	int			batch_size;		/* use to save batch_size of child node */
+	int			numSlots;		/* number of slot need to insert in batch mode */
+	TupleTableSlot **rslots;	/* returning array of slot */
+	TupleTableSlot **slots;		/* array of slot for bulk insert */
+	TupleTableSlot **planSlots;	/* array of plan slot for bulk insert */
 }			ModifyThreadInfo;
 
  /* in pgspider_core_deparse.c */

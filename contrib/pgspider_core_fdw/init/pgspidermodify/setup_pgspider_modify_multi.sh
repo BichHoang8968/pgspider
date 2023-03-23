@@ -67,10 +67,11 @@ cd ${CURR_PATH}/
 $POSTGRES_HOME/bin/psql -p 15432 $POSTGRES_DB_NAME -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p 15432 $POSTGRES_DB_NAME -c "grant all privileges on database $POSTGRES_DB_NAME to postgres;"
 $POSTGRES_HOME/bin/psql -p 15432 $POSTGRES_DB_NAME -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
+$POSTGRES_HOME/bin/psql -p 15432 $POSTGRES_DB_NAME -c "ALTER USER postgres WITH SUPERUSER;"
 $POSTGRES_HOME/bin/psql $POSTGRES_DB_NAME -p 15432 -U postgres < ./pg_modify_1.dat
 
 # Setup PGSpider1 for running multi layer with 1 node postgres_fdw
 $PGSPIDER_HOME/bin/psql -p $PGS1_PORT $DB_NAME < pgspider_modify_for_postgres.dat
 
 # Setup PGSpider1 for running multi layer with multi nodes
-$PGSPIDER_HOME/bin/psql -p $PGS2_PORT $DB_NAME < pgspider_modify_multi.dat
+#$PGSPIDER_HOME/bin/psql -p $PGS2_PORT $DB_NAME < pgspider_modify_multi.dat

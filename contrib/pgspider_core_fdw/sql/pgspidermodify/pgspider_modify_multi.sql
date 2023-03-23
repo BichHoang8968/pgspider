@@ -118,7 +118,7 @@ SELECT c1, c2, c3, c4, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 -- INSERT with IN feature
 --
 --Testcase 42:
-INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne'); 
+INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
 --Testcase 43:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (650, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
 
@@ -376,7 +376,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 111:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 112:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
@@ -806,7 +806,7 @@ UPDATE tntbl4 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 --
 
 --Testcase 222:
-INSERT INTO tntbl4 SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ;
+INSERT INTO tntbl4 (SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ORDER BY 1, 2, 3);
 --Testcase 223:
 SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
@@ -1036,7 +1036,7 @@ DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 304:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES ('foo', 30, 5.0, 50.0, 6000);
 --Testcase 305:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 306:
 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
 --Testcase 307:
@@ -1044,7 +1044,7 @@ SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
 --Testcase 308:
 DELETE FROM tntbl3;
 --Testcase 309:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 310:
 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
 --Testcase 311:

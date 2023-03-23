@@ -18,11 +18,11 @@ CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
 --Testcase 7:
 CREATE EXTENSION odbc_fdw;
 --Testcase 8:
-CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_MYSQL_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
 --Testcase 9:
 CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
 --Testcase 10:
-CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_POSTGRES_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 11:
 CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
 -- Create multi tenant tables
@@ -138,7 +138,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 42:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 43:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
 
@@ -458,7 +458,7 @@ UPDATE tntbl3 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 
 -- Commmented, fail due to oracle_fdw. Not reported yet.
 --Testcase 135:
-INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
+INSERT INTO tntbl3 (SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 136:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3;
 
@@ -618,9 +618,9 @@ DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 186:
 INSERT INTO tntbl3__odbc_mysql_svr__0 VALUES(repeat('y', 10), 20, 4.0, 40.0, 5000);
 --Testcase 187:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/');
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/') ORDER BY 1, 2, 3);
 --Testcase 188:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/';
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/' ORDER BY 1, 2, 3);
 --Testcase 189:
 SELECT * FROM tntbl3 ORDER BY _id;
 --Testcase 190:
@@ -630,7 +630,7 @@ SELECT * FROM tntbl3 ORDER BY _id;
 --Testcase 192:
 DELETE FROM tntbl3;
 --Testcase 193:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 194:
 SELECT * FROM tntbl3 ORDER BY _id;
 --Testcase 195:
@@ -706,6 +706,26 @@ DELETE FROM tntbl3 WHERE c3 = 50.0 RETURNING _id, c1, c2;
 DELETE FROM tntbl3 RETURNING *;
 
 -- *** Finish test for tntbl3 *** --
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 229:
+DELETE FROM tntbl2;
+--Testcase 230:
+SELECT * FROM tntbl2;
+
+SET client_min_messages = INFO;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+-- odbc_fdw not support batch_size
+
+--Testcase 231:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 232:
+SELECT * FROM tntbl2 ORDER BY 1,2;
 
 --Clean
 --Testcase 221:

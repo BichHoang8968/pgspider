@@ -15,11 +15,11 @@ CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
 --Testcase 7:
 CREATE EXTENSION odbc_fdw;
 --Testcase 8:
-CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_MYSQL_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
 --Testcase 9:
 CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
 --Testcase 10:
-CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_POSTGRES_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 11:
 CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
 -- Create multi tenant tables
@@ -251,7 +251,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 42:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 43:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
  char_length | c1 | char_length | c3 | c4 |  c5   
@@ -554,7 +554,7 @@ UPDATE tntbl2 IN ('/odbc_post_svr/', '/jdbc_mysql_svr/') SET c4 = 22.2;
 INSERT INTO tntbl2 IN ('/odbc_post_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
 --Testcase 31:
 INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- DELETE
 --
@@ -663,7 +663,7 @@ SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
 
 --Testcase 76:
 UPDATE tntbl2 IN ('/dynamodb_svr/') SET c4 = 7000;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  No child node support modification.
 --Testcase 77:
 SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
              _id             | c1 |             c2              | c3 |  c4  | c5 |    __spd_url    
@@ -713,7 +713,7 @@ SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
 
 --Testcase 80:
 DELETE FROM tntbl2 IN ('/mongo_svr/') WHERE c1 = 10;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  No child node support modification.
 --Testcase 81:
 SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
              _id             | c1 |             c2              | c3 |  c4  | c5 |    __spd_url    
@@ -823,17 +823,17 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
 --Testcase 94:
 EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE rw_view SET c1 = c1 + 10000;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  WITH CHECK clause is not supported
 --Testcase 95:
 UPDATE rw_view SET c1 = c1 + 10000; -- should fail
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  WITH CHECK clause is not supported
 --Testcase 96:
 EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE rw_view SET c1 = c1 + 15;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  WITH CHECK clause is not supported
 --Testcase 97:
 UPDATE rw_view SET c1 = c1 + 15; -- ok
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  WITH CHECK clause is not supported
 --Testcase 98:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
  char_length | c1 | char_length | c3 |  c4  | c5 
@@ -869,13 +869,13 @@ INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES ('_key_', 30, 'test', true, 
 ERROR:  RETURNING clause is not supported
 --Testcase 102:
 UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RETURNING (tntbl2), *;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  RETURNING clause is not supported
 --Testcase 103:
 DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  RETURNING clause is not supported
 --Testcase 104:
 DELETE FROM tntbl2 RETURNING *;
-ERROR:  Child node odbc_post_svr does not support transaction.
+ERROR:  RETURNING clause is not supported
 -- test for mysql_odbc
 -- *** Start test for tntbl3 *** --
 --Testcase 105:
@@ -988,10 +988,10 @@ SELECT c1, c2, _id FROM tntbl3;
 --
 --Testcase 123:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 124:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
@@ -1096,7 +1096,7 @@ HINT:  You will need to rewrite or cast the expression.
 --
 -- Commmented, fail due to oracle_fdw. Not reported yet.
 --Testcase 135:
-INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
+INSERT INTO tntbl3 (SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 136:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3;
             _id             | c1 | c2 | c3 | c4 
@@ -1289,6 +1289,9 @@ HINT:  Perhaps you meant to reference the table alias "t".
 -- Make sure that we can update to a TOASTed value.
 --Testcase 152:
 UPDATE tntbl3 SET _id = repeat('x', 25) WHERE c1 = 11;
+ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
+DETAIL:  Executing ODBC query
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Duplicate entry 'xxxxxxxxxxxxxxxxxxxxxxxxx' for key 'tntbl3.PRIMARY'
 --Testcase 153:
 SELECT c1, c2, _id FROM tntbl3;
  c1 | c2 |            _id             
@@ -1450,11 +1453,13 @@ ALTER FOREIGN TABLE tntbl2 OPTIONS (disable_transaction_feature_check 'false');
 ERROR:  option "disable_transaction_feature_check" provided more than once
 --Testcase 168:
 INSERT INTO tntbl3 (_id, c1, c2, c3, c4) VALUES (DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
-ERROR:  Executing ODBC query
+ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
+DETAIL:  Executing ODBC query
 [MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Column '_id' cannot be null
 --Testcase 169:
 INSERT INTO tntbl3 (_id, c2, c3) VALUES ('_3', 3.0, DEFAULT);
-ERROR:  Executing ODBC query
+ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
+DETAIL:  Executing ODBC query
 [MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Duplicate entry '_3' for key 'tntbl3.PRIMARY'
 --Testcase 170:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
@@ -1477,7 +1482,7 @@ SELECT * FROM tntbl3;
 
 --Testcase 172:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 173:
 SELECT * FROM tntbl3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url     
@@ -1590,9 +1595,9 @@ DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 186:
 INSERT INTO tntbl3__odbc_mysql_svr__0 VALUES(repeat('y', 10), 20, 4.0, 40.0, 5000);
 --Testcase 187:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/');
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/') ORDER BY 1, 2, 3);
 --Testcase 188:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/';
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/' ORDER BY 1, 2, 3);
 --Testcase 189:
 SELECT * FROM tntbl3 ORDER BY _id;
       _id       | c1 | c2 | c3 |  c4  |    __spd_url     
@@ -1614,7 +1619,7 @@ SELECT * FROM tntbl3 ORDER BY _id;
 --Testcase 192:
 DELETE FROM tntbl3;
 --Testcase 193:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 194:
 SELECT * FROM tntbl3 ORDER BY _id;
  _id | c1 | c2 | c3 | c4 | __spd_url 
@@ -1632,7 +1637,7 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 197:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/postgres_svr/');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 198:
 SELECT * FROM tntbl3 ORDER BY _id;
     _id     | c1 | c2 | c3 |  c4  |    __spd_url     
@@ -1753,6 +1758,55 @@ ERROR:  RETURNING clause is not supported
 DELETE FROM tntbl3 RETURNING *;
 ERROR:  RETURNING clause is not supported
 -- *** Finish test for tntbl3 *** --
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 229:
+DELETE FROM tntbl2;
+--Testcase 230:
+SELECT * FROM tntbl2;
+ _id | c1 | c2 | c3 | c4 | c5 | __spd_url 
+-----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Auto config: batch_size of FDW = 10, insert 25 records
+-- odbc_fdw not support batch_size
+--Testcase 231:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 232:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+  _id  | c1 | c2  | c3 | c4 |  c5   |    __spd_url    
+-------+----+-----+----+----+-------+-----------------
+ 00001 |  1 | foo | t  |  0 |  1000 | /odbc_post_svr/
+ 00002 |  2 | foo | t  |  0 |  2000 | /odbc_post_svr/
+ 00003 |  3 | foo | t  |  0 |  3000 | /odbc_post_svr/
+ 00004 |  4 | foo | t  |  0 |  4000 | /odbc_post_svr/
+ 00005 |  5 | foo | t  |  0 |  5000 | /odbc_post_svr/
+ 00006 |  6 | foo | t  |  0 |  6000 | /odbc_post_svr/
+ 00007 |  7 | foo | t  |  0 |  7000 | /odbc_post_svr/
+ 00008 |  8 | foo | t  |  0 |  8000 | /odbc_post_svr/
+ 00009 |  9 | foo | t  |  0 |  9000 | /odbc_post_svr/
+ 00010 | 10 | foo | t  |  1 | 10000 | /odbc_post_svr/
+ 00011 | 11 | foo | t  |  1 | 11000 | /odbc_post_svr/
+ 00012 | 12 | foo | t  |  1 | 12000 | /odbc_post_svr/
+ 00013 | 13 | foo | t  |  1 | 13000 | /odbc_post_svr/
+ 00014 | 14 | foo | t  |  1 | 14000 | /odbc_post_svr/
+ 00015 | 15 | foo | t  |  1 | 15000 | /odbc_post_svr/
+ 00016 | 16 | foo | t  |  1 | 16000 | /odbc_post_svr/
+ 00017 | 17 | foo | t  |  1 | 17000 | /odbc_post_svr/
+ 00018 | 18 | foo | t  |  1 | 18000 | /odbc_post_svr/
+ 00019 | 19 | foo | t  |  1 | 19000 | /odbc_post_svr/
+ 00020 | 20 | foo | t  |  2 | 20000 | /odbc_post_svr/
+ 00021 | 21 | foo | t  |  2 | 21000 | /odbc_post_svr/
+ 00022 | 22 | foo | t  |  2 | 22000 | /odbc_post_svr/
+ 00023 | 23 | foo | t  |  2 | 23000 | /odbc_post_svr/
+ 00024 | 24 | foo | t  |  2 | 24000 | /odbc_post_svr/
+ 00025 | 25 | foo | t  |  2 | 25000 | /odbc_post_svr/
+(25 rows)
+
 --Clean
 --Testcase 221:
 DELETE FROM tntbl2;

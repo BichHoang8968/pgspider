@@ -417,7 +417,7 @@ pipeline {
                         docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_migrate_multi.sh" postgres'
                         docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
                         docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_migrate_multi.sh'
-                        
+
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_migrate_multi" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_migrate_multi_make_check.out
                     """

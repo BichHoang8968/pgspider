@@ -89,32 +89,32 @@ SELECT * FROM tntbl2 ORDER BY 1, 2, 3;
 INSERT INTO tntbl2 VALUES(repeat('a', 25), 30, repeat('x', 25), true, 512.0, 2000);
 
 --Testcase 27:
-SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3, 4;
 
 --
 -- UPDATE
 --
 --Testcase 30:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
 --Testcase 31:
 UPDATE tntbl2 SET c4 = DEFAULT;
 
 --Testcase 32:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
 -- aliases for the UPDATE target table
 --Testcase 33:
 UPDATE tntbl2 AS t SET c1 = 10 WHERE t.c5 = 1000;
 
 --Testcase 34:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
 --Testcase 35:
 UPDATE tntbl2 t SET c1 = t.c1 + 10 WHERE t.c5 = 1000;
 
 --Testcase 36:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 --
 -- Test VALUES in FROM
 --
@@ -124,7 +124,7 @@ UPDATE tntbl2 SET c1=v.i FROM (VALUES(10, 1000)) AS v(i, j)
   WHERE tntbl2.c5 = v.j;
 
 --Testcase 38:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
 -- fail, wrong data type:
 --Testcase 39:
@@ -136,18 +136,18 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 40:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 41:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
 --Testcase 42:
 UPDATE tntbl2 SET (c1, c2) = (c1+11, DEFAULT) WHERE c3 = true;
 --Testcase 43:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 --Testcase 44:
 UPDATE tntbl2 SET (c2, c1) = ('car', c1 + c5), c4 = c4 + 10.0 WHERE c1 = 10;
 --Testcase 45:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 -- fail, multi assignment to same column:
 --Testcase 46:
 UPDATE tntbl2 SET (c2, c4) = ('car', c1 + c4), c4 = c1 + 1 WHERE c1 = 10;
@@ -158,14 +158,14 @@ UPDATE tntbl2
   SET (c1, c3) = (SELECT c1, c3 FROM tntbl2 where c1 = 1010 and c2 = 'car')
   WHERE c5 = 1000 AND c1 = 21;
 --Testcase 48:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 -- correlated sub-SELECT:
 --Testcase 49:
 UPDATE tntbl2 o
   SET (c5, c1) = (SELECT c1+1, c5 FROM tntbl2 i
                where i.c1=o.c1 and i.c5=o.c5 and i.c2 is not distinct FROM o.c2);
 --Testcase 50:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 -- fail, multiple rows supplied:
 --Testcase 51:
 UPDATE tntbl2 SET (c5, c1) = (SELECT c1+1, c5 FROM tntbl2);
@@ -174,7 +174,7 @@ UPDATE tntbl2 SET (c5, c1) = (SELECT c1+1, c5 FROM tntbl2);
 UPDATE tntbl2 SET (c5 , c1) = (SELECT c1+1, c5 FROM tntbl2 where c4 = 10.0)
   WHERE c4 = 50.0;
 --Testcase 53:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 -- *-expansion should work in this context:
 --Testcase 54:
 UPDATE tntbl2 SET (c1, c5) = ROW(v.*) FROM (VALUES(20, 3)) AS v(i, j)
@@ -311,7 +311,7 @@ INSERT INTO rw_view(_id, c1, c5) VALUES ('id2', 5, 3000);
 --Testcase 91:
 INSERT INTO rw_view(_id, c1, c5) VALUES ('id2', 5, 3000); -- ok
 --Testcase 92:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 --Testcase 93:
 EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE rw_view SET c1 = c1 + 10000;
@@ -323,7 +323,7 @@ UPDATE rw_view SET c1 = c1 + 15;
 --Testcase 96:
 UPDATE rw_view SET c1 = c1 + 15; -- ok
 --Testcase 97:
-SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
+SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 --Testcase 98:
 DROP VIEW rw_view;
 --
@@ -339,6 +339,51 @@ UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RET
 DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
 --Testcase 103:
 DELETE FROM tntbl2 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 109:
+DELETE FROM tntbl2;
+--Testcase 110:
+SELECT * FROM tntbl2;
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 4, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+--Testcase 111:
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '10');
+--Testcase 112:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '4');
+--Testcase 113:
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (ADD batch_size '5');
+ALTER FOREIGN TABLE tntbl2__griddb_svr__1 OPTIONS (ADD batch_size '5');
+--Testcase 114:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 20) id;
+--Testcase 115:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+--Testcase 116:
+SELECT * FROM tntbl2__griddb_svr__0 ORDER BY 1,2;
+--Testcase 117:
+SELECT * FROM tntbl2__griddb_svr__1 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+DELETE FROM tntbl2;
+--Testcase 118:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 119:
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl2__griddb_svr__1 OPTIONS (DROP batch_size);
+--Testcase 120:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 30) id;
+--Testcase 121:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+--Testcase 122:
+SELECT * FROM tntbl2__griddb_svr__0 ORDER BY 1,2;
+--Testcase 123:
+SELECT * FROM tntbl2__griddb_svr__1 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl2;
