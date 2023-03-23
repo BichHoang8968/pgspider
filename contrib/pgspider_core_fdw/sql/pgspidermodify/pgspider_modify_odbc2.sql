@@ -18,11 +18,11 @@ CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
 --Testcase 7:
 CREATE EXTENSION odbc_fdw;
 --Testcase 8:
-CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_MYSQL_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :MYSQL_DB_NAME1);
 --Testcase 9:
 CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
 --Testcase 10:
-CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_POSTGRES_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 11:
 CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
 -- *** Start test for tntbl3 *** --
@@ -58,7 +58,7 @@ INSERT INTO tntbl3 VALUES ('test1', DEFAULT, 5.0, 600.0, 1000);
 INSERT INTO tntbl3 VALUES ('test2', DEFAULT, 7.0);
 
 --Testcase 21:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- insert with similar expression / target_list VALUES (all fail)
@@ -73,7 +73,7 @@ INSERT INTO tntbl3 (_id, c1) VALUES ('wrong3', 1, 2);
 INSERT INTO tntbl3 (_id, c1) VALUES ('wrong4',DEFAULT, DEFAULT);
 
 --Testcase 26:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- VALUES test
@@ -83,7 +83,7 @@ INSERT INTO tntbl3 VALUES('test3', 10, 2.0, 20.0, 2000), ('test4', -1, 2.0, DEFA
     ((SELECT 'test5'), (SELECT 90), (SELECT i FROM (VALUES(3.0)) as foo (i)), 30.0, 4000);
 
 --Testcase 28:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- TOASTed value test
@@ -92,7 +92,7 @@ SELECT * FROM tntbl3 ORDER BY _id;
 INSERT INTO tntbl3 VALUES(repeat('x', 25), 20, 4.0, 40.0, 5000);
 
 --Testcase 30:
-SELECT c1, c2, _id FROM tntbl3 ORDER BY _id;
+SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- INSERT with IN feature
@@ -106,25 +106,25 @@ INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_
 -- UPDATE
 --
 --Testcase 33:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 34:
 UPDATE tntbl3 SET c3 = DEFAULT, c4 = DEFAULT;
 
 --Testcase 35:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 
 -- aliases for the UPDATE target table
 --Testcase 36:
 UPDATE tntbl3 AS t SET c1 = 10 WHERE t.c2 = 2.0;
 
 --Testcase 37:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 
 --Testcase 38:
 UPDATE tntbl3 t SET c1 = t.c1 + 10 WHERE t.c2 = 4.0;
 
 --Testcase 39:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- Test VALUES in FROM
@@ -135,7 +135,7 @@ UPDATE tntbl3 SET c1=v.i FROM (VALUES(100, 5)) AS v(i, j)
   WHERE tntbl3.c1 = v.j;
 
 --Testcase 41:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 
 -- fail, wrong data type:
 --Testcase 42:
@@ -147,18 +147,18 @@ UPDATE tntbl3 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 --
 
 --Testcase 43:
-INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
+INSERT INTO tntbl3 (SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 44:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 
 --Testcase 45:
 UPDATE tntbl3 SET (_id, c1, c2) = ('bugle', c1 + 11, DEFAULT) WHERE c2 = 2.0;
 --Testcase 46:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 47:
 UPDATE tntbl3 SET (_id, c3) = ('car1', c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
 --Testcase 48:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 -- fail, multi assignment to same column:
 --Testcase 49:
 UPDATE tntbl3 SET (_id, c2) = ('car2', c2 + c3), c2 = c1 + 1 WHERE c4 = 3000;
@@ -169,14 +169,14 @@ UPDATE tntbl3
   SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'car1')
   WHERE c2 = 2.0 AND c3 = 20.0;
 --Testcase 51:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 -- correlated sub-SELECT:
 --Testcase 52:
 UPDATE tntbl3 o
   SET (c2, c3) = (SELECT c3+1, c2 FROM tntbl3 i
                where i.c3 = o.c3 and i.c2 = o.c2 and i.c1 is not distinct FROM o.c1);
 --Testcase 53:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 -- fail, multiple rows supplied:
 --Testcase 54:
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1 , c3 FROM tntbl3);
@@ -185,7 +185,7 @@ UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1 , c3 FROM tntbl3);
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1, c3 FROM tntbl3 where c4 = 1000)
   WHERE c1 = 11;
 --Testcase 56:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 -- *-expansion should work in this context:
 --Testcase 57:
 UPDATE tntbl3 SET (c1, c3) = ROW(v.*) FROM (VALUES(11, 20)) AS v(i, j)
@@ -204,7 +204,7 @@ UPDATE tntbl3 AS t SET c1 = tntbl3.c1 + 10 WHERE t.c2 = 2.0;
 --Testcase 60:
 UPDATE tntbl3 SET _id = repeat('x', 25) WHERE c1 = 11;
 --Testcase 61:
-SELECT c1, c2, _id FROM tntbl3 ORDER BY _id;
+SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, c3, _id;
 
 -- Check multi-assignment with a Result node to handle a one-time filter.
 --Testcase 62:
@@ -217,7 +217,7 @@ UPDATE tntbl3 t
   SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 s WHERE s.c2 = t.c2)
   WHERE CURRENT_USER = SESSION_USER;
 --Testcase 64:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 --
 -- UPDATE with IN feature
 --
@@ -238,14 +238,14 @@ DELETE FROM tntbl3 AS dt WHERE dt.c1 > 35;
 DELETE FROM tntbl3 dt WHERE tntbl3.c1 > 25;
 
 --Testcase 69:
-SELECT c1, c3, _id FROM tntbl3 ORDER BY _id;
+SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, c3, _id;
 
 -- delete a row with a TOASTed value
 --Testcase 70:
 DELETE FROM tntbl3 WHERE c1 > 10;
 
 --Testcase 71:
-SELECT c1, c3, _id FROM tntbl3 ORDER BY _id;
+SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- DELETE with IN feature
@@ -272,27 +272,27 @@ INSERT INTO tntbl3 (_id, c2, c3) VALUES ('_3', 3.0, DEFAULT);
 --Testcase 78:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
 --Testcase 79:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 80:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
 --Testcase 81:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 82:
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1 , c3 FROM tntbl3);
 --Testcase 83:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 84:
 UPDATE tntbl3 IN ('/odbc_mysql_svr/') SET c3 = 56.0;
 --Testcase 85:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 86:
 DELETE FROM tntbl3 WHERE c1 > 10;
 --Testcase 87:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 88:
 DELETE FROM tntbl3 IN ('/odbc_post_svr/') WHERE c3 = 56.0;
 --Testcase 89:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 90:
 ALTER FOREIGN TABLE tntbl3 OPTIONS (SET disable_transaction_feature_check 'true');
 --
@@ -301,7 +301,7 @@ ALTER FOREIGN TABLE tntbl3 OPTIONS (SET disable_transaction_feature_check 'true'
 --Testcase 91:
 DELETE FROM tntbl3 WHERE __spd_url = '/odbc_mysql_svr/';
 --Testcase 92:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 93:
 DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 94:
@@ -309,21 +309,21 @@ INSERT INTO tntbl3__odbc_post_svr__0 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000
 --Testcase 95:
 INSERT INTO tntbl3__odbc_mysql_svr__0 VALUES(repeat('y', 10), 20, 4.0, 40.0, 5000);
 --Testcase 96:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/');
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_foo', c2, c3 FROM tntbl3 WHERE __spd_url IN ('/odbc_mysql_svr/', '/mysql_svr/', '/griddb_svr/') ORDER BY 1, 2, 3);
 --Testcase 97:
-INSERT INTO tntbl3(_id, c2, c3) SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/';
+INSERT INTO tntbl3(_id, c2, c3) (SELECT _id || '_bar', c2, c3 FROM tntbl3 WHERE __spd_url = '/odbc_post_svr/' ORDER BY 1, 2, 3);
 --Testcase 98:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 99:
 UPDATE tntbl3 SET _id = _id || '@' WHERE __spd_url = '/odbc_post_svr/';
 --Testcase 100:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 101:
 DELETE FROM tntbl3;
 --Testcase 102:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 103:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 104:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
 --Testcase 105:
@@ -331,7 +331,7 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 --Testcase 106:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/odbc_post_svr/');
 --Testcase 107:
-SELECT * FROM tntbl3 ORDER BY _id;
+SELECT * FROM tntbl3 ORDER BY c1, c3, _id;
 
 --
 -- Test with optional options: tntbl3
@@ -368,7 +368,7 @@ INSERT INTO rw_view(_id, c2, c3) VALUES ('id2', 5, 3000);
 --Testcase 117:
 INSERT INTO rw_view(_id, c2, c3) VALUES ('id2', 5, 3000); -- ok
 --Testcase 118:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 119:
 EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE rw_view SET c2 = c2 + 10000;
@@ -380,7 +380,7 @@ UPDATE rw_view SET c2 = c2 + 15;
 --Testcase 122:
 UPDATE rw_view SET c2 = c2 + 15; -- ok
 --Testcase 123:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY _id;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, c3, _id;
 --Testcase 124:
 DROP VIEW rw_view;
 --
@@ -398,6 +398,34 @@ DELETE FROM tntbl3 WHERE c3 = 50.0 RETURNING _id, c1, c2;
 DELETE FROM tntbl3 RETURNING *;
 
 -- *** Finish test for tntbl3 *** --
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 136:
+DELETE FROM tntbl3;
+--Testcase 137:
+SET client_min_messages = INFO;
+
+--Testcase 138:
+SELECT * FROM tntbl3 ORDER BY 1,2;
+--Testcase 139:
+SELECT * FROM tntbl3__odbc_mysql_svr__0 ORDER BY 1,2;
+--Testcase 140:
+SELECT * FROM tntbl3__odbc_post_svr__0 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+--Testcase 141:
+INSERT INTO tntbl3
+	SELECT to_char(id, 'FM00000'), id, id/10, id * 20.5, id * 100	FROM generate_series(1, 30) id;
+
+--Testcase 142:
+SELECT * FROM tntbl3 ORDER BY 1,2;
+--Testcase 143:
+SELECT * FROM tntbl3__odbc_mysql_svr__0 ORDER BY 1,2;
+--Testcase 144:
+SELECT * FROM tntbl3__odbc_post_svr__0 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl3__odbc_mysql_svr__0;

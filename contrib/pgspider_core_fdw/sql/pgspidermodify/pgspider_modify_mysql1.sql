@@ -136,7 +136,7 @@ UPDATE tntbl1 SET c2 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 
@@ -349,6 +349,41 @@ UPDATE tntbl1 SET c7 = '2100-01-01 10:00:00+01' WHERE c1 = 2 AND c2 = 3 RETURNIN
 DELETE FROM tntbl1 WHERE c4 = 6.0 RETURNING c1, c2;
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1;
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table = 6, batch_size of FDW not set, insert 10 records
+--Testcase 117:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 118:
+ALTER FOREIGN TABLE tntbl1__mysql_svr__0 OPTIONS (ADD batch_size '6');
+--Testcase 119:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 10) id;
+--Testcase 120:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl1;
+--Testcase 121:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 122:
+ALTER FOREIGN TABLE tntbl1__mysql_svr__0 OPTIONS (DROP batch_size);
+--Testcase 123:
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '10');
+--Testcase 124:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 25) id;
+--Testcase 125:
+SELECT * FROM tntbl1 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl1;

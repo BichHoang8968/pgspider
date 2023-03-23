@@ -167,7 +167,7 @@ UPDATE tntbl4 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 --
 
 --Testcase 47:
-INSERT INTO tntbl4 SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4;
+INSERT INTO tntbl4 (SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ORDER BY 1, 2, 3);
 --Testcase 48:
 SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY c1, c2, c3, c4, c5;
 
@@ -251,12 +251,12 @@ ALTER FOREIGN TABLE tntbl4 OPTIONS (disable_transaction_feature_check 'true');
 --Testcase 69:
 UPDATE tntbl4 IN ('/postgres_svr/') SET c8 = 56563.1212;
 
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
 
 --Testcase 70:
 UPDATE tntbl4 IN ('/postgres_svr/', '/postgres_svr_2/') SET c8 = 22.2;
 
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
 --
 -- DELETE
 --
@@ -312,7 +312,7 @@ INSERT INTO tntbl4(c1, c2) VALUES(14, 'key$');  -- duplicate key
 INSERT INTO tntbl4(c1, c2) VALUES(14, 'key$') ON CONFLICT DO NOTHING; -- works
 
 --Testcase 85:
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
 --Testcase 86:
 INSERT INTO tntbl4(c1, c2) VALUES(14, 'key$') ON CONFLICT (c1, c2) DO NOTHING; -- unsupported
 --Testcase 87:
@@ -365,6 +365,33 @@ UPDATE tntbl4 SET c4 = 7.0 WHERE c1 = 70 AND c3 = true RETURNING (tntbl4), *;
 DELETE FROM tntbl4 WHERE c3 = true RETURNING c1, c2, c3;
 --Testcase 105:
 DELETE FROM tntbl4 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 111:
+DELETE FROM tntbl4;
+--Testcase 112:
+SELECT * FROM tntbl4;
+
+SET client_min_messages = INFO;
+-- Auto config: batch_size of FDW = 10, insert 30 records
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '10');
+ALTER SERVER postgres_svr_2 OPTIONS (ADD batch_size '10');
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 113:
+INSERT INTO tntbl4
+	SELECT id, 'text' || id, true, id * 1.5, id * 1000, 'char array' || id, 'varchar array' || id, id / 5, id % 100,'1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, '1970-01-01'::date + ((id % 100) || ' days')::interval, '{"product": "test","quantity": 1}', '{"name": "paintings", "tags": ["Scene", "Portrait"], "finished": true }', '2f404849-f62c-4234-b0c8-e230bd694045', point '(1,-45)', E'\\xa7a8a9aaabacadaeaf', B'1111111111', B'10101', interval '1 year 3 hours 20 minutes'	FROM generate_series(1, 30) id;
+
+--Testcase 114:
+SELECT * FROM tntbl4 ORDER BY 1,2;
+--Testcase 115:
+SELECT * FROM tntbl4__postgres_svr__0 ORDER BY 1,2;
+--Testcase 116:
+SELECT * FROM tntbl4__postgres_svr_2__0 ORDER BY 1,2;
+
 --Clean
 DELETE FROM tntbl4__postgres_svr__0;
 DELETE FROM tntbl4__postgres_svr_2__0;

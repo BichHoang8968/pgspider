@@ -46,7 +46,7 @@ CREATE SERVER postgres_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host :POST
 --Testcase 19:
 CREATE USER mapping for public SERVER postgres_svr OPTIONS(user :POSTGRES_USER, password :POSTGRES_PASS);
 --Testcase 20:
-CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL_SERVER, port :MYSQL_PORT);
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL1_SERVER, port :MYSQL_PORT);
 --Testcase 21:
 CREATE USER mapping for public SERVER mysql_svr OPTIONS(username :MYSQL_USER, password :MYSQL_PASS);
 --Testcase 22:
@@ -56,17 +56,17 @@ CREATE USER mapping for public SERVER tiny_svr OPTIONS(username :TINYBRACE_USER,
 --Testcase 24:
 CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
 --Testcase 25:
-CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+CREATE USER MAPPING FOR public SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
 --Testcase 26:
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgmodifytest.db');
 -- tntbl2: odbc_post_svr, jdbc_mysql_svr, griddb_svr, mongo_svr, dynamodb_svr
 -- key: _id
 --Testcase 27:
-CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_MYSQL_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 28:
 CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
 --Testcase 29:
-CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_POSTGRES_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 30:
 CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
 
@@ -269,7 +269,7 @@ SELECT c1, c2, c3, c4, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 -- INSERT with IN feature
 --
 --Testcase 97:
-INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne'); 
+INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
 --Testcase 98:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (650, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
 
@@ -520,7 +520,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 167:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 168:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
 
@@ -920,26 +920,26 @@ INSERT INTO tntbl4 IN ('/postgres_svr/', '/postgres_svr_2/') VALUES (13, '_infea
 -- UPDATE
 --
 --Testcase 273:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
 --Testcase 274:
 UPDATE tntbl4 SET c3 = DEFAULT, c6 = DEFAULT;
 
 --Testcase 275:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
 -- aliases for the UPDATE target table
 --Testcase 276:
 UPDATE tntbl4 AS t SET c5 = 10000 WHERE t.c1 = 20;
 
 --Testcase 277:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
 --Testcase 278:
 UPDATE tntbl4 t SET c5 = t.c5 + 10 WHERE t.c1 = 20;
 
 --Testcase 279:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
 --
 -- Test VALUES in FROM
@@ -950,7 +950,7 @@ UPDATE tntbl4 SET c1 = v.i FROM (VALUES(100, 2000)) AS v(i, j)
   WHERE tntbl4.c5 = v.j;
 
 --Testcase 281:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
 -- fail, wrong data type:
 --Testcase 282:
@@ -962,7 +962,7 @@ UPDATE tntbl4 SET c1 = v.* FROM (VALUES(100, 2000)) AS v(i, j)
 --
 
 --Testcase 283:
-INSERT INTO tntbl4 SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ;
+INSERT INTO tntbl4 (SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ORDER BY 1, 2, 3);
 --Testcase 284:
 SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 
@@ -984,14 +984,14 @@ UPDATE tntbl4
   SET (c9, c1) = (SELECT c1, c9 FROM tntbl4 where c1 = 40 and c2 = 'car')
   WHERE c5 = 1000 AND c4 = 2.0;
 --Testcase 291:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 -- correlated sub-SELECT:
 --Testcase 292:
 UPDATE tntbl4 o
   SET (c9, c4) = (SELECT c9+1, c4 FROM tntbl4 i
                where i.c9=o.c9 and i.c4=o.c4 and i.c1 is not distinct FROM o.c1);
 --Testcase 293:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 -- fail, multiple rows supplied:
 --Testcase 294:
 UPDATE tntbl4 SET (c1, c9) = (SELECT c9 + 1, c1 FROM tntbl4);
@@ -1000,7 +1000,7 @@ UPDATE tntbl4 SET (c1, c9) = (SELECT c9 + 1, c1 FROM tntbl4);
 UPDATE tntbl4 SET (c1, c9) = (SELECT c9 + 1, c1 FROM tntbl4 where c5 = 2000)
   WHERE c9 = 127;
 --Testcase 296:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 -- *-expansion should work in this context:
 --Testcase 297:
 UPDATE tntbl4 SET (c1, c9) = ROW(v.*) FROM (VALUES(20, 100)) AS v(i, j)
@@ -1191,7 +1191,7 @@ DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 364:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES ('foo', 30, 5.0, 50.0, 6000);
 --Testcase 365:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 366:
 SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 368:
@@ -1199,7 +1199,7 @@ SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 369:
 DELETE FROM tntbl3;
 --Testcase 370:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 371:
 SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 372:
@@ -1432,7 +1432,7 @@ INSERT INTO rw_view(c1, c5) VALUES (15, 3000);
 --Testcase 451:
 INSERT INTO rw_view(c1, c5) VALUES (15, 3000); -- ok
 --Testcase 452:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 --Testcase 453:
 EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE rw_view SET c1 = c1 + 10000;
@@ -1444,7 +1444,7 @@ UPDATE rw_view SET c1 = c1 + 15;
 --Testcase 456:
 UPDATE rw_view SET c1 = c1 + 15; -- ok
 --Testcase 457:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
 --Testcase 458:
 DROP VIEW rw_view;
 --
@@ -1460,11 +1460,384 @@ UPDATE tntbl4 SET c4 = 7.0 WHERE c1 = 70 AND c3 = true RETURNING (tntbl4), *;
 DELETE FROM tntbl4 WHERE c3 = true RETURNING c1, c2, c3;
 --Testcase 463:
 DELETE FROM tntbl4 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Testcase 483:
+CREATE FOREIGN TABLE tntbl3__file_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER file_svr OPTIONS (filename '/tmp/pg_modify_bulk_insert.csv', format 'csv');
+-- Clean tntbl3
+--Testcase 484:
+DELETE FROM tntbl3;
+--Testcase 485:
+SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
+
+SET client_min_messages = INFO;
+
+-- bulk insert in tntbl3
+-- Manual config:
+-- batch_size server = 5, batch_size table not set, batch_size of FDW (if support) not set, insert 100 records
+--Testcase 486:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 487:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 100) id;
+--Testcase 488:
+SELECT count(*) FROM tntbl3;
+--Testcase 489:
+SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
+--Testcase 490:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+--Testcase 491:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+--Testcase 492:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+--Testcase 493:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+--Testcase 494:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+--Testcase 495:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+--Testcase 496:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+--Testcase 497:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+--Testcase 498:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+--Testcase 499:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+--Testcase 500:
+SELECT count(*) FROM tntbl3__file_svr__0;
+--Testcase 501:
+DELETE FROM tntbl3;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+-- batch_size server = 20, batch_size table not set, batch_size of FDW (if support) not set, insert 2200 records
+--Testcase 502:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '20');
+--Testcase 503:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+--Testcase 504:
+SELECT count(*) FROM tntbl3;
+--Testcase 505:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+--Testcase 506:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+--Testcase 507:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+--Testcase 508:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+--Testcase 509:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+--Testcase 510:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+--Testcase 511:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+--Testcase 512:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+--Testcase 513:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+--Testcase 514:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+--Testcase 515:
+SELECT count(*) FROM tntbl3__file_svr__0;
+--Testcase 516:
+DELETE FROM tntbl3 WHERE c1 < 500;
+DELETE FROM tntbl3 WHERE c1 < 1000;
+DELETE FROM tntbl3 WHERE c1 < 1500;
+DELETE FROM tntbl3;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+-- batch_size server = 1, batch_size table = 30, batch_size of FDW (if support) not set, insert 2200 records
+--Testcase 517:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '1');
+
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__mysql_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__postgres_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__sqlite_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__tiny_svr__0 OPTIONS (ADD batch_size '30');
+--Testcase 518:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+--Testcase 519:
+SELECT count(*) FROM tntbl3;
+--Testcase 520:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+--Testcase 521:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+--Testcase 522:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+--Testcase 523:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+--Testcase 524:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+--Testcase 525:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+--Testcase 526:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+--Testcase 527:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+--Testcase 528:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+--Testcase 529:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+--Testcase 530:
+SELECT count(*) FROM tntbl3__file_svr__0;
+--Testcase 531:
+DELETE FROM tntbl3 WHERE c1 < 500;
+DELETE FROM tntbl3 WHERE c1 < 1000;
+DELETE FROM tntbl3 WHERE c1 < 1500;
+DELETE FROM tntbl3;
+--Testcase 532:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__mysql_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__postgres_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__sqlite_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__tiny_svr__0 OPTIONS (DROP batch_size);
+
+-- Auto config:
+-- LCM * number of child node < limit
+--Testcase 533:
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '10');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '3');
+--Testcase 534:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+--Testcase 535:
+SELECT count(*) FROM tntbl3;
+--Testcase 536:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+--Testcase 537:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+--Testcase 538:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+--Testcase 539:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+--Testcase 540:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+--Testcase 541:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+--Testcase 542:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+--Testcase 543:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+--Testcase 544:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+--Testcase 545:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+--Testcase 546:
+SELECT count(*) FROM tntbl3__file_svr__0;
+--Testcase 547:
+DELETE FROM tntbl3 WHERE c1 < 500;
+DELETE FROM tntbl3 WHERE c1 < 1000;
+DELETE FROM tntbl3 WHERE c1 < 1500;
+DELETE FROM tntbl3;
+--Testcase 548:
+ALTER SERVER postgres_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+-- LCM * number of child node > limit
+--Testcase 549:
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '7');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '23');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '31');
+
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 RENAME TO tmp_tntbl3__griddb_svr__0;
+ALTER FOREIGN TABLE tntbl3__dynamodb_svr__0 RENAME TO tmp_tntbl3__dynamodb_svr__0;
+ALTER FOREIGN TABLE tntbl3__jdbc_post_svr__0 RENAME TO tmp_tntbl3__jdbc_post_svr__0;
+ALTER FOREIGN TABLE tntbl3__mongo_svr__0 RENAME TO tmp_tntbl3__mongo_svr__0;
+ALTER FOREIGN TABLE tntbl3__odbc_mysql_svr__0 RENAME TO tmp_tntbl3__odbc_mysql_svr__0;
+ALTER FOREIGN TABLE tntbl3__oracle_svr__0 RENAME TO tmp_tntbl3__oracle_svr__0;
+ALTER FOREIGN TABLE tntbl3__file_svr__0 RENAME TO tmp_tntbl3__file_svr__0;
+--Testcase 550:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 7000000) id;
+
+ALTER FOREIGN TABLE tmp_tntbl3__griddb_svr__0 RENAME TO tntbl3__griddb_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__dynamodb_svr__0 RENAME TO tntbl3__dynamodb_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__jdbc_post_svr__0 RENAME TO tntbl3__jdbc_post_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__mongo_svr__0 RENAME TO tntbl3__mongo_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__odbc_mysql_svr__0 RENAME TO tntbl3__odbc_mysql_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__oracle_svr__0 RENAME TO tntbl3__oracle_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__file_svr__0 RENAME TO tntbl3__file_svr__0;
+--Testcase 551:
+SELECT count(*) FROM tntbl3;
+--Testcase 552:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+--Testcase 553:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+--Testcase 554:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+--Testcase 555:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+--Testcase 556:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+--Testcase 557:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+--Testcase 558:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+--Testcase 559:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+--Testcase 560:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+--Testcase 561:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+--Testcase 562:
+SELECT count(*) FROM tntbl3__file_svr__0;
+--Testcase 563:
+DELETE FROM tntbl3__dynamodb_svr__0;
+DELETE FROM tntbl3__griddb_svr__0;
+DELETE FROM tntbl3__jdbc_post_svr__0;
+DELETE FROM tntbl3__mongo_svr__0;
+DELETE FROM tntbl3__mysql_svr__0;
+DELETE FROM tntbl3__odbc_mysql_svr__0;
+DELETE FROM tntbl3__oracle_svr__0;
+DELETE FROM tntbl3__postgres_svr__0;
+DELETE FROM tntbl3__sqlite_svr__0;
+DELETE FROM tntbl3__tiny_svr__0;
+DELETE FROM tntbl3__file_svr__0;
+DELETE FROM tntbl3;
+--Testcase 564:
+ALTER SERVER postgres_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+
+SET client_min_messages = NOTICE;
+
+-- Test insert routing without batch size
+ALTER FOREIGN TABLE tntbl3__file_svr__0 RENAME TO tmp_tntbl3__file_svr__0;
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 3) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(11, 19) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(21, 44) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+DELETE FROM tntbl3;
+
+-- Test insert routing with batch size
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '1');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '2');
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 3) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(11, 19) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(21, 44) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_50', 50, '/postgres_svr/'),
+                                              ('idTable3_51', 51, NULL),
+                                              ('idTable3_52', 52, DEFAULT),
+                                              ('idTable3_53', 53, '/no_server/');
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_54', 54, '/tiny_svr/'),
+                                              ('idTable3_55', 55, NULL),
+                                              ('idTable3_56', 56, DEFAULT);
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_57', 57, '/mysql_svr/'),
+                                              ('idTable3_58', 58, 'wrong_srv'),
+                                              ('idTable3_59', 59, DEFAULT);
+
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_60', 60, '/tiny_svr/'),
+                                              ('idTable3_61', 61, NULL),
+                                              ('idTable3_62', 62, '/mysql_svr/'),
+                                              ('idTable3_63', 63, '/griddb_svr/'),
+                                              ('idTable3_64', 64, DEFAULT),
+                                              ('idTable3_65', 65, '/postgres_svr/');
+
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+
+DELETE FROM tntbl3;
+ALTER FOREIGN TABLE tmp_tntbl3__file_svr__0 RENAME TO tntbl3__file_svr__0;
+
 --Clean
 DELETE FROM tntbl1;
 DELETE FROM tntbl2;
 DELETE FROM tntbl3;
 DELETE FROM tntbl4;
+
 --Reset data
 INSERT INTO tntbl1__oracle_svr__0 VALUES (-20, 0, 1.0, 100.0, 1000, '2022-06-22 14:00:00', '2017-08-07 12:00:00+00', 'char array', 'varchar array');
 INSERT INTO tntbl1__postgres_svr__0 VALUES (1, 0, 1.0, 100.0, 1000, '2022-06-22 14:00:00', '2022-06-22 14:00:00+07', 'char array', 'varchar array');

@@ -6,7 +6,7 @@ CREATE EXTENSION pgspider_core_fdw;
 --Testcase 184:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 --Testcase 185:
-CREATE USER mapping for public server pgspider_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server pgspider_svr OPTIONS (user 'postgres',password 'postgres');
 --Testcase 186:
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 187:
@@ -22,7 +22,7 @@ CREATE EXTENSION mysql_fdw;
 --Testcase 192:
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
 --Testcase 193:
-CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE filetbl__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 194:
 CREATE FOREIGN TABLE filetbl (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 2:
@@ -61,7 +61,7 @@ SELECT pgspider_core_fdw_version();
 (1 row)
 
 --Testcase 196:
-CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 3:
 SELECT * FROM test1;
  i | __spd_url  
@@ -73,7 +73,7 @@ SELECT * FROM test1;
 (4 rows)
 
 --Testcase 197:
-CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test1__file_svr__1 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
 --Testcase 4:
 SELECT * FROM test1 order by i,__spd_url;
  i | __spd_url  
@@ -113,9 +113,9 @@ SELECT * FROM test1 IN ('/file_svr/') where i = 1;
 --Testcase 198:
 CREATE SERVER tiny_svr FOREIGN DATA WRAPPER tinybrace_fdw OPTIONS (host '127.0.0.1',port '5100', dbname 'test.db');
 --Testcase 199:
-CREATE USER mapping for public server tiny_svr OPTIONS(username 'user',password 'testuser');
+CREATE USER mapping for public server tiny_svr OPTIONS (username 'user',password 'testuser');
 --Testcase 200:
-CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS (table_name 'test1');
 --Testcase 7:
 SELECT * FROM test1__tiny_svr__0 ORDER BY i;
  i 
@@ -155,9 +155,9 @@ SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
 --Testcase 201:
 CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 --Testcase 202:
-CREATE USER mapping for public server post_svr OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr OPTIONS (user 'postgres',password 'postgres');
 --Testcase 203:
-CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test1');
 --Testcase 11:
 SELECT * FROM test1__post_svr__0 ORDER BY i;
   i   
@@ -197,7 +197,7 @@ SELECT * FROM test1 IN ('/post_svr/') where i = 1 ORDER BY i,__spd_url;
 --Testcase 204:
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgtest.db');
 --Testcase 205:
-CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+CREATE FOREIGN TABLE test1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS (table 'test1');
 --Testcase 15:
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
@@ -233,9 +233,9 @@ SELECT * FROM test1 IN ('/sqlite_svr/') where i = 4 ORDER BY i,__spd_url;
 --Testcase 206:
 CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 --Testcase 207:
-CREATE USER mapping for public server mysql_svr OPTIONS(username 'root',password 'Mysql_1234');
+CREATE USER mapping for public server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
 --Testcase 208:
-CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+CREATE FOREIGN TABLE test1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test1');
 --Testcase 18:
 SELECT * FROM test1 ORDER BY i,__spd_url;
    i   |  __spd_url   
@@ -641,13 +641,13 @@ SELECT * FROM test1 IN ('/mysql_svr/', '/sqlite_svr/') UNION ALL SELECT * FROM t
 --Testcase 209:
 CREATE FOREIGN TABLE test1_1 (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 210:
-CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__tiny_svr__0 (i int) SERVER tiny_svr OPTIONS (table_name 'test1');
 --Testcase 211:
-CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test1');
+CREATE FOREIGN TABLE test1_1__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test1');
 --Testcase 212:
-CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS(table 'test1');
+CREATE FOREIGN TABLE test1_1__sqlite_svr__0 (i int) SERVER sqlite_svr OPTIONS (table 'test1');
 --Testcase 213:
-CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test1');
+CREATE FOREIGN TABLE test1_1__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test1');
 --Testcase 47:
 SELECT * FROM test1 IN ('/mysql_svr/'), test1_1 IN ('/sqlite_svr/') ORDER BY test1.i,test1.__spd_url,test1_1.i,test1_1.__spd_url;
   i  |  __spd_url  |   i   |  __spd_url   
@@ -1757,7 +1757,7 @@ DEALLOCATE stmt;
 --Testcase 225:
 CREATE FOREIGN TABLE t1 (i int, t text,__spd_url text) SERVER pgspider_svr;
 --Testcase 226:
-CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS(table_name 't1');
+CREATE FOREIGN TABLE t1__post_svr__0 (i int, t text) SERVER post_svr OPTIONS (table_name 't1');
 --Testcase 76:
 SELECT * FROM t1;
  i | t | __spd_url  
@@ -2218,7 +2218,7 @@ EXPLAIN (VERBOSE, COSTS OFF) SELECT STDDEV(i) FROM t1;
 --Testcase 238:
 CREATE FOREIGN TABLE t3 (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 239:
-CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE t3__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 108:
 SELECT count(t) FROM t3;
  count 
@@ -2452,9 +2452,9 @@ Set pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 240:
 CREATE SERVER mysql_svr2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
 --Testcase 241:
-CREATE USER mapping for public server mysql_svr2 OPTIONS(username 'root',password 'wrongpass');
+CREATE USER mapping for public server mysql_svr2 OPTIONS (username 'root',password 'wrongpass');
 --Testcase 242:
-CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE t3__mysql_svr2__0 (t text,t2 text,i int) SERVER mysql_svr2 OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 125:
 SELECT count(t) FROM t3;
 WARNING:  GetForeignRelSize of child[0] failed.
@@ -2762,11 +2762,11 @@ END; $$;
 --Testcase 246:
 CREATE FOREIGN TABLE mysqlt (t text, t2 text, i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 247:
-CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__0 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 248:
-CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svr__1 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 --Testcase 249:
-CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test3');
+CREATE FOREIGN TABLE mysqlt__mysql_svqr__2 (t text,t2 text,i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test3');
 DO $$
 BEGIN
    FOR counter IN 1..50 LOOP
@@ -2776,11 +2776,11 @@ END; $$;
 --Testcase 250:
 CREATE FOREIGN TABLE post_large (i int, t text,__spd_url text) SERVER pgspider_svr;
 --Testcase 251:
-CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__1 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 --Testcase 252:
-CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__2 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 --Testcase 253:
-CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS(table_name 'large_t');
+CREATE FOREIGN TABLE post_large__post_svr__3 (i int, t text) SERVER post_svr OPTIONS (table_name 'large_t');
 --Testcase 157:
 SELECT i,t FROM post_large WHERE i < 3 ORDER BY i,t;
  i |  t  
@@ -2815,7 +2815,7 @@ END; $$;
 --Testcase 254:
 CREATE FOREIGN TABLE t2 (i int, t text, a text,__spd_url text) SERVER pgspider_svr;
 --Testcase 255:
-CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__0 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 159:
 SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
  i | t | a 
@@ -2827,11 +2827,11 @@ SELECT i,t,a FROM t2 ORDER BY i,__spd_url;
 (4 rows)
 
 --Testcase 256:
-CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__1 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 257:
-CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__2 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 --Testcase 258:
-CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr__3 (i int, t text,a text) SERVER post_svr OPTIONS (table_name 't2');
 -- random cannot be pushed down and i=2 is pushed down
 --Testcase 160:
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2916,9 +2916,9 @@ SELECT __spd_url,i FROM t2 WHERE __spd_url='/post_svr/' ORDER BY i LIMIT 1;
 --Testcase 259:
 CREATE SERVER post_svr2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '49503');
 --Testcase 260:
-CREATE USER mapping for public server post_svr2 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr2 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 261:
-CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr2__0 (i int, t text,a text) SERVER post_svr2 OPTIONS (table_name 't2');
 --Testcase 165:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr','postgres_fdw','127.0.0.1');
 --Testcase 166:
@@ -2932,7 +2932,7 @@ SELECT pg_sleep(2);
 
 Set pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 168:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
  i | t | a 
 ---+---+---
  1 | a | 
@@ -2955,12 +2955,12 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 
 SET pgspider_core_fdw.throw_error_ifdead to true;
 --Testcase 169:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:could not connect to server "post_svr2"
+ DETAIL: could not connect to server "post_svr2"
 SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 170:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
  i | t | a 
 ---+---+---
  1 | a | 
@@ -2983,7 +2983,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 
 SET pgspider_core_fdw.print_error_nodes to true;
 --Testcase 171:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 WARNING:  Can not get data from post_svr2
  i | t | a 
 ---+---+---
@@ -3007,7 +3007,7 @@ WARNING:  Can not get data from post_svr2
 
 SET pgspider_core_fdw.print_error_nodes to false;
 --Testcase 172:
-SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
+SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
  i | t | a 
 ---+---+---
  1 | a | 
@@ -3031,9 +3031,9 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;;
 --Testcase 262:
 CREATE SERVER post_svr3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '192.168.11.12',port '15432');
 --Testcase 263:
-CREATE USER mapping for public server post_svr3 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr3 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 264:
-CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS(table_name 't2');
+CREATE FOREIGN TABLE t2__post_svr3__0 (i int, t text,a text) SERVER post_svr3 OPTIONS (table_name 't2');
 --Testcase 173:
 INSERT INTO pg_spd_node_info VALUES(0,'post_svr3','postgres_fdw','192.168.11.12');
 --Testcase 174:
@@ -3070,7 +3070,7 @@ SELECT i,t,a FROM t2 ORDER BY i,t,a,__spd_url;
 --Testcase 282:
 CREATE FOREIGN TABLE tbl01 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER pgspider_svr;
 --Testcase 283:
-CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS(table 'tbl01');
+CREATE FOREIGN TABLE tbl01__sqlite_svr__0 (c1 timestamp without time zone, c2 timestamp with time zone) SERVER sqlite_svr OPTIONS (table 'tbl01');
 --Testcase 284:
 SELECT * FROM tbl01;
             c1            |               c2                
@@ -3109,7 +3109,7 @@ DROP FOREIGN TABLE tbl01;
 --Testcase 288:
 CREATE FOREIGN TABLE tbl02 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric,__spd_url text) SERVER pgspider_svr;
 --Testcase 289:
-CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS(table 'tbl02');
+CREATE FOREIGN TABLE tbl02__sqlite_svr__0 (c1 double precision, c2 integer, c3 real, c4 smallint, c5 bigint, c6 numeric) SERVER sqlite_svr OPTIONS (table 'tbl02');
 --Testcase 290:
 SELECT * FROM tbl02;
   c1   | c2  | c3  | c4 | c5  |   c6   |  __spd_url   
@@ -3223,21 +3223,21 @@ CREATE SERVER server2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1
 --Testcase 312:
 CREATE SERVER server3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 --Testcase 313:
-CREATE USER MAPPING FOR public SERVER server1 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server1 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 314:
-CREATE USER MAPPING FOR public SERVER server2 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server2 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 315:
-CREATE USER MAPPING FOR public SERVER server3 OPTIONS(user 'postgres',password 'postgres');
+CREATE USER MAPPING FOR public SERVER server3 OPTIONS (user 'postgres',password 'postgres');
 --Testcase 316:
-CREATE FOREIGN TABLE tbl03__server1__0 (i int) SERVER server1 OPTIONS(table_name 'tbl03_1');
+CREATE FOREIGN TABLE tbl03__server1__0 (i int) SERVER server1 OPTIONS (table_name 'tbl03_1');
 --Testcase 317:
-CREATE FOREIGN TABLE tbl03__server2__0 (i int) SERVER server2 OPTIONS(table_name 'tbl03_2');
+CREATE FOREIGN TABLE tbl03__server2__0 (i int) SERVER server2 OPTIONS (table_name 'tbl03_2');
 --Testcase 318:
-CREATE FOREIGN TABLE tbl03__server3__0 (i int) SERVER server3 OPTIONS(table_name 'tbl03_3');
+CREATE FOREIGN TABLE tbl03__server3__0 (i int) SERVER server3 OPTIONS (table_name 'tbl03_3');
 --Testcase 319:
-CREATE FOREIGN TABLE tbl03_4 (i int) SERVER server2 OPTIONS(table_name 'tbl03_4');
+CREATE FOREIGN TABLE tbl03_4 (i int) SERVER server2 OPTIONS (table_name 'tbl03_4');
 --Testcase 320:
-CREATE FOREIGN TABLE tbl03_5 (i int) SERVER server3 OPTIONS(table_name 'tbl03_5');
+CREATE FOREIGN TABLE tbl03_5 (i int) SERVER server3 OPTIONS (table_name 'tbl03_5');
 --Testcase 321:
 CREATE FOREIGN TABLE tbl03 (i int, __spd_url text) SERVER pgspider_svr;
 --Testcase 322:
@@ -3281,6 +3281,7 @@ WARNING:  Modification query is executing in non-autocommit mode.
 Foreign table can not read un-commited data.
 Multitenant table might get inconsistent data randomly.
 ROLLBACK;
+SET pgspider_core_fdw.throw_error_ifdead to false;
 --Testcase 330:
 DROP FOREIGN TABLE tbl03__server1__0;
 --Testcase 331:
@@ -3304,11 +3305,11 @@ drop cascades to user mapping for public on server server1
 -- there are 4 nodes support modification with order: mysql_svr, post_svr, sqlite_svr, tiny_svr
 -- file_fdw does not support modification, it's not included in candidate list
 CREATE FOREIGN TABLE test2 (i int, __spd_url text) SERVER pgspider_svr;
-CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr options(filename '/tmp/pgtest.csv');
-CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 SET pgspider_core_fdw.throw_error_ifdead to false;
 SET pgspider_core_fdw.throw_candidate_error to false;
 --Testcase 335:
@@ -4203,10 +4204,10 @@ DELETE FROM test2;
 WARNING:  file_fdw will be skipped because it does not support modification
 ERROR:  No child node support modification.
 ALTER SERVER post_svr OPTIONS (SET port '15421');
-CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 --Testcase 372:
 INSERT INTO test2 VALUES (4), (5), (6), (7);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
@@ -4237,6 +4238,8 @@ ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
 --Testcase 374:
 INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6), (7), (8), (9), (10), (11), (12), (13), (14), (15), (16), (17), (18), (19), (20), (21), (22);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for postgres_fdw, batch size = 2
+INFO:  Batch Insert for sqlite_fdw, batch size = 3
 SELECT * FROM test2 ORDER BY i, __spd_url;
  i  |  __spd_url   
 ----+--------------
@@ -4280,7 +4283,7 @@ SET pgspider_core_fdw.throw_candidate_error to true;
 -- Single insert
 -- Rename a table cannot be reached due to wrong server name
 CREATE SERVER sqlite_svr1 FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/not_existed_pgtest.db');
-CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS(table 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr1__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr1 OPTIONS (table 'test2');
 --Testcase 376:
 INSERT INTO test2 VALUES (1);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
@@ -4358,7 +4361,7 @@ SELECT * FROM test2__tiny_svr__0;
 DROP SERVER sqlite_svr1 CASCADE;
 NOTICE:  drop cascades to foreign table test2__sqlite_svr1__0
 CREATE SERVER mysql_svr1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1',port '3306');
-CREATE USER mapping for public server mysql_svr1 OPTIONS(username 'root',password 'Mysql_1234');
+CREATE USER mapping for public server mysql_svr1 OPTIONS (username 'root',password 'Mysql_1234');
 CREATE FOREIGN TABLE test2__mysql_svr1__0 (i int OPTIONS (key 'true')) SERVER mysql_svr1 OPTIONS (dbname 'not_existed',table_name 'test2');
 --Testcase 380:
 INSERT INTO test2 VALUES (5);
@@ -4455,7 +4458,7 @@ DROP SERVER mysql_svr1 CASCADE;
 NOTICE:  drop cascades to user mapping for public on server mysql_svr1
 -- More than 1 foreign table error
 CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test_not_existed');
-CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS(table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__post_svr__1 (i int) SERVER post_svr OPTIONS (table_name 'test_not_existed');
 --Testcase 385:
 INSERT INTO test2 VALUES (9);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
@@ -4597,8 +4600,8 @@ CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
 --Testcase 391:
 INSERT INTO test2 VALUES (16), (17);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
-ERROR:  relation "public.test_not_existed" does not exist
-CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+ERROR:  Error occurred on a child table "test2__post_svr__1".
+DETAIL:  relation "public.test_not_existed" does not exist
 SELECT * FROM test2 ORDER BY i, __spd_url;
  i  |  __spd_url  
 ----+-------------
@@ -4687,8 +4690,8 @@ CONTEXT:  remote SQL command: SELECT i FROM public.test_not_existed
 --Testcase 393:
 INSERT INTO test2 VALUES (21), (22), (23), (24);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
-ERROR:  relation "public.test_not_existed" does not exist
-CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+ERROR:  Error occurred on a child table "test2__post_svr__1".
+DETAIL:  relation "public.test_not_existed" does not exist
 SELECT * FROM test2 ORDER BY i, __spd_url;
  i  |  __spd_url   
 ----+--------------
@@ -4740,8 +4743,8 @@ CONTEXT:  remote SQL command: DELETE FROM public.test_not_existed
 --Testcase 395:
 INSERT INTO test2 VALUES (25), (26), (27), (28), (29), (30), (31), (32), (33), (34), (35), (36), (37), (38);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
-ERROR:  relation "public.test_not_existed" does not exist
-CONTEXT:  remote SQL command: INSERT INTO public.test_not_existed(i) VALUES ($1)
+ERROR:  Error occurred on a child table "test2__post_svr__1".
+DETAIL:  relation "public.test_not_existed" does not exist
 SELECT * FROM test2 ORDER BY i, __spd_url;
  i  |  __spd_url   
 ----+--------------
@@ -4908,9 +4911,9 @@ WARNING:  file_fdw will be skipped because it does not support modification
 -- Insert with changing candidate
 -- Remove previous target, tiny node and change its position
 ALTER SERVER tiny_svr RENAME TO atiny_svr;
-CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test2');
+CREATE FOREIGN TABLE test2__atiny_svr__1 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS (table_name 'test2');
 DROP FOREIGN TABLE test2__tiny_svr__0;
-CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS(table_name 'test_not_existed');
+CREATE FOREIGN TABLE test2__atiny_svr__0 (i int OPTIONS (key 'true')) SERVER atiny_svr OPTIONS (table_name 'test_not_existed');
 -- The existing tiny foreign table become unreachable, order is atiny, tiny (invalid), mysql, post, sqlite
 --Testcase 399:
 INSERT INTO test2 VALUES (1), (2), (3), (4), (5), (6);
@@ -5040,10 +5043,10 @@ ERROR:  No child node support modification.
 ALTER SERVER atiny_svr RENAME TO tiny_svr;
 ALTER SERVER bsqlite_svr RENAME TO sqlite_svr;
 -- Create an invalid table test2__tiny_svr__1
-CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS(table_name 'not_existed');
-CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS(table_name 'test2');
-CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS(table 'test2');
-CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS(dbname 'test',table_name 'test2');
+CREATE FOREIGN TABLE test2__tiny_svr__1 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'not_existed');
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int OPTIONS (key 'true')) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
 -- Insert with IN in case of error with foreign table
 --Testcase 404:
 INSERT INTO test2 IN ('/tiny_svr/') VALUES (1);
@@ -5274,6 +5277,7 @@ ERROR:  tinybrace error stmt. 6
 DROP FOREIGN TABLE test2__tiny_svr__1;
 INSERT INTO test2 VALUES (31), (32), (33), (34), (35), (36), (37), (38), (39), (40), (41), (42), (43), (44), (45), (46), (47), (48), (49), (50), (51), (52), (53), (54), (55);
 WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for mysql_fdw, batch size = 2
 SELECT * FROM test2 ORDER BY i, __spd_url;
  i  |  __spd_url   
 ----+--------------
@@ -5359,6 +5363,1661 @@ DROP FOREIGN TABLE test2__post_svr__0;
 DROP FOREIGN TABLE test2__sqlite_svr__0;
 DROP FOREIGN TABLE test2__file_svr__0;
 DROP FOREIGN TABLE test2;
+--
+-- Test case bulk insert
+--
+--Testcase 304:
+CREATE FOREIGN TABLE test2 (i int,__spd_url text) SERVER pgspider_svr;
+--Testcase 305:
+CREATE FOREIGN TABLE test2__file_svr__0 (i int) SERVER file_svr OPTIONS (filename '/tmp/pgtest.csv');
+--Testcase 306:
+CREATE FOREIGN TABLE test2__tiny_svr__0 (i int OPTIONS (key 'true')) SERVER tiny_svr OPTIONS (table_name 'test2');
+--Testcase 307:
+CREATE FOREIGN TABLE test2__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test2');
+--Testcase 308:
+CREATE FOREIGN TABLE test2__sqlite_svr__0 (i int OPTIONS (key 'true')) SERVER sqlite_svr OPTIONS (table 'test2');
+--Testcase 309:
+CREATE FOREIGN TABLE test2__mysql_svr__0 (i int) SERVER mysql_svr OPTIONS (dbname 'test',table_name 'test2');
+--Testcase 310:
+SET client_min_messages = INFO;
+-- Manual config:
+-- batch_size server = 6, batch_size table = 6553500, batch_size of FDW (if support) not set, insert 120 records
+--Testcase 312:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6');
+ALTER FOREIGN TABLE test2__tiny_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__sqlite_svr__0 OPTIONS (ADD batch_size '6553500');
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (ADD batch_size '6553500');
+INSERT INTO test2 SELECT id FROM generate_series(1, 120) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for tinybrace_fdw, batch size = 500
+INFO:  Batch Insert for sqlite_fdw, batch size = 32766
+INFO:  Batch Insert for mysql_fdw, batch size = 65535
+INFO:  Batch Insert for postgres_fdw, batch size = 65535
+SELECT * FROM test2 ORDER BY 1, 2;
+  i  |  __spd_url   
+-----+--------------
+   1 | /file_svr/
+   1 | /mysql_svr/
+   2 | /file_svr/
+   2 | /post_svr/
+   3 | /file_svr/
+   3 | /sqlite_svr/
+   4 | /file_svr/
+   4 | /tiny_svr/
+   5 | /mysql_svr/
+   6 | /post_svr/
+   7 | /sqlite_svr/
+   8 | /tiny_svr/
+   9 | /mysql_svr/
+  10 | /post_svr/
+  11 | /sqlite_svr/
+  12 | /tiny_svr/
+  13 | /mysql_svr/
+  14 | /post_svr/
+  15 | /sqlite_svr/
+  16 | /tiny_svr/
+  17 | /mysql_svr/
+  18 | /post_svr/
+  19 | /sqlite_svr/
+  20 | /tiny_svr/
+  21 | /mysql_svr/
+  22 | /post_svr/
+  23 | /sqlite_svr/
+  24 | /tiny_svr/
+  25 | /mysql_svr/
+  26 | /post_svr/
+  27 | /sqlite_svr/
+  28 | /tiny_svr/
+  29 | /mysql_svr/
+  30 | /post_svr/
+  31 | /sqlite_svr/
+  32 | /tiny_svr/
+  33 | /mysql_svr/
+  34 | /post_svr/
+  35 | /sqlite_svr/
+  36 | /tiny_svr/
+  37 | /mysql_svr/
+  38 | /post_svr/
+  39 | /sqlite_svr/
+  40 | /tiny_svr/
+  41 | /mysql_svr/
+  42 | /post_svr/
+  43 | /sqlite_svr/
+  44 | /tiny_svr/
+  45 | /mysql_svr/
+  46 | /post_svr/
+  47 | /sqlite_svr/
+  48 | /tiny_svr/
+  49 | /mysql_svr/
+  50 | /post_svr/
+  51 | /sqlite_svr/
+  52 | /tiny_svr/
+  53 | /mysql_svr/
+  54 | /post_svr/
+  55 | /sqlite_svr/
+  56 | /tiny_svr/
+  57 | /mysql_svr/
+  58 | /post_svr/
+  59 | /sqlite_svr/
+  60 | /tiny_svr/
+  61 | /mysql_svr/
+  62 | /post_svr/
+  63 | /sqlite_svr/
+  64 | /tiny_svr/
+  65 | /mysql_svr/
+  66 | /post_svr/
+  67 | /sqlite_svr/
+  68 | /tiny_svr/
+  69 | /mysql_svr/
+  70 | /post_svr/
+  71 | /sqlite_svr/
+  72 | /tiny_svr/
+  73 | /mysql_svr/
+  74 | /post_svr/
+  75 | /sqlite_svr/
+  76 | /tiny_svr/
+  77 | /mysql_svr/
+  78 | /post_svr/
+  79 | /sqlite_svr/
+  80 | /tiny_svr/
+  81 | /mysql_svr/
+  82 | /post_svr/
+  83 | /sqlite_svr/
+  84 | /tiny_svr/
+  85 | /mysql_svr/
+  86 | /post_svr/
+  87 | /sqlite_svr/
+  88 | /tiny_svr/
+  89 | /mysql_svr/
+  90 | /post_svr/
+  91 | /sqlite_svr/
+  92 | /tiny_svr/
+  93 | /mysql_svr/
+  94 | /post_svr/
+  95 | /sqlite_svr/
+  96 | /tiny_svr/
+  97 | /mysql_svr/
+  98 | /post_svr/
+  99 | /sqlite_svr/
+ 100 | /tiny_svr/
+ 101 | /mysql_svr/
+ 102 | /post_svr/
+ 103 | /sqlite_svr/
+ 104 | /tiny_svr/
+ 105 | /mysql_svr/
+ 106 | /post_svr/
+ 107 | /sqlite_svr/
+ 108 | /tiny_svr/
+ 109 | /mysql_svr/
+ 110 | /post_svr/
+ 111 | /sqlite_svr/
+ 112 | /tiny_svr/
+ 113 | /mysql_svr/
+ 114 | /post_svr/
+ 115 | /sqlite_svr/
+ 116 | /tiny_svr/
+ 117 | /mysql_svr/
+ 118 | /post_svr/
+ 119 | /sqlite_svr/
+ 120 | /tiny_svr/
+(124 rows)
+
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+SELECT * FROM test2 ORDER BY 1, 2;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__tiny_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__sqlite_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (DROP batch_size);
+-- batch_size server = 20, batch_size table not set, batch_size of FDW (if support) difference values, insert 120 records
+--Testcase 313:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '20');
+ALTER SERVER post_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '7');
+INSERT INTO test2 SELECT id FROM generate_series(1, 120) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for sqlite_fdw, batch size = 5
+INFO:  Batch Insert for postgres_fdw, batch size = 4
+INFO:  Batch Insert for mysql_fdw, batch size = 7
+INFO:  Batch Insert for tinybrace_fdw, batch size = 6
+SELECT * FROM test2 ORDER BY 1, 2;
+  i  |  __spd_url   
+-----+--------------
+   1 | /file_svr/
+   1 | /mysql_svr/
+   2 | /file_svr/
+   2 | /post_svr/
+   3 | /file_svr/
+   3 | /sqlite_svr/
+   4 | /file_svr/
+   4 | /tiny_svr/
+   5 | /mysql_svr/
+   6 | /post_svr/
+   7 | /sqlite_svr/
+   8 | /tiny_svr/
+   9 | /mysql_svr/
+  10 | /post_svr/
+  11 | /sqlite_svr/
+  12 | /tiny_svr/
+  13 | /mysql_svr/
+  14 | /post_svr/
+  15 | /sqlite_svr/
+  16 | /tiny_svr/
+  17 | /mysql_svr/
+  18 | /post_svr/
+  19 | /sqlite_svr/
+  20 | /tiny_svr/
+  21 | /mysql_svr/
+  22 | /post_svr/
+  23 | /sqlite_svr/
+  24 | /tiny_svr/
+  25 | /mysql_svr/
+  26 | /post_svr/
+  27 | /sqlite_svr/
+  28 | /tiny_svr/
+  29 | /mysql_svr/
+  30 | /post_svr/
+  31 | /sqlite_svr/
+  32 | /tiny_svr/
+  33 | /mysql_svr/
+  34 | /post_svr/
+  35 | /sqlite_svr/
+  36 | /tiny_svr/
+  37 | /mysql_svr/
+  38 | /post_svr/
+  39 | /sqlite_svr/
+  40 | /tiny_svr/
+  41 | /mysql_svr/
+  42 | /post_svr/
+  43 | /sqlite_svr/
+  44 | /tiny_svr/
+  45 | /mysql_svr/
+  46 | /post_svr/
+  47 | /sqlite_svr/
+  48 | /tiny_svr/
+  49 | /mysql_svr/
+  50 | /post_svr/
+  51 | /sqlite_svr/
+  52 | /tiny_svr/
+  53 | /mysql_svr/
+  54 | /post_svr/
+  55 | /sqlite_svr/
+  56 | /tiny_svr/
+  57 | /mysql_svr/
+  58 | /post_svr/
+  59 | /sqlite_svr/
+  60 | /tiny_svr/
+  61 | /mysql_svr/
+  62 | /post_svr/
+  63 | /sqlite_svr/
+  64 | /tiny_svr/
+  65 | /mysql_svr/
+  66 | /post_svr/
+  67 | /sqlite_svr/
+  68 | /tiny_svr/
+  69 | /mysql_svr/
+  70 | /post_svr/
+  71 | /sqlite_svr/
+  72 | /tiny_svr/
+  73 | /mysql_svr/
+  74 | /post_svr/
+  75 | /sqlite_svr/
+  76 | /tiny_svr/
+  77 | /mysql_svr/
+  78 | /post_svr/
+  79 | /sqlite_svr/
+  80 | /tiny_svr/
+  81 | /mysql_svr/
+  82 | /post_svr/
+  83 | /sqlite_svr/
+  84 | /tiny_svr/
+  85 | /mysql_svr/
+  86 | /post_svr/
+  87 | /sqlite_svr/
+  88 | /tiny_svr/
+  89 | /mysql_svr/
+  90 | /post_svr/
+  91 | /sqlite_svr/
+  92 | /tiny_svr/
+  93 | /mysql_svr/
+  94 | /post_svr/
+  95 | /sqlite_svr/
+  96 | /tiny_svr/
+  97 | /mysql_svr/
+  98 | /post_svr/
+  99 | /sqlite_svr/
+ 100 | /tiny_svr/
+ 101 | /mysql_svr/
+ 102 | /post_svr/
+ 103 | /sqlite_svr/
+ 104 | /tiny_svr/
+ 105 | /mysql_svr/
+ 106 | /post_svr/
+ 107 | /sqlite_svr/
+ 108 | /tiny_svr/
+ 109 | /mysql_svr/
+ 110 | /post_svr/
+ 111 | /sqlite_svr/
+ 112 | /tiny_svr/
+ 113 | /mysql_svr/
+ 114 | /post_svr/
+ 115 | /sqlite_svr/
+ 116 | /tiny_svr/
+ 117 | /mysql_svr/
+ 118 | /post_svr/
+ 119 | /sqlite_svr/
+ 120 | /tiny_svr/
+(124 rows)
+
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+SELECT * FROM test2 ORDER BY 1, 2;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+-- batch_size server = 8, batch_size table not set, batch_size of FDW (if support) difference values, insert 20 records
+--Testcase 316:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '8');
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+INSERT INTO test2 SELECT id FROM generate_series(1, 20) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for mysql_fdw, batch size = 5
+INFO:  Batch Insert for tinybrace_fdw, batch size = 4
+INFO:  Batch Insert for postgres_fdw, batch size = 2
+INFO:  Batch Insert for sqlite_fdw, batch size = 3
+SELECT * FROM test2 ORDER BY 1, 2;
+ i  |  __spd_url   
+----+--------------
+  1 | /file_svr/
+  1 | /mysql_svr/
+  2 | /file_svr/
+  2 | /post_svr/
+  3 | /file_svr/
+  3 | /sqlite_svr/
+  4 | /file_svr/
+  4 | /tiny_svr/
+  5 | /mysql_svr/
+  6 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+ 13 | /mysql_svr/
+ 14 | /post_svr/
+ 15 | /sqlite_svr/
+ 16 | /tiny_svr/
+ 17 | /mysql_svr/
+ 18 | /post_svr/
+ 19 | /sqlite_svr/
+ 20 | /tiny_svr/
+(24 rows)
+
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+SELECT * FROM test2 ORDER BY 1, 2;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+-- Auto config:
+-- batch size of fdw (if support) difference values
+--Testcase 314:
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+INSERT INTO test2 SELECT id FROM generate_series(1, 200) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for tinybrace_fdw, batch size = 4
+INFO:  Batch Insert for sqlite_fdw, batch size = 3
+INFO:  Batch Insert for mysql_fdw, batch size = 5
+INFO:  Batch Insert for postgres_fdw, batch size = 2
+SELECT * FROM test2 ORDER BY 1, 2;
+  i  |  __spd_url   
+-----+--------------
+   1 | /file_svr/
+   1 | /mysql_svr/
+   2 | /file_svr/
+   2 | /post_svr/
+   3 | /file_svr/
+   3 | /sqlite_svr/
+   4 | /file_svr/
+   4 | /tiny_svr/
+   5 | /mysql_svr/
+   6 | /post_svr/
+   7 | /sqlite_svr/
+   8 | /tiny_svr/
+   9 | /mysql_svr/
+  10 | /post_svr/
+  11 | /sqlite_svr/
+  12 | /tiny_svr/
+  13 | /mysql_svr/
+  14 | /post_svr/
+  15 | /sqlite_svr/
+  16 | /tiny_svr/
+  17 | /mysql_svr/
+  18 | /post_svr/
+  19 | /sqlite_svr/
+  20 | /tiny_svr/
+  21 | /mysql_svr/
+  22 | /post_svr/
+  23 | /sqlite_svr/
+  24 | /tiny_svr/
+  25 | /mysql_svr/
+  26 | /post_svr/
+  27 | /sqlite_svr/
+  28 | /tiny_svr/
+  29 | /mysql_svr/
+  30 | /post_svr/
+  31 | /sqlite_svr/
+  32 | /tiny_svr/
+  33 | /mysql_svr/
+  34 | /post_svr/
+  35 | /sqlite_svr/
+  36 | /tiny_svr/
+  37 | /mysql_svr/
+  38 | /post_svr/
+  39 | /sqlite_svr/
+  40 | /tiny_svr/
+  41 | /mysql_svr/
+  42 | /post_svr/
+  43 | /sqlite_svr/
+  44 | /tiny_svr/
+  45 | /mysql_svr/
+  46 | /post_svr/
+  47 | /sqlite_svr/
+  48 | /tiny_svr/
+  49 | /mysql_svr/
+  50 | /post_svr/
+  51 | /sqlite_svr/
+  52 | /tiny_svr/
+  53 | /mysql_svr/
+  54 | /post_svr/
+  55 | /sqlite_svr/
+  56 | /tiny_svr/
+  57 | /mysql_svr/
+  58 | /post_svr/
+  59 | /sqlite_svr/
+  60 | /tiny_svr/
+  61 | /mysql_svr/
+  62 | /post_svr/
+  63 | /sqlite_svr/
+  64 | /tiny_svr/
+  65 | /mysql_svr/
+  66 | /post_svr/
+  67 | /sqlite_svr/
+  68 | /tiny_svr/
+  69 | /mysql_svr/
+  70 | /post_svr/
+  71 | /sqlite_svr/
+  72 | /tiny_svr/
+  73 | /mysql_svr/
+  74 | /post_svr/
+  75 | /sqlite_svr/
+  76 | /tiny_svr/
+  77 | /mysql_svr/
+  78 | /post_svr/
+  79 | /sqlite_svr/
+  80 | /tiny_svr/
+  81 | /mysql_svr/
+  82 | /post_svr/
+  83 | /sqlite_svr/
+  84 | /tiny_svr/
+  85 | /mysql_svr/
+  86 | /post_svr/
+  87 | /sqlite_svr/
+  88 | /tiny_svr/
+  89 | /mysql_svr/
+  90 | /post_svr/
+  91 | /sqlite_svr/
+  92 | /tiny_svr/
+  93 | /mysql_svr/
+  94 | /post_svr/
+  95 | /sqlite_svr/
+  96 | /tiny_svr/
+  97 | /mysql_svr/
+  98 | /post_svr/
+  99 | /sqlite_svr/
+ 100 | /tiny_svr/
+ 101 | /mysql_svr/
+ 102 | /post_svr/
+ 103 | /sqlite_svr/
+ 104 | /tiny_svr/
+ 105 | /mysql_svr/
+ 106 | /post_svr/
+ 107 | /sqlite_svr/
+ 108 | /tiny_svr/
+ 109 | /mysql_svr/
+ 110 | /post_svr/
+ 111 | /sqlite_svr/
+ 112 | /tiny_svr/
+ 113 | /mysql_svr/
+ 114 | /post_svr/
+ 115 | /sqlite_svr/
+ 116 | /tiny_svr/
+ 117 | /mysql_svr/
+ 118 | /post_svr/
+ 119 | /sqlite_svr/
+ 120 | /tiny_svr/
+ 121 | /mysql_svr/
+ 122 | /post_svr/
+ 123 | /sqlite_svr/
+ 124 | /tiny_svr/
+ 125 | /mysql_svr/
+ 126 | /post_svr/
+ 127 | /sqlite_svr/
+ 128 | /tiny_svr/
+ 129 | /mysql_svr/
+ 130 | /post_svr/
+ 131 | /sqlite_svr/
+ 132 | /tiny_svr/
+ 133 | /mysql_svr/
+ 134 | /post_svr/
+ 135 | /sqlite_svr/
+ 136 | /tiny_svr/
+ 137 | /mysql_svr/
+ 138 | /post_svr/
+ 139 | /sqlite_svr/
+ 140 | /tiny_svr/
+ 141 | /mysql_svr/
+ 142 | /post_svr/
+ 143 | /sqlite_svr/
+ 144 | /tiny_svr/
+ 145 | /mysql_svr/
+ 146 | /post_svr/
+ 147 | /sqlite_svr/
+ 148 | /tiny_svr/
+ 149 | /mysql_svr/
+ 150 | /post_svr/
+ 151 | /sqlite_svr/
+ 152 | /tiny_svr/
+ 153 | /mysql_svr/
+ 154 | /post_svr/
+ 155 | /sqlite_svr/
+ 156 | /tiny_svr/
+ 157 | /mysql_svr/
+ 158 | /post_svr/
+ 159 | /sqlite_svr/
+ 160 | /tiny_svr/
+ 161 | /mysql_svr/
+ 162 | /post_svr/
+ 163 | /sqlite_svr/
+ 164 | /tiny_svr/
+ 165 | /mysql_svr/
+ 166 | /post_svr/
+ 167 | /sqlite_svr/
+ 168 | /tiny_svr/
+ 169 | /mysql_svr/
+ 170 | /post_svr/
+ 171 | /sqlite_svr/
+ 172 | /tiny_svr/
+ 173 | /mysql_svr/
+ 174 | /post_svr/
+ 175 | /sqlite_svr/
+ 176 | /tiny_svr/
+ 177 | /mysql_svr/
+ 178 | /post_svr/
+ 179 | /sqlite_svr/
+ 180 | /tiny_svr/
+ 181 | /mysql_svr/
+ 182 | /post_svr/
+ 183 | /sqlite_svr/
+ 184 | /tiny_svr/
+ 185 | /mysql_svr/
+ 186 | /post_svr/
+ 187 | /sqlite_svr/
+ 188 | /tiny_svr/
+ 189 | /mysql_svr/
+ 190 | /post_svr/
+ 191 | /sqlite_svr/
+ 192 | /tiny_svr/
+ 193 | /mysql_svr/
+ 194 | /post_svr/
+ 195 | /sqlite_svr/
+ 196 | /tiny_svr/
+ 197 | /mysql_svr/
+ 198 | /post_svr/
+ 199 | /sqlite_svr/
+ 200 | /tiny_svr/
+(204 rows)
+
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+SELECT * FROM test2 ORDER BY 1, 2;
+ i | __spd_url  
+---+------------
+ 1 | /file_svr/
+ 2 | /file_svr/
+ 3 | /file_svr/
+ 4 | /file_svr/
+(4 rows)
+
+ALTER SERVER post_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+-- batch size of fdw (if support) difference values for FDW but  LCM < limit
+--Testcase 315:
+ALTER SERVER post_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '7');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '5');
+INSERT INTO test2 SELECT id FROM generate_series(1, 1000) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for tinybrace_fdw, batch size = 7
+INFO:  Batch Insert for postgres_fdw, batch size = 2
+INFO:  Batch Insert for mysql_fdw, batch size = 5
+INFO:  Batch Insert for sqlite_fdw, batch size = 3
+SELECT * FROM test2 ORDER BY 1, 2;
+  i   |  __spd_url   
+------+--------------
+    1 | /file_svr/
+    1 | /mysql_svr/
+    2 | /file_svr/
+    2 | /post_svr/
+    3 | /file_svr/
+    3 | /sqlite_svr/
+    4 | /file_svr/
+    4 | /tiny_svr/
+    5 | /mysql_svr/
+    6 | /post_svr/
+    7 | /sqlite_svr/
+    8 | /tiny_svr/
+    9 | /mysql_svr/
+   10 | /post_svr/
+   11 | /sqlite_svr/
+   12 | /tiny_svr/
+   13 | /mysql_svr/
+   14 | /post_svr/
+   15 | /sqlite_svr/
+   16 | /tiny_svr/
+   17 | /mysql_svr/
+   18 | /post_svr/
+   19 | /sqlite_svr/
+   20 | /tiny_svr/
+   21 | /mysql_svr/
+   22 | /post_svr/
+   23 | /sqlite_svr/
+   24 | /tiny_svr/
+   25 | /mysql_svr/
+   26 | /post_svr/
+   27 | /sqlite_svr/
+   28 | /tiny_svr/
+   29 | /mysql_svr/
+   30 | /post_svr/
+   31 | /sqlite_svr/
+   32 | /tiny_svr/
+   33 | /mysql_svr/
+   34 | /post_svr/
+   35 | /sqlite_svr/
+   36 | /tiny_svr/
+   37 | /mysql_svr/
+   38 | /post_svr/
+   39 | /sqlite_svr/
+   40 | /tiny_svr/
+   41 | /mysql_svr/
+   42 | /post_svr/
+   43 | /sqlite_svr/
+   44 | /tiny_svr/
+   45 | /mysql_svr/
+   46 | /post_svr/
+   47 | /sqlite_svr/
+   48 | /tiny_svr/
+   49 | /mysql_svr/
+   50 | /post_svr/
+   51 | /sqlite_svr/
+   52 | /tiny_svr/
+   53 | /mysql_svr/
+   54 | /post_svr/
+   55 | /sqlite_svr/
+   56 | /tiny_svr/
+   57 | /mysql_svr/
+   58 | /post_svr/
+   59 | /sqlite_svr/
+   60 | /tiny_svr/
+   61 | /mysql_svr/
+   62 | /post_svr/
+   63 | /sqlite_svr/
+   64 | /tiny_svr/
+   65 | /mysql_svr/
+   66 | /post_svr/
+   67 | /sqlite_svr/
+   68 | /tiny_svr/
+   69 | /mysql_svr/
+   70 | /post_svr/
+   71 | /sqlite_svr/
+   72 | /tiny_svr/
+   73 | /mysql_svr/
+   74 | /post_svr/
+   75 | /sqlite_svr/
+   76 | /tiny_svr/
+   77 | /mysql_svr/
+   78 | /post_svr/
+   79 | /sqlite_svr/
+   80 | /tiny_svr/
+   81 | /mysql_svr/
+   82 | /post_svr/
+   83 | /sqlite_svr/
+   84 | /tiny_svr/
+   85 | /mysql_svr/
+   86 | /post_svr/
+   87 | /sqlite_svr/
+   88 | /tiny_svr/
+   89 | /mysql_svr/
+   90 | /post_svr/
+   91 | /sqlite_svr/
+   92 | /tiny_svr/
+   93 | /mysql_svr/
+   94 | /post_svr/
+   95 | /sqlite_svr/
+   96 | /tiny_svr/
+   97 | /mysql_svr/
+   98 | /post_svr/
+   99 | /sqlite_svr/
+  100 | /tiny_svr/
+  101 | /mysql_svr/
+  102 | /post_svr/
+  103 | /sqlite_svr/
+  104 | /tiny_svr/
+  105 | /mysql_svr/
+  106 | /post_svr/
+  107 | /sqlite_svr/
+  108 | /tiny_svr/
+  109 | /mysql_svr/
+  110 | /post_svr/
+  111 | /sqlite_svr/
+  112 | /tiny_svr/
+  113 | /mysql_svr/
+  114 | /post_svr/
+  115 | /sqlite_svr/
+  116 | /tiny_svr/
+  117 | /mysql_svr/
+  118 | /post_svr/
+  119 | /sqlite_svr/
+  120 | /tiny_svr/
+  121 | /mysql_svr/
+  122 | /post_svr/
+  123 | /sqlite_svr/
+  124 | /tiny_svr/
+  125 | /mysql_svr/
+  126 | /post_svr/
+  127 | /sqlite_svr/
+  128 | /tiny_svr/
+  129 | /mysql_svr/
+  130 | /post_svr/
+  131 | /sqlite_svr/
+  132 | /tiny_svr/
+  133 | /mysql_svr/
+  134 | /post_svr/
+  135 | /sqlite_svr/
+  136 | /tiny_svr/
+  137 | /mysql_svr/
+  138 | /post_svr/
+  139 | /sqlite_svr/
+  140 | /tiny_svr/
+  141 | /mysql_svr/
+  142 | /post_svr/
+  143 | /sqlite_svr/
+  144 | /tiny_svr/
+  145 | /mysql_svr/
+  146 | /post_svr/
+  147 | /sqlite_svr/
+  148 | /tiny_svr/
+  149 | /mysql_svr/
+  150 | /post_svr/
+  151 | /sqlite_svr/
+  152 | /tiny_svr/
+  153 | /mysql_svr/
+  154 | /post_svr/
+  155 | /sqlite_svr/
+  156 | /tiny_svr/
+  157 | /mysql_svr/
+  158 | /post_svr/
+  159 | /sqlite_svr/
+  160 | /tiny_svr/
+  161 | /mysql_svr/
+  162 | /post_svr/
+  163 | /sqlite_svr/
+  164 | /tiny_svr/
+  165 | /mysql_svr/
+  166 | /post_svr/
+  167 | /sqlite_svr/
+  168 | /tiny_svr/
+  169 | /mysql_svr/
+  170 | /post_svr/
+  171 | /sqlite_svr/
+  172 | /tiny_svr/
+  173 | /mysql_svr/
+  174 | /post_svr/
+  175 | /sqlite_svr/
+  176 | /tiny_svr/
+  177 | /mysql_svr/
+  178 | /post_svr/
+  179 | /sqlite_svr/
+  180 | /tiny_svr/
+  181 | /mysql_svr/
+  182 | /post_svr/
+  183 | /sqlite_svr/
+  184 | /tiny_svr/
+  185 | /mysql_svr/
+  186 | /post_svr/
+  187 | /sqlite_svr/
+  188 | /tiny_svr/
+  189 | /mysql_svr/
+  190 | /post_svr/
+  191 | /sqlite_svr/
+  192 | /tiny_svr/
+  193 | /mysql_svr/
+  194 | /post_svr/
+  195 | /sqlite_svr/
+  196 | /tiny_svr/
+  197 | /mysql_svr/
+  198 | /post_svr/
+  199 | /sqlite_svr/
+  200 | /tiny_svr/
+  201 | /mysql_svr/
+  202 | /post_svr/
+  203 | /sqlite_svr/
+  204 | /tiny_svr/
+  205 | /mysql_svr/
+  206 | /post_svr/
+  207 | /sqlite_svr/
+  208 | /tiny_svr/
+  209 | /mysql_svr/
+  210 | /post_svr/
+  211 | /sqlite_svr/
+  212 | /tiny_svr/
+  213 | /mysql_svr/
+  214 | /post_svr/
+  215 | /sqlite_svr/
+  216 | /tiny_svr/
+  217 | /mysql_svr/
+  218 | /post_svr/
+  219 | /sqlite_svr/
+  220 | /tiny_svr/
+  221 | /mysql_svr/
+  222 | /post_svr/
+  223 | /sqlite_svr/
+  224 | /tiny_svr/
+  225 | /mysql_svr/
+  226 | /post_svr/
+  227 | /sqlite_svr/
+  228 | /tiny_svr/
+  229 | /mysql_svr/
+  230 | /post_svr/
+  231 | /sqlite_svr/
+  232 | /tiny_svr/
+  233 | /mysql_svr/
+  234 | /post_svr/
+  235 | /sqlite_svr/
+  236 | /tiny_svr/
+  237 | /mysql_svr/
+  238 | /post_svr/
+  239 | /sqlite_svr/
+  240 | /tiny_svr/
+  241 | /mysql_svr/
+  242 | /post_svr/
+  243 | /sqlite_svr/
+  244 | /tiny_svr/
+  245 | /mysql_svr/
+  246 | /post_svr/
+  247 | /sqlite_svr/
+  248 | /tiny_svr/
+  249 | /mysql_svr/
+  250 | /post_svr/
+  251 | /sqlite_svr/
+  252 | /tiny_svr/
+  253 | /mysql_svr/
+  254 | /post_svr/
+  255 | /sqlite_svr/
+  256 | /tiny_svr/
+  257 | /mysql_svr/
+  258 | /post_svr/
+  259 | /sqlite_svr/
+  260 | /tiny_svr/
+  261 | /mysql_svr/
+  262 | /post_svr/
+  263 | /sqlite_svr/
+  264 | /tiny_svr/
+  265 | /mysql_svr/
+  266 | /post_svr/
+  267 | /sqlite_svr/
+  268 | /tiny_svr/
+  269 | /mysql_svr/
+  270 | /post_svr/
+  271 | /sqlite_svr/
+  272 | /tiny_svr/
+  273 | /mysql_svr/
+  274 | /post_svr/
+  275 | /sqlite_svr/
+  276 | /tiny_svr/
+  277 | /mysql_svr/
+  278 | /post_svr/
+  279 | /sqlite_svr/
+  280 | /tiny_svr/
+  281 | /mysql_svr/
+  282 | /post_svr/
+  283 | /sqlite_svr/
+  284 | /tiny_svr/
+  285 | /mysql_svr/
+  286 | /post_svr/
+  287 | /sqlite_svr/
+  288 | /tiny_svr/
+  289 | /mysql_svr/
+  290 | /post_svr/
+  291 | /sqlite_svr/
+  292 | /tiny_svr/
+  293 | /mysql_svr/
+  294 | /post_svr/
+  295 | /sqlite_svr/
+  296 | /tiny_svr/
+  297 | /mysql_svr/
+  298 | /post_svr/
+  299 | /sqlite_svr/
+  300 | /tiny_svr/
+  301 | /mysql_svr/
+  302 | /post_svr/
+  303 | /sqlite_svr/
+  304 | /tiny_svr/
+  305 | /mysql_svr/
+  306 | /post_svr/
+  307 | /sqlite_svr/
+  308 | /tiny_svr/
+  309 | /mysql_svr/
+  310 | /post_svr/
+  311 | /sqlite_svr/
+  312 | /tiny_svr/
+  313 | /mysql_svr/
+  314 | /post_svr/
+  315 | /sqlite_svr/
+  316 | /tiny_svr/
+  317 | /mysql_svr/
+  318 | /post_svr/
+  319 | /sqlite_svr/
+  320 | /tiny_svr/
+  321 | /mysql_svr/
+  322 | /post_svr/
+  323 | /sqlite_svr/
+  324 | /tiny_svr/
+  325 | /mysql_svr/
+  326 | /post_svr/
+  327 | /sqlite_svr/
+  328 | /tiny_svr/
+  329 | /mysql_svr/
+  330 | /post_svr/
+  331 | /sqlite_svr/
+  332 | /tiny_svr/
+  333 | /mysql_svr/
+  334 | /post_svr/
+  335 | /sqlite_svr/
+  336 | /tiny_svr/
+  337 | /mysql_svr/
+  338 | /post_svr/
+  339 | /sqlite_svr/
+  340 | /tiny_svr/
+  341 | /mysql_svr/
+  342 | /post_svr/
+  343 | /sqlite_svr/
+  344 | /tiny_svr/
+  345 | /mysql_svr/
+  346 | /post_svr/
+  347 | /sqlite_svr/
+  348 | /tiny_svr/
+  349 | /mysql_svr/
+  350 | /post_svr/
+  351 | /sqlite_svr/
+  352 | /tiny_svr/
+  353 | /mysql_svr/
+  354 | /post_svr/
+  355 | /sqlite_svr/
+  356 | /tiny_svr/
+  357 | /mysql_svr/
+  358 | /post_svr/
+  359 | /sqlite_svr/
+  360 | /tiny_svr/
+  361 | /mysql_svr/
+  362 | /post_svr/
+  363 | /sqlite_svr/
+  364 | /tiny_svr/
+  365 | /mysql_svr/
+  366 | /post_svr/
+  367 | /sqlite_svr/
+  368 | /tiny_svr/
+  369 | /mysql_svr/
+  370 | /post_svr/
+  371 | /sqlite_svr/
+  372 | /tiny_svr/
+  373 | /mysql_svr/
+  374 | /post_svr/
+  375 | /sqlite_svr/
+  376 | /tiny_svr/
+  377 | /mysql_svr/
+  378 | /post_svr/
+  379 | /sqlite_svr/
+  380 | /tiny_svr/
+  381 | /mysql_svr/
+  382 | /post_svr/
+  383 | /sqlite_svr/
+  384 | /tiny_svr/
+  385 | /mysql_svr/
+  386 | /post_svr/
+  387 | /sqlite_svr/
+  388 | /tiny_svr/
+  389 | /mysql_svr/
+  390 | /post_svr/
+  391 | /sqlite_svr/
+  392 | /tiny_svr/
+  393 | /mysql_svr/
+  394 | /post_svr/
+  395 | /sqlite_svr/
+  396 | /tiny_svr/
+  397 | /mysql_svr/
+  398 | /post_svr/
+  399 | /sqlite_svr/
+  400 | /tiny_svr/
+  401 | /mysql_svr/
+  402 | /post_svr/
+  403 | /sqlite_svr/
+  404 | /tiny_svr/
+  405 | /mysql_svr/
+  406 | /post_svr/
+  407 | /sqlite_svr/
+  408 | /tiny_svr/
+  409 | /mysql_svr/
+  410 | /post_svr/
+  411 | /sqlite_svr/
+  412 | /tiny_svr/
+  413 | /mysql_svr/
+  414 | /post_svr/
+  415 | /sqlite_svr/
+  416 | /tiny_svr/
+  417 | /mysql_svr/
+  418 | /post_svr/
+  419 | /sqlite_svr/
+  420 | /tiny_svr/
+  421 | /mysql_svr/
+  422 | /post_svr/
+  423 | /sqlite_svr/
+  424 | /tiny_svr/
+  425 | /mysql_svr/
+  426 | /post_svr/
+  427 | /sqlite_svr/
+  428 | /tiny_svr/
+  429 | /mysql_svr/
+  430 | /post_svr/
+  431 | /sqlite_svr/
+  432 | /tiny_svr/
+  433 | /mysql_svr/
+  434 | /post_svr/
+  435 | /sqlite_svr/
+  436 | /tiny_svr/
+  437 | /mysql_svr/
+  438 | /post_svr/
+  439 | /sqlite_svr/
+  440 | /tiny_svr/
+  441 | /mysql_svr/
+  442 | /post_svr/
+  443 | /sqlite_svr/
+  444 | /tiny_svr/
+  445 | /mysql_svr/
+  446 | /post_svr/
+  447 | /sqlite_svr/
+  448 | /tiny_svr/
+  449 | /mysql_svr/
+  450 | /post_svr/
+  451 | /sqlite_svr/
+  452 | /tiny_svr/
+  453 | /mysql_svr/
+  454 | /post_svr/
+  455 | /sqlite_svr/
+  456 | /tiny_svr/
+  457 | /mysql_svr/
+  458 | /post_svr/
+  459 | /sqlite_svr/
+  460 | /tiny_svr/
+  461 | /mysql_svr/
+  462 | /post_svr/
+  463 | /sqlite_svr/
+  464 | /tiny_svr/
+  465 | /mysql_svr/
+  466 | /post_svr/
+  467 | /sqlite_svr/
+  468 | /tiny_svr/
+  469 | /mysql_svr/
+  470 | /post_svr/
+  471 | /sqlite_svr/
+  472 | /tiny_svr/
+  473 | /mysql_svr/
+  474 | /post_svr/
+  475 | /sqlite_svr/
+  476 | /tiny_svr/
+  477 | /mysql_svr/
+  478 | /post_svr/
+  479 | /sqlite_svr/
+  480 | /tiny_svr/
+  481 | /mysql_svr/
+  482 | /post_svr/
+  483 | /sqlite_svr/
+  484 | /tiny_svr/
+  485 | /mysql_svr/
+  486 | /post_svr/
+  487 | /sqlite_svr/
+  488 | /tiny_svr/
+  489 | /mysql_svr/
+  490 | /post_svr/
+  491 | /sqlite_svr/
+  492 | /tiny_svr/
+  493 | /mysql_svr/
+  494 | /post_svr/
+  495 | /sqlite_svr/
+  496 | /tiny_svr/
+  497 | /mysql_svr/
+  498 | /post_svr/
+  499 | /sqlite_svr/
+  500 | /tiny_svr/
+  501 | /mysql_svr/
+  502 | /post_svr/
+  503 | /sqlite_svr/
+  504 | /tiny_svr/
+  505 | /mysql_svr/
+  506 | /post_svr/
+  507 | /sqlite_svr/
+  508 | /tiny_svr/
+  509 | /mysql_svr/
+  510 | /post_svr/
+  511 | /sqlite_svr/
+  512 | /tiny_svr/
+  513 | /mysql_svr/
+  514 | /post_svr/
+  515 | /sqlite_svr/
+  516 | /tiny_svr/
+  517 | /mysql_svr/
+  518 | /post_svr/
+  519 | /sqlite_svr/
+  520 | /tiny_svr/
+  521 | /mysql_svr/
+  522 | /post_svr/
+  523 | /sqlite_svr/
+  524 | /tiny_svr/
+  525 | /mysql_svr/
+  526 | /post_svr/
+  527 | /sqlite_svr/
+  528 | /tiny_svr/
+  529 | /mysql_svr/
+  530 | /post_svr/
+  531 | /sqlite_svr/
+  532 | /tiny_svr/
+  533 | /mysql_svr/
+  534 | /post_svr/
+  535 | /sqlite_svr/
+  536 | /tiny_svr/
+  537 | /mysql_svr/
+  538 | /post_svr/
+  539 | /sqlite_svr/
+  540 | /tiny_svr/
+  541 | /mysql_svr/
+  542 | /post_svr/
+  543 | /sqlite_svr/
+  544 | /tiny_svr/
+  545 | /mysql_svr/
+  546 | /post_svr/
+  547 | /sqlite_svr/
+  548 | /tiny_svr/
+  549 | /mysql_svr/
+  550 | /post_svr/
+  551 | /sqlite_svr/
+  552 | /tiny_svr/
+  553 | /mysql_svr/
+  554 | /post_svr/
+  555 | /sqlite_svr/
+  556 | /tiny_svr/
+  557 | /mysql_svr/
+  558 | /post_svr/
+  559 | /sqlite_svr/
+  560 | /tiny_svr/
+  561 | /mysql_svr/
+  562 | /post_svr/
+  563 | /sqlite_svr/
+  564 | /tiny_svr/
+  565 | /mysql_svr/
+  566 | /post_svr/
+  567 | /sqlite_svr/
+  568 | /tiny_svr/
+  569 | /mysql_svr/
+  570 | /post_svr/
+  571 | /sqlite_svr/
+  572 | /tiny_svr/
+  573 | /mysql_svr/
+  574 | /post_svr/
+  575 | /sqlite_svr/
+  576 | /tiny_svr/
+  577 | /mysql_svr/
+  578 | /post_svr/
+  579 | /sqlite_svr/
+  580 | /tiny_svr/
+  581 | /mysql_svr/
+  582 | /post_svr/
+  583 | /sqlite_svr/
+  584 | /tiny_svr/
+  585 | /mysql_svr/
+  586 | /post_svr/
+  587 | /sqlite_svr/
+  588 | /tiny_svr/
+  589 | /mysql_svr/
+  590 | /post_svr/
+  591 | /sqlite_svr/
+  592 | /tiny_svr/
+  593 | /mysql_svr/
+  594 | /post_svr/
+  595 | /sqlite_svr/
+  596 | /tiny_svr/
+  597 | /mysql_svr/
+  598 | /post_svr/
+  599 | /sqlite_svr/
+  600 | /tiny_svr/
+  601 | /mysql_svr/
+  602 | /post_svr/
+  603 | /sqlite_svr/
+  604 | /tiny_svr/
+  605 | /mysql_svr/
+  606 | /post_svr/
+  607 | /sqlite_svr/
+  608 | /tiny_svr/
+  609 | /mysql_svr/
+  610 | /post_svr/
+  611 | /sqlite_svr/
+  612 | /tiny_svr/
+  613 | /mysql_svr/
+  614 | /post_svr/
+  615 | /sqlite_svr/
+  616 | /tiny_svr/
+  617 | /mysql_svr/
+  618 | /post_svr/
+  619 | /sqlite_svr/
+  620 | /tiny_svr/
+  621 | /mysql_svr/
+  622 | /post_svr/
+  623 | /sqlite_svr/
+  624 | /tiny_svr/
+  625 | /mysql_svr/
+  626 | /post_svr/
+  627 | /sqlite_svr/
+  628 | /tiny_svr/
+  629 | /mysql_svr/
+  630 | /post_svr/
+  631 | /sqlite_svr/
+  632 | /tiny_svr/
+  633 | /mysql_svr/
+  634 | /post_svr/
+  635 | /sqlite_svr/
+  636 | /tiny_svr/
+  637 | /mysql_svr/
+  638 | /post_svr/
+  639 | /sqlite_svr/
+  640 | /tiny_svr/
+  641 | /mysql_svr/
+  642 | /post_svr/
+  643 | /sqlite_svr/
+  644 | /tiny_svr/
+  645 | /mysql_svr/
+  646 | /post_svr/
+  647 | /sqlite_svr/
+  648 | /tiny_svr/
+  649 | /mysql_svr/
+  650 | /post_svr/
+  651 | /sqlite_svr/
+  652 | /tiny_svr/
+  653 | /mysql_svr/
+  654 | /post_svr/
+  655 | /sqlite_svr/
+  656 | /tiny_svr/
+  657 | /mysql_svr/
+  658 | /post_svr/
+  659 | /sqlite_svr/
+  660 | /tiny_svr/
+  661 | /mysql_svr/
+  662 | /post_svr/
+  663 | /sqlite_svr/
+  664 | /tiny_svr/
+  665 | /mysql_svr/
+  666 | /post_svr/
+  667 | /sqlite_svr/
+  668 | /tiny_svr/
+  669 | /mysql_svr/
+  670 | /post_svr/
+  671 | /sqlite_svr/
+  672 | /tiny_svr/
+  673 | /mysql_svr/
+  674 | /post_svr/
+  675 | /sqlite_svr/
+  676 | /tiny_svr/
+  677 | /mysql_svr/
+  678 | /post_svr/
+  679 | /sqlite_svr/
+  680 | /tiny_svr/
+  681 | /mysql_svr/
+  682 | /post_svr/
+  683 | /sqlite_svr/
+  684 | /tiny_svr/
+  685 | /mysql_svr/
+  686 | /post_svr/
+  687 | /sqlite_svr/
+  688 | /tiny_svr/
+  689 | /mysql_svr/
+  690 | /post_svr/
+  691 | /sqlite_svr/
+  692 | /tiny_svr/
+  693 | /mysql_svr/
+  694 | /post_svr/
+  695 | /sqlite_svr/
+  696 | /tiny_svr/
+  697 | /mysql_svr/
+  698 | /post_svr/
+  699 | /sqlite_svr/
+  700 | /tiny_svr/
+  701 | /mysql_svr/
+  702 | /post_svr/
+  703 | /sqlite_svr/
+  704 | /tiny_svr/
+  705 | /mysql_svr/
+  706 | /post_svr/
+  707 | /sqlite_svr/
+  708 | /tiny_svr/
+  709 | /mysql_svr/
+  710 | /post_svr/
+  711 | /sqlite_svr/
+  712 | /tiny_svr/
+  713 | /mysql_svr/
+  714 | /post_svr/
+  715 | /sqlite_svr/
+  716 | /tiny_svr/
+  717 | /mysql_svr/
+  718 | /post_svr/
+  719 | /sqlite_svr/
+  720 | /tiny_svr/
+  721 | /mysql_svr/
+  722 | /post_svr/
+  723 | /sqlite_svr/
+  724 | /tiny_svr/
+  725 | /mysql_svr/
+  726 | /post_svr/
+  727 | /sqlite_svr/
+  728 | /tiny_svr/
+  729 | /mysql_svr/
+  730 | /post_svr/
+  731 | /sqlite_svr/
+  732 | /tiny_svr/
+  733 | /mysql_svr/
+  734 | /post_svr/
+  735 | /sqlite_svr/
+  736 | /tiny_svr/
+  737 | /mysql_svr/
+  738 | /post_svr/
+  739 | /sqlite_svr/
+  740 | /tiny_svr/
+  741 | /mysql_svr/
+  742 | /post_svr/
+  743 | /sqlite_svr/
+  744 | /tiny_svr/
+  745 | /mysql_svr/
+  746 | /post_svr/
+  747 | /sqlite_svr/
+  748 | /tiny_svr/
+  749 | /mysql_svr/
+  750 | /post_svr/
+  751 | /sqlite_svr/
+  752 | /tiny_svr/
+  753 | /mysql_svr/
+  754 | /post_svr/
+  755 | /sqlite_svr/
+  756 | /tiny_svr/
+  757 | /mysql_svr/
+  758 | /post_svr/
+  759 | /sqlite_svr/
+  760 | /tiny_svr/
+  761 | /mysql_svr/
+  762 | /post_svr/
+  763 | /sqlite_svr/
+  764 | /tiny_svr/
+  765 | /mysql_svr/
+  766 | /post_svr/
+  767 | /sqlite_svr/
+  768 | /tiny_svr/
+  769 | /mysql_svr/
+  770 | /post_svr/
+  771 | /sqlite_svr/
+  772 | /tiny_svr/
+  773 | /mysql_svr/
+  774 | /post_svr/
+  775 | /sqlite_svr/
+  776 | /tiny_svr/
+  777 | /mysql_svr/
+  778 | /post_svr/
+  779 | /sqlite_svr/
+  780 | /tiny_svr/
+  781 | /mysql_svr/
+  782 | /post_svr/
+  783 | /sqlite_svr/
+  784 | /tiny_svr/
+  785 | /mysql_svr/
+  786 | /post_svr/
+  787 | /sqlite_svr/
+  788 | /tiny_svr/
+  789 | /mysql_svr/
+  790 | /post_svr/
+  791 | /sqlite_svr/
+  792 | /tiny_svr/
+  793 | /mysql_svr/
+  794 | /post_svr/
+  795 | /sqlite_svr/
+  796 | /tiny_svr/
+  797 | /mysql_svr/
+  798 | /post_svr/
+  799 | /sqlite_svr/
+  800 | /tiny_svr/
+  801 | /mysql_svr/
+  802 | /post_svr/
+  803 | /sqlite_svr/
+  804 | /tiny_svr/
+  805 | /mysql_svr/
+  806 | /post_svr/
+  807 | /sqlite_svr/
+  808 | /tiny_svr/
+  809 | /mysql_svr/
+  810 | /post_svr/
+  811 | /sqlite_svr/
+  812 | /tiny_svr/
+  813 | /mysql_svr/
+  814 | /post_svr/
+  815 | /sqlite_svr/
+  816 | /tiny_svr/
+  817 | /mysql_svr/
+  818 | /post_svr/
+  819 | /sqlite_svr/
+  820 | /tiny_svr/
+  821 | /mysql_svr/
+  822 | /post_svr/
+  823 | /sqlite_svr/
+  824 | /tiny_svr/
+  825 | /mysql_svr/
+  826 | /post_svr/
+  827 | /sqlite_svr/
+  828 | /tiny_svr/
+  829 | /mysql_svr/
+  830 | /post_svr/
+  831 | /sqlite_svr/
+  832 | /tiny_svr/
+  833 | /mysql_svr/
+  834 | /post_svr/
+  835 | /sqlite_svr/
+  836 | /tiny_svr/
+  837 | /mysql_svr/
+  838 | /post_svr/
+  839 | /sqlite_svr/
+  840 | /tiny_svr/
+  841 | /mysql_svr/
+  842 | /post_svr/
+  843 | /sqlite_svr/
+  844 | /tiny_svr/
+  845 | /mysql_svr/
+  846 | /post_svr/
+  847 | /sqlite_svr/
+  848 | /tiny_svr/
+  849 | /mysql_svr/
+  850 | /post_svr/
+  851 | /sqlite_svr/
+  852 | /tiny_svr/
+  853 | /mysql_svr/
+  854 | /post_svr/
+  855 | /sqlite_svr/
+  856 | /tiny_svr/
+  857 | /mysql_svr/
+  858 | /post_svr/
+  859 | /sqlite_svr/
+  860 | /tiny_svr/
+  861 | /mysql_svr/
+  862 | /post_svr/
+  863 | /sqlite_svr/
+  864 | /tiny_svr/
+  865 | /mysql_svr/
+  866 | /post_svr/
+  867 | /sqlite_svr/
+  868 | /tiny_svr/
+  869 | /mysql_svr/
+  870 | /post_svr/
+  871 | /sqlite_svr/
+  872 | /tiny_svr/
+  873 | /mysql_svr/
+  874 | /post_svr/
+  875 | /sqlite_svr/
+  876 | /tiny_svr/
+  877 | /mysql_svr/
+  878 | /post_svr/
+  879 | /sqlite_svr/
+  880 | /tiny_svr/
+  881 | /mysql_svr/
+  882 | /post_svr/
+  883 | /sqlite_svr/
+  884 | /tiny_svr/
+  885 | /mysql_svr/
+  886 | /post_svr/
+  887 | /sqlite_svr/
+  888 | /tiny_svr/
+  889 | /mysql_svr/
+  890 | /post_svr/
+  891 | /sqlite_svr/
+  892 | /tiny_svr/
+  893 | /mysql_svr/
+  894 | /post_svr/
+  895 | /sqlite_svr/
+  896 | /tiny_svr/
+  897 | /mysql_svr/
+  898 | /post_svr/
+  899 | /sqlite_svr/
+  900 | /tiny_svr/
+  901 | /mysql_svr/
+  902 | /post_svr/
+  903 | /sqlite_svr/
+  904 | /tiny_svr/
+  905 | /mysql_svr/
+  906 | /post_svr/
+  907 | /sqlite_svr/
+  908 | /tiny_svr/
+  909 | /mysql_svr/
+  910 | /post_svr/
+  911 | /sqlite_svr/
+  912 | /tiny_svr/
+  913 | /mysql_svr/
+  914 | /post_svr/
+  915 | /sqlite_svr/
+  916 | /tiny_svr/
+  917 | /mysql_svr/
+  918 | /post_svr/
+  919 | /sqlite_svr/
+  920 | /tiny_svr/
+  921 | /mysql_svr/
+  922 | /post_svr/
+  923 | /sqlite_svr/
+  924 | /tiny_svr/
+  925 | /mysql_svr/
+  926 | /post_svr/
+  927 | /sqlite_svr/
+  928 | /tiny_svr/
+  929 | /mysql_svr/
+  930 | /post_svr/
+  931 | /sqlite_svr/
+  932 | /tiny_svr/
+  933 | /mysql_svr/
+  934 | /post_svr/
+  935 | /sqlite_svr/
+  936 | /tiny_svr/
+  937 | /mysql_svr/
+  938 | /post_svr/
+  939 | /sqlite_svr/
+  940 | /tiny_svr/
+  941 | /mysql_svr/
+  942 | /post_svr/
+  943 | /sqlite_svr/
+  944 | /tiny_svr/
+  945 | /mysql_svr/
+  946 | /post_svr/
+  947 | /sqlite_svr/
+  948 | /tiny_svr/
+  949 | /mysql_svr/
+  950 | /post_svr/
+  951 | /sqlite_svr/
+  952 | /tiny_svr/
+  953 | /mysql_svr/
+  954 | /post_svr/
+  955 | /sqlite_svr/
+  956 | /tiny_svr/
+  957 | /mysql_svr/
+  958 | /post_svr/
+  959 | /sqlite_svr/
+  960 | /tiny_svr/
+  961 | /mysql_svr/
+  962 | /post_svr/
+  963 | /sqlite_svr/
+  964 | /tiny_svr/
+  965 | /mysql_svr/
+  966 | /post_svr/
+  967 | /sqlite_svr/
+  968 | /tiny_svr/
+  969 | /mysql_svr/
+  970 | /post_svr/
+  971 | /sqlite_svr/
+  972 | /tiny_svr/
+  973 | /mysql_svr/
+  974 | /post_svr/
+  975 | /sqlite_svr/
+  976 | /tiny_svr/
+  977 | /mysql_svr/
+  978 | /post_svr/
+  979 | /sqlite_svr/
+  980 | /tiny_svr/
+  981 | /mysql_svr/
+  982 | /post_svr/
+  983 | /sqlite_svr/
+  984 | /tiny_svr/
+  985 | /mysql_svr/
+  986 | /post_svr/
+  987 | /sqlite_svr/
+  988 | /tiny_svr/
+  989 | /mysql_svr/
+  990 | /post_svr/
+  991 | /sqlite_svr/
+  992 | /tiny_svr/
+  993 | /mysql_svr/
+  994 | /post_svr/
+  995 | /sqlite_svr/
+  996 | /tiny_svr/
+  997 | /mysql_svr/
+  998 | /post_svr/
+  999 | /sqlite_svr/
+ 1000 | /tiny_svr/
+(1004 rows)
+
+DELETE FROM test2;
+WARNING:  file_fdw will be skipped because it does not support modification
+DROP FOREIGN TABLE test2 CASCADE;
+SET client_min_messages = NOTICE;
 --Testcase 293:
 DROP FOREIGN TABLE tbl02__sqlite_svr__0;
 --Testcase 294:
@@ -5382,7 +7041,7 @@ DROP EXTENSION pgspider_core_fdw CASCADE;
 --Clean
 --Testcase 270:
 DROP EXTENSION postgres_fdw CASCADE;
-NOTICE:  drop cascades to 18 other objects
+NOTICE:  drop cascades to 19 other objects
 DETAIL:  drop cascades to server post_svr
 drop cascades to user mapping for public on server post_svr
 drop cascades to foreign table test1__post_svr__0
@@ -5395,6 +7054,7 @@ drop cascades to foreign table t2__post_svr__0
 drop cascades to foreign table t2__post_svr__1
 drop cascades to foreign table t2__post_svr__2
 drop cascades to foreign table t2__post_svr__3
+drop cascades to foreign table test2__post_svr__0
 drop cascades to server post_svr2
 drop cascades to user mapping for public on server post_svr2
 drop cascades to foreign table t2__post_svr2__0
@@ -5403,27 +7063,30 @@ drop cascades to user mapping for public on server post_svr3
 drop cascades to foreign table t2__post_svr3__0
 --Testcase 271:
 DROP EXTENSION file_fdw CASCADE;
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 5 other objects
 DETAIL:  drop cascades to server file_svr
 drop cascades to foreign table filetbl__file_svr__0
 drop cascades to foreign table test1__file_svr__0
 drop cascades to foreign table test1__file_svr__1
+drop cascades to foreign table test2__file_svr__0
 --Testcase 272:
 DROP EXTENSION sqlite_fdw CASCADE;
-NOTICE:  drop cascades to 3 other objects
+NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server sqlite_svr
 drop cascades to foreign table test1__sqlite_svr__0
 drop cascades to foreign table test1_1__sqlite_svr__0
+drop cascades to foreign table test2__sqlite_svr__0
 --Testcase 273:
 DROP EXTENSION tinybrace_fdw CASCADE;
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 5 other objects
 DETAIL:  drop cascades to server tiny_svr
 drop cascades to user mapping for public on server tiny_svr
 drop cascades to foreign table test1__tiny_svr__0
 drop cascades to foreign table test1_1__tiny_svr__0
+drop cascades to foreign table test2__tiny_svr__0
 --Testcase 274:
 DROP EXTENSION mysql_fdw CASCADE;
-NOTICE:  drop cascades to 9 other objects
+NOTICE:  drop cascades to 10 other objects
 DETAIL:  drop cascades to server mysql_svr
 drop cascades to user mapping for public on server mysql_svr
 drop cascades to foreign table test1__mysql_svr__0
@@ -5431,5 +7094,6 @@ drop cascades to foreign table test1_1__mysql_svr__0
 drop cascades to foreign table mysqlt__mysql_svr__0
 drop cascades to foreign table mysqlt__mysql_svr__1
 drop cascades to foreign table mysqlt__mysql_svqr__2
+drop cascades to foreign table test2__mysql_svr__0
 drop cascades to server mysql_svr2
 drop cascades to user mapping for public on server mysql_svr2

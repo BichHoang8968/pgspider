@@ -118,7 +118,7 @@ spd_check_candidate_count(ChildInfo * pChildInfo, int node_num)
 			num_targets++;
 	}
 	if (num_targets == 0)
-		ereport(ERROR, (errmsg("There is no candidate for insert.")));
+		ereport(ERROR, (errmsg("There is no candidate for INSERT.")));
 }
 
 /**
@@ -136,7 +136,7 @@ spd_candidate_updatable(ChildInfo * pChildInfo, int node_num)
 
 	for (i = 0; i < node_num; i++)
 	{
-		int			updatable;
+		int			updatable = 0;
 		ChildInfo  *pChild = &pChildInfo[i];
 		Relation	rel;
 
@@ -229,7 +229,6 @@ spd_candidate_alive(ChildInfo * pChildInfo, int node_num)
 void
 spd_routing_candidate_validate(ChildInfo * pChildInfo, int node_num)
 {
-
 	spd_check_candidate_count(pChildInfo, node_num);
 
 	spd_candidate_alive(pChildInfo, node_num);
@@ -266,6 +265,9 @@ spd_get_spdurl_in_slot(TupleTableSlot *slot, TupleDesc tupdesc)
 	getTypeOutputInfo(attr->atttypid, &typefnoid, &isvarlena);
 	fmgr_info(typefnoid, &flinfo);
 	spdurl = OutputFunctionCall(&flinfo, value);
+
+	if (spdurl != NULL && spdurl[0] != '/')
+		elog(ERROR, "Failed to parse URL '%s'. The first character should be '/'.", spdurl);
 
 	return spdurl;
 }
@@ -371,7 +373,7 @@ spd_routing_choose(char *prev_name, ModifyThreadInfo * mtThrdInfo,
 	}
 
 	/* Should not reach here. */
-	ereport(ERROR, (errmsg("Cannot find an insert target.")));
+	ereport(ERROR, (errmsg("Cannot find an INSERT target.")));
 }
 
 /**
@@ -412,6 +414,37 @@ spd_routing_get_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
 	dshash_release_lock(g_spd_routing_hash, entry);
 
 	return i;
+}
+
+/**
+ * spd_routing_set_target
+ * 		Set the last child table.
+ * 		This function returns set target success or not.
+ */
+bool
+spd_routing_set_target(Oid parent, ModifyThreadInfo * mtThrdInfo,
+					   ChildInfo * pChildInfo, int last_node)
+{
+	SpdRoutingElem *entry;
+	int			idx;
+	char	   *relname;
+
+	/* Find the last target and get a lock for the shared hash. */
+	entry = dshash_find(g_spd_routing_hash, &parent, true);
+
+	if (entry == NULL)
+		return false;
+
+	/* Update target information in shared memory. */
+	idx = mtThrdInfo[last_node].childInfoIndex;
+	relname = get_rel_name(pChildInfo[idx].oid);
+	entry->child = pChildInfo[idx].oid;
+	strcpy(entry->tablename, relname);
+
+	/* Release the lock. */
+	dshash_release_lock(g_spd_routing_hash, entry);
+
+	return true;
 }
 
 static dshash_parameters

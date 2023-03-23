@@ -126,7 +126,7 @@ UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 
@@ -353,6 +353,32 @@ UPDATE tntbl1 SET c7 = '2100-01-01 10:00:00+01' WHERE c1 = 2 AND c2 = 3 RETURNIN
 DELETE FROM tntbl1 WHERE c4 = 6.0 RETURNING c1, c2;
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1;
+
+SET client_min_messages = INFO;
+
+-- Auto config: batch_size of FDW = 10, insert 30 records
+ALTER SERVER tinybrace_svr OPTIONS (ADD batch_size '10');
+ALTER SERVER tinybrace_svr1 OPTIONS (ADD batch_size '10');
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 117:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 30) id;
+--Testcase 118:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+--Testcase 119:
+SELECT * FROM tntbl1__tinybrace_svr__0 ORDER BY 1,2;
+--Testcase 120:
+SELECT * FROM tntbl1__tinybrace_svr1__0 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl1__tinybrace_svr__0;

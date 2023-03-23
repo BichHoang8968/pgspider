@@ -2185,7 +2185,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHER
 --Testcase 88:
 SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHERE c4/c5 > c4/c9 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING c3 != '$%' LIMIT 5;
 psql:sql/limit/limit_orderby.sql:191: ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:division by zero
+ DETAIL: division by zero
 --Testcase 89:
 EXPLAIN VERBOSE SELECT c1 || c2 || c3, c7, round(c4-c5, 2), floor(c8/c9) FROM tbl01 WHERE c4-c5 > c8-c9 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9 HAVING c6 < c5 LIMIT 15;
 psql:sql/limit/limit_orderby.sql:193: ERROR:  function round(double precision, integer) does not exist
@@ -2308,11 +2308,11 @@ SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3
 --Testcase 95:
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4 - 100, c5, c6, c9, c10 FROM tbl01 WHERE c4-c5 > c8-c9 GROUP BY 1, 2, 3, 4, 5, 6, 7 ORDER BY 1 ASC, 2 DESC, 3, 4, 5, 6, 7 LIMIT 5;
 psql:sql/limit/limit_orderby.sql:206: WARNING:  GetForeignPlan of child[0] failed.
-psql:sql/limit/limit_orderby.sql:206: ERROR:  PGSpider can not get data from child node : file_svr
+psql:sql/limit/limit_orderby.sql:206: ERROR:  PGSpider can not execute query from child node : file_svr
 --Testcase 96:
 SELECT c1 || c2, c3, c4 - 100, c5, c6, c9, c10 FROM tbl01 WHERE c4-c5 > c8-c9 GROUP BY 1, 2, 3, 4, 5, 6, 7 ORDER BY 1 ASC, 2 DESC, 3, 4, 5, 6, 7 LIMIT 5;
 psql:sql/limit/limit_orderby.sql:208: WARNING:  GetForeignPlan of child[0] failed.
-psql:sql/limit/limit_orderby.sql:208: ERROR:  PGSpider can not get data from child node : file_svr
+psql:sql/limit/limit_orderby.sql:208: ERROR:  PGSpider can not execute query from child node : file_svr
 --Testcase 97:
 EXPLAIN VERBOSE SELECT c1, c2 || c3 || c7, ceil(c4-c5), abs(c8/c9) FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY 1, 2, 3, 4 ORDER BY 1 DESC, 2, 3, 4 LIMIT 15;
                                                                                           QUERY PLAN                                                                                          
@@ -3106,7 +3106,7 @@ EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GR
 --Testcase 128:
 SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING sum(c4/c5) > c4 LIMIT 5;
 psql:sql/limit/limit_orderby.sql:276: ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:division by zero
+ DETAIL: division by zero
 --Testcase 129:
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c8, c9 HAVING count(c3) < c5 LIMIT 5;
                                                                        QUERY PLAN                                                                        
@@ -4382,7 +4382,7 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3,
 --Testcase 180:
 SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url ORDER BY 1 LIMIT 10 OFFSET 5;
 psql:sql/limit/limit_orderby.sql:384: ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:bigint out of range
+ DETAIL: bigint out of range
 --LIMIT/OFFSET 24
 --Testcase 181:
 EXPLAIN VERBOSE SELECT 1,2, 'wefakef', 2332, ')!@*&<>\\//' FROM tbl01 WHERE c3 IS NOT NULL ORDER BY 1, 2, 3 LIMIT 1 OFFSET 5;
@@ -6170,7 +6170,7 @@ EXPLAIN VERBOSE SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP B
 --Testcase 248:
 SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING sum(c5/c4) != 0 ORDER BY c4, c5, c8, c9, c10, c11;
 psql:sql/limit/limit_orderby.sql:530: ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:division by zero
+ DETAIL: division by zero
 --Testcase 249:
 EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9 HAVING max(c4/c5) > 10 ORDER BY c1, c2, c3, c4, c5, c8, c9;
                                                                       QUERY PLAN                                                                       
@@ -6210,7 +6210,7 @@ EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP
 --Testcase 250:
 SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9 HAVING max(c4/c5) > 10 ORDER BY c1, c2, c3, c4, c5, c8, c9;
 psql:sql/limit/limit_orderby.sql:534: ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:division by zero
+ DETAIL: division by zero
 --Testcase 251:
 EXPLAIN VERBOSE SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING min(c4) < 0 ORDER BY c4, c5, c6, c7, c8, c9, c10, c11;
                                                                                                                QUERY PLAN                                                                                                                

@@ -2,6 +2,7 @@
 SET timezone TO 0;
 SET datestyle TO ISO;
 SET intervalstyle to "postgres";
+DELETE FROM pg_spd_node_info;
 --Testcase 1:
 CREATE EXTENSION IF NOT EXISTS pgspider_core_fdw;
 --Testcase 2:
@@ -545,7 +546,7 @@ EXPLAIN VERBOSE SELECT id, subject, author FROM issues WHERE id = 2445;
 --Testcase 31:
 SELECT id, subject, author FROM issues WHERE id = 2445;
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL:redmine_fdw: 404 Not Found
+ DETAIL: redmine_fdw: 404 Not Found
 --Testcase 32:
 EXPLAIN VERBOSE SELECT tracker, status, priority FROM issues WHERE id >= 441 ORDER BY tracker, status, priority;
                                                   QUERY PLAN                                                  

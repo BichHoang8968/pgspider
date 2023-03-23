@@ -236,7 +236,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 40:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 41:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
  char_length | c1 | char_length | c3 | c4 |  c5  
@@ -522,7 +522,7 @@ ERROR:  No child node support modification.
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
 --Testcase 29:
 INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- DELETE
 --
@@ -862,6 +862,139 @@ ERROR:  RETURNING clause is not supported
 --Testcase 103:
 DELETE FROM tntbl2 RETURNING *;
 ERROR:  RETURNING clause is not supported
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 109:
+DELETE FROM tntbl2;
+--Testcase 110:
+SELECT * FROM tntbl2;
+ _id | c1 | c2 | c3 | c4 | c5 | __spd_url 
+-----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Manual config
+-- batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '6');
+--Testcase 111:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 10) id;
+INFO:  Batch Insert for griddb_fdw, batch size = 6
+--Testcase 112:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+  _id  | c1 | c2  | c3 | c4 |  c5   |  __spd_url   
+-------+----+-----+----+----+-------+--------------
+ 00001 |  1 | foo | t  |  0 |  1000 | /griddb_svr/
+ 00002 |  2 | foo | t  |  0 |  2000 | /griddb_svr/
+ 00003 |  3 | foo | t  |  0 |  3000 | /griddb_svr/
+ 00004 |  4 | foo | t  |  0 |  4000 | /griddb_svr/
+ 00005 |  5 | foo | t  |  0 |  5000 | /griddb_svr/
+ 00006 |  6 | foo | t  |  0 |  6000 | /griddb_svr/
+ 00007 |  7 | foo | t  |  0 |  7000 | /griddb_svr/
+ 00008 |  8 | foo | t  |  0 |  8000 | /griddb_svr/
+ 00009 |  9 | foo | t  |  0 |  9000 | /griddb_svr/
+ 00010 | 10 | foo | t  |  1 | 10000 | /griddb_svr/
+(10 rows)
+
+--Testcase 113:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+-- Set invalid batch_size
+-- batch_size server = 6553501, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6553501');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '10');
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (ADD batch_size '5');
+--Testcase 114:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 20) id;
+INFO:  Batch Insert for griddb_fdw, batch size = 5
+--Testcase 115:
+SELECT count(*) FROM tntbl2;
+ count 
+-------
+    20
+(1 row)
+
+--Testcase 116:
+SELECT count(*) FROM tntbl2__griddb_svr__0;
+ count 
+-------
+    20
+(1 row)
+
+--Testcase 117:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (DROP batch_size);
+-- batch_size server = 6, batch_size table = 6553502, batch_size of FDW not set, insert 120 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6');
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (ADD batch_size '6553502');
+--Testcase 118:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 120) id;
+INFO:  Batch Insert for griddb_fdw, batch size = 65535
+--Testcase 119:
+SELECT count(*) FROM tntbl2;
+ count 
+-------
+   120
+(1 row)
+
+--Testcase 120:
+SELECT count(*) FROM tntbl2__griddb_svr__0;
+ count 
+-------
+   120
+(1 row)
+
+--Testcase 121:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (DROP batch_size);
+-- Auto config
+-- batch_size of FDW = 10, insert 25 records
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '10');
+--Testcase 122:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', false, id/10, id * 1000	FROM generate_series(1, 25) id;
+INFO:  Batch Insert for griddb_fdw, batch size = 10
+--Testcase 123:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+  _id  | c1 | c2  | c3 | c4 |  c5   |  __spd_url   
+-------+----+-----+----+----+-------+--------------
+ 00001 |  1 | foo | f  |  0 |  1000 | /griddb_svr/
+ 00002 |  2 | foo | f  |  0 |  2000 | /griddb_svr/
+ 00003 |  3 | foo | f  |  0 |  3000 | /griddb_svr/
+ 00004 |  4 | foo | f  |  0 |  4000 | /griddb_svr/
+ 00005 |  5 | foo | f  |  0 |  5000 | /griddb_svr/
+ 00006 |  6 | foo | f  |  0 |  6000 | /griddb_svr/
+ 00007 |  7 | foo | f  |  0 |  7000 | /griddb_svr/
+ 00008 |  8 | foo | f  |  0 |  8000 | /griddb_svr/
+ 00009 |  9 | foo | f  |  0 |  9000 | /griddb_svr/
+ 00010 | 10 | foo | f  |  1 | 10000 | /griddb_svr/
+ 00011 | 11 | foo | f  |  1 | 11000 | /griddb_svr/
+ 00012 | 12 | foo | f  |  1 | 12000 | /griddb_svr/
+ 00013 | 13 | foo | f  |  1 | 13000 | /griddb_svr/
+ 00014 | 14 | foo | f  |  1 | 14000 | /griddb_svr/
+ 00015 | 15 | foo | f  |  1 | 15000 | /griddb_svr/
+ 00016 | 16 | foo | f  |  1 | 16000 | /griddb_svr/
+ 00017 | 17 | foo | f  |  1 | 17000 | /griddb_svr/
+ 00018 | 18 | foo | f  |  1 | 18000 | /griddb_svr/
+ 00019 | 19 | foo | f  |  1 | 19000 | /griddb_svr/
+ 00020 | 20 | foo | f  |  2 | 20000 | /griddb_svr/
+ 00021 | 21 | foo | f  |  2 | 21000 | /griddb_svr/
+ 00022 | 22 | foo | f  |  2 | 22000 | /griddb_svr/
+ 00023 | 23 | foo | f  |  2 | 23000 | /griddb_svr/
+ 00024 | 24 | foo | f  |  2 | 24000 | /griddb_svr/
+ 00025 | 25 | foo | f  |  2 | 25000 | /griddb_svr/
+(25 rows)
+
 --Clean
 DELETE FROM tntbl2;
 --Testcase 104:

@@ -157,10 +157,10 @@ SELECT c1, c3, char_length(_id), char_length(c2) FROM tntbl2;
 --
 --Testcase 155:
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('in1', 10, 'tst_in_feature', false, 5.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 156:
 INSERT INTO tntbl2 IN ('/dynamodb_svr/', '/mongo_svr/') VALUES ('in2', 20, 'tst_in_feature', true, 6.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
@@ -264,7 +264,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 167:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 168:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2;
  char_length | c1 | char_length | c3 | c4 |  c5  
@@ -621,7 +621,7 @@ INSERT INTO tntbl2 (_id, c1, c2, c3, c4, c5) VALUES ('121', 29, 'DEFAULT', true,
 INSERT INTO tntbl2 (_id, c1, c2, c3) VALUES ('122', 1, '2', true);
 --Testcase 340:
 INSERT INTO tntbl2 IN ('/griddb_svr/') VALUES ('xin3', 10, 'tst_in_feature', true, 5.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 341:
 SELECT * FROM tntbl2;
              _id             | c1 |             c2              | c3 |  c4  |  c5  |    __spd_url     
@@ -874,7 +874,7 @@ ERROR:  RETURNING clause is not supported
 DELETE FROM tntbl3__jdbc_post_svr__0;
 INSERT INTO tntbl3__jdbc_post_svr__0 VALUES ('jdbc', 10, 10.0, 1000.0, 10000);
 -- SELECT FROM table if there is any record
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
  _id  | c1 | c2 |  c3  |  c4   |    __spd_url    
 ------+----+----+------+-------+-----------------
  jdbc | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
@@ -897,13 +897,13 @@ INSERT INTO tntbl3 VALUES ('test1', DEFAULT, 5.0, 600.0, 1000);
 --Testcase 202:
 INSERT INTO tntbl3 VALUES ('test2', DEFAULT, 7.0);
 --Testcase 203:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
   _id  | c1 | c2 |  c3  |  c4   |    __spd_url    
 -------+----+----+------+-------+-----------------
- jdbc  | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  @     |    |    |      |       | /jdbc_post_svr/
  _3    |    |  3 |      |       | /jdbc_post_svr/
  _4    |    |  5 |      |       | /jdbc_post_svr/
+ jdbc  | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  test1 |    |  5 |  600 |  1000 | /jdbc_post_svr/
  test2 |    |  7 |      |       | /jdbc_post_svr/
 (6 rows)
@@ -932,13 +932,13 @@ ERROR:  INSERT has more expressions than target columns
 LINE 1: ...RT INTO tntbl3 (_id, c1) VALUES ('wrong4',DEFAULT, DEFAULT);
                                                               ^
 --Testcase 208:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
   _id  | c1 | c2 |  c3  |  c4   |    __spd_url    
 -------+----+----+------+-------+-----------------
- jdbc  | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  @     |    |    |      |       | /jdbc_post_svr/
  _3    |    |  3 |      |       | /jdbc_post_svr/
  _4    |    |  5 |      |       | /jdbc_post_svr/
+ jdbc  | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  test1 |    |  5 |  600 |  1000 | /jdbc_post_svr/
  test2 |    |  7 |      |       | /jdbc_post_svr/
 (6 rows)
@@ -950,16 +950,16 @@ SELECT * FROM tntbl3;
 INSERT INTO tntbl3 VALUES('test111', 10, 2.0, 20.0, 2000), ('test222', -1, 2.0, DEFAULT, 3000),
     ((SELECT 'test3'), (SELECT 90), (SELECT i FROM (VALUES(3.0)) as foo (i)), 30.0, 4000);
 --Testcase 210:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
    _id   | c1 | c2 |  c3  |  c4   |    __spd_url    
 ---------+----+----+------+-------+-----------------
- jdbc    | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  @       |    |    |      |       | /jdbc_post_svr/
  _3      |    |  3 |      |       | /jdbc_post_svr/
  _4      |    |  5 |      |       | /jdbc_post_svr/
+ jdbc    | 10 | 10 | 1000 | 10000 | /jdbc_post_svr/
  test1   |    |  5 |  600 |  1000 | /jdbc_post_svr/
- test2   |    |  7 |      |       | /jdbc_post_svr/
  test111 | 10 |  2 |   20 |  2000 | /jdbc_post_svr/
+ test2   |    |  7 |      |       | /jdbc_post_svr/
  test222 | -1 |  2 |      |  3000 | /jdbc_post_svr/
  test3   | 90 |  3 |   30 |  4000 | /jdbc_post_svr/
 (9 rows)
@@ -970,19 +970,19 @@ SELECT * FROM tntbl3;
 --Testcase 211:
 INSERT INTO tntbl3 VALUES(repeat('x', 25), 20, 4.0, 40.0, 5000);
 --Testcase 212:
-SELECT c1, c2, _id FROM tntbl3;
+SELECT c1, c2, _id FROM tntbl3 ORDER BY 1, 2, 3;
  c1 | c2 |            _id            
 ----+----+---------------------------
+ -1 |  2 | test222
+ 10 |  2 | test111
  10 | 10 | jdbc
-    |    | @
+ 20 |  4 | xxxxxxxxxxxxxxxxxxxxxxxxx
+ 90 |  3 | test3
     |  3 | _3
     |  5 | _4
     |  5 | test1
     |  7 | test2
- 10 |  2 | test111
- -1 |  2 | test222
- 90 |  3 | test3
- 20 |  4 | xxxxxxxxxxxxxxxxxxxxxxxxx
+    |    | @
 (10 rows)
 
 --
@@ -990,24 +990,24 @@ SELECT c1, c2, _id FROM tntbl3;
 --
 --Testcase 213:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 214:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
 --Testcase 215:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 |  c3  |  c4   
 ---------------------------+----+----+------+-------
- jdbc                      | 10 | 10 | 1000 | 10000
  @                         |    |    |      |      
  _3                        |    |  3 |      |      
  _4                        |    |  5 |      |      
+ jdbc                      | 10 | 10 | 1000 | 10000
  test1                     |    |  5 |  600 |  1000
- test2                     |    |  7 |      |      
  test111                   | 10 |  2 |   20 |  2000
+ test2                     |    |  7 |      |      
  test222                   | -1 |  2 |      |  3000
  test3                     | 90 |  3 |   30 |  4000
  xxxxxxxxxxxxxxxxxxxxxxxxx | 20 |  4 |   40 |  5000
@@ -1016,16 +1016,16 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3;
 --Testcase 216:
 UPDATE tntbl3 SET c3 = DEFAULT, c4 = DEFAULT;
 --Testcase 217:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
- test2                     |    |  7 |    |   
  test111                   | 10 |  2 |    |   
+ test2                     |    |  7 |    |   
  test222                   | -1 |  2 |    |   
  test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 20 |  4 |    |   
@@ -1035,36 +1035,36 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3;
 --Testcase 218:
 UPDATE tntbl3 AS t SET c1 = 10 WHERE t.c2 = 2.0;
 --Testcase 219:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
+ test111                   | 10 |  2 |    |   
  test2                     |    |  7 |    |   
+ test222                   | 10 |  2 |    |   
  test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 20 |  4 |    |   
- test111                   | 10 |  2 |    |   
- test222                   | 10 |  2 |    |   
 (10 rows)
 
 --Testcase 220:
 UPDATE tntbl3 t SET c1 = t.c1 + 10 WHERE t.c2 = 4.0;
 --Testcase 221:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
- test2                     |    |  7 |    |   
- test3                     | 90 |  3 |    |   
  test111                   | 10 |  2 |    |   
+ test2                     |    |  7 |    |   
  test222                   | 10 |  2 |    |   
+ test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |  4 |    |   
 (10 rows)
 
@@ -1075,18 +1075,18 @@ SELECT _id, c1, c2, c3, c4 FROM tntbl3;
 UPDATE tntbl3 SET c1=v.i FROM (VALUES(100, 5)) AS v(i, j)
   WHERE tntbl3.c1 = v.j;
 --Testcase 223:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
- test2                     |    |  7 |    |   
- test3                     | 90 |  3 |    |   
  test111                   | 10 |  2 |    |   
+ test2                     |    |  7 |    |   
  test222                   | 10 |  2 |    |   
+ test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |  4 |    |   
 (10 rows)
 
@@ -1105,55 +1105,55 @@ HINT:  You will need to rewrite or cast the expression.
 -- Commmented, fail due to oracle_fdw. Not reported yet.
 -- INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
 --Testcase 226:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
- test2                     |    |  7 |    |   
- test3                     | 90 |  3 |    |   
  test111                   | 10 |  2 |    |   
+ test2                     |    |  7 |    |   
  test222                   | 10 |  2 |    |   
+ test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |  4 |    |   
 (10 rows)
 
 --Testcase 227:
 UPDATE tntbl3 SET (c1, c2) = (c1 + 11, DEFAULT) WHERE c2 = 2.0;
 --Testcase 228:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
- jdbc                      | 10 | 10 |    |   
  @                         |    |    |    |   
  _3                        |    |  3 |    |   
  _4                        |    |  5 |    |   
+ jdbc                      | 10 | 10 |    |   
  test1                     |    |  5 |    |   
+ test111                   | 21 |    |    |   
  test2                     |    |  7 |    |   
+ test222                   | 21 |    |    |   
  test3                     | 90 |  3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |  4 |    |   
- test111                   | 21 |    |    |   
- test222                   | 21 |    |    |   
 (10 rows)
 
 --Testcase 229:
 UPDATE tntbl3 SET (c2, c3) = (300, c2 + c3), c1 = c1 + 1 WHERE c1 = 10;
 --Testcase 230:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2  | c3 | c4 
 ---------------------------+----+-----+----+----
  @                         |    |     |    |   
  _3                        |    |   3 |    |   
  _4                        |    |   5 |    |   
+ jdbc                      | 11 | 300 |    |   
  test1                     |    |   5 |    |   
+ test111                   | 21 |     |    |   
  test2                     |    |   7 |    |   
+ test222                   | 21 |     |    |   
  test3                     | 90 |   3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |   4 |    |   
- test111                   | 21 |     |    |   
- test222                   | 21 |     |    |   
- jdbc                      | 11 | 300 |    |   
 (10 rows)
 
 -- fail, multi assignment to same column:
@@ -1166,19 +1166,19 @@ UPDATE tntbl3
   SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 where c1 = 11 and _id = 'car1')
   WHERE c2 = 2.0 AND c3 = 20.0;
 --Testcase 233:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2  | c3 | c4 
 ---------------------------+----+-----+----+----
  @                         |    |     |    |   
  _3                        |    |   3 |    |   
  _4                        |    |   5 |    |   
+ jdbc                      | 11 | 300 |    |   
  test1                     |    |   5 |    |   
+ test111                   | 21 |     |    |   
  test2                     |    |   7 |    |   
+ test222                   | 21 |     |    |   
  test3                     | 90 |   3 |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |   4 |    |   
- test111                   | 21 |     |    |   
- test222                   | 21 |     |    |   
- jdbc                      | 11 | 300 |    |   
 (10 rows)
 
 -- correlated sub-SELECT:
@@ -1187,19 +1187,19 @@ UPDATE tntbl3 o
   SET (c2, c3) = (SELECT c3+1, c2 FROM tntbl3 i
                where i.c3 = o.c3 and i.c2 = o.c2 and i.c1 is not distinct FROM o.c1);
 --Testcase 235:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
  @                         |    |    |    |   
  _3                        |    |    |    |   
  _4                        |    |    |    |   
+ jdbc                      | 11 |    |    |   
  test1                     |    |    |    |   
+ test111                   | 21 |    |    |   
  test2                     |    |    |    |   
+ test222                   | 21 |    |    |   
  test3                     | 90 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |    |    |   
- test111                   | 21 |    |    |   
- test222                   | 21 |    |    |   
- jdbc                      | 11 |    |    |   
 (10 rows)
 
 -- fail, multiple rows supplied:
@@ -1211,19 +1211,19 @@ ERROR:  more than one row returned by a subquery used as an expression
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1, c3 FROM tntbl3 where c4 = 1000)
   WHERE c1 = 11;
 --Testcase 238:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
  @                         |    |    |    |   
  _3                        |    |    |    |   
  _4                        |    |    |    |   
+ jdbc                      | 11 |    |    |   
  test1                     |    |    |    |   
+ test111                   | 21 |    |    |   
  test2                     |    |    |    |   
+ test222                   | 21 |    |    |   
  test3                     | 90 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |    |    |   
- test111                   | 21 |    |    |   
- test222                   | 21 |    |    |   
- jdbc                      | 11 |    |    |   
 (10 rows)
 
 -- *-expansion should work in this context:
@@ -1249,19 +1249,19 @@ HINT:  Perhaps you meant to reference the table alias "t".
 --Testcase 242:
 UPDATE tntbl3 SET _id = repeat('a', 25) WHERE c1 = 11;
 --Testcase 243:
-SELECT c1, c2, _id FROM tntbl3;
+SELECT c1, c2, _id FROM tntbl3 ORDER BY 1, 2, 3;
  c1 | c2 |            _id            
 ----+----+---------------------------
+ 11 |    | aaaaaaaaaaaaaaaaaaaaaaaaa
+ 21 |    | test111
+ 21 |    | test222
+ 30 |    | xxxxxxxxxxxxxxxxxxxxxxxxx
+ 90 |    | test3
     |    | @
     |    | _3
     |    | _4
     |    | test1
     |    | test2
- 90 |    | test3
- 30 |    | xxxxxxxxxxxxxxxxxxxxxxxxx
- 21 |    | test111
- 21 |    | test222
- 11 |    | aaaaaaaaaaaaaaaaaaaaaaaaa
 (10 rows)
 
 -- Check multi-assignment with a Result node to handle a one-time filter.
@@ -1296,19 +1296,19 @@ UPDATE tntbl3 t
   SET (c2, c3) = (SELECT c3, c2 FROM tntbl3 s WHERE s.c2 = t.c2)
   WHERE CURRENT_USER = SESSION_USER;
 --Testcase 246:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
             _id            | c1 | c2 | c3 | c4 
 ---------------------------+----+----+----+----
  @                         |    |    |    |   
  _3                        |    |    |    |   
  _4                        |    |    |    |   
+ aaaaaaaaaaaaaaaaaaaaaaaaa | 11 |    |    |   
  test1                     |    |    |    |   
+ test111                   | 21 |    |    |   
  test2                     |    |    |    |   
+ test222                   | 21 |    |    |   
  test3                     | 90 |    |    |   
  xxxxxxxxxxxxxxxxxxxxxxxxx | 30 |    |    |   
- test111                   | 21 |    |    |   
- test222                   | 21 |    |    |   
- aaaaaaaaaaaaaaaaaaaaaaaaa | 11 |    |    |   
 (10 rows)
 
 --
@@ -1334,25 +1334,25 @@ LINE 1: DELETE FROM tntbl3 dt WHERE tntbl3.c1 > 25;
                                     ^
 HINT:  Perhaps you meant to reference the table alias "dt".
 --Testcase 251:
-SELECT c1, c3, _id FROM tntbl3;
+SELECT c1, c3, _id FROM tntbl3 ORDER BY 1, 2, 3;
  c1 | c3  |            _id            
 ----+-----+---------------------------
+ 11 | 222 | aaaaaaaaaaaaaaaaaaaaaaaaa
+ 21 | 222 | test111
+ 21 | 222 | test222
+ 30 | 222 | xxxxxxxxxxxxxxxxxxxxxxxxx
     | 222 | @
     | 222 | _3
     | 222 | _4
     | 222 | test1
     | 222 | test2
- 30 | 222 | xxxxxxxxxxxxxxxxxxxxxxxxx
- 21 | 222 | test111
- 21 | 222 | test222
- 11 | 222 | aaaaaaaaaaaaaaaaaaaaaaaaa
 (9 rows)
 
 -- delete a row with a TOASTed value
 --Testcase 252:
 DELETE FROM tntbl3 WHERE c1 > 10;
 --Testcase 253:
-SELECT c1, c3, _id FROM tntbl3;
+SELECT c1, c3, _id FROM tntbl3 ORDER BY 1, 2, 3;
  c1 | c3  |  _id  
 ----+-----+-------
     | 222 | @
@@ -1379,33 +1379,33 @@ INSERT INTO tntbl3 (_id, c2, c3) VALUES ('_33', 3.0, DEFAULT);
 --Testcase 350:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
 --Testcase 351:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url    
 ------------+----+----+-----+------+-----------------
  @          |    |    | 222 |      | /jdbc_post_svr/
+ 100        |    |    |     |      | /jdbc_post_svr/
  _3         |    |    | 222 |      | /jdbc_post_svr/
+ _33        |    |  3 |     |      | /jdbc_post_svr/
  _4         |    |    | 222 |      | /jdbc_post_svr/
  test1      |    |    | 222 |      | /jdbc_post_svr/
  test2      |    |    | 222 |      | /jdbc_post_svr/
- 100        |    |    |     |      | /jdbc_post_svr/
- _33        |    |  3 |     |      | /jdbc_post_svr/
  xxxxxxxxxx | 20 |  4 |  40 | 5000 | /jdbc_post_svr/
 (8 rows)
 
 --Testcase 352:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 353:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url    
 ------------+----+----+-----+------+-----------------
  @          |    |    | 222 |      | /jdbc_post_svr/
+ 100        |    |    |     |      | /jdbc_post_svr/
  _3         |    |    | 222 |      | /jdbc_post_svr/
+ _33        |    |  3 |     |      | /jdbc_post_svr/
  _4         |    |    | 222 |      | /jdbc_post_svr/
  test1      |    |    | 222 |      | /jdbc_post_svr/
  test2      |    |    | 222 |      | /jdbc_post_svr/
- 100        |    |    |     |      | /jdbc_post_svr/
- _33        |    |  3 |     |      | /jdbc_post_svr/
  xxxxxxxxxx | 20 |  4 |  40 | 5000 | /jdbc_post_svr/
 (8 rows)
 
@@ -1413,16 +1413,16 @@ SELECT * FROM tntbl3;
 UPDATE tntbl3 SET (c3, c2) = (SELECT c2 + 1 , c3 FROM tntbl3);
 ERROR:  more than one row returned by a subquery used as an expression
 --Testcase 355:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url    
 ------------+----+----+-----+------+-----------------
  @          |    |    | 222 |      | /jdbc_post_svr/
+ 100        |    |    |     |      | /jdbc_post_svr/
  _3         |    |    | 222 |      | /jdbc_post_svr/
+ _33        |    |  3 |     |      | /jdbc_post_svr/
  _4         |    |    | 222 |      | /jdbc_post_svr/
  test1      |    |    | 222 |      | /jdbc_post_svr/
  test2      |    |    | 222 |      | /jdbc_post_svr/
- 100        |    |    |     |      | /jdbc_post_svr/
- _33        |    |  3 |     |      | /jdbc_post_svr/
  xxxxxxxxxx | 20 |  4 |  40 | 5000 | /jdbc_post_svr/
 (8 rows)
 
@@ -1430,48 +1430,48 @@ SELECT * FROM tntbl3;
 UPDATE tntbl3 IN ('/tiny_svr/') SET c3 = 56.0;
 ERROR:  No child node support modification.
 --Testcase 357:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3  |  c4  |    __spd_url    
 ------------+----+----+-----+------+-----------------
  @          |    |    | 222 |      | /jdbc_post_svr/
+ 100        |    |    |     |      | /jdbc_post_svr/
  _3         |    |    | 222 |      | /jdbc_post_svr/
+ _33        |    |  3 |     |      | /jdbc_post_svr/
  _4         |    |    | 222 |      | /jdbc_post_svr/
  test1      |    |    | 222 |      | /jdbc_post_svr/
  test2      |    |    | 222 |      | /jdbc_post_svr/
- 100        |    |    |     |      | /jdbc_post_svr/
- _33        |    |  3 |     |      | /jdbc_post_svr/
  xxxxxxxxxx | 20 |  4 |  40 | 5000 | /jdbc_post_svr/
 (8 rows)
 
 --Testcase 358:
 DELETE FROM tntbl3 WHERE c1 > 10;
 --Testcase 359:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
   _id  | c1 | c2 | c3  | c4 |    __spd_url    
 -------+----+----+-----+----+-----------------
  @     |    |    | 222 |    | /jdbc_post_svr/
+ 100   |    |    |     |    | /jdbc_post_svr/
  _3    |    |    | 222 |    | /jdbc_post_svr/
+ _33   |    |  3 |     |    | /jdbc_post_svr/
  _4    |    |    | 222 |    | /jdbc_post_svr/
  test1 |    |    | 222 |    | /jdbc_post_svr/
  test2 |    |    | 222 |    | /jdbc_post_svr/
- 100   |    |    |     |    | /jdbc_post_svr/
- _33   |    |  3 |     |    | /jdbc_post_svr/
 (7 rows)
 
 --Testcase 360:
 DELETE FROM tntbl3 IN ('/mongo_svr/') WHERE c3 = 56.0;
 ERROR:  No child node support modification.
 --Testcase 361:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
   _id  | c1 | c2 | c3  | c4 |    __spd_url    
 -------+----+----+-----+----+-----------------
  @     |    |    | 222 |    | /jdbc_post_svr/
+ 100   |    |    |     |    | /jdbc_post_svr/
  _3    |    |    | 222 |    | /jdbc_post_svr/
+ _33   |    |  3 |     |    | /jdbc_post_svr/
  _4    |    |    | 222 |    | /jdbc_post_svr/
  test1 |    |    | 222 |    | /jdbc_post_svr/
  test2 |    |    | 222 |    | /jdbc_post_svr/
- 100   |    |    |     |    | /jdbc_post_svr/
- _33   |    |  3 |     |    | /jdbc_post_svr/
 (7 rows)
 
 -- Reset value of disable_transaction_feature_check
@@ -1487,11 +1487,11 @@ DELETE FROM tntbl3 WHERE __spd_url = '/mongo_svr/';
 DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 364:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES ('foo', 30, 5.0, 50.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 365:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 366:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
  _id | c1 | c2 | c3 | c4 | __spd_url 
 -----+----+----+----+----+-----------
 (0 rows)
@@ -1499,7 +1499,7 @@ SELECT * FROM tntbl3;
 --Testcase 367:
 UPDATE tntbl3 SET _id = _id || '@' WHERE __spd_url = '/postgres_svr/';
 --Testcase 368:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
  _id | c1 | c2 | c3 | c4 | __spd_url 
 -----+----+----+----+----+-----------
 (0 rows)
@@ -1507,9 +1507,9 @@ SELECT * FROM tntbl3;
 --Testcase 369:
 DELETE FROM tntbl3;
 --Testcase 370:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 371:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
  _id | c1 | c2 | c3 | c4 | __spd_url 
 -----+----+----+----+----+-----------
 (0 rows)
@@ -1525,9 +1525,9 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 374:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/postgres_svr/');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 375:
-SELECT * FROM tntbl3;
+SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3 |  c4  |    __spd_url    
 ------------+----+----+----+------+-----------------
  xxxxxxxxxx | 20 |  4 | 40 | 5000 | /jdbc_post_svr/
@@ -1596,11 +1596,11 @@ ERROR:  WITH CHECK clause is not supported
 INSERT INTO rw_view(_id, c2, c3) VALUES ('id2', 5, 3000); -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 430:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3 |  c4  
 ------------+----+----+----+------
- xxxxxxxxxx | 20 |  4 | 40 | 5000
  key$       | 12 |    |    |     
+ xxxxxxxxxx | 20 |  4 | 40 | 5000
 (2 rows)
 
 --Testcase 431:
@@ -1618,11 +1618,11 @@ ERROR:  WITH CHECK clause is not supported
 UPDATE rw_view SET c2 = c2 + 15; -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 435:
-SELECT _id, c1, c2, c3, c4 FROM tntbl3;
+SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY 1, 2, 3;
     _id     | c1 | c2 | c3 |  c4  
 ------------+----+----+----+------
- xxxxxxxxxx | 20 |  4 | 40 | 5000
  key$       | 12 |    |    |     
+ xxxxxxxxxx | 20 |  4 | 40 | 5000
 (2 rows)
 
 --Testcase 436:
@@ -1646,6 +1646,80 @@ ERROR:  RETURNING clause is not supported
 DELETE FROM tntbl3 RETURNING *;
 ERROR:  RETURNING clause is not supported
 -- *** Finish test for tntbl3 *** --
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 442:
+DELETE FROM tntbl2;
+--Testcase 443:
+SELECT * FROM tntbl2;
+ _id | c1 | c2 | c3 | c4 | c5 | __spd_url 
+-----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+-- jdbc_fdw not support batch_size
+--Testcase 444:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 445:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 10) id;
+--Testcase 446:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+  _id  | c1 | c2  | c3 | c4 |  c5   |    __spd_url     
+-------+----+-----+----+----+-------+------------------
+ 00001 |  1 | foo | t  |  0 |  1000 | /jdbc_mysql_svr/
+ 00002 |  2 | foo | t  |  0 |  2000 | /jdbc_mysql_svr/
+ 00003 |  3 | foo | t  |  0 |  3000 | /jdbc_mysql_svr/
+ 00004 |  4 | foo | t  |  0 |  4000 | /jdbc_mysql_svr/
+ 00005 |  5 | foo | t  |  0 |  5000 | /jdbc_mysql_svr/
+ 00006 |  6 | foo | t  |  0 |  6000 | /jdbc_mysql_svr/
+ 00007 |  7 | foo | t  |  0 |  7000 | /jdbc_mysql_svr/
+ 00008 |  8 | foo | t  |  0 |  8000 | /jdbc_mysql_svr/
+ 00009 |  9 | foo | t  |  0 |  9000 | /jdbc_mysql_svr/
+ 00010 | 10 | foo | t  |  1 | 10000 | /jdbc_mysql_svr/
+(10 rows)
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl2;
+--Testcase 447:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 448:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 449:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+  _id  | c1 | c2  | c3 | c4 |  c5   |    __spd_url     
+-------+----+-----+----+----+-------+------------------
+ 00001 |  1 | foo | t  |  0 |  1000 | /jdbc_mysql_svr/
+ 00002 |  2 | foo | t  |  0 |  2000 | /jdbc_mysql_svr/
+ 00003 |  3 | foo | t  |  0 |  3000 | /jdbc_mysql_svr/
+ 00004 |  4 | foo | t  |  0 |  4000 | /jdbc_mysql_svr/
+ 00005 |  5 | foo | t  |  0 |  5000 | /jdbc_mysql_svr/
+ 00006 |  6 | foo | t  |  0 |  6000 | /jdbc_mysql_svr/
+ 00007 |  7 | foo | t  |  0 |  7000 | /jdbc_mysql_svr/
+ 00008 |  8 | foo | t  |  0 |  8000 | /jdbc_mysql_svr/
+ 00009 |  9 | foo | t  |  0 |  9000 | /jdbc_mysql_svr/
+ 00010 | 10 | foo | t  |  1 | 10000 | /jdbc_mysql_svr/
+ 00011 | 11 | foo | t  |  1 | 11000 | /jdbc_mysql_svr/
+ 00012 | 12 | foo | t  |  1 | 12000 | /jdbc_mysql_svr/
+ 00013 | 13 | foo | t  |  1 | 13000 | /jdbc_mysql_svr/
+ 00014 | 14 | foo | t  |  1 | 14000 | /jdbc_mysql_svr/
+ 00015 | 15 | foo | t  |  1 | 15000 | /jdbc_mysql_svr/
+ 00016 | 16 | foo | t  |  1 | 16000 | /jdbc_mysql_svr/
+ 00017 | 17 | foo | t  |  1 | 17000 | /jdbc_mysql_svr/
+ 00018 | 18 | foo | t  |  1 | 18000 | /jdbc_mysql_svr/
+ 00019 | 19 | foo | t  |  1 | 19000 | /jdbc_mysql_svr/
+ 00020 | 20 | foo | t  |  2 | 20000 | /jdbc_mysql_svr/
+ 00021 | 21 | foo | t  |  2 | 21000 | /jdbc_mysql_svr/
+ 00022 | 22 | foo | t  |  2 | 22000 | /jdbc_mysql_svr/
+ 00023 | 23 | foo | t  |  2 | 23000 | /jdbc_mysql_svr/
+ 00024 | 24 | foo | t  |  2 | 24000 | /jdbc_mysql_svr/
+ 00025 | 25 | foo | t  |  2 | 25000 | /jdbc_mysql_svr/
+(25 rows)
+
 --Clean
 --Testcase 110:
 DELETE FROM tntbl2;

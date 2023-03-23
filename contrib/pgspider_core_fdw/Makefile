@@ -17,7 +17,7 @@ endif
 EXTENSION = pgspider_core_fdw
 DATA = pgspider_core_fdw--1.0.sql
 
-REGRESS = pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2 pd_stored
+REGRESS = pgspider_core_fdw tenantcmd/multi_tenant_command tenantcmd/ported_multi_tenant_pgspider_core_fdw ported_import_s3 ported_parquet_s3_fdw ported_parquet_s3_fdw2 pd_stored
 
 EXTRA_INSTALL = contrib/pgspider_keepalive
 

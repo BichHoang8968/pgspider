@@ -121,7 +121,7 @@ UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 
@@ -346,8 +346,10 @@ DROP FOREIGN TABLE tntbl1 CASCADE;
 --Testcase 111:
 DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
 --Testcase 112:
-DROP EXTENSION pgspider_fdw CASCADE;
+DROP USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
 --Testcase 113:
-DROP SERVER pgspider_core_svr CASCADE;
+DROP EXTENSION pgspider_fdw CASCADE;
 --Testcase 114:
+DROP SERVER pgspider_core_svr CASCADE;
+--Testcase 115:
 DROP EXTENSION pgspider_core_fdw CASCADE;

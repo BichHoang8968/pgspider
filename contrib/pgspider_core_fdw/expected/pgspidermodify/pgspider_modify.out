@@ -43,7 +43,7 @@ CREATE SERVER postgres_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host :POST
 --Testcase 19:
 CREATE USER mapping for public SERVER postgres_svr OPTIONS(user :POSTGRES_USER, password :POSTGRES_PASS);
 --Testcase 20:
-CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL_SERVER, port :MYSQL_PORT);
+CREATE SERVER mysql_svr FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host :MYSQL1_SERVER, port :MYSQL_PORT);
 --Testcase 21:
 CREATE USER mapping for public SERVER mysql_svr OPTIONS(username :MYSQL_USER, password :MYSQL_PASS);
 --Testcase 22:
@@ -53,17 +53,17 @@ CREATE USER mapping for public SERVER tiny_svr OPTIONS(username :TINYBRACE_USER,
 --Testcase 24:
 CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
 --Testcase 25:
-CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+CREATE USER MAPPING FOR public SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
 --Testcase 26:
 CREATE SERVER sqlite_svr FOREIGN DATA WRAPPER sqlite_fdw OPTIONS (database '/tmp/pgmodifytest.db');
 -- tntbl2: odbc_post_svr, jdbc_mysql_svr, griddb_svr, mongo_svr, dynamodb_svr
 -- key: _id
 --Testcase 27:
-CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_mysql_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_MYSQL_DRIVERNAME, odbc_SERVER :ODBC_MYSQL_SERVER, odbc_port :ODBC_MYSQL_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 28:
 CREATE USER mapping for public SERVER odbc_mysql_svr OPTIONS(odbc_UID :ODBC_MYSQL_USER, odbc_PWD :ODBC_MYSQL_PASS);
 --Testcase 29:
-CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
+CREATE SERVER odbc_post_svr FOREIGN DATA WRAPPER odbc_fdw OPTIONS (odbc_DRIVER :ODBC_POSTGRES_DRIVERNAME, odbc_SERVER :ODBC_POSTGRES_SERVER, odbc_port :ODBC_POSTGRES_PORT, odbc_DATABASE :ODBC_DATABASE);
 --Testcase 30:
 CREATE USER mapping for public SERVER odbc_post_svr OPTIONS(odbc_UID :ODBC_POSTGRES_USER, odbc_PWD :ODBC_POSTGRES_PASS);
 --Testcase 31:
@@ -357,7 +357,7 @@ SELECT c1, c2, c3, c4, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 -- INSERT with IN feature
 --
 --Testcase 97:
-INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne'); 
+INSERT INTO tntbl1 IN ('/postgres_svr/') VALUES (-10, 20, 82.21, 213.12, 9565, '2003-10-19 10:23:54', '1971-01-01 00:00:01+07', 'One', 'OneOne');
 --Testcase 98:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (650, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
 --
@@ -1092,7 +1092,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 167:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 168:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
  char_length | c1 | char_length | c3 | c4 |  c5   
@@ -1108,15 +1108,15 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            4 |    |           4 | f  |    |      
            5 | 11 |          17 |    |    |      
            6 | -1 |           4 | t  |    |      
+           6 |  2 |          11 |    |    |      
            6 | 10 |           3 | f  |    |  5000
-           6 |    |           6 |    |    |      
            8 |  0 |           6 |    |    |      
            8 | 11 |           5 |    |    |      
           24 |  2 |           7 | f  |    |  2000
-          24 |  2 |          11 |    |    |      
           24 | 10 |           3 | t  |    |  1000
           24 | 30 |          25 | t  |    |  2000
           24 |    |           4 | t  |    |  4000
+          24 |    |           6 |    |    |      
           24 |    |           6 |    |    |      
           26 |  3 |           9 |    |    |      
           26 | 11 |           5 |    |    |      
@@ -1141,15 +1141,15 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            4 |    |           4 | f  |    |      
            5 | 11 |          17 |    |    |      
            6 | -1 |           4 | t  |    |      
+           6 |  2 |          11 |    |    |      
            6 | 10 |           3 | f  |    |  5000
-           6 |    |           6 |    |    |      
            8 |  0 |           6 |    |    |      
            8 | 11 |           5 |    |    |      
           24 |  2 |           7 | f  |    |  2000
-          24 |  2 |          11 |    |    |      
           24 | 10 |           3 | t  |    |  1000
           24 | 30 |          25 | t  |    |  2000
           24 |    |           4 | t  |    |  4000
+          24 |    |           6 |    |    |      
           24 |    |           6 |    |    |      
           26 |  3 |           9 |    |    |      
           26 | 11 |           5 |    |    |      
@@ -1173,15 +1173,15 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            4 |      |           4 | f  |    |      
            5 |   11 |          17 |    |    |      
            6 |   -1 |           4 | t  |    |      
+           6 |    2 |          11 |    |    |      
            6 | 5010 |           3 | f  |    |  5000
-           6 |      |           6 |    |    |      
            8 |    0 |           6 |    |    |      
            8 |   11 |           5 |    |    |      
           24 |    2 |           7 | f  |    |  2000
-          24 |    2 |          11 |    |    |      
           24 |   30 |          25 | t  |    |  2000
           24 | 1010 |           3 | t  |    |  1000
           24 |      |           4 | t  |    |  4000
+          24 |      |           6 |    |    |      
           24 |      |           6 |    |    |      
           26 |    3 |           9 |    |    |      
           26 |   11 |           5 |    |    |      
@@ -1212,15 +1212,15 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            4 |      |           4 | f  |    |      
            5 |   11 |          17 |    |    |      
            6 |   -1 |           4 | t  |    |      
+           6 |    2 |          11 |    |    |      
            6 | 5010 |           3 | f  |    |  5000
-           6 |      |           6 |    |    |      
            8 |    0 |           6 |    |    |      
            8 |   11 |           5 |    |    |      
           24 |    2 |           7 | f  |    |  2000
-          24 |    2 |          11 |    |    |      
           24 |   30 |          25 | t  |    |  2000
           24 | 1010 |           3 | f  |    |  1000
           24 |      |           4 | t  |    |  4000
+          24 |      |           6 |    |    |      
           24 |      |           6 |    |    |      
           26 |    3 |           9 |    |    |      
           26 |   11 |           5 |    |    |      
@@ -1248,7 +1248,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            5 |      |          17 |    |    |     
            6 |      |           3 | f  |    |     
            6 |      |           4 | t  |    |     
-           6 |      |           6 |    |    |     
+           6 |      |          11 |    |    |     
            8 |      |           5 |    |    |     
            8 |      |           6 |    |    |     
           24 | 1000 |           3 | f  |    | 1011
@@ -1256,7 +1256,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
           24 | 2000 |          25 | t  |    |   31
           24 |      |           4 | t  |    |     
           24 |      |           6 |    |    |     
-          24 |      |          11 |    |    |     
+          24 |      |           6 |    |    |     
           26 |      |           5 |    |    |     
           26 |      |           9 |    |    |     
           26 |      |          27 |    |    |     
@@ -1286,7 +1286,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            5 |      |          17 |    |    |     
            6 |      |           3 | f  |    |     
            6 |      |           4 | t  |    |     
-           6 |      |           6 |    |    |     
+           6 |      |          11 |    |    |     
            8 |      |           5 |    |    |     
            8 |      |           6 |    |    |     
           24 | 1000 |           3 | f  |    | 1011
@@ -1294,7 +1294,7 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
           24 | 2000 |          25 | t  |    |   31
           24 |      |           4 | t  |    |     
           24 |      |           6 |    |    |     
-          24 |      |          11 |    |    |     
+          24 |      |           6 |    |    |     
           26 |      |           5 |    |    |     
           26 |      |           9 |    |    |     
           26 |      |          27 |    |    |     
@@ -1336,12 +1336,12 @@ SELECT c1, char_length(c2), char_length(_id) FROM tntbl2 ORDER BY 1, 2, 3;
       |           4 |          24
       |           5 |           8
       |           5 |          26
-      |           6 |           6
       |           6 |           8
+      |           6 |          24
       |           6 |          24
       |           9 |           4
       |           9 |          26
-      |          11 |          24
+      |          11 |           6
       |          17 |           5
       |          25 |           3
       |          25 |           6
@@ -1483,14 +1483,14 @@ SELECT char_length(_id), c1, char_length(c2) FROM tntbl2 ORDER BY 1, 2, 3;
            4 |    |           9
            5 |    |          17
            6 |    |           4
-           6 |    |           6
+           6 |    |          11
            6 |    |          25
            8 |    |           5
            8 |    |           6
           24 | 20 |          14
           24 |    |           4
           24 |    |           6
-          24 |    |          11
+          24 |    |           6
           26 |    |           5
           26 |    |           9
           26 |    |          27
@@ -2229,7 +2229,7 @@ INSERT INTO tntbl4 IN ('/postgres_svr/', '/postgres_svr_2/') VALUES (13, '_infea
 -- UPDATE
 --
 --Testcase 273:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   |                                                                                                                               c6                                                                                                                                |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             | t  |   4 |  4000 | value 2                                                                                                                                                                                                                                                         |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2250,7 +2250,7 @@ SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14,
 --Testcase 274:
 UPDATE tntbl4 SET c3 = DEFAULT, c6 = DEFAULT;
 --Testcase 275:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             |    |   4 |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2272,7 +2272,7 @@ SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14,
 --Testcase 276:
 UPDATE tntbl4 AS t SET c5 = 10000 WHERE t.c1 = 20;
 --Testcase 277:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             |    |   4 |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2293,7 +2293,7 @@ SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14,
 --Testcase 278:
 UPDATE tntbl4 t SET c5 = t.c5 + 10 WHERE t.c1 = 20;
 --Testcase 279:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             |    |   4 |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2318,7 +2318,7 @@ SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14,
 UPDATE tntbl4 SET c1 = v.i FROM (VALUES(100, 2000)) AS v(i, j)
   WHERE tntbl4.c5 = v.j;
 --Testcase 281:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1  | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 -----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
   -1 |             |    |   4 |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2348,7 +2348,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 283:
-INSERT INTO tntbl4 SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ;
+INSERT INTO tntbl4 (SELECT c1 + 10, c2 || 'next', c3 != true FROM tntbl4 ORDER BY 1, 2, 3);
 --Testcase 284:
 SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1  | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
@@ -2459,7 +2459,7 @@ UPDATE tntbl4
   SET (c9, c1) = (SELECT c1, c9 FROM tntbl4 where c1 = 40 and c2 = 'car')
   WHERE c5 = 1000 AND c4 = 2.0;
 --Testcase 291:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1  | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 -----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
   -1 |             |    |   4 |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2496,7 +2496,7 @@ UPDATE tntbl4 o
   SET (c9, c4) = (SELECT c9+1, c4 FROM tntbl4 i
                where i.c9=o.c9 and i.c4=o.c4 and i.c1 is not distinct FROM o.c1);
 --Testcase 293:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1  | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 -----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
   -1 |             |    |     |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2536,7 +2536,7 @@ ERROR:  more than one row returned by a subquery used as an expression
 UPDATE tntbl4 SET (c1, c9) = (SELECT c9 + 1, c1 FROM tntbl4 where c5 = 2000)
   WHERE c9 = 127;
 --Testcase 296:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1  | char_length | c3 | c4  |  c5   | c6 |      c7       | c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 -----+-------------+----+-----+-------+----+---------------+-----+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
   -1 |             |    |     |  4000 |    |               |     |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -2828,7 +2828,7 @@ ERROR:  No child node support modification.
 ALTER FOREIGN TABLE tntbl1 OPTIONS (disable_transaction_feature_check 'false');
 --Testcase 323:
 INSERT INTO tntbl1 VALUES (200, 70, 2.0, 200.0, 3000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', DEFAULT, 'abc', 'foo');
-ERROR:  Failed t parse URL 'foo' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'foo'. The first character should be '/'.
 --Testcase 324:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 |  c5   | c6 |           c7           |                                                                                                                               c8                                                                                                                                |      c9       |   __spd_url    
@@ -2843,7 +2843,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 --Testcase 325:
 INSERT INTO tntbl1 VALUES (100, 20, 3.0, 300.0, 4000, '2037-01-19 03:14:07', '2004-10-19 10:23:54+02', interval '2 months ago', '40', 'abc'), (-100, 30, DEFAULT, DEFAULT, 2000, '2004-10-19 10:23:54', '1972-01-01 00:00:00+07', interval '1 year 3 hours 20 minutes', 'Beera', 'John Does'),
     ((SELECT 300), (SELECT i FROM (VALUES(3)) as foo (i)), 400.212, 200.0, 5000, '2007-10-19 10:23:54', '2007-10-19 10:23:54+02', interval '1 year 2 months 3 days', 'VALUES are fun!', 'foo');
-ERROR:  Failed t parse URL 'abc' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'abc'. The first character should be '/'.
 --Testcase 326:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 |  c5   | c6 |           c7           |                                                                                                                               c8                                                                                                                                |      c9       |   __spd_url    
@@ -2857,7 +2857,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 
 --Testcase 327:
 INSERT INTO tntbl1 VALUES (900, 80, 6.0, 400.03, 6000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', interval '1 months ago', repeat('x', 10), repeat('a', 20));
-ERROR:  Failed t parse URL 'aaaaaaaaaaaaaaaaaaaa' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'aaaaaaaaaaaaaaaaaaaa'. The first character should be '/'.
 --Testcase 328:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 |  c5   | c6 |           c7           |                                                                                                                               c8                                                                                                                                |      c9       |   __spd_url    
@@ -2945,24 +2945,24 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
  20 | tst_in_feature              | t  |          6 | 6000 | /mongo_svr/
  29 | DEFAULT                     | t  |          4 | 4000 | /odbc_post_svr/
     | 3q                          |    |       22.2 |      | /jdbc_mysql_svr/
-    | 3q@@                        |    |            |      | /griddb_svr/
-    | foo@@                       |    |       22.2 |      | /jdbc_mysql_svr/
+    | 3q@@                        |    | 56563.1212 |      | /dynamodb_svr/
     | foo@@                       |    |       22.2 |      | /odbc_post_svr/
+    | foo@@                       |    |            |      | /griddb_svr/
     | foo1                        | t  |            |      | /griddb_svr/
     | foo1@@                      |    | 56563.1212 |      | /dynamodb_svr/
     | odbc text                   | t  |       22.2 |      | /odbc_post_svr/
-    | odbc text@@                 |    |            |      | /mongo_svr/
+    | odbc text@@                 |    |            |      | /griddb_svr/
     | test                        | f  |       22.2 |      | /odbc_post_svr/
     | test                        | t  |            |      | /mongo_svr/
-    | test@@                      |    |       22.2 |      | /odbc_post_svr/
     | test@@                      |    |            |      | /mongo_svr/
-    | VALUES are fun!@@           |    |            |      | /griddb_svr/
+    | test@@                      |    |            |      | /mongo_svr/
+    | VALUES are fun!@@           |    | 56563.1212 |      | /dynamodb_svr/
     | varchar@@                   |    |       22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  |       22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 56563.1212 |      | /dynamodb_svr/
-    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 56563.1212 |      | /dynamodb_svr/
+    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    |       22.2 |      | /odbc_post_svr/
+    |                             |    |       22.2 |      | /jdbc_mysql_svr/
     |                             |    |       22.2 |      | /odbc_post_svr/
-    |                             |    | 56563.1212 |      | /dynamodb_svr/
     |                             |    | 56563.1212 |      | /dynamodb_svr/
     |                             |    |            |      | /griddb_svr/
 (26 rows)
@@ -2979,24 +2979,24 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
  20 | tst_in_feature              | t  |    6 | 6000 | /mongo_svr/
  29 | DEFAULT                     | t  |    4 | 4000 | /odbc_post_svr/
     | 3q                          |    | 22.2 |      | /jdbc_mysql_svr/
-    | 3q@@                        |    |      |      | /griddb_svr/
-    | foo@@                       |    | 22.2 |      | /jdbc_mysql_svr/
+    | 3q@@                        |    | 7000 |      | /dynamodb_svr/
     | foo@@                       |    | 22.2 |      | /odbc_post_svr/
+    | foo@@                       |    |      |      | /griddb_svr/
     | foo1                        | t  |      |      | /griddb_svr/
     | foo1@@                      |    | 7000 |      | /dynamodb_svr/
     | odbc text                   | t  | 22.2 |      | /odbc_post_svr/
-    | odbc text@@                 |    |      |      | /mongo_svr/
+    | odbc text@@                 |    |      |      | /griddb_svr/
     | test                        | f  | 22.2 |      | /odbc_post_svr/
     | test                        | t  |      |      | /mongo_svr/
-    | test@@                      |    | 22.2 |      | /odbc_post_svr/
     | test@@                      |    |      |      | /mongo_svr/
-    | VALUES are fun!@@           |    |      |      | /griddb_svr/
+    | test@@                      |    |      |      | /mongo_svr/
+    | VALUES are fun!@@           |    | 7000 |      | /dynamodb_svr/
     | varchar@@                   |    | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 7000 |      | /dynamodb_svr/
-    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 7000 |      | /dynamodb_svr/
+    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 22.2 |      | /odbc_post_svr/
+    |                             |    | 22.2 |      | /jdbc_mysql_svr/
     |                             |    | 22.2 |      | /odbc_post_svr/
-    |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    |      |      | /griddb_svr/
 (26 rows)
@@ -3012,24 +3012,24 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
  20 | tst_in_feature              | t  |    6 | 6000 | /mongo_svr/
  29 | DEFAULT                     | t  |    4 | 4000 | /odbc_post_svr/
     | 3q                          |    | 22.2 |      | /jdbc_mysql_svr/
-    | 3q@@                        |    |      |      | /griddb_svr/
-    | foo@@                       |    | 22.2 |      | /jdbc_mysql_svr/
+    | 3q@@                        |    | 7000 |      | /dynamodb_svr/
     | foo@@                       |    | 22.2 |      | /odbc_post_svr/
+    | foo@@                       |    |      |      | /griddb_svr/
     | foo1                        | t  |      |      | /griddb_svr/
     | foo1@@                      |    | 7000 |      | /dynamodb_svr/
     | odbc text                   | t  | 22.2 |      | /odbc_post_svr/
-    | odbc text@@                 |    |      |      | /mongo_svr/
+    | odbc text@@                 |    |      |      | /griddb_svr/
     | test                        | f  | 22.2 |      | /odbc_post_svr/
     | test                        | t  |      |      | /mongo_svr/
-    | test@@                      |    | 22.2 |      | /odbc_post_svr/
     | test@@                      |    |      |      | /mongo_svr/
-    | VALUES are fun!@@           |    |      |      | /griddb_svr/
+    | test@@                      |    |      |      | /mongo_svr/
+    | VALUES are fun!@@           |    | 7000 |      | /dynamodb_svr/
     | varchar@@                   |    | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 7000 |      | /dynamodb_svr/
-    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 7000 |      | /dynamodb_svr/
+    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 22.2 |      | /odbc_post_svr/
+    |                             |    | 22.2 |      | /jdbc_mysql_svr/
     |                             |    | 22.2 |      | /odbc_post_svr/
-    |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    |      |      | /griddb_svr/
 (25 rows)
@@ -3045,24 +3045,24 @@ SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1, 2, 3, 4, 5, 6;
  20 | tst_in_feature              | t  |    6 | 6000 | /mongo_svr/
  29 | DEFAULT                     | t  |    4 | 4000 | /odbc_post_svr/
     | 3q                          |    | 22.2 |      | /jdbc_mysql_svr/
-    | 3q@@                        |    |      |      | /griddb_svr/
-    | foo@@                       |    | 22.2 |      | /jdbc_mysql_svr/
+    | 3q@@                        |    | 7000 |      | /dynamodb_svr/
     | foo@@                       |    | 22.2 |      | /odbc_post_svr/
+    | foo@@                       |    |      |      | /griddb_svr/
     | foo1                        | t  |      |      | /griddb_svr/
     | foo1@@                      |    | 7000 |      | /dynamodb_svr/
     | odbc text                   | t  | 22.2 |      | /odbc_post_svr/
-    | odbc text@@                 |    |      |      | /mongo_svr/
+    | odbc text@@                 |    |      |      | /griddb_svr/
     | test                        | f  | 22.2 |      | /odbc_post_svr/
     | test                        | t  |      |      | /mongo_svr/
-    | test@@                      |    | 22.2 |      | /odbc_post_svr/
     | test@@                      |    |      |      | /mongo_svr/
-    | VALUES are fun!@@           |    |      |      | /griddb_svr/
+    | test@@                      |    |      |      | /mongo_svr/
+    | VALUES are fun!@@           |    | 7000 |      | /dynamodb_svr/
     | varchar@@                   |    | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 22.2 |      | /jdbc_mysql_svr/
     | xxxxxxxxxxxxxxxxxxxxxxxxx   | f  | 7000 |      | /dynamodb_svr/
-    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 7000 |      | /dynamodb_svr/
+    | xxxxxxxxxxxxxxxxxxxxxxxxx@@ |    | 22.2 |      | /odbc_post_svr/
+    |                             |    | 22.2 |      | /jdbc_mysql_svr/
     |                             |    | 22.2 |      | /odbc_post_svr/
-    |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    | 7000 |      | /dynamodb_svr/
     |                             |    |      |      | /griddb_svr/
 (25 rows)
@@ -3222,8 +3222,9 @@ DELETE FROM tntbl3 WHERE __spd_url IS NOT NULL;
 --Testcase 364:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES ('foo', 30, 5.0, 50.0, 6000);
 --Testcase 365:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
-ERROR:  dynamodb_fdw: failed to execute remote SQL: Duplicate primary key exists in table 
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
+ERROR:  Error occurred on a child table "tntbl3__dynamodb_svr__0".
+DETAIL:  dynamodb_fdw: failed to execute remote SQL: Duplicate primary key exists in table 
    sql=INSERT INTO tntbl3 VALUE {'_id' : ?, 'c1' : ?, 'c2' : ?, 'c3' : ?, 'c4' : ?};
 --Testcase 366:
 SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
@@ -3242,7 +3243,7 @@ SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 369:
 DELETE FROM tntbl3;
 --Testcase 370:
-INSERT INTO tntbl3 SELECT * FROM tntbl3 ORDER BY 1, 2, 3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 371:
 SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
  c1 | c2 | c3 | c4 | __spd_url 
@@ -3467,26 +3468,26 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            3 | 10 |          14 | f  |    5 | 5000
            3 | 12 |             |    |      |     
            3 | 29 |           7 | t  |    4 | 4000
-           3 |    |           4 |    |      |     
+           3 |    |           4 |    | 7000 |     
            3 |    |          25 | f  | 22.2 |     
            3 |    |             |    | 22.2 |     
-           3 |    |             |    | 7000 |     
+           3 |    |             |    | 22.2 |     
            4 | 10 |          14 | t  |    5 | 5000
            4 |    |           4 | f  | 22.2 |     
            4 |    |           9 | t  | 22.2 |     
-           5 |    |          17 |    |      |     
+           5 |    |          17 |    | 7000 |     
            6 |    |           4 | t  |      |     
-           6 |    |           6 |    | 22.2 |     
+           6 |    |          11 |    |      |     
            6 |    |          25 | f  | 7000 |     
            8 |    |           5 |    | 22.2 |     
            8 |    |           6 |    | 7000 |     
           24 | 20 |          14 | t  |    6 | 6000
           24 |    |           4 | t  |      |     
           24 |    |           6 |    |      |     
-          24 |    |          11 |    |      |     
-          26 |    |           5 |    | 22.2 |     
+          24 |    |           6 |    |      |     
+          26 |    |           5 |    |      |     
           26 |    |           9 |    | 22.2 |     
-          26 |    |          27 |    | 7000 |     
+          26 |    |          27 |    | 22.2 |     
 (26 rows)
 
 --Testcase 409:
@@ -3513,26 +3514,26 @@ SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1,
            3 | 10 |          14 | f  |    5 | 5000
            3 | 12 |             |    |      |     
            3 | 29 |           7 | t  |    4 | 4000
-           3 |    |           4 |    |      |     
+           3 |    |           4 |    | 7000 |     
            3 |    |          25 | f  | 22.2 |     
            3 |    |             |    | 22.2 |     
-           3 |    |             |    | 7000 |     
+           3 |    |             |    | 22.2 |     
            4 | 10 |          14 | t  |    5 | 5000
            4 |    |           4 | f  | 22.2 |     
            4 |    |           9 | t  | 22.2 |     
-           5 |    |          17 |    |      |     
+           5 |    |          17 |    | 7000 |     
            6 |    |           4 | t  |      |     
-           6 |    |           6 |    | 22.2 |     
+           6 |    |          11 |    |      |     
            6 |    |          25 | f  | 7000 |     
            8 |    |           5 |    | 22.2 |     
            8 |    |           6 |    | 7000 |     
           24 | 20 |          14 | t  |    6 | 6000
           24 |    |           4 | t  |      |     
           24 |    |           6 |    |      |     
-          24 |    |          11 |    |      |     
-          26 |    |           5 |    | 22.2 |     
+          24 |    |           6 |    |      |     
+          26 |    |           5 |    |      |     
           26 |    |           9 |    | 22.2 |     
-          26 |    |          27 |    | 7000 |     
+          26 |    |          27 |    | 22.2 |     
 (26 rows)
 
 --Testcase 414:
@@ -3760,7 +3761,7 @@ ERROR:  WITH CHECK clause is not supported
 INSERT INTO rw_view(c1, c5) VALUES (15, 3000); -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 452:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   | c6 |      c7       |  c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+----+---------------+------+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             |    |     |  4000 |    |               | 22.2 |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -3798,7 +3799,7 @@ ERROR:  WITH CHECK clause is not supported
 UPDATE rw_view SET c1 = c1 + 15; -- ok
 ERROR:  WITH CHECK clause is not supported
 --Testcase 457:
-SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3;
+SELECT c1, char_length(c2), c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14, c15, c16, c17, c18, c19, c20 FROM tntbl4 ORDER BY 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
  c1 | char_length | c3 | c4  |  c5   | c6 |      c7       |  c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      
 ----+-------------+----+-----+-------+----+---------------+------+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------
  -1 |             |    |     |  4000 |    |               | 22.2 |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       | 
@@ -3841,10 +3842,1033 @@ ERROR:  RETURNING clause is not supported
 --Testcase 463:
 DELETE FROM tntbl4 RETURNING *;
 ERROR:  RETURNING clause is not supported
+--
+-- Test case bulk insert
+--
+--Testcase 483:
+CREATE FOREIGN TABLE tntbl3__file_svr__0 (_id text, c1 int, c2 real, c3 double precision, c4 bigint) SERVER file_svr OPTIONS (filename '/tmp/pg_modify_bulk_insert.csv', format 'csv');
+-- Clean tntbl3
+--Testcase 484:
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 485:
+SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
+ c1 | c2 |  c3  |  c4   | __spd_url  
+----+----+------+-------+------------
+ 10 | 10 | 1000 | 10000 | /file_svr/
+(1 row)
+
+SET client_min_messages = INFO;
+-- bulk insert in tntbl3
+-- Manual config:
+-- batch_size server = 5, batch_size table not set, batch_size of FDW (if support) not set, insert 100 records
+--Testcase 486:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 487:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 100) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+--Testcase 488:
+SELECT count(*) FROM tntbl3;
+ count 
+-------
+   101
+(1 row)
+
+--Testcase 489:
+SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
+ c1  |  c2   |   c3   |  c4   |    __spd_url     
+-----+-------+--------+-------+------------------
+   1 |   1.1 |   1.01 |     1 | /tiny_svr/
+   2 |   2.1 |   2.01 |     2 | /dynamodb_svr/
+   3 |   3.1 |   3.01 |     3 | /griddb_svr/
+   4 |   4.1 |   4.01 |     4 | /jdbc_post_svr/
+   5 |   5.1 |   5.01 |     5 | /mongo_svr/
+   6 |   6.1 |   6.01 |     6 | /mysql_svr/
+   7 |   7.1 |   7.01 |     7 | /odbc_mysql_svr/
+   8 |   8.1 |   8.01 |     8 | /oracle_svr/
+   9 |   9.1 |   9.01 |     9 | /postgres_svr/
+  10 |    10 |   1000 | 10000 | /file_svr/
+  10 |  10.1 |  10.01 |    10 | /sqlite_svr/
+  11 |  11.1 |  11.01 |    11 | /tiny_svr/
+  12 |  12.1 |  12.01 |    12 | /dynamodb_svr/
+  13 |  13.1 |  13.01 |    13 | /griddb_svr/
+  14 |  14.1 |  14.01 |    14 | /jdbc_post_svr/
+  15 |  15.1 |  15.01 |    15 | /mongo_svr/
+  16 |  16.1 |  16.01 |    16 | /mysql_svr/
+  17 |  17.1 |  17.01 |    17 | /odbc_mysql_svr/
+  18 |  18.1 |  18.01 |    18 | /oracle_svr/
+  19 |  19.1 |  19.01 |    19 | /postgres_svr/
+  20 |  20.1 |  20.01 |    20 | /sqlite_svr/
+  21 |  21.1 |  21.01 |    21 | /tiny_svr/
+  22 |  22.1 |  22.01 |    22 | /dynamodb_svr/
+  23 |  23.1 |  23.01 |    23 | /griddb_svr/
+  24 |  24.1 |  24.01 |    24 | /jdbc_post_svr/
+  25 |  25.1 |  25.01 |    25 | /mongo_svr/
+  26 |  26.1 |  26.01 |    26 | /mysql_svr/
+  27 |  27.1 |  27.01 |    27 | /odbc_mysql_svr/
+  28 |  28.1 |  28.01 |    28 | /oracle_svr/
+  29 |  29.1 |  29.01 |    29 | /postgres_svr/
+  30 |  30.1 |  30.01 |    30 | /sqlite_svr/
+  31 |  31.1 |  31.01 |    31 | /tiny_svr/
+  32 |  32.1 |  32.01 |    32 | /dynamodb_svr/
+  33 |  33.1 |  33.01 |    33 | /griddb_svr/
+  34 |  34.1 |  34.01 |    34 | /jdbc_post_svr/
+  35 |  35.1 |  35.01 |    35 | /mongo_svr/
+  36 |  36.1 |  36.01 |    36 | /mysql_svr/
+  37 |  37.1 |  37.01 |    37 | /odbc_mysql_svr/
+  38 |  38.1 |  38.01 |    38 | /oracle_svr/
+  39 |  39.1 |  39.01 |    39 | /postgres_svr/
+  40 |  40.1 |  40.01 |    40 | /sqlite_svr/
+  41 |  41.1 |  41.01 |    41 | /tiny_svr/
+  42 |  42.1 |  42.01 |    42 | /dynamodb_svr/
+  43 |  43.1 |  43.01 |    43 | /griddb_svr/
+  44 |  44.1 |  44.01 |    44 | /jdbc_post_svr/
+  45 |  45.1 |  45.01 |    45 | /mongo_svr/
+  46 |  46.1 |  46.01 |    46 | /mysql_svr/
+  47 |  47.1 |  47.01 |    47 | /odbc_mysql_svr/
+  48 |  48.1 |  48.01 |    48 | /oracle_svr/
+  49 |  49.1 |  49.01 |    49 | /postgres_svr/
+  50 |  50.1 |  50.01 |    50 | /sqlite_svr/
+  51 |  51.1 |  51.01 |    51 | /tiny_svr/
+  52 |  52.1 |  52.01 |    52 | /dynamodb_svr/
+  53 |  53.1 |  53.01 |    53 | /griddb_svr/
+  54 |  54.1 |  54.01 |    54 | /jdbc_post_svr/
+  55 |  55.1 |  55.01 |    55 | /mongo_svr/
+  56 |  56.1 |  56.01 |    56 | /mysql_svr/
+  57 |  57.1 |  57.01 |    57 | /odbc_mysql_svr/
+  58 |  58.1 |  58.01 |    58 | /oracle_svr/
+  59 |  59.1 |  59.01 |    59 | /postgres_svr/
+  60 |  60.1 |  60.01 |    60 | /sqlite_svr/
+  61 |  61.1 |  61.01 |    61 | /tiny_svr/
+  62 |  62.1 |  62.01 |    62 | /dynamodb_svr/
+  63 |  63.1 |  63.01 |    63 | /griddb_svr/
+  64 |  64.1 |  64.01 |    64 | /jdbc_post_svr/
+  65 |  65.1 |  65.01 |    65 | /mongo_svr/
+  66 |  66.1 |  66.01 |    66 | /mysql_svr/
+  67 |  67.1 |  67.01 |    67 | /odbc_mysql_svr/
+  68 |  68.1 |  68.01 |    68 | /oracle_svr/
+  69 |  69.1 |  69.01 |    69 | /postgres_svr/
+  70 |  70.1 |  70.01 |    70 | /sqlite_svr/
+  71 |  71.1 |  71.01 |    71 | /tiny_svr/
+  72 |  72.1 |  72.01 |    72 | /dynamodb_svr/
+  73 |  73.1 |  73.01 |    73 | /griddb_svr/
+  74 |  74.1 |  74.01 |    74 | /jdbc_post_svr/
+  75 |  75.1 |  75.01 |    75 | /mongo_svr/
+  76 |  76.1 |  76.01 |    76 | /mysql_svr/
+  77 |  77.1 |  77.01 |    77 | /odbc_mysql_svr/
+  78 |  78.1 |  78.01 |    78 | /oracle_svr/
+  79 |  79.1 |  79.01 |    79 | /postgres_svr/
+  80 |  80.1 |  80.01 |    80 | /sqlite_svr/
+  81 |  81.1 |  81.01 |    81 | /tiny_svr/
+  82 |  82.1 |  82.01 |    82 | /dynamodb_svr/
+  83 |  83.1 |  83.01 |    83 | /griddb_svr/
+  84 |  84.1 |  84.01 |    84 | /jdbc_post_svr/
+  85 |  85.1 |  85.01 |    85 | /mongo_svr/
+  86 |  86.1 |  86.01 |    86 | /mysql_svr/
+  87 |  87.1 |  87.01 |    87 | /odbc_mysql_svr/
+  88 |  88.1 |  88.01 |    88 | /oracle_svr/
+  89 |  89.1 |  89.01 |    89 | /postgres_svr/
+  90 |  90.1 |  90.01 |    90 | /sqlite_svr/
+  91 |  91.1 |  91.01 |    91 | /tiny_svr/
+  92 |  92.1 |  92.01 |    92 | /dynamodb_svr/
+  93 |  93.1 |  93.01 |    93 | /griddb_svr/
+  94 |  94.1 |  94.01 |    94 | /jdbc_post_svr/
+  95 |  95.1 |  95.01 |    95 | /mongo_svr/
+  96 |  96.1 |  96.01 |    96 | /mysql_svr/
+  97 |  97.1 |  97.01 |    97 | /odbc_mysql_svr/
+  98 |  98.1 |  98.01 |    98 | /oracle_svr/
+  99 |  99.1 |  99.01 |    99 | /postgres_svr/
+ 100 | 100.1 | 100.01 |   100 | /sqlite_svr/
+(101 rows)
+
+--Testcase 490:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 491:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 492:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 493:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 494:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 495:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 496:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 497:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 498:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 499:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+ count 
+-------
+    10
+(1 row)
+
+--Testcase 500:
+SELECT count(*) FROM tntbl3__file_svr__0;
+ count 
+-------
+     1
+(1 row)
+
+--Testcase 501:
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+-- batch_size server = 20, batch_size table not set, batch_size of FDW (if support) not set, insert 2200 records
+--Testcase 502:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '20');
+--Testcase 503:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+--Testcase 504:
+SELECT count(*) FROM tntbl3;
+ count 
+-------
+  2201
+(1 row)
+
+--Testcase 505:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 506:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 507:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 508:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 509:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 510:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 511:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 512:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 513:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 514:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 515:
+SELECT count(*) FROM tntbl3__file_svr__0;
+ count 
+-------
+     1
+(1 row)
+
+--Testcase 516:
+DELETE FROM tntbl3 WHERE c1 < 500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1000;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+-- batch_size server = 1, batch_size table = 30, batch_size of FDW (if support) not set, insert 2200 records
+--Testcase 517:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '1');
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__mysql_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__postgres_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__sqlite_svr__0 OPTIONS (ADD batch_size '30');
+ALTER FOREIGN TABLE tntbl3__tiny_svr__0 OPTIONS (ADD batch_size '30');
+--Testcase 518:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for postgres_fdw, batch size = 30
+INFO:  Batch Insert for griddb_fdw, batch size = 30
+INFO:  Batch Insert for tinybrace_fdw, batch size = 30
+INFO:  Batch Insert for sqlite_fdw, batch size = 30
+INFO:  Batch Insert for mysql_fdw, batch size = 30
+--Testcase 519:
+SELECT count(*) FROM tntbl3;
+ count 
+-------
+  2201
+(1 row)
+
+--Testcase 520:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 521:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 522:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 523:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 524:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 525:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 526:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 527:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 528:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 529:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 530:
+SELECT count(*) FROM tntbl3__file_svr__0;
+ count 
+-------
+     1
+(1 row)
+
+--Testcase 531:
+DELETE FROM tntbl3 WHERE c1 < 500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1000;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 532:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__mysql_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__postgres_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__sqlite_svr__0 OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl3__tiny_svr__0 OPTIONS (DROP batch_size);
+-- Auto config:
+-- LCM * number of child node < limit
+--Testcase 533:
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '4');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '10');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '3');
+--Testcase 534:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 2200) id;
+WARNING:  file_fdw is ignored as an insert target because it does not support modification
+INFO:  Batch Insert for tinybrace_fdw, batch size = 10
+INFO:  Batch Insert for mysql_fdw, batch size = 2
+INFO:  Batch Insert for sqlite_fdw, batch size = 6
+INFO:  Batch Insert for griddb_fdw, batch size = 3
+INFO:  Batch Insert for postgres_fdw, batch size = 4
+--Testcase 535:
+SELECT count(*) FROM tntbl3;
+ count 
+-------
+  2201
+(1 row)
+
+--Testcase 536:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 537:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 538:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 539:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 540:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 541:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 542:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 543:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 544:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 545:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+ count 
+-------
+   220
+(1 row)
+
+--Testcase 546:
+SELECT count(*) FROM tntbl3__file_svr__0;
+ count 
+-------
+     1
+(1 row)
+
+--Testcase 547:
+DELETE FROM tntbl3 WHERE c1 < 500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1000;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3 WHERE c1 < 1500;
+WARNING:  file_fdw will be skipped because it does not support modification
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 548:
+ALTER SERVER postgres_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+-- LCM * number of child node > limit
+--Testcase 549:
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '6');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '7');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '23');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '31');
+ALTER FOREIGN TABLE tntbl3__griddb_svr__0 RENAME TO tmp_tntbl3__griddb_svr__0;
+ALTER FOREIGN TABLE tntbl3__dynamodb_svr__0 RENAME TO tmp_tntbl3__dynamodb_svr__0;
+ALTER FOREIGN TABLE tntbl3__jdbc_post_svr__0 RENAME TO tmp_tntbl3__jdbc_post_svr__0;
+ALTER FOREIGN TABLE tntbl3__mongo_svr__0 RENAME TO tmp_tntbl3__mongo_svr__0;
+ALTER FOREIGN TABLE tntbl3__odbc_mysql_svr__0 RENAME TO tmp_tntbl3__odbc_mysql_svr__0;
+ALTER FOREIGN TABLE tntbl3__oracle_svr__0 RENAME TO tmp_tntbl3__oracle_svr__0;
+ALTER FOREIGN TABLE tntbl3__file_svr__0 RENAME TO tmp_tntbl3__file_svr__0;
+--Testcase 550:
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 7000000) id;
+INFO:  Batch Insert for tinybrace_fdw, batch size = 7
+INFO:  Batch Insert for sqlite_fdw, batch size = 6
+INFO:  Batch Insert for mysql_fdw, batch size = 23
+INFO:  Batch Insert for postgres_fdw, batch size = 5
+ALTER FOREIGN TABLE tmp_tntbl3__griddb_svr__0 RENAME TO tntbl3__griddb_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__dynamodb_svr__0 RENAME TO tntbl3__dynamodb_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__jdbc_post_svr__0 RENAME TO tntbl3__jdbc_post_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__mongo_svr__0 RENAME TO tntbl3__mongo_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__odbc_mysql_svr__0 RENAME TO tntbl3__odbc_mysql_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__oracle_svr__0 RENAME TO tntbl3__oracle_svr__0;
+ALTER FOREIGN TABLE tmp_tntbl3__file_svr__0 RENAME TO tntbl3__file_svr__0;
+--Testcase 551:
+SELECT count(*) FROM tntbl3;
+  count  
+---------
+ 7000001
+(1 row)
+
+--Testcase 552:
+SELECT count(*) FROM tntbl3__dynamodb_svr__0;
+ count 
+-------
+     0
+(1 row)
+
+--Testcase 553:
+SELECT count(*) FROM tntbl3__griddb_svr__0;
+ count 
+-------
+     0
+(1 row)
+
+--Testcase 554:
+SELECT count(*) FROM tntbl3__jdbc_post_svr__0;
+ count 
+-------
+     0
+(1 row)
+
+--Testcase 555:
+SELECT count(*) FROM tntbl3__mongo_svr__0;
+ count 
+-------
+(0 rows)
+
+--Testcase 556:
+SELECT count(*) FROM tntbl3__mysql_svr__0;
+  count  
+---------
+ 1750000
+(1 row)
+
+--Testcase 557:
+SELECT count(*) FROM tntbl3__odbc_mysql_svr__0;
+ count 
+-------
+     0
+(1 row)
+
+--Testcase 558:
+SELECT count(*) FROM tntbl3__oracle_svr__0;
+ count 
+-------
+     0
+(1 row)
+
+--Testcase 559:
+SELECT count(*) FROM tntbl3__postgres_svr__0;
+  count  
+---------
+ 1750000
+(1 row)
+
+--Testcase 560:
+SELECT count(*) FROM tntbl3__sqlite_svr__0;
+  count  
+---------
+ 1750000
+(1 row)
+
+--Testcase 561:
+SELECT count(*) FROM tntbl3__tiny_svr__0;
+  count  
+---------
+ 1750000
+(1 row)
+
+--Testcase 562:
+SELECT count(*) FROM tntbl3__file_svr__0;
+ count 
+-------
+     1
+(1 row)
+
+--Testcase 563:
+DELETE FROM tntbl3__dynamodb_svr__0;
+DELETE FROM tntbl3__griddb_svr__0;
+DELETE FROM tntbl3__jdbc_post_svr__0;
+DELETE FROM tntbl3__mongo_svr__0;
+DELETE FROM tntbl3__mysql_svr__0;
+DELETE FROM tntbl3__odbc_mysql_svr__0;
+DELETE FROM tntbl3__oracle_svr__0;
+DELETE FROM tntbl3__postgres_svr__0;
+DELETE FROM tntbl3__sqlite_svr__0;
+DELETE FROM tntbl3__tiny_svr__0;
+DELETE FROM tntbl3__file_svr__0;
+ERROR:  cannot delete from foreign table "tntbl3__file_svr__0"
+DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
+--Testcase 564:
+ALTER SERVER postgres_svr OPTIONS (DROP batch_size);
+ALTER SERVER sqlite_svr OPTIONS (DROP batch_size);
+ALTER SERVER tiny_svr OPTIONS (DROP batch_size);
+ALTER SERVER mysql_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+SET client_min_messages = NOTICE;
+-- Test insert routing without batch size
+ALTER FOREIGN TABLE tntbl3__file_svr__0 RENAME TO tmp_tntbl3__file_svr__0;
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 3) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |   __spd_url    
+----+----------------
+  1 | /tiny_svr/
+  2 | /dynamodb_svr/
+  3 | /griddb_svr/
+(3 rows)
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(11, 19) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /tiny_svr/
+  2 | /dynamodb_svr/
+  3 | /griddb_svr/
+ 11 | /jdbc_post_svr/
+ 12 | /mongo_svr/
+ 13 | /mysql_svr/
+ 14 | /odbc_mysql_svr/
+ 15 | /oracle_svr/
+ 16 | /postgres_svr/
+ 17 | /sqlite_svr/
+ 18 | /tiny_svr/
+ 19 | /dynamodb_svr/
+(12 rows)
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(21, 44) id;
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /tiny_svr/
+  2 | /dynamodb_svr/
+  3 | /griddb_svr/
+ 11 | /jdbc_post_svr/
+ 12 | /mongo_svr/
+ 13 | /mysql_svr/
+ 14 | /odbc_mysql_svr/
+ 15 | /oracle_svr/
+ 16 | /postgres_svr/
+ 17 | /sqlite_svr/
+ 18 | /tiny_svr/
+ 19 | /dynamodb_svr/
+ 21 | /griddb_svr/
+ 22 | /jdbc_post_svr/
+ 23 | /mongo_svr/
+ 24 | /mysql_svr/
+ 25 | /odbc_mysql_svr/
+ 26 | /oracle_svr/
+ 27 | /postgres_svr/
+ 28 | /sqlite_svr/
+ 29 | /tiny_svr/
+ 30 | /dynamodb_svr/
+ 31 | /griddb_svr/
+ 32 | /jdbc_post_svr/
+ 33 | /mongo_svr/
+ 34 | /mysql_svr/
+ 35 | /odbc_mysql_svr/
+ 36 | /oracle_svr/
+ 37 | /postgres_svr/
+ 38 | /sqlite_svr/
+ 39 | /tiny_svr/
+ 40 | /dynamodb_svr/
+ 41 | /griddb_svr/
+ 42 | /jdbc_post_svr/
+ 43 | /mongo_svr/
+ 44 | /mysql_svr/
+(36 rows)
+
+DELETE FROM tntbl3;
+-- Test insert routing with batch size
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '3');
+ALTER SERVER sqlite_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER tiny_svr OPTIONS (ADD batch_size '1');
+ALTER SERVER mysql_svr OPTIONS (ADD batch_size '2');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '2');
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(1, 3) id;
+INFO:  Batch Insert for postgres_fdw, batch size = 3
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /odbc_mysql_svr/
+  2 | /oracle_svr/
+  3 | /postgres_svr/
+(3 rows)
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(11, 19) id;
+INFO:  Batch Insert for mysql_fdw, batch size = 2
+INFO:  Batch Insert for griddb_fdw, batch size = 2
+INFO:  Batch Insert for sqlite_fdw, batch size = 2
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /odbc_mysql_svr/
+  2 | /oracle_svr/
+  3 | /postgres_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+ 13 | /dynamodb_svr/
+ 14 | /griddb_svr/
+ 15 | /jdbc_post_svr/
+ 16 | /mongo_svr/
+ 17 | /mysql_svr/
+ 18 | /odbc_mysql_svr/
+ 19 | /oracle_svr/
+(12 rows)
+
+INSERT INTO tntbl3
+    SELECT ('idTable3_'::text || id),
+            id,
+            id + 0.1,
+            id + 0.01,
+            id
+    FROM generate_series(21, 44) id;
+INFO:  Batch Insert for postgres_fdw, batch size = 3
+INFO:  Batch Insert for sqlite_fdw, batch size = 2
+INFO:  Batch Insert for mysql_fdw, batch size = 2
+INFO:  Batch Insert for griddb_fdw, batch size = 2
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /odbc_mysql_svr/
+  2 | /oracle_svr/
+  3 | /postgres_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+ 13 | /dynamodb_svr/
+ 14 | /griddb_svr/
+ 15 | /jdbc_post_svr/
+ 16 | /mongo_svr/
+ 17 | /mysql_svr/
+ 18 | /odbc_mysql_svr/
+ 19 | /oracle_svr/
+ 21 | /postgres_svr/
+ 22 | /sqlite_svr/
+ 23 | /tiny_svr/
+ 24 | /dynamodb_svr/
+ 25 | /griddb_svr/
+ 26 | /jdbc_post_svr/
+ 27 | /mongo_svr/
+ 28 | /mysql_svr/
+ 29 | /odbc_mysql_svr/
+ 30 | /oracle_svr/
+ 31 | /postgres_svr/
+ 32 | /sqlite_svr/
+ 33 | /tiny_svr/
+ 34 | /dynamodb_svr/
+ 35 | /griddb_svr/
+ 36 | /jdbc_post_svr/
+ 37 | /mongo_svr/
+ 38 | /mysql_svr/
+ 39 | /odbc_mysql_svr/
+ 40 | /oracle_svr/
+ 41 | /postgres_svr/
+ 42 | /sqlite_svr/
+ 43 | /tiny_svr/
+ 44 | /dynamodb_svr/
+(36 rows)
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_50', 50, '/postgres_svr/'),
+                                              ('idTable3_51', 51, NULL),
+                                              ('idTable3_52', 52, DEFAULT),
+                                              ('idTable3_53', 53, '/no_server/');
+ERROR:  There is no candidate 'no_server' for INSERT
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_54', 54, '/tiny_svr/'),
+                                              ('idTable3_55', 55, NULL),
+                                              ('idTable3_56', 56, DEFAULT);
+INFO:  Batch Insert for griddb_fdw, batch size = 2
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_57', 57, '/mysql_svr/'),
+                                              ('idTable3_58', 58, 'wrong_srv'),
+                                              ('idTable3_59', 59, DEFAULT);
+ERROR:  Failed to parse URL 'wrong_srv'. The first character should be '/'.
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /odbc_mysql_svr/
+  2 | /oracle_svr/
+  3 | /postgres_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+ 13 | /dynamodb_svr/
+ 14 | /griddb_svr/
+ 15 | /jdbc_post_svr/
+ 16 | /mongo_svr/
+ 17 | /mysql_svr/
+ 18 | /odbc_mysql_svr/
+ 19 | /oracle_svr/
+ 21 | /postgres_svr/
+ 22 | /sqlite_svr/
+ 23 | /tiny_svr/
+ 24 | /dynamodb_svr/
+ 25 | /griddb_svr/
+ 26 | /jdbc_post_svr/
+ 27 | /mongo_svr/
+ 28 | /mysql_svr/
+ 29 | /odbc_mysql_svr/
+ 30 | /oracle_svr/
+ 31 | /postgres_svr/
+ 32 | /sqlite_svr/
+ 33 | /tiny_svr/
+ 34 | /dynamodb_svr/
+ 35 | /griddb_svr/
+ 36 | /jdbc_post_svr/
+ 37 | /mongo_svr/
+ 38 | /mysql_svr/
+ 39 | /odbc_mysql_svr/
+ 40 | /oracle_svr/
+ 41 | /postgres_svr/
+ 42 | /sqlite_svr/
+ 43 | /tiny_svr/
+ 44 | /dynamodb_svr/
+ 54 | /tiny_svr/
+ 55 | /griddb_svr/
+ 56 | /jdbc_post_svr/
+(39 rows)
+
+INSERT INTO tntbl3(_id, c1, __spd_url) VALUES ('idTable3_60', 60, '/tiny_svr/'),
+                                              ('idTable3_61', 61, NULL),
+                                              ('idTable3_62', 62, '/mysql_svr/'),
+                                              ('idTable3_63', 63, '/griddb_svr/'),
+                                              ('idTable3_64', 64, DEFAULT),
+                                              ('idTable3_65', 65, '/postgres_svr/');
+INFO:  Batch Insert for postgres_fdw, batch size = 3
+INFO:  Batch Insert for griddb_fdw, batch size = 2
+INFO:  Batch Insert for mysql_fdw, batch size = 2
+SELECT c1, __spd_url FROM tntbl3 ORDER BY c1;
+ c1 |    __spd_url     
+----+------------------
+  1 | /odbc_mysql_svr/
+  2 | /oracle_svr/
+  3 | /postgres_svr/
+ 11 | /sqlite_svr/
+ 12 | /tiny_svr/
+ 13 | /dynamodb_svr/
+ 14 | /griddb_svr/
+ 15 | /jdbc_post_svr/
+ 16 | /mongo_svr/
+ 17 | /mysql_svr/
+ 18 | /odbc_mysql_svr/
+ 19 | /oracle_svr/
+ 21 | /postgres_svr/
+ 22 | /sqlite_svr/
+ 23 | /tiny_svr/
+ 24 | /dynamodb_svr/
+ 25 | /griddb_svr/
+ 26 | /jdbc_post_svr/
+ 27 | /mongo_svr/
+ 28 | /mysql_svr/
+ 29 | /odbc_mysql_svr/
+ 30 | /oracle_svr/
+ 31 | /postgres_svr/
+ 32 | /sqlite_svr/
+ 33 | /tiny_svr/
+ 34 | /dynamodb_svr/
+ 35 | /griddb_svr/
+ 36 | /jdbc_post_svr/
+ 37 | /mongo_svr/
+ 38 | /mysql_svr/
+ 39 | /odbc_mysql_svr/
+ 40 | /oracle_svr/
+ 41 | /postgres_svr/
+ 42 | /sqlite_svr/
+ 43 | /tiny_svr/
+ 44 | /dynamodb_svr/
+ 54 | /tiny_svr/
+ 55 | /griddb_svr/
+ 56 | /jdbc_post_svr/
+ 60 | /tiny_svr/
+ 61 | /mongo_svr/
+ 62 | /mysql_svr/
+ 63 | /griddb_svr/
+ 64 | /mysql_svr/
+ 65 | /postgres_svr/
+(45 rows)
+
+DELETE FROM tntbl3;
+ALTER FOREIGN TABLE tmp_tntbl3__file_svr__0 RENAME TO tntbl3__file_svr__0;
 --Clean
 DELETE FROM tntbl1;
 DELETE FROM tntbl2;
 DELETE FROM tntbl3;
+WARNING:  file_fdw will be skipped because it does not support modification
 DELETE FROM tntbl4;
 --Reset data
 INSERT INTO tntbl1__oracle_svr__0 VALUES (-20, 0, 1.0, 100.0, 1000, '2022-06-22 14:00:00', '2017-08-07 12:00:00+00', 'char array', 'varchar array');
@@ -3888,8 +4912,9 @@ SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
   1 |     1 |  100 |  1000 | /sqlite_svr/
   1 |     1 |  100 |  1000 | /tiny_svr/
   2 |    20 |      |       | /mongo_svr/
+ 10 |    10 | 1000 | 10000 | /file_svr/
  10 |    10 | 1000 | 10000 | /jdbc_post_svr/
-(6 rows)
+(7 rows)
 
 SELECT * FROM tntbl4 ORDER BY 1, 2, 3;
  c1 |    c2    | c3 | c4  |  c5   |                                                                                                                               c6                                                                                                                                |      c7       | c8 | c9 |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |           c20            |    __spd_url     
@@ -3954,7 +4979,7 @@ drop cascades to foreign table tntbl3__griddb_svr__0
 DROP EXTENSION oracle_fdw CASCADE;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server oracle_svr
-drop cascades to user mapping for tsdv on server oracle_svr
+drop cascades to user mapping for public on server oracle_svr
 drop cascades to foreign table tntbl1__oracle_svr__0
 drop cascades to foreign table tntbl3__oracle_svr__0
 --Testcase 475:
@@ -3998,9 +5023,10 @@ drop cascades to foreign table tntbl2__dynamodb_svr__0
 drop cascades to foreign table tntbl3__dynamodb_svr__0
 --Testcase 480:
 DROP EXTENSION file_fdw CASCADE;
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 5 other objects
 DETAIL:  drop cascades to server file_svr
 drop cascades to foreign table tntbl5__file_svr__0
+drop cascades to foreign table tntbl3__file_svr__0
 drop cascades to server file_svr_2
 drop cascades to foreign table tntbl5__file_svr__2
 --Testcase 481:

@@ -141,7 +141,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 41:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 42:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2;
 
@@ -309,6 +309,38 @@ UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RET
 DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
 --Testcase 104:
 DELETE FROM tntbl2 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 110:
+DELETE FROM tntbl2;
+--Testcase 111:
+SELECT * FROM tntbl2;
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table = 6, batch_size of FDW not set, insert 10 records
+-- mongo_fdw not support batch_size
+--Testcase 112:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+
+--Testcase 113:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 10) id;
+--Testcase 114:
+SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl2;
+--Testcase 115:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 116:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 117:
+SELECT c1, c2, c3, c4, c5, __spd_url FROM tntbl2 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl2;

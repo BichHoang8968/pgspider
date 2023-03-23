@@ -133,7 +133,7 @@ UPDATE tntbl2 SET c1 = v.* FROM (VALUES(1000, 10)) AS v(i, j)
 --
 
 --Testcase 40:
-INSERT INTO tntbl2 SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2;
+INSERT INTO tntbl2 (SELECT _id || 's#', c1 + 1, c2 || '@@' FROM tntbl2 ORDER BY 1, 2, 3);
 --Testcase 41:
 SELECT char_length(_id), c1, char_length(c2), c3, c4, c5 FROM tntbl2 ORDER BY 1, 2, 3;
 
@@ -336,6 +336,73 @@ UPDATE tntbl2 SET c2 = '2100-01-01 10:00:00+01' WHERE c1 = 20 AND c3 = false RET
 DELETE FROM tntbl2 WHERE c4 = 50.0 RETURNING _id, c1, c2;
 --Testcase 103:
 DELETE FROM tntbl2 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 109:
+DELETE FROM tntbl2;
+--Testcase 110:
+SELECT * FROM tntbl2;
+
+SET client_min_messages = INFO;
+-- Manual config
+-- batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '6');
+--Testcase 111:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 10) id;
+--Testcase 112:
+SELECT * FROM tntbl2 ORDER BY 1,2;
+--Testcase 113:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+
+-- Set invalid batch_size
+-- batch_size server = 6553501, batch_size table = 5, batch_size of FDW = 10, insert 20 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6553501');
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '10');
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (ADD batch_size '5');
+--Testcase 114:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 20) id;
+--Testcase 115:
+SELECT count(*) FROM tntbl2;
+--Testcase 116:
+SELECT count(*) FROM tntbl2__griddb_svr__0;
+--Testcase 117:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (DROP batch_size);
+
+-- batch_size server = 6, batch_size table = 6553502, batch_size of FDW not set, insert 120 records
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '6');
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (ADD batch_size '6553502');
+--Testcase 118:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', true, id/10, id * 1000	FROM generate_series(1, 120) id;
+--Testcase 119:
+SELECT count(*) FROM tntbl2;
+--Testcase 120:
+SELECT count(*) FROM tntbl2__griddb_svr__0;
+--Testcase 121:
+DELETE FROM tntbl2;
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER FOREIGN TABLE tntbl2__griddb_svr__0 OPTIONS (DROP batch_size);
+
+-- Auto config
+-- batch_size of FDW = 10, insert 25 records
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+ALTER SERVER griddb_svr OPTIONS (ADD batch_size '10');
+--Testcase 122:
+INSERT INTO tntbl2
+	SELECT to_char(id, 'FM00000'), id, 'foo', false, id/10, id * 1000	FROM generate_series(1, 25) id;
+--Testcase 123:
+SELECT * FROM tntbl2 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl2;

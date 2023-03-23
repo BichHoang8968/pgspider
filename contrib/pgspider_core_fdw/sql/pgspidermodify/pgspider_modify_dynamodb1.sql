@@ -136,7 +136,7 @@ UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
 
@@ -345,6 +345,39 @@ INSERT INTO tntbl1 (c1, c2, c3, c4, c5) VALUES (2, 3, 4.0, 5.0, 6) RETURNING c1,
 DELETE FROM tntbl1 WHERE c4 = 6.0 RETURNING c1, c2;
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+
+SET client_min_messages = INFO;
+
+-- Manual config: batch_size server = 5, batch_size table not set, batch_size of FDW = 6, insert 10 records
+-- dynamodb_fdw not support batch_size
+--Testcase 117:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+
+--Testcase 118:
+INSERT INTO tntbl1 
+    SELECT id, id % 10, id/10, id * 100, id * 1000, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 10) id;
+--Testcase 119:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl1;
+--Testcase 120:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 121:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 25) id;
+--Testcase 122:
+SELECT * FROM tntbl1 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl1;

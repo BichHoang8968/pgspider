@@ -5,6 +5,7 @@
 SET timezone TO 0;
 SET datestyle TO ISO;
 SET intervalstyle to "postgres";
+DELETE FROM pg_spd_node_info;
 --Testcase 1:
 CREATE EXTENSION IF NOT EXISTS pgspider_core_fdw;
 

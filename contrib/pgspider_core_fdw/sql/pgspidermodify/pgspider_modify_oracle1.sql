@@ -27,7 +27,7 @@ CREATE EXTENSION oracle_fdw;
 --Testcase 8:
 CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver :ORACLE_SERVER, isolation_level 'read_committed', nchar 'true');
 --Testcase 9:
-CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
+CREATE USER MAPPING FOR public SERVER oracle_svr OPTIONS (user :ORACLE_USER, password :ORACLE_PASS);
 
 -- Create multi tenant tables
 -- tntbl1
@@ -161,7 +161,7 @@ UPDATE tntbl1 SET c1 = v.* FROM (VALUES(30, 0)) AS v(i, j)
 --
 -- Bug of oracle_fdw
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
@@ -449,6 +449,40 @@ DELETE FROM tntbl1 WHERE c4 = 6.0 RETURNING c1, c2;
 
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
+
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1;
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table = 6, batch_size of FDW = 2, insert 10 records
+-- oracle_fdw not support batch_size
+--Testcase 117:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+
+--Testcase 118:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 10) id;
+--Testcase 119:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+--Testcase 120:
+DELETE FROM tntbl1;
+
+--Testcase 121:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+
+--Testcase 122:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 25) id;
+--Testcase 123:
+SELECT * FROM tntbl1 ORDER BY 1,2;
 
 --Clean
 DELETE FROM tntbl1;

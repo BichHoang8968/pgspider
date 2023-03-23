@@ -143,7 +143,7 @@ SERVER pgspider_svr;
 SELECT * FROM parquets3tbl;
 
 --Testcase 31:
-SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;; 
+SELECT * FROM test1 IN ('/parquet_s3_svr/') where one < 1 ORDER BY one;
 
 --Testcase 32:
 DROP FUNCTION list_parquet_s3_files;

@@ -168,10 +168,10 @@ SELECT c1, c2, _id FROM tntbl3 ORDER BY c1, _id;
 --
 --Testcase 213:
 INSERT INTO tntbl3 IN ('/sqlite_svr/') VALUES ('_test', 10, 5.0, 50.0, 5000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 214:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --
 -- UPDATE
 --
@@ -286,7 +286,7 @@ HINT:  You will need to rewrite or cast the expression.
 --
 --Testcase 225:
 -- Commmented, fail due to oracle_fdw. Not reported yet.
-INSERT INTO tntbl3 SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3;
+INSERT INTO tntbl3 (SELECT _id || '1', c1 + 1, c2 + 1, c3 FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 226:
 SELECT _id, c1, c2, c3, c4 FROM tntbl3 ORDER BY c1, _id;
             _id             | c1 | c2 | c3 | c4 
@@ -622,23 +622,23 @@ SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, c3, _id;
  c1 |  c3   |            _id             
 ----+-------+----------------------------
  11 |   222 | jdbccar1
- 11 |   222 | test31
+ 11 |   222 | jdbc_mysql1
  11 |   222 | test3car1
  11 |   222 | test41
  11 | 56563 | jdbc1
- 11 | 56563 | jdbc_mysql1
  11 | 56563 | jdbc_mysqlcar1
+ 11 | 56563 | test31
  11 | 56563 | test4car1
  30 | 56563 | xxxxxxxxxxxxxxxxxxxxxxxxx
  31 |   222 | xxxxxxxxxxxxxxxxxxxxxxxxx1
     |   222 | @1
     |   222 | _3
-    |   222 | _31
     |   222 | _41
+    |   222 | bugle
     |   222 | test1
     | 56563 | @
+    | 56563 | _31
     | 56563 | _4
-    | 56563 | bugle
     | 56563 | test11
     | 56563 | test2
 (20 rows)
@@ -653,10 +653,10 @@ SELECT c1, c3, _id FROM tntbl3 ORDER BY c1, _id;
     | 56563 | @
     |   222 | @1
     |   222 | _3
-    |   222 | _31
+    | 56563 | _31
     | 56563 | _4
     |   222 | _41
-    | 56563 | bugle
+    |   222 | bugle
     |   222 | test1
     | 56563 | test11
     | 56563 | test2
@@ -692,10 +692,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -703,7 +703,7 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 
 --Testcase 352:
 INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mongo_svr/', '/griddb_svr/', '/mysql_svr/', '/postgres_svr/', '/postgres_svr_1/') VALUES ('_infea', 20, 6.0, 60.0, 6000);
-ERROR:  Child node jdbc_mysql_svr does not support transaction.
+ERROR:  There is no candidate for INSERT.
 --Testcase 353:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
   _id   | c1 | c2 |  c3   | c4 |    __spd_url     
@@ -711,10 +711,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -730,10 +730,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -749,10 +749,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -768,10 +768,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -787,10 +787,10 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
  @      |    |    | 56563 |    | /jdbc_mysql_svr/
  @1     |    |    |   222 |    | /jdbc_post_svr/
  _3     |    |    |   222 |    | /jdbc_post_svr/
- _31    |    |    |   222 |    | /jdbc_post_svr/
+ _31    |    |    | 56563 |    | /jdbc_mysql_svr/
  _4     |    |    | 56563 |    | /jdbc_mysql_svr/
  _41    |    |    |   222 |    | /jdbc_post_svr/
- bugle  |    |    | 56563 |    | /jdbc_mysql_svr/
+ bugle  |    |    |   222 |    | /jdbc_post_svr/
  test1  |    |    |   222 |    | /jdbc_post_svr/
  test11 |    |    | 56563 |    | /jdbc_mysql_svr/
  test2  |    |    | 56563 |    | /jdbc_mysql_svr/
@@ -809,8 +809,8 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 -------+----+----+-----+----+-----------------
  @1    |    |    | 222 |    | /jdbc_post_svr/
  _3    |    |    | 222 |    | /jdbc_post_svr/
- _31   |    |    | 222 |    | /jdbc_post_svr/
  _41   |    |    | 222 |    | /jdbc_post_svr/
+ bugle |    |    | 222 |    | /jdbc_post_svr/
  test1 |    |    | 222 |    | /jdbc_post_svr/
 (5 rows)
 
@@ -825,8 +825,9 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000);
 --Duplicate key column when INSERT with SELECT *. Expect error.
 --Testcase 365:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
-ERROR:  remote server returned an error
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
+ERROR:  Error occurred on a child table "tntbl3__jdbc_mysql_svr__0".
+DETAIL:  remote server returned an error
 --Testcase 366:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
  _id | c1 | c2 | c3 |  c4  |    __spd_url     
@@ -846,7 +847,7 @@ SELECT * FROM tntbl3 ORDER BY c1, _id;
 --Testcase 369:
 DELETE FROM tntbl3;
 --Testcase 370:
-INSERT INTO tntbl3 SELECT * FROM tntbl3;
+INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 --Testcase 371:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
  _id | c1 | c2 | c3 | c4 | __spd_url 
@@ -864,7 +865,7 @@ SELECT _id, sum(c1), avg(c2) FROM tntbl3 WHERE __spd_url IS NOT NULL GROUP BY _i
 
 --Testcase 374:
 INSERT INTO tntbl3 VALUES ('foo', 30, 5.0, 50.0, 6000, '/postgres_svr/');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 375:
 SELECT * FROM tntbl3 ORDER BY c1, _id;
     _id     | c1 | c2 | c3 |  c4  |    __spd_url    
@@ -985,6 +986,102 @@ ERROR:  RETURNING clause is not supported
 DELETE FROM tntbl3 RETURNING *;
 ERROR:  RETURNING clause is not supported
 -- *** Finish test for tntbl3 *** --
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 442:
+DELETE FROM tntbl3;
+--Testcase 443:
+SELECT * FROM tntbl3;
+ _id | c1 | c2 | c3 | c4 | __spd_url 
+-----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Auto config: batch_size of FDW = 10, insert 30 records
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 444:
+INSERT INTO tntbl3
+	SELECT to_char(id, 'FM00000'), id, id/10, id * 20.5, id * 100	FROM generate_series(1, 30) id;
+--Testcase 445:
+SELECT * FROM tntbl3 ORDER BY 1,2;
+  _id  | c1 | c2 |  c3   |  c4  |    __spd_url     
+-------+----+----+-------+------+------------------
+ 00001 |  1 |  0 |  20.5 |  100 | /jdbc_post_svr/
+ 00002 |  2 |  0 |    41 |  200 | /jdbc_mysql_svr/
+ 00003 |  3 |  0 |  61.5 |  300 | /jdbc_post_svr/
+ 00004 |  4 |  0 |    82 |  400 | /jdbc_mysql_svr/
+ 00005 |  5 |  0 | 102.5 |  500 | /jdbc_post_svr/
+ 00006 |  6 |  0 |   123 |  600 | /jdbc_mysql_svr/
+ 00007 |  7 |  0 | 143.5 |  700 | /jdbc_post_svr/
+ 00008 |  8 |  0 |   164 |  800 | /jdbc_mysql_svr/
+ 00009 |  9 |  0 | 184.5 |  900 | /jdbc_post_svr/
+ 00010 | 10 |  1 |   205 | 1000 | /jdbc_mysql_svr/
+ 00011 | 11 |  1 | 225.5 | 1100 | /jdbc_post_svr/
+ 00012 | 12 |  1 |   246 | 1200 | /jdbc_mysql_svr/
+ 00013 | 13 |  1 | 266.5 | 1300 | /jdbc_post_svr/
+ 00014 | 14 |  1 |   287 | 1400 | /jdbc_mysql_svr/
+ 00015 | 15 |  1 | 307.5 | 1500 | /jdbc_post_svr/
+ 00016 | 16 |  1 |   328 | 1600 | /jdbc_mysql_svr/
+ 00017 | 17 |  1 | 348.5 | 1700 | /jdbc_post_svr/
+ 00018 | 18 |  1 |   369 | 1800 | /jdbc_mysql_svr/
+ 00019 | 19 |  1 | 389.5 | 1900 | /jdbc_post_svr/
+ 00020 | 20 |  2 |   410 | 2000 | /jdbc_mysql_svr/
+ 00021 | 21 |  2 | 430.5 | 2100 | /jdbc_post_svr/
+ 00022 | 22 |  2 |   451 | 2200 | /jdbc_mysql_svr/
+ 00023 | 23 |  2 | 471.5 | 2300 | /jdbc_post_svr/
+ 00024 | 24 |  2 |   492 | 2400 | /jdbc_mysql_svr/
+ 00025 | 25 |  2 | 512.5 | 2500 | /jdbc_post_svr/
+ 00026 | 26 |  2 |   533 | 2600 | /jdbc_mysql_svr/
+ 00027 | 27 |  2 | 553.5 | 2700 | /jdbc_post_svr/
+ 00028 | 28 |  2 |   574 | 2800 | /jdbc_mysql_svr/
+ 00029 | 29 |  2 | 594.5 | 2900 | /jdbc_post_svr/
+ 00030 | 30 |  3 |   615 | 3000 | /jdbc_mysql_svr/
+(30 rows)
+
+--Testcase 446:
+SELECT * FROM tntbl3__jdbc_mysql_svr__0 ORDER BY 1,2;
+  _id  | c1 | c2 | c3  |  c4  
+-------+----+----+-----+------
+ 00002 |  2 |  0 |  41 |  200
+ 00004 |  4 |  0 |  82 |  400
+ 00006 |  6 |  0 | 123 |  600
+ 00008 |  8 |  0 | 164 |  800
+ 00010 | 10 |  1 | 205 | 1000
+ 00012 | 12 |  1 | 246 | 1200
+ 00014 | 14 |  1 | 287 | 1400
+ 00016 | 16 |  1 | 328 | 1600
+ 00018 | 18 |  1 | 369 | 1800
+ 00020 | 20 |  2 | 410 | 2000
+ 00022 | 22 |  2 | 451 | 2200
+ 00024 | 24 |  2 | 492 | 2400
+ 00026 | 26 |  2 | 533 | 2600
+ 00028 | 28 |  2 | 574 | 2800
+ 00030 | 30 |  3 | 615 | 3000
+(15 rows)
+
+--Testcase 447:
+SELECT * FROM tntbl3__jdbc_post_svr__0 ORDER BY 1,2;
+  _id  | c1 | c2 |  c3   |  c4  
+-------+----+----+-------+------
+ 00001 |  1 |  0 |  20.5 |  100
+ 00003 |  3 |  0 |  61.5 |  300
+ 00005 |  5 |  0 | 102.5 |  500
+ 00007 |  7 |  0 | 143.5 |  700
+ 00009 |  9 |  0 | 184.5 |  900
+ 00011 | 11 |  1 | 225.5 | 1100
+ 00013 | 13 |  1 | 266.5 | 1300
+ 00015 | 15 |  1 | 307.5 | 1500
+ 00017 | 17 |  1 | 348.5 | 1700
+ 00019 | 19 |  1 | 389.5 | 1900
+ 00021 | 21 |  2 | 430.5 | 2100
+ 00023 | 23 |  2 | 471.5 | 2300
+ 00025 | 25 |  2 | 512.5 | 2500
+ 00027 | 27 |  2 | 553.5 | 2700
+ 00029 | 29 |  2 | 594.5 | 2900
+(15 rows)
+
 --Clean
 --Testcase 110:
 DELETE FROM tntbl3;

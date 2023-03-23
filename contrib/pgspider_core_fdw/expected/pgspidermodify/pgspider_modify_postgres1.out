@@ -251,7 +251,7 @@ HINT:  You will need to rewrite or cast the expression.
 -- Test multiple-set-clause syntax
 --
 --Testcase 39:
-INSERT INTO tntbl1 SELECT c1+20, c2+50, c3 FROM tntbl1;
+INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |   c3   | c4 |  c5   | c6 |           c7           |               c8               |            c9             
@@ -663,7 +663,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 ALTER FOREIGN TABLE tntbl1 OPTIONS (disable_transaction_feature_check 'false');
 --Testcase 72:
 INSERT INTO tntbl1 VALUES (200, 70, 2.0, 200.0, 3000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', DEFAULT, 'abc', 'foo');
-ERROR:  Failed t parse URL 'foo' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'foo'. The first character should be '/'.
 --Testcase 73:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
@@ -685,7 +685,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 --Testcase 74:
 INSERT INTO tntbl1 VALUES (100, 20, 3.0, 300.0, 4000, '2038-01-19 03:14:07', '2004-10-19 10:23:54+02', interval '2 months ago', '40', 'abc'), (-100, 30, DEFAULT, DEFAULT, 2000, '2004-10-19 10:23:54', '1970-01-01 00:00:01+07', interval '1 year 3 hours 20 minutes', 'Beera', 'John Does'),
     ((SELECT 200), (SELECT i FROM (VALUES(3)) as foo (i)), 250, 400.212, 5000, '2007-10-19 10:23:54', '2007-10-19 10:23:54+02', interval '1 year 2 months 3 days', 'VALUES are fun!', 'foo');
-ERROR:  Failed t parse URL 'abc' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'abc'. The first character should be '/'.
 --Testcase 75:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
@@ -706,7 +706,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 
 --Testcase 76:
 INSERT INTO tntbl1 VALUES (900, 80, 6.0, 400.03, 6000, '2030-02-20 03:00:07', '2005-10-20 10:20:54+02', interval '1 months ago', repeat('x', 10), repeat('a', 20));
-ERROR:  Failed t parse URL 'aaaaaaaaaaaaaaaaaaaa' in IN clause. The first character should be '/'.
+ERROR:  Failed to parse URL 'aaaaaaaaaaaaaaaaaaaa'. The first character should be '/'.
 --Testcase 77:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
@@ -753,7 +753,7 @@ SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
 
 --Testcase 81:
 INSERT INTO tntbl1 IN ('/oracle_svr/', '/tiny_svr/') VALUES (600, 120, 73.265, 78523.5, 5421659, '2002-10-19 10:23:54', '1972-01-01 00:00:01+07', 'Two', 'TwoTwo');
-ERROR:  There is no candidate for insert.
+ERROR:  There is no candidate for INSERT.
 --Testcase 82:
 SELECT * FROM tntbl1 ORDER BY 1, 2, 3;
  c1 | c2 |  c3  | c4 | c5 | c6 |           c7           |               c8               |    c9     |   __spd_url    
@@ -955,6 +955,89 @@ ERROR:  RETURNING clause is not supported
 --Testcase 109:
 DELETE FROM tntbl1 RETURNING *;
 ERROR:  RETURNING clause is not supported
+--
+-- Test case bulk insert
+--
+--Clean
+--Testcase 115:
+DELETE FROM tntbl1;
+--Testcase 116:
+SELECT * FROM tntbl1;
+ c1 | c2 | c3 | c4 | c5 | c6 | c7 | c8 | c9 | __spd_url 
+----+----+----+----+----+----+----+----+----+-----------
+(0 rows)
+
+SET client_min_messages = INFO;
+-- Manual config: batch_size server = 5, batch_size table = 6, batch_size of FDW = 2, insert 10 records
+--Testcase 117:
+ALTER SERVER postgres_svr OPTIONS (ADD batch_size '2');
+--Testcase 118:
+-- ALTER SERVER pgspider_svr OPTIONS (ADD batch_size '5');
+--Testcase 119:
+ALTER FOREIGN TABLE tntbl1__postgres_svr__0 OPTIONS (ADD batch_size '6');
+--Testcase 120:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 10) id;
+INFO:  Batch Insert for postgres_fdw, batch size = 6
+--Testcase 121:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |         c6          |           c7           |               c8               | c9  |   __spd_url    
+----+----+----+------+-------+---------------------+------------------------+--------------------------------+-----+----------------
+  1 |  1 |  0 |  100 |  1000 | 1970-01-02 00:00:01 | 1970-01-02 00:00:01+00 | 00001                          | foo | /postgres_svr/
+  2 |  2 |  0 |  200 |  2000 | 1970-01-03 00:00:01 | 1970-01-03 00:00:01+00 | 00002                          | foo | /postgres_svr/
+  3 |  3 |  0 |  300 |  3000 | 1970-01-04 00:00:01 | 1970-01-04 00:00:01+00 | 00003                          | foo | /postgres_svr/
+  4 |  4 |  0 |  400 |  4000 | 1970-01-05 00:00:01 | 1970-01-05 00:00:01+00 | 00004                          | foo | /postgres_svr/
+  5 |  5 |  0 |  500 |  5000 | 1970-01-06 00:00:01 | 1970-01-06 00:00:01+00 | 00005                          | foo | /postgres_svr/
+  6 |  6 |  0 |  600 |  6000 | 1970-01-07 00:00:01 | 1970-01-07 00:00:01+00 | 00006                          | foo | /postgres_svr/
+  7 |  7 |  0 |  700 |  7000 | 1970-01-08 00:00:01 | 1970-01-08 00:00:01+00 | 00007                          | foo | /postgres_svr/
+  8 |  8 |  0 |  800 |  8000 | 1970-01-09 00:00:01 | 1970-01-09 00:00:01+00 | 00008                          | foo | /postgres_svr/
+  9 |  9 |  0 |  900 |  9000 | 1970-01-10 00:00:01 | 1970-01-10 00:00:01+00 | 00009                          | foo | /postgres_svr/
+ 10 |  0 |  1 | 1000 | 10000 | 1970-01-11 00:00:01 | 1970-01-11 00:00:01+00 | 00010                          | foo | /postgres_svr/
+(10 rows)
+
+-- Auto config: batch_size of FDW = 10, insert 25 records
+DELETE FROM tntbl1;
+--Testcase 122:
+ALTER SERVER postgres_svr OPTIONS (SET batch_size '10');
+--Testcase 123:
+-- ALTER SERVER pgspider_svr OPTIONS (DROP batch_size);
+--Testcase 124:
+ALTER FOREIGN TABLE tntbl1__postgres_svr__0 OPTIONS (DROP batch_size);
+--Testcase 125:
+INSERT INTO tntbl1
+	SELECT id, id % 10, id/10, id * 100, id * 1000, '1970-01-01 00:00:01'::timestamp + ((id % 100) || ' days')::interval, '1970-01-01 00:00:01'::timestamptz + ((id % 100) || ' days')::interval, to_char(id, 'FM00000'), 'foo'	FROM generate_series(1, 25) id;
+INFO:  Batch Insert for postgres_fdw, batch size = 10
+--Testcase 126:
+SELECT * FROM tntbl1 ORDER BY 1,2;
+ c1 | c2 | c3 |  c4  |  c5   |         c6          |           c7           |               c8               | c9  |   __spd_url    
+----+----+----+------+-------+---------------------+------------------------+--------------------------------+-----+----------------
+  1 |  1 |  0 |  100 |  1000 | 1970-01-02 00:00:01 | 1970-01-02 00:00:01+00 | 00001                          | foo | /postgres_svr/
+  2 |  2 |  0 |  200 |  2000 | 1970-01-03 00:00:01 | 1970-01-03 00:00:01+00 | 00002                          | foo | /postgres_svr/
+  3 |  3 |  0 |  300 |  3000 | 1970-01-04 00:00:01 | 1970-01-04 00:00:01+00 | 00003                          | foo | /postgres_svr/
+  4 |  4 |  0 |  400 |  4000 | 1970-01-05 00:00:01 | 1970-01-05 00:00:01+00 | 00004                          | foo | /postgres_svr/
+  5 |  5 |  0 |  500 |  5000 | 1970-01-06 00:00:01 | 1970-01-06 00:00:01+00 | 00005                          | foo | /postgres_svr/
+  6 |  6 |  0 |  600 |  6000 | 1970-01-07 00:00:01 | 1970-01-07 00:00:01+00 | 00006                          | foo | /postgres_svr/
+  7 |  7 |  0 |  700 |  7000 | 1970-01-08 00:00:01 | 1970-01-08 00:00:01+00 | 00007                          | foo | /postgres_svr/
+  8 |  8 |  0 |  800 |  8000 | 1970-01-09 00:00:01 | 1970-01-09 00:00:01+00 | 00008                          | foo | /postgres_svr/
+  9 |  9 |  0 |  900 |  9000 | 1970-01-10 00:00:01 | 1970-01-10 00:00:01+00 | 00009                          | foo | /postgres_svr/
+ 10 |  0 |  1 | 1000 | 10000 | 1970-01-11 00:00:01 | 1970-01-11 00:00:01+00 | 00010                          | foo | /postgres_svr/
+ 11 |  1 |  1 | 1100 | 11000 | 1970-01-12 00:00:01 | 1970-01-12 00:00:01+00 | 00011                          | foo | /postgres_svr/
+ 12 |  2 |  1 | 1200 | 12000 | 1970-01-13 00:00:01 | 1970-01-13 00:00:01+00 | 00012                          | foo | /postgres_svr/
+ 13 |  3 |  1 | 1300 | 13000 | 1970-01-14 00:00:01 | 1970-01-14 00:00:01+00 | 00013                          | foo | /postgres_svr/
+ 14 |  4 |  1 | 1400 | 14000 | 1970-01-15 00:00:01 | 1970-01-15 00:00:01+00 | 00014                          | foo | /postgres_svr/
+ 15 |  5 |  1 | 1500 | 15000 | 1970-01-16 00:00:01 | 1970-01-16 00:00:01+00 | 00015                          | foo | /postgres_svr/
+ 16 |  6 |  1 | 1600 | 16000 | 1970-01-17 00:00:01 | 1970-01-17 00:00:01+00 | 00016                          | foo | /postgres_svr/
+ 17 |  7 |  1 | 1700 | 17000 | 1970-01-18 00:00:01 | 1970-01-18 00:00:01+00 | 00017                          | foo | /postgres_svr/
+ 18 |  8 |  1 | 1800 | 18000 | 1970-01-19 00:00:01 | 1970-01-19 00:00:01+00 | 00018                          | foo | /postgres_svr/
+ 19 |  9 |  1 | 1900 | 19000 | 1970-01-20 00:00:01 | 1970-01-20 00:00:01+00 | 00019                          | foo | /postgres_svr/
+ 20 |  0 |  2 | 2000 | 20000 | 1970-01-21 00:00:01 | 1970-01-21 00:00:01+00 | 00020                          | foo | /postgres_svr/
+ 21 |  1 |  2 | 2100 | 21000 | 1970-01-22 00:00:01 | 1970-01-22 00:00:01+00 | 00021                          | foo | /postgres_svr/
+ 22 |  2 |  2 | 2200 | 22000 | 1970-01-23 00:00:01 | 1970-01-23 00:00:01+00 | 00022                          | foo | /postgres_svr/
+ 23 |  3 |  2 | 2300 | 23000 | 1970-01-24 00:00:01 | 1970-01-24 00:00:01+00 | 00023                          | foo | /postgres_svr/
+ 24 |  4 |  2 | 2400 | 24000 | 1970-01-25 00:00:01 | 1970-01-25 00:00:01+00 | 00024                          | foo | /postgres_svr/
+ 25 |  5 |  2 | 2500 | 25000 | 1970-01-26 00:00:01 | 1970-01-26 00:00:01+00 | 00025                          | foo | /postgres_svr/
+(25 rows)
+
 --Clean
 DELETE FROM tntbl1__postgres_svr__0;
 --Reset data
