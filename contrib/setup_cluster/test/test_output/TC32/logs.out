@@ -1,4 +1,4 @@
-File:install_main.c Function:verify_nodename L:1209 Msg:Error: Node name is not existed
+File:install_main.c Function:verify_nodename L:1230 Msg:Error: Node name is not existed
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

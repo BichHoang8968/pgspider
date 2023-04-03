@@ -1,0 +1,70 @@
+[
+	{
+		"nodename": "db1",
+		"fdw": "pgspider_fdw",
+		"ip": "127.0.0.1",
+		"port": 4813,
+		"username": "pgspider",
+		"password": "pgspider",
+		"username_admin": "pgspider2",
+		"password_admin": "pgspider2",
+		"dbname": "pgspider"
+	},
+	{
+		"nodename": "db2",
+		"fdw": "file_fdw",
+		"column": "c1 text, c2 bigint, c3 float8",
+		"dirpath": "/tmp/test_setcluster",
+		"table": "tmp_test_setcluster"
+	},
+	{
+		"nodename": "db3",
+		"fdw": "mysql_fdw",
+		"ip": "127.0.0.1",
+		"port": 3306,
+		"username": "root",
+		"password": "Mysql_1234",
+		"dbname": "test_setcluster"
+	},
+	{
+		"nodename": "db4",
+		"fdw": "dynamodb_fdw",
+		"username": "admin",
+		"password": "testadmin",
+		"endpoint": "http://localhost:8000"
+	},
+	{
+		"nodename": "db5",
+		"fdw": "mongo_fdw",
+		"ip": "127.0.0.1",
+		"port": 27017,
+		"username": "edb",
+		"password": "edb",
+		"dbname": "setup_cluster",
+		"use_remote_estimate": "true",
+		"enable_join_pushdown": "false"
+	},
+	{
+		"nodename": "db6",
+		"fdw": "parquet_s3_fdw",
+		"dirpath": "/tmp/data_local/setupcluster",
+		"sorted": "c1"
+	},
+	{
+		"nodename": "db7",
+		"fdw": "postgrest_fdw",
+		"ip": "127.0.0.1",
+		"port": "3000",
+		"username": "postgres",
+		"password": "postgres"
+	},
+	{
+		"nodename": "db8",
+		"fdw": "influxdb_fdw",
+		"ip": "http://localhost",
+		"port": 38086,
+		"dbname": "test_setcluster",
+		"influxdb_version": "2",
+		"token": "mytoken"
+	}
+]

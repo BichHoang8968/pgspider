@@ -831,6 +831,18 @@ verify_nodedata(nodes * node_data)
 	{
 		node_data->key = malloc_nodedata(double_quote);
 	}
+	if (node_data->influxdb_version == NULL)
+	{
+		node_data->influxdb_version = malloc_nodedata(double_quote);
+	}
+	if (node_data->token == NULL)
+	{
+		node_data->token = malloc_nodedata(double_quote);
+	}
+	if (node_data->retention_policy == NULL)
+	{
+		node_data->retention_policy = malloc_nodedata(double_quote);
+	}
 }
 
 /*
@@ -961,6 +973,9 @@ free_nodedata(nodes * node)
 		free(node->schemaless);
 		free(node->key_columns);
 		free(node->key);
+		free(node->token);
+		free(node->retention_policy);
+		free(node->influxdb_version);
 
 		node = node->next;
 		free(pnext);
@@ -1150,6 +1165,12 @@ parse_conf(json_t * element, nodes * nodes_data)
 					nodes_data->key_columns = data;
 				else if (strcasecmp(key, "key") == 0)
 					nodes_data->key = data;
+				else if (strcasecmp(key, "influxdb_version") == 0)
+					nodes_data->influxdb_version = data;
+				else if (strcasecmp(key, "token") == 0)
+					nodes_data->token = data;
+				else if (strcasecmp(key, "retention_policy") == 0)
+					nodes_data->retention_policy = data;
 				else
 				{
 					PRINT_ERROR("Error: %s is not fdw parameter. \n", key);

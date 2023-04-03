@@ -16,7 +16,7 @@ NOTICE:  extension "dynamodb_fdw" does not exist, skipping
 NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
 NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-File:install_main.c Function:set_pgspider_node_admin L:1526 Msg:Error: Cannot find extension. Fdw is invalid. Fdw: ""
+File:install_main.c Function:set_pgspider_node_admin L:1547 Msg:Error: Cannot find extension. Fdw is invalid. Fdw: ""
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json
