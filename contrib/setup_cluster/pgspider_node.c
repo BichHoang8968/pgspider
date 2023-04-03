@@ -212,16 +212,52 @@ influxdb_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname);
-	rc = query_execute(conn, sql);
-	if (rc != SETUP_OK)
-		return rc;
+	/* CXX version 1 */
+	if (strcmp(option->influxdb_version, "1") == 0)
+	{
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
-			option->nodename, option->user, option->pass);
-	rc = query_execute(conn, sql);
-	if (rc != SETUP_OK)
-		return rc;
+		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+				option->nodename, option->user, option->pass);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
+	}
+	/* CXX version 2 */
+	else if (strcmp(option->influxdb_version, "2") == 0)
+	{
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
+
+		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(auth_token '%s');\n", option->nodename, option->token);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
+	}
+	/* Go client or CXX client wihout version option */
+	else if (strcmp(option->influxdb_version, "") == 0)
+	{
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
+
+		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+				option->nodename, option->user, option->pass);
+		rc = query_execute(conn, sql);
+		if (rc != SETUP_OK)
+			return rc;
+	}
+	else
+	{
+		/* Shouldn't be here */
+		rc = SETUP_INVALID_PARAM;
+	}
 
 	return SETUP_OK;
 }

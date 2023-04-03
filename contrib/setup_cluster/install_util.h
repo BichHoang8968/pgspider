@@ -132,6 +132,9 @@ typedef struct nodes
 	char	   *schemaless;				 /* true : schemaless / false : normal table. */
 	char	   *key_columns;			 /* Key columns on schemaless table Multiple values can be set by separating with commas. */
 	char	   *key;					 /* true : use as key column. */
+	char	   *influxdb_version;		 /* InfluxDB version */
+	char	   *token;					 /* InfluxDB V2 token. */
+	char	   *retention_policy;		 /* InfluxDB V2 retention policy*/
 
 	file_fdw_tables *file_tables;
 	struct nodes *next;

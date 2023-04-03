@@ -99,6 +99,25 @@
 		"dbname": "mydb"
 	},
 	{
+		"nodename": "dbinflux_version_1",
+		"fdw": "influxdb_fdw",
+		"ip": "http://localhost",
+		"port": 18086,
+		"username": "user",
+		"password": "pass",
+		"influxdb_version": "1",
+		"dbname": "mydb"
+	},
+	{
+		"nodename": "dbinflux_version_2",
+		"fdw": "influxdb_fdw",
+		"ip": "http://127.0.0.1",
+		"port": 38086,
+		"dbname": "mydb",
+		"influxdb_version": "2",
+		"token": "mytoken"
+	},
+	{
 		"nodename": "db12",
 		"fdw": "mysql_fdw",
 		"ip": "127.0.0.1",

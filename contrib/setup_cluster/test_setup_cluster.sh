@@ -47,7 +47,7 @@ SQL_LIB_PATH=$SQLUMDASH_PATH/SQLumDash/psmalloc
 JDBC_LIB_PATH=\\\/home\\\/jenkins\\\/JDBC\\\/jdbc_lib
 
 PGS_PORT=4813
-LD_LIBRARY_PATH=":$PGSPIDER_HOME/lib:/usr/lib64/mysql:$GRIDDB_CLIENT/bin:/usr/local/tinybrace/lib:/usr/local/lib:/opt/oracle/product/21c/dbhomeXE/lib:"
+LD_LIBRARY_PATH=":$PGSPIDER_HOME/lib:/usr/lib64/mysql:$GRIDDB_CLIENT/bin:/usr/local/tinybrace/lib:/usr/local/lib:/opt/oracle/product/21c/dbhomeXE/lib:/usr/local/lib64:"
 
 SETUPCLUSTER_FOLDER=$(pwd)
 INIT_DATA_PATH=$SETUPCLUSTER_FOLDER/test/init_data 
@@ -82,9 +82,10 @@ export PG5_DIR="${POSTGRES_HOME}"
 export PG6_DIR="${POSTGRES_HOME}"
 export PG7_DIR="${POSTGRES_HOME}"
 
-export ORACLE_SID=XE 
-export ORAENV_ASK=NO 
-. /opt/oracle/product/21c/dbhomeXE/bin/oraenv
+export ORACLE_HOME=/opt/oracle/product/21c/dbhomeXE
+export ORACLE_SHLIB=$ORACLE_HOME/lib
+export ORACLE_SID=XE
+export ORAENV_ASK=NO
 
 export MONGO_HOST="${MONGO_HOST}"
 export MONGO_PORT="${MONGO_PORT}"
@@ -195,6 +196,13 @@ do
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_grid;" >> results/$i/results.out 2>&1
     echo "select * from tbl_influx;" >> results/$i/results.out
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_influx;" >> results/$i/results.out 2>&1
+
+    # show table of some test cases for influx v2
+    if [ ${i} == "TC98" ] || [ ${i} == "TC99" ] || [ ${i} == "TC100" ] || [ ${i} == "TC101" ]; then
+        echo "select * from tbl_influx_2;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_influx_2;" >> results/$i/results.out 2>&1
+    fi
+
     echo "select * from tbl_mysql;" >> results/$i/results.out
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_mysql;" >> results/$i/results.out 2>&1
     echo "select * from tbl_sqlite;" >> results/$i/results.out

@@ -1,4 +1,4 @@
-File:install_main.c Function:main L:1958 Msg:Error: Can not open file /home/no_exist_folder/node_information.json
+File:install_main.c Function:main L:1979 Msg:Error: Can not open file /home/no_exist_folder/node_information.json
 Config directory: /home/no_exist_folder
 Node information file: node_information.json
 Node structure file: node_structure.json

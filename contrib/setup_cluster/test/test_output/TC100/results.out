@@ -1,0 +1,80 @@
+select * from tbl_postgre;
+ERROR:  relation "tbl_postgre" does not exist
+LINE 1: select * from tbl_postgre;
+                      ^
+select * from tmp_test_setcluster;
+ERROR:  relation "tmp_test_setcluster" does not exist
+LINE 1: select * from tmp_test_setcluster;
+                      ^
+select * from tbl_grid;
+ERROR:  relation "tbl_grid" does not exist
+LINE 1: select * from tbl_grid;
+                      ^
+select * from tbl_influx;
+ERROR:  relation "tbl_influx" does not exist
+LINE 1: select * from tbl_influx;
+                      ^
+select * from tbl_influx_2;
+ERROR:  relation "tbl_influx_2" does not exist
+LINE 1: select * from tbl_influx_2;
+                      ^
+select * from tbl_mysql;
+ERROR:  relation "tbl_mysql" does not exist
+LINE 1: select * from tbl_mysql;
+                      ^
+select * from tbl_sqlite;
+ERROR:  relation "tbl_sqlite" does not exist
+LINE 1: select * from tbl_sqlite;
+                      ^
+select * from tbl_tiny;
+ERROR:  relation "tbl_tiny" does not exist
+LINE 1: select * from tbl_tiny;
+                      ^
+select * from tbl_parquetminio;
+ERROR:  relation "tbl_parquetminio" does not exist
+LINE 1: select * from tbl_parquetminio;
+                      ^
+select * from tbl_parquetlocal;
+ERROR:  relation "tbl_parquetlocal" does not exist
+LINE 1: select * from tbl_parquetlocal;
+                      ^
+select * from tbl_oracle;
+ERROR:  relation "tbl_oracle" does not exist
+LINE 1: select * from tbl_oracle;
+                      ^
+select * from tbl_sqlumdash;
+ERROR:  relation "tbl_sqlumdash" does not exist
+LINE 1: select * from tbl_sqlumdash;
+                      ^
+select * from tbl_odbcmysql;
+ERROR:  relation "tbl_odbcmysql" does not exist
+LINE 1: select * from tbl_odbcmysql;
+                      ^
+select * from tbl_odbcpostgres;
+ERROR:  relation "tbl_odbcpostgres" does not exist
+LINE 1: select * from tbl_odbcpostgres;
+                      ^
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
+                      ^
