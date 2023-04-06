@@ -364,10 +364,11 @@ MIGRATE TABLE base_table SERVER postgres_srv2 OPTIONS (schema_name 'S 1'), postg
 \det+
 
 -- OK: datasource table created
+SELECT * FROM base_table ORDER BY c1, __spd_url;
 --Testcase 85:
-SELECT * FROM base_table_datasource1 ORDER BY c1;
+SELECT count(*) FROM base_table_datasource1;
 --Testcase 86:
-SELECT * FROM base_table_datasource2 ORDER BY c1;
+SELECT count(*) FROM base_table_datasource2;
 
 -- clean-up
 --Testcase 87:
@@ -384,7 +385,7 @@ DROP FOREIGN TABLE base_table_datasource2;
 --
 
 --Testcase 91:
-SELECT * FROM base_table ORDER BY c1;
+SELECT * FROM base_table ORDER BY c1, __spd_url;
 
 --Testcase 92:
 MIGRATE TABLE base_table REPLACE SERVER postgres_srv2;
@@ -473,12 +474,12 @@ MIGRATE TABLE base_table REPLACE SERVER postgres_srv2 OPTIONS (schema_name 'S 2'
 --Testcase 112:
 \d base_table
 --Testcase 113:
-SELECT * FROM base_table ORDER BY c1;
+SELECT * FROM base_table ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 114:
-SELECT * FROM base_table__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM base_table__postgres_srv2__0;
 --Testcase 115:
-SELECT * FROM base_table__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM base_table__postgres_srv3__0;
 
 --Testcase 116:
 DROP FOREIGN TABLE base_table;
@@ -564,12 +565,12 @@ MIGRATE TABLE base_table TO base_table_new SERVER postgres_srv2 OPTIONS (schema_
 --Testcase 140:
 \d base_table_new
 --Testcase 141:
-SELECT * FROM base_table_new ORDER BY c1;
+SELECT * FROM base_table_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 142:
-SELECT * FROM base_table_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM base_table_new__postgres_srv2__0;
 --Testcase 143:
-SELECT * FROM base_table_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM base_table_new__postgres_srv3__0;
 
 --Testcase 144:
 DROP FOREIGN TABLE base_table_new;
@@ -647,12 +648,12 @@ MIGRATE TABLE base_table TO base_table_new OPTIONS (USE_MULTITENANT_SERVER 'pgsp
 --Testcase 169:
 \d base_table_new
 --Testcase 170:
-SELECT * FROM base_table_new ORDER BY c1;
+SELECT * FROM base_table_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 171:
-SELECT * FROM base_table_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM base_table_new__postgres_srv2__0;
 --Testcase 172:
-SELECT * FROM base_table_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM base_table_new__postgres_srv3__0;
 
 --Testcase 173:
 DROP FOREIGN TABLE base_table_new;
@@ -882,10 +883,11 @@ MIGRATE TABLE tbl1 SERVER postgres_srv2 OPTIONS (schema_name 'S 1'), postgres_sr
 \det+
 
 -- OK: datasource table created
+SELECT * FROM tbl1 ORDER BY c1, __spd_url;
 --Testcase 211:
-SELECT * FROM tbl1_datasource1 ORDER BY c1;
+SELECT count(*) FROM tbl1_datasource1;
 --Testcase 212:
-SELECT * FROM tbl1_datasource2 ORDER BY c1;
+SELECT count(*) FROM tbl1_datasource2;
 
 -- clean-up
 --Testcase 213:
@@ -967,12 +969,12 @@ MIGRATE TABLE tbl1 REPLACE SERVER postgres_srv2 OPTIONS (schema_name 'S 2', tabl
 --Testcase 236:
 \d tbl1
 --Testcase 237:
-SELECT * FROM tbl1 ORDER BY c1;
+SELECT * FROM tbl1 ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 238:
-SELECT * FROM tbl1__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl1__postgres_srv2__0;
 --Testcase 239:
-SELECT * FROM tbl1__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl1__postgres_srv3__0;
 
 --Testcase 240:
 DROP FOREIGN TABLE tbl1;
@@ -1046,12 +1048,12 @@ MIGRATE TABLE tbl1 TO tbl1_new SERVER postgres_srv2 OPTIONS (schema_name 'S 2', 
 --Testcase 263:
 \d tbl1_new
 --Testcase 264:
-SELECT * FROM tbl1_new ORDER BY c1;
+SELECT * FROM tbl1_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 265:
-SELECT * FROM tbl1_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl1_new__postgres_srv2__0;
 --Testcase 266:
-SELECT * FROM tbl1_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl1_new__postgres_srv3__0;
 
 --Testcase 267:
 DROP FOREIGN TABLE tbl1_new;
@@ -1126,12 +1128,12 @@ MIGRATE TABLE tbl1 TO tbl1_new OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_sv
 --Testcase 292:
 \d tbl1_new
 --Testcase 293:
-SELECT * FROM tbl1_new ORDER BY c1;
+SELECT * FROM tbl1_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 294:
-SELECT * FROM tbl1_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl1_new__postgres_srv2__0;
 --Testcase 295:
-SELECT * FROM tbl1_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl1_new__postgres_srv3__0;
 
 --Testcase 296:
 DROP FOREIGN TABLE tbl1_new;
@@ -1317,10 +1319,11 @@ MIGRATE TABLE tbl2 SERVER postgres_srv2 OPTIONS (schema_name 'S 1'), postgres_sr
 \det+
 
 -- OK: datasource table created
+SELECT * FROM tbl2 ORDER BY c1, __spd_url;
 --Testcase 332:
-SELECT * FROM tbl2_datasource1 ORDER BY c1;
+SELECT count(*) FROM tbl2_datasource1;
 --Testcase 333:
-SELECT * FROM tbl2_datasource2 ORDER BY c1;
+SELECT count(*) FROM tbl2_datasource2;
 
 -- clean-up
 --Testcase 334:
@@ -1403,12 +1406,12 @@ MIGRATE TABLE tbl2 REPLACE SERVER postgres_srv2 OPTIONS (schema_name 'S 2', tabl
 --Testcase 357:
 \d tbl2
 --Testcase 358:
-SELECT * FROM tbl2 ORDER BY c1;
+SELECT * FROM tbl2 ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 359:
-SELECT * FROM tbl2__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl2__postgres_srv2__0;
 --Testcase 360:
-SELECT * FROM tbl2__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl2__postgres_srv3__0;
 
 --Testcase 361:
 DROP FOREIGN TABLE tbl2;
@@ -1485,12 +1488,12 @@ MIGRATE TABLE tbl2 TO tbl2_new SERVER postgres_srv2 OPTIONS (schema_name 'S 2', 
 --Testcase 384:
 \d tbl2_new
 --Testcase 385:
-SELECT * FROM tbl2_new ORDER BY c1;
+SELECT * FROM tbl2_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 386:
-SELECT * FROM tbl2_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl2_new__postgres_srv2__0;
 --Testcase 387:
-SELECT * FROM tbl2_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl2_new__postgres_srv3__0;
 
 --Testcase 388:
 DROP FOREIGN TABLE tbl2_new;
@@ -1571,12 +1574,12 @@ MIGRATE TABLE tbl2 TO tbl2_new OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_sv
 --Testcase 413:
 \d tbl2_new
 --Testcase 414:
-SELECT * FROM tbl2_new ORDER BY c1;
+SELECT * FROM tbl2_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 415:
-SELECT * FROM tbl2_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl2_new__postgres_srv2__0;
 --Testcase 416:
-SELECT * FROM tbl2_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl2_new__postgres_srv3__0;
 
 --Testcase 417:
 DROP FOREIGN TABLE tbl2_new;
@@ -1792,10 +1795,11 @@ MIGRATE TABLE tbl3 SERVER postgres_srv2 OPTIONS (schema_name 'S 1'), postgres_sr
 \det+
 
 -- OK: datasource table created
+SELECT * FROM tbl3 ORDER BY c1, __spd_url;
 --Testcase 456:
-SELECT * FROM tbl3_datasource1 ORDER BY c1;
+SELECT count(*) FROM tbl3_datasource1;
 --Testcase 457:
-SELECT * FROM tbl3_datasource2 ORDER BY c1;
+SELECT count(*) FROM tbl3_datasource2;
 
 -- clean-up
 --Testcase 458:
@@ -1878,12 +1882,12 @@ MIGRATE TABLE tbl3 REPLACE SERVER postgres_srv2 OPTIONS (schema_name 'S 2', tabl
 --Testcase 481:
 \d tbl3
 --Testcase 482:
-SELECT * FROM tbl3 ORDER BY c1;
+SELECT * FROM tbl3 ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 483:
-SELECT * FROM tbl3__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl3__postgres_srv2__0;
 --Testcase 484:
-SELECT * FROM tbl3__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl3__postgres_srv3__0;
 
 --Testcase 485:
 DROP FOREIGN TABLE tbl3;
@@ -1960,12 +1964,12 @@ MIGRATE TABLE tbl3 TO tbl3_new SERVER postgres_srv2 OPTIONS (schema_name 'S 2', 
 --Testcase 508:
 \d tbl3_new
 --Testcase 509:
-SELECT * FROM tbl3_new ORDER BY c1;
+SELECT * FROM tbl3_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 510:
-SELECT * FROM tbl3_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl3_new__postgres_srv2__0;
 --Testcase 511:
-SELECT * FROM tbl3_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl3_new__postgres_srv3__0;
 
 --Testcase 512:
 DROP FOREIGN TABLE tbl3_new;
@@ -2041,12 +2045,12 @@ MIGRATE TABLE tbl3 TO tbl3_new OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_sv
 --Testcase 537:
 \d tbl3_new
 --Testcase 538:
-SELECT * FROM tbl3_new ORDER BY c1;
+SELECT * FROM tbl3_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 539:
-SELECT * FROM tbl3_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM tbl3_new__postgres_srv2__0;
 --Testcase 540:
-SELECT * FROM tbl3_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl3_new__postgres_srv3__0;
 
 --Testcase 541:
 DROP FOREIGN TABLE tbl3_new;
@@ -2316,12 +2320,12 @@ MIGRATE TABLE replace REPLACE SERVER postgres_srv2 OPTIONS (schema_name 'S 2', t
 --Testcase 601:
 \d replace
 --Testcase 602:
-SELECT * FROM replace ORDER BY c1;
+SELECT * FROM replace ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 603:
-SELECT * FROM replace__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM replace__postgres_srv2__0;
 --Testcase 604:
-SELECT * FROM replace__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM replace__postgres_srv3__0;
 
 --Testcase 605:
 DROP FOREIGN TABLE replace;
@@ -2398,12 +2402,12 @@ MIGRATE TABLE replace TO replace_new SERVER postgres_srv2 OPTIONS (schema_name '
 --Testcase 628:
 \d replace_new
 --Testcase 629:
-SELECT * FROM replace_new ORDER BY c1;
+SELECT * FROM replace_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 630:
-SELECT * FROM replace_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM replace_new__postgres_srv2__0;
 --Testcase 631:
-SELECT * FROM replace_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM replace_new__postgres_srv3__0;
 
 --Testcase 632:
 DROP FOREIGN TABLE replace_new;
@@ -2478,12 +2482,12 @@ MIGRATE TABLE replace TO replace_new OPTIONS (USE_MULTITENANT_SERVER 'pgspider_c
 --Testcase 657:
 \d replace_new
 --Testcase 658:
-SELECT * FROM replace_new ORDER BY c1;
+SELECT * FROM replace_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 659:
-SELECT * FROM replace_new__postgres_srv2__0 ORDER BY c1;
+SELECT count(*) FROM replace_new__postgres_srv2__0;
 --Testcase 660:
-SELECT * FROM replace_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM replace_new__postgres_srv3__0;
 
 --Testcase 661:
 DROP FOREIGN TABLE replace_new;
@@ -2701,10 +2705,11 @@ MIGRATE TABLE tbl4 SERVER replace OPTIONS (schema_name 'S 1'), postgres_srv3 OPT
 \det+
 
 -- OK: datasource table created
+SELECT * FROM tbl4 ORDER BY c1, __spd_url;
 --Testcase 699:
-SELECT * FROM tbl4_datasource1 ORDER BY c1;
+SELECT count(*) FROM tbl4_datasource1;
 --Testcase 700:
-SELECT * FROM tbl4_datasource2 ORDER BY c1;
+SELECT count(*) FROM tbl4_datasource2;
 
 -- clean-up
 --Testcase 701:
@@ -2787,12 +2792,12 @@ MIGRATE TABLE tbl4 REPLACE SERVER replace OPTIONS (schema_name 'S 2', table_name
 --Testcase 724:
 \d tbl4
 --Testcase 725:
-SELECT * FROM tbl4 ORDER BY c1;
+SELECT * FROM tbl4 ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 726:
-SELECT * FROM tbl4__replace__0 ORDER BY c1;
+SELECT count(*) FROM tbl4__replace__0;
 --Testcase 727:
-SELECT * FROM tbl4__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl4__postgres_srv3__0;
 
 --Testcase 728:
 DROP FOREIGN TABLE tbl4;
@@ -2869,12 +2874,12 @@ MIGRATE TABLE tbl4 TO tbl4_new SERVER replace OPTIONS (schema_name 'S 2', table_
 --Testcase 751:
 \d tbl4_new
 --Testcase 752:
-SELECT * FROM tbl4_new ORDER BY c1;
+SELECT * FROM tbl4_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 753:
-SELECT * FROM tbl4_new__replace__0 ORDER BY c1;
+SELECT count(*) FROM tbl4_new__replace__0;
 --Testcase 754:
-SELECT * FROM tbl4_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl4_new__postgres_srv3__0;
 
 --Testcase 755:
 DROP FOREIGN TABLE tbl4_new;
@@ -2949,12 +2954,12 @@ MIGRATE TABLE tbl4 TO tbl4_new OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_sv
 --Testcase 780:
 \d tbl4_new
 --Testcase 781:
-SELECT * FROM tbl4_new ORDER BY c1;
+SELECT * FROM tbl4_new ORDER BY c1, __spd_url;
 -- check data distribution
 --Testcase 782:
-SELECT * FROM tbl4_new__replace__0 ORDER BY c1;
+SELECT count(*) FROM tbl4_new__replace__0;
 --Testcase 783:
-SELECT * FROM tbl4_new__postgres_srv3__0 ORDER BY c1;
+SELECT count(*) FROM tbl4_new__postgres_srv3__0;
 
 --Testcase 784:
 DROP FOREIGN TABLE tbl4_new;

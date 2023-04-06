@@ -1582,10 +1582,10 @@ spd_FdwExecForeignDDL(RangeVar *relvar, ForeignDDLType operation, bool exists_fl
 	/* Get foreign fdw */
 	fdw = GetForeignDataWrapper(server->fdwid);
 
-	/* Support postgres_fdw only */
-	if (strcmp(fdw->fdwname, "postgres_fdw") != 0)
+	/* Support foreign tables only */
+	if (strcmp(fdw->fdwname, "pgspider_core_fdw") == 0)
 	{
-		elog(ERROR, "%s is not supported now, only postgres_fdw is supported.", fdw->fdwname);
+		elog(ERROR, "Does not support %s DATASOURCE TABLE command for multitenant foreign table.", (operation == SPD_CMD_CREATE) ? "CREATE" : "DROP");
 	};
 
 	/* Create fdw lib name simply by fdw name */
@@ -1593,6 +1593,8 @@ spd_FdwExecForeignDDL(RangeVar *relvar, ForeignDDLType operation, bool exists_fl
 
 	/* Try to look up the info function */
 	infofunc = (ExecForeignDDL) load_external_function(fdwlib_name, "ExecForeignDDL", false, NULL);
+	if (infofunc == NULL)
+		elog(ERROR, "%s does not support DDL commands", fdw->fdwname);
 
 	/* Call ExecForeignDDL() */
 	(int)(*infofunc) (server->serverid, rel, (int)operation, exists_flag);
@@ -1708,14 +1710,16 @@ spd_get_table_mapping_option_name(ForeignServer *server)
 	char *fdwname = GetForeignDataWrapper(server->fdwid)->fdwname;
 
 	/*
-	 * TODO: 
-	 *     Currently, we support only postgres_fdw. In the future we may support more fdws,
+	 * TODO:
+	 *     In the future we may support more fdws,
 	 *     so we add code prototype for other FDWs here to help developer maintain code more easily.
 	 */
 	if (strcmp(fdwname, "mongo_fdw") == 0)
 		return "collection";
 	else if (strcmp(fdwname, "parquet_s3_fdw") == 0)
-		return "filename";
+		return "dirname";
+	else if (strcmp(fdwname, "influxdb_fdw") == 0 || strcmp(fdwname, "oracle_fdw") == 0)
+		return "table";
 	else
 		return "table_name";
 }

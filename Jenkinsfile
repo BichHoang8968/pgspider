@@ -403,6 +403,7 @@ pipeline {
                 }
             }
         }
+<<<<<<< HEAD
         stage('pgspider_migrate_multi') {
             steps {
                 catchError() {
@@ -437,6 +438,8 @@ pipeline {
                 }
             }
         }
+=======
+>>>>>>> e1db478... Add tests for data_migration_new_solution_ddl_feature
         /*stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
