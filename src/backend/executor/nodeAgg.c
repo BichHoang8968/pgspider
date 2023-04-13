@@ -3858,6 +3858,13 @@ ExecInitAgg(Agg *node, EState *estate, int eflags)
 		 * could be different from the agg's declared input types, when the
 		 * agg accepts ANY or a polymorphic type.
 		 */
+#ifdef PD_STORED
+		if (OidIsValid(childfn))
+		{
+			/* Argument of a parent trans function is that of child function. */
+			aggref->aggargtypes = list_make1_oid(rettypechild);
+		}
+#endif
 		numAggTransFnArgs = get_aggregate_argtypes(aggref,
 												   aggTransFnInputTypes);
 

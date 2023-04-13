@@ -259,6 +259,9 @@ get_functiondef_string(Oid funcid)
 	return sqls;
 }
 
+/*
+ * Create a function in PostgreSQL.
+ */
 static void
 create_function(UserMapping *user, Oid funcoid)
 {
@@ -291,6 +294,13 @@ typedef struct private_data
 	char	   *sql;
 } private_data;
 
+/*
+ * Execute a function.
+ * If 'async' parameter is true, it is required to execute a function
+ * asynchronously. If false, it is not required it. It means that
+ * either asynchronous or synchronous is acceptable. In postgres_fdw,
+ * it always execites a function asynchronously.
+ */
 void
 postgresExecuteFunction(Oid funcoid, Oid tableoid,
 						List *args, bool async, void **private)
@@ -318,13 +328,6 @@ postgresExecuteFunction(Oid funcoid, Oid tableoid,
 	if (!PQsendQuery(conn, buf.data))
 		pgfdw_report_error(ERROR, NULL, conn, false, buf.data);
 
-	if (!async)
-	{
-		res = pgfdw_get_result(conn, buf.data);
-		if (PQresultStatus(res) != PGRES_TUPLES_OK)
-			pgfdw_report_error(ERROR, res, conn, false, buf.data);
-	}
-
 	fdw_private = palloc0(sizeof(private_data));
 	fdw_private->conn = conn;
 	fdw_private->res = res;
@@ -333,6 +336,11 @@ postgresExecuteFunction(Oid funcoid, Oid tableoid,
 	*private = fdw_private;
 }
 
+/*
+ * Get a result of the function executed by postgresExecuteFunction,
+ * return a row in the result. This function will be called repeatedly
+ * until this function returns false.
+ */
 bool
 postgresGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
 							 Datum *value, bool *null)
@@ -385,6 +393,9 @@ postgresGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
 	return true;
 }
 
+/*
+ * Clean up
+ */
 void
 postgresFinalizeFunction(void *private)
 {
