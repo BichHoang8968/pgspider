@@ -95,11 +95,6 @@ MIGRATE TABLE test_error REPLACE TO ft2 SERVER postgres_srv2; -- redundant word
 ERROR:  syntax error at or near "TO"
 LINE 1: MIGRATE TABLE test_error REPLACE TO ft2 SERVER postgres_srv2...
                                          ^
---Testcase 19:
-MIGRATE TABLE test_error REPLACE OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_srv') SERVER postgres_srv2; -- wrong option
-ERROR:  syntax error at or near "OPTIONS"
-LINE 1: MIGRATE TABLE test_error REPLACE OPTIONS (USE_MULTITENANT_SE...
-                                         ^
 --Testcase 20:
 CREATE TABLE DATASOURCE test_error; -- wrong key word order
 ERROR:  syntax error at or near "test_error"

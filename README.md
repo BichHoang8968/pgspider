@@ -28,6 +28,11 @@ Usage of PGSpider is the same as PostgreSQL except its program name is `pgspider
     WHERE clause and aggregation functions are pushed down to child nodes.  
     Pushdown to Multi-tenant tables occur error when AVG, STDDEV and VARIANCE are used.  
     PGSPider improves this error, PGSpider can execute them.
+  
+* Data Compression Transfer
+    PGSpider support transferring data to other datasource via Cloud Function.  
+    Data will be compressed, transmitted to Cloud Function, and then transfered to data source.  
+    This feature helps PGSpider control and reduce the size of transferred data between PGSpider and destination data source, lead to reduce the usage fee on cloud service
 
 ## How to build PGSpider
 
@@ -385,6 +390,72 @@ Source table can be local table, foreign table or multi-tenant table. Destinatio
 
     MIGRATE TABLE t1 to t2 OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_svr') SERVER postgres_svr;
     ```
+
+#### Data compression transfer
+You can migrate data from source tables to destination tables of other datasources via a cloud function.  
+A pgspider_fdw server is required to act as a relay server to transmit data to cloud function.
+It is required to provide`endpoint` and `relay` options to active this feature.  
+
+#### Current supported datasources:  
+- **PostgreSQL**  
+- **MySQL**  
+- **Oracle**  
+- **GridDB**  
+- **PGSpider**  
+
+#### Options supported:  
+- **relay** as *string*, required 
+      Specifies foreign server of PGSpider FDW which is used to support Data Compression Transfer Feature.  
+- **endpoint** as *string*, required  
+      Specifies the endpoint address of cloud service.  
+- **socket_port** as *interger*, required, default `4814`  
+      Specifies the port number of Socket server  
+- **function_timeout**  as *interger*, required, default `900` seconds  
+      A socket is opened in FDW to get connection from Function, send data and receive finished notification.  
+      If a finished notification of Function does not arrive before timeout expires, or no client connects to the server socket  
+      the server socket is closed, and an error is shown.
+- **batch_size**  as *interger*, optional, default `1000`  
+      batch_size determines the number of records that will be sent to Function each time.
+- **proxy** as *string*, optional  
+      Proxy for cURL request.  
+      If value is set by 'no', disable the use of proxy.  
+      If value is not set, cURL uses environmental variables.  
+
+Examples:
+  ```sql
+  -- Create SERVER
+  CREATE SERVER cloudfunc FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'http://cloud.example.com:8080', proxy 'no', batch_size '1000');
+
+  CREATE SERVER postgres FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host 'postgres.example.com', port '5432', dbname 'test');
+  CREATE SERVER pgspider FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host 'pgspider.example.com', port '4813', dbname 'test');
+  CREATE SERVER mysql FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host 'mysql.example.com', port '3306');
+  CREATE SERVER griddb FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host 'griddb.example.com', port '20002', clustername 'GridDB');
+  CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'oracle.example.com:1521/XE');
+
+  -- MIGRATE NONE
+  MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+          postgres OPTIONS (table_name 'table', relay 'cloudfunc'),
+          pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
+          mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
+          griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
+          oracle OPTIONS (table 'table', relay 'cloudfunc');
+
+  -- MIGRATE TO
+  MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+          postgres OPTIONS (table_name 'table', relay 'cloudfunc'),
+          pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
+          mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
+          griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
+          oracle OPTIONS (table 'table', relay 'cloudfunc');
+
+  -- MIGRATE REPLACE
+  MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+          postgres OPTIONS (table_name 'table', relay 'cloudfunc'),
+          pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
+          mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
+          griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
+          oracle OPTIONS (table 'table', relay 'cloudfunc');
+  ```
 
 ## Note
 When a query to foreign tables fails, you can find why it fails by seeing a query executed in PGSpider with `EXPLAIN (VERBOSE)`.  

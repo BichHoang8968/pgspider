@@ -84,8 +84,6 @@ MIGRATE FOREIGN TABLE test_error SERVER postgres_srv2; -- redundant word
 MIGRATE TABLE test_error SERVER postgres_srv2 TO ft2; -- wrong key word order
 --Testcase 18:
 MIGRATE TABLE test_error REPLACE TO ft2 SERVER postgres_srv2; -- redundant word
---Testcase 19:
-MIGRATE TABLE test_error REPLACE OPTIONS (USE_MULTITENANT_SERVER 'pgspider_core_srv') SERVER postgres_srv2; -- wrong option
 
 --Testcase 20:
 CREATE TABLE DATASOURCE test_error; -- wrong key word order
