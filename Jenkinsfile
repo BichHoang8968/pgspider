@@ -1,5 +1,5 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
-def MAIL_TO = 'anh1.nguyenthivan@toshiba.co.jp'
+def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 
@@ -18,6 +18,8 @@ def BRANCH_DYNAMODB_FDW = 'master'
 def BRANCH_ORACLE_FDW = 'master'
 def BRANCH_ODBC_FDW = 'master'
 def BRANCH_JDBC_FDW = 'master'
+def BRANCH_REDMINE_FDW = 'master'
+def BRANCH_PGSPIDER_COMPRESSION = 'CloudFunctionRefactored'
 
 pipeline {
     agent {
@@ -53,6 +55,9 @@ pipeline {
                         rm -rf /tmp/minio_pgspider/* || true
                         cp -a contrib/pgspider_core_fdw/init/test-bucket /tmp/minio_pgspider
                         cp -a contrib/pgspider_core_fdw/init/parquets3 /tmp/minio_pgspider
+                        rm -rf /tmp/data_s3_1/* || true
+                        rm -rf /tmp/data_s3_2/* || true
+                        mkdir -p /tmp/data_s3_1/data/source && mkdir -p /tmp/data_s3_1/data/dest && mkdir -p /tmp/data_s3_2/data/source && mkdir -p /tmp/data_s3_2/data/dest
                         cd ${PGSPIDER_DOCKER_PATH}
                         docker-compose up -d
                     """
@@ -73,7 +78,7 @@ pipeline {
             steps {
                 catchError() {
                     sh """
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW} ${BRANCH_MONGO_FDW} ${BRANCH_DYNAMODB_FDW} ${BRANCH_ORACLE_FDW} ${BRANCH_ODBC_FDW} ${BRANCH_JDBC_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW} ${BRANCH_MONGO_FDW} ${BRANCH_DYNAMODB_FDW} ${BRANCH_ORACLE_FDW} ${BRANCH_ODBC_FDW} ${BRANCH_JDBC_FDW} ${BRANCH_REDMINE_FDW}" pgspider'
                     """
                 }
             }
@@ -403,7 +408,6 @@ pipeline {
                 }
             }
         }
-<<<<<<< HEAD
         stage('pgspider_migrate_multi') {
             steps {
                 catchError() {
@@ -418,7 +422,6 @@ pipeline {
                         docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_migrate_multi.sh" postgres'
                         docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
                         docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_migrate_multi.sh'
-
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_migrate_multi" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_migrate_multi_make_check.out
                     """
@@ -438,8 +441,45 @@ pipeline {
                 }
             }
         }
-=======
->>>>>>> e1db478... Add tests for data_migration_new_solution_ddl_feature
+        stage('pgspider_data_compression') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_compression.sh"
+                        docker exec -d influx2_multi_existed_test /bin/bash -c 'influxd --storage-write-timeout=100s --http-bind-address=:38086'
+                        docker exec influx2_multi_existed_test /bin/bash -c '/home/test/start_existed_test_compression.sh'
+                        docker exec gridserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_compression.sh"
+                        docker exec gridserver_multi1_existed_test /bin/bash -c "/home/test/start_existed_test_compression_1.sh"
+                        docker exec gridserver_multi2_existed_test /bin/bash -c "/home/test/start_existed_test_compression_2.sh"
+                        docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh" postgres'
+                        docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_compression.sh ${BRANCH_PGSPIDER}'
+                        
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
+                        docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh" pgspider'
+                        docker exec gcpserver_for_compression_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh ${BRANCH_PGSPIDER_COMPRESSION}" pgspider'
+                        docker exec -d -w /tmp/pgspider_compression/FunctionGCP gcpserver_for_compression_existed_test /bin/bash -c 'su -c " source ~/.bashrc && mvn function:run" pgspider'
+
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c '/home/test/influxdb_cxx_client_build.sh'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_data_compression" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_data_compression_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_fdw_data_compression_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_fdw_data_compression Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_fdw_data_compression_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_fdw_data_compression.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results pgspider_core_fdw_data_compression'
+                        sh 'cat pgspider_core_fdw_data_compression.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_data_compression', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_fdw_data_compression', state: 'success'
+                    }
+                }
+            }
+        }
         /*stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
@@ -517,8 +557,8 @@ pipeline {
                     }
                 }
             }
-        }
-        stage('run_enhance_test_on_local_machine') {
+        }*/
+        /*stage('run_enhance_test_on_local_machine') {
             steps {
                 catchError() {
                     sh """
@@ -556,6 +596,8 @@ pipeline {
         always {
             sh """
                 cd ${PGSPIDER_DOCKER_PATH}
+                docker-compose down
+                cd ${ENHANCE_TEST_DOCKER_PATH}
                 docker-compose down
             """
         }

@@ -16930,12 +16930,12 @@ MigrateTableStmt:
 		;
 
 migrate_table_qualification:
-		REPLACE
+		REPLACE dest_table_options
 			{
 				MigrateTableQual *n = (MigrateTableQual *) palloc(sizeof(MigrateTableQual));
 				n->migrate_type = MIGRATE_REPLACE;
 				n->dest_relation = NULL;
-				n->dest_table_options = NIL;
+				n->dest_table_options = $2;
 
 				$$ = n;
 			}
@@ -16948,12 +16948,12 @@ migrate_table_qualification:
 
 				$$ = n;
 			}
-		| /*EMPTY*/
+		| dest_table_options
 			{
 				MigrateTableQual *n = (MigrateTableQual *) palloc(sizeof(MigrateTableQual));
 				n->migrate_type = MIGRATE_NONE;
 				n->dest_relation = NULL;
-				n->dest_table_options = NIL;
+				n->dest_table_options = $1;
 
 				$$ = n;
 			}

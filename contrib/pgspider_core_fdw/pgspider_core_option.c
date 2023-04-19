@@ -210,6 +210,49 @@ pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 						 errmsg("\"%s\" must be an integer value smaller than or equal to max limit %d",
 								def->defname, SPD_BATCH_SIZE_MAX_LIMIT)));
 		}
+		/* Support Data Compression Transfer feature */
+		else if (strcmp(def->defname, "socket_port") == 0)
+		{
+			char	   *value;
+			int			int_val;
+			bool		is_parsed;
+
+			value = defGetString(def);
+			is_parsed = parse_int(value, &int_val, 0, NULL);
+
+			if (!is_parsed)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("invalid value for integer option \"%s\": %s",
+								def->defname, value)));
+
+			if (int_val <= 0 || int_val >= 65536)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("\"%s\" must be an integer value greater than 0 and less than 65536",
+								def->defname)));
+		}
+		else if (strcmp(def->defname, "function_timeout") == 0)
+		{
+			char	   *value;
+			int			int_val;
+			bool		is_parsed;
+
+			value = defGetString(def);
+			is_parsed = parse_int(value, &int_val, 0, NULL);
+
+			if (!is_parsed)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("invalid value for integer option \"%s\": %s",
+								def->defname, value)));
+
+			if (int_val <= 0)
+				ereport(ERROR,
+						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 errmsg("\"%s\" must be an integer value greater than 0",
+								def->defname)));
+		}
 
 	}
 
@@ -249,6 +292,9 @@ InitSpdFdwOptions(void)
 		/* time_measure_mode is available on both server and table */
 		{SPD_TM_OPTION_TITLE, ForeignServerRelationId, false},
 		{SPD_TM_OPTION_TITLE, ForeignTableRelationId, false},
+		/* data compression transfer */
+		{"socket_port", ForeignTableRelationId, false},
+		{"function_timeout", ForeignTableRelationId, false},
 		{NULL, InvalidOid, false}
 	};
 

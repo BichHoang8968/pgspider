@@ -1089,8 +1089,8 @@ spd_run_cleanup_query(List *cmds, int idx)
 			char	   *err_msg;
 
 			MemoryContextSwitchTo(ccxt);
-			FlushErrorState();
 			edata = CopyErrorData();
+			FlushErrorState();
 			/* Save error info. It will be raised as a WARNING after executing all queries */
 			err_msg = psprintf("CLEAN UP QUERY: %s\n ERROR: %s", cmd, edata->message);
 			cmd_errors = lappend(cmd_errors, err_msg);

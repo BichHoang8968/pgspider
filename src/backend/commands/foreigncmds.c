@@ -87,6 +87,8 @@ typedef struct migrate_cmd_context
 	List	   *cleanup_commands;				/* command list for clean-up when an error occurs */
 
 	char	   *use_multitenant_server;		/* multitenant server name */
+	int 		socket_port;				/* port number of socket server */
+	int 		function_timeout;			/* specifies the seconds that PGSpider waits for finished notification from Function */
 
 	/* source table information */
 	char	   *src_table_fullname;			/* name include schema/catalog and quote indentifier  */
@@ -106,6 +108,9 @@ typedef struct migrate_cmd_context
 	char	   *temp_prefix;
 } migrate_cmd_context;
 
+#define DCT_DEFAULT_BATCH_SIZE 1000			/* Default batch size for Data Compression Transfer Feature */
+#define DCT_DEFAULT_PORT 4814				/* Default port for Data Compression Transfer Feature */
+#define DCT_DEFAULT_FUNCTION_TIMEOUT 900	/* Default function timeout for Data Compression Transfer Feature. 900s equal 15 minutes */
 #endif
 
 /*
@@ -1586,13 +1591,16 @@ spd_FdwExecForeignDDL(RangeVar *relvar, ForeignDDLType operation, bool exists_fl
 	if (strcmp(fdw->fdwname, "pgspider_core_fdw") == 0)
 	{
 		elog(ERROR, "Does not support %s DATASOURCE TABLE command for multitenant foreign table.", (operation == SPD_CMD_CREATE) ? "CREATE" : "DROP");
-	};
+	}
 
 	/* Create fdw lib name simply by fdw name */
 	fdwlib_name = psprintf("$libdir/%s", fdw->fdwname);
 
 	/* Try to look up the info function */
 	infofunc = (ExecForeignDDL) load_external_function(fdwlib_name, "ExecForeignDDL", false, NULL);
+	if (infofunc == NULL)
+		elog(ERROR, "%s does not support DDL commands", fdw->fdwname);
+
 	if (infofunc == NULL)
 		elog(ERROR, "%s does not support DDL commands", fdw->fdwname);
 
@@ -1791,13 +1799,49 @@ spd_relation_get_full_name(Relation rel)
  * @param need_spdurl flag to specify __spd_url column is needed or not
  */
 static char *
-spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateServerItem *server, bool need_spdurl)
+spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateServerItem * server, bool need_spdurl, char *relay)
 {
 	ListCell   *optcell;
-	bool 		first = true;
-	bool		has_table_mapping_opt =  false;
+	bool		first = true;
+	bool		has_table_mapping_opt = false;
+	int			batch_size = 0;
 	char	   *table_mapping_opt;
 	StringInfoData buf;
+	char	   *server_name;
+	Oid			serverID;
+	Oid			userID;
+
+	if (relay == NULL)
+		server_name = server->dest_server_name;
+	else
+	{
+		ForeignServer *fs_target;
+		ForeignServer *fs_relay;
+
+		server_name = relay;
+
+		/* Get userID and serverID of target server */
+		fs_target = GetForeignServerByName(server->dest_server_name, false);
+		serverID = fs_target->serverid;
+		userID = fs_target->owner;
+
+		fs_relay = GetForeignServerByName(relay, false);
+
+		/* check batch_size exists in relay server */
+		foreach(optcell, fs_relay->options)
+		{
+			DefElem    *def = (DefElem *) lfirst(optcell);
+
+			if (strcmp(def->defname, "batch_size") == 0)
+			{
+				(void) parse_int(defGetString(def), &batch_size, 0, NULL);
+				break;
+			}
+		}
+
+		if (batch_size == 1)
+			elog(ERROR, "batch_size for Data Compression Transfer Feature must be larger than 1");
+	}
 
 	initStringInfo(&buf);
 
@@ -1809,17 +1853,20 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 	appendStringInfo(&buf, "%s", spd_deparse_column_list(srcrel, true, NULL, need_spdurl));
 
 	/* append server name */
-	appendStringInfo(&buf, ") SERVER %s", server->dest_server_name);
+	appendStringInfo(&buf, ") SERVER %s", quote_identifier(server_name));
 
 	/* get table mapping option of dest server */
-	table_mapping_opt = spd_get_table_mapping_option_name(GetForeignServerByName(server->dest_server_name, false));
+	table_mapping_opt = spd_get_table_mapping_option_name(GetForeignServerByName(server_name, false));
 
 	appendStringInfoString(&buf, " OPTIONS (");
 
 	/* Add server options */
 	foreach(optcell, server->dest_server_options)
 	{
-		DefElem	*od = lfirst(optcell);
+		DefElem    *od = lfirst(optcell);
+
+		if (strcmp(od->defname, "relay") == 0)
+			continue;
 
 		if (!first)
 			appendStringInfoString(&buf, ",");
@@ -1840,6 +1887,24 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 			appendStringInfoString(&buf, ", ");
 
 		appendStringInfo(&buf, "%s '%s'", table_mapping_opt, spd_get_datasource_table_name(srcrel));
+
+		first = false;
+	}
+
+	/* append serverID and userID of target server */
+	if (relay != NULL)
+	{
+		if (!first)
+			appendStringInfoString(&buf, ", ");
+
+		appendStringInfo(&buf, "serverid '%d', userid '%d'", serverID, userID);
+		appendStringInfoString(&buf, ", ");
+
+		/* batch_size not set in relay server */
+		if (batch_size == 0)
+			appendStringInfo(&buf, "batch_size '%d'", DCT_DEFAULT_BATCH_SIZE);
+		else
+			appendStringInfo(&buf, "batch_size '%d'", batch_size);
 	}
 
 	appendStringInfoString(&buf, ");");
@@ -2010,12 +2075,15 @@ spd_is_multitenant_table(Relation rel)
 static void
 spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 							  Relation src_rel,
-							  migrate_cmd_context *context)
+							  migrate_cmd_context *context, List **relay_command_list)
 {
 	char	   *dest_ftable_namespace;
 	child_server_info *child_svr_list = NULL;
+	child_server_info *child_relay_svr_list = NULL;
 	ListCell   *lc;
 	char	   *collist = NULL;
+	char	   *multitenant_table;
+	bool		data_compression_transfer_enabled = false;
 
 	/* create destination foreign table name */
 	if (stmt->dest_relation)
@@ -2047,15 +2115,49 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 	collist = spd_deparse_column_list(src_rel, true, NULL, false);
 
 	/*
+	 * If there is any destination server that provide relay option
+	 * data compression transfer feature is activated.
+	 */
+	foreach (lc, stmt->dest_server_list)
+	{
+		MigrateServerItem *dest_server_item = (MigrateServerItem *) lfirst(lc);
+
+		foreach(lc, dest_server_item->dest_server_options)
+		{
+			DefElem    *def = (DefElem *) lfirst(lc);
+			if (strcmp(def->defname, "relay") == 0)
+			{
+				data_compression_transfer_enabled = true;
+				break;
+			}
+		}
+
+		if (data_compression_transfer_enabled)
+			break;
+	}
+
+	/*
 	 * We use multitenant table to migrate data from src table to destination datasource.
 	 * Destination table type will be change (if needed) when migrate done.
 	 * This foreign table must be dropped if any next queries fail.
 	 */
+	if (data_compression_transfer_enabled)
+	{
+		multitenant_table = psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s OPTIONS (socket_port '%d', function_timeout '%d');",
+										context->dest_table_fullname, collist,
+										quote_identifier(context->use_multitenant_server),
+										context->socket_port, context->function_timeout);
+	}
+	else
+	{
+		multitenant_table =  psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s;",
+								context->dest_table_fullname, collist,
+								quote_identifier(context->use_multitenant_server));
+	}
+
 	spd_add_query(context,
-				  psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s;",
-							context->dest_table_fullname, collist,
-							quote_identifier(context->use_multitenant_server)),
-				  psprintf("DROP FOREIGN TABLE %s;", context->dest_table_fullname));
+				multitenant_table,
+				psprintf("DROP FOREIGN TABLE %s;", context->dest_table_fullname));
 
 	/* Create child foreign tables */
 	foreach (lc, stmt->dest_server_list)
@@ -2063,6 +2165,10 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 		MigrateServerItem *dest_server_item;
 		char	   *child_table_name;
 		int			child_idx;
+		int			child_idx_relay_server;
+		char	   *relay = NULL;
+		char	   *sql_drop_table_child_foreign_table;
+		char	   *sql_create_table_child_foreign_table;
 
 		dest_server_item = (MigrateServerItem *) lfirst(lc);
 		child_idx = spd_server_get_child_idx(&child_svr_list, dest_server_item->dest_server_name);
@@ -2074,19 +2180,55 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 		/* save the new child table full name to list */
 		context->dest_child_table_full_names = lappend(context->dest_child_table_full_names, child_table_name);
 
-		/*
-		 * Create child foreign table for multitenant table created above.
-		 * This foreign table must be dropped if any next queries fail.
-		 */
-		spd_add_query(context,
-					  spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false),
-					  psprintf("DROP FOREIGN TABLE %s;", child_table_name));
+		sql_create_table_child_foreign_table = spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, NULL);
+		sql_drop_table_child_foreign_table = psprintf("DROP FOREIGN TABLE %s;", child_table_name);
+
+		/* get relay option for each child destination server */
+		foreach(lc, dest_server_item->dest_server_options)
+		{
+			DefElem    *def = (DefElem *) lfirst(lc);
+
+			if (strcmp(def->defname, "relay") == 0)
+			{
+				relay = defGetString(def);
+				break;
+			}
+		}
+
+		if (relay != NULL)
+		{
+			child_idx_relay_server = spd_server_get_child_idx(&child_relay_svr_list, relay);
+
+			child_table_name = psprintf("%s__%s__%d", context->dest_table_name, relay, child_idx_relay_server);
+			child_table_name = psprintf("%s.%s", quote_identifier(dest_ftable_namespace), quote_identifier(child_table_name));
+
+			/* Create foreign table for relay server */
+			spd_add_query(context,
+						  spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, relay),
+						  psprintf("DROP FOREIGN TABLE %s;", child_table_name));
+
+			*relay_command_list = lappend(*relay_command_list, psprintf("DROP FOREIGN TABLE %s;", child_table_name));
+			*relay_command_list = lappend(*relay_command_list, ";");
+
+			*relay_command_list = lappend(*relay_command_list, sql_create_table_child_foreign_table);
+			*relay_command_list = lappend(*relay_command_list, sql_drop_table_child_foreign_table);
+		}
+		else
+		{
+			/*
+			 * Create child foreign table for multitenant table created above.
+			 * This foreign table must be dropped if any next queries fail.
+			 */
+			spd_add_query(context, sql_create_table_child_foreign_table, sql_drop_table_child_foreign_table);
+		}
 
 		/*
-		 * Create datasource table, do not support MIGRATE data to existed table (do not use IF NOT EXISTS)
-		 * because that table may has data or different data schema.
-		 * Datasource table is not existed before, so we must be drop it if an error occurs. Some fdw does not
-		 * create a datasource table at "CREATE DATASOURCE" command, so using "IF EXISTS" to avoid error.
+		 * Create datasource table, do not support MIGRATE data to existed
+		 * table (do not use IF NOT EXISTS) because that table may has data or
+		 * different data schema. Datasource table is not existed before, so
+		 * we must be drop it if an error occurs. Some fdw does not create a
+		 * datasource table at "CREATE DATASOURCE" command, so using "IF
+		 * EXISTS" to avoid error.
 		 */
 		spd_add_query(context,
 					  psprintf("CREATE DATASOURCE TABLE %s;", child_table_name),
@@ -2281,6 +2423,8 @@ spd_migrate_context_init(migrate_cmd_context *context)
 	context->src_table_fullname = NULL;
 	context->src_table_is_multitenant = false;
 	context->use_multitenant_server = NULL;
+	context->socket_port = DCT_DEFAULT_PORT;
+	context->function_timeout = DCT_DEFAULT_FUNCTION_TIMEOUT;
 	context->temp_prefix = spd_create_temp_table_prefix();
 }
 
@@ -2294,7 +2438,7 @@ spd_migrate_context_init(migrate_cmd_context *context)
  * 			     include temporary foreign table, datasource table, ...
  */
 void
-CreateMigrateCommands(MigrateTableStmt *stmt, List **cmds, List **c_cmds)
+CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 {
 	AclResult	aclresult;
 	Oid			ownerId;
@@ -2303,6 +2447,7 @@ CreateMigrateCommands(MigrateTableStmt *stmt, List **cmds, List **c_cmds)
 	ListCell   *lc;
 	char	   *collist = NULL;
 	migrate_cmd_context context;
+	List	   *relay_command_list = NIL;
 
 	/* context init */
 	spd_migrate_context_init(&context);
@@ -2330,13 +2475,20 @@ CreateMigrateCommands(MigrateTableStmt *stmt, List **cmds, List **c_cmds)
 		/* Get option USE_MULTITENANT_SERVER */
 		foreach(lc, stmt->dest_table_options)
 		{
-			DefElem	*def = lfirst(lc);
+			DefElem    *def = lfirst(lc);
 
 			if (strcmp(def->defname, "use_multitenant_server") == 0)
 			{
 				context.use_multitenant_server = defGetString(def);
 				spd_multitenant_server_validation(&context);
-				break;
+			}
+			else if (strcmp(def->defname, "socket_port") == 0)
+			{
+				(void) parse_int(defGetString(def), &context.socket_port, 0, NULL);
+			}
+			else if (strcmp(def->defname, "function_timeout") == 0)
+			{
+				(void) parse_int(defGetString(def), &context.function_timeout, 0, NULL);
 			}
 			else
 			{
@@ -2367,20 +2519,37 @@ CreateMigrateCommands(MigrateTableStmt *stmt, List **cmds, List **c_cmds)
 		}
 
 		/* Create destination table query */
-		spd_create_migrate_dest_table(stmt, src_rel, &context);
+		spd_create_migrate_dest_table(stmt, src_rel, &context, &relay_command_list);
 
 		/* get column information of source table */
 		collist = spd_deparse_column_list(src_rel, false, NULL, false);
 
 		/* Migrate data from src table to dest table */
 		spd_add_query(&context,
-					psprintf("INSERT INTO %s (%s) SELECT %s FROM %s;", context.dest_table_fullname, collist, collist, context.src_table_fullname),
-					";");
+					  psprintf("INSERT INTO %s (%s) SELECT %s FROM %s;", context.dest_table_fullname, collist, collist, context.src_table_fullname),
+					  ";");
 
-		/* All DDL queries after will run on a transaction, clean-up query always ROLLBACK */
+		/*
+		 * All DDL queries after will run on a transaction, clean-up query
+		 * always ROLLBACK
+		 */
 		spd_add_query(&context,
-					"BEGIN;",
-					"ROLLBACK;");
+					  "BEGIN;",
+					  "ROLLBACK;");
+
+		/* Add relay queries that are executed after INSERT */
+		if (relay_command_list != NIL)
+		{
+			int			i = 0;
+
+			for (; i < list_length(relay_command_list); i += 2)
+			{
+				char	   *cmd = (char *) lfirst(list_nth_cell(relay_command_list, i));
+				char	   *cmd_clean = (char *) lfirst(list_nth_cell(relay_command_list, i + 1));
+
+				spd_add_query(&context, cmd, cmd_clean);
+			}
+		}
 
 		/* DROP/RENAME table according to migrate type */
 		switch (stmt->migrate_type)

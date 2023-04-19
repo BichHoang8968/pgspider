@@ -19,13 +19,13 @@
 PG_MODULE_MAGIC;
 #endif
 
-
+#include <math.h>
+#include <pthread.h>
 #include <stddef.h>
 #include <sys/time.h>
-#include <unistd.h>
-#include <pthread.h>
-#include <math.h>
 #include <time.h>
+#include <unistd.h>
+
 #include "access/table.h"
 #include "access/tableam.h"
 #include "access/xact.h"
@@ -50,6 +50,7 @@ PG_MODULE_MAGIC;
 #include "optimizer/optimizer.h"
 #include "optimizer/tlist.h"
 #include "parser/parsetree.h"
+#include "pgspider_core_compression_transfer.h"
 #include "storage/ipc.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
@@ -66,7 +67,6 @@ PG_MODULE_MAGIC;
 #include "catalog/pg_operator.h"
 #include "pgspider_core_fdw.h"
 #include "pgspider_core_routing.h"
-#include "pgspider_core_timemeasure.h"
 #ifndef WITHOUT_KEEPALIVE
 #include "pgspider_keepalive/pgspider_keepalive.h"
 #endif
@@ -204,13 +204,6 @@ typedef enum
 								 * all pending tuple on queue if any */
 	SPD_QUEUE_ERROR,			/* child thread meet ERROR during execution */
 }			SpdQueueState;
-
-typedef enum
-{
-	SPD_WAKE_UP,	/* wake up request for child thread and
-					 * default for runing state */
-	SPD_PENDING		/* pending request for child thread */
-}			SpdPendingRequest;
 
 /*
  * This structure stores tuples of child thread for passing to parent.
@@ -394,181 +387,6 @@ typedef struct Extractcells
 	bool		is_contain_group_by;	/* True if expression contains a Var
 										 * which existed in GROUP BY */
 }			Extractcells;
-
-/*
- * FDW-specific planner information is kept in RelOptInfo.fdw_private for a
- * pgspider_core_fdw foreign table. For a baserel, this struct is created by
- * pgspiderGetForeignRelSize, although some fields are not filled till later.
- * pgspiderGetForeignJoinPaths creates it for a joinrel, and
- * pgspiderGetForeignUpperPaths creates it for an upperrel.
- */
-typedef struct SpdRelationInfo
-{
-	/*
-	 * True means that the relation can be pushed down. Always true for simple
-	 * foreign scan.
-	 */
-	bool		pushdown_safe;
-
-	/*
-	 * Restriction clauses, divided into safe and unsafe to pushdown subsets.
-	 * All entries in these lists should have RestrictInfo wrappers; that
-	 * improves efficiency of selectivity and cost estimation.
-	 */
-	List	   *remote_conds;
-	List	   *local_conds;
-
-	/* Actual remote restriction clauses for scan (sans RestrictInfos) */
-	List	   *final_remote_exprs;
-
-	/* True means that the ORDER BY is safe to push down */
-	bool		orderby_is_pushdown_safe;
-
-	/* True means that ORDER BY is given to child node */
-	bool		child_orderby_needed;
-
-	/* Estimated size and cost for a scan, join, or grouping/aggregation. */
-	double		rows;
-	int			width;
-	Cost		startup_cost;
-	Cost		total_cost;
-
-	/*
-	 * Estimated costs excluding costs for transferring those rows from the
-	 * foreign server. These are only used by estimate_path_cost_size().
-	 */
-	Cost		rel_startup_cost;
-	Cost		rel_total_cost;
-
-	/* Cached catalog information. */
-	ForeignTable *table;
-	ForeignServer *server;
-	UserMapping *user;			/* only set in use_remote_estimate mode */
-
-	/*
-	 * Name of the relation while EXPLAINing ForeignScan. It is used for join
-	 * relations but is set for all relations. For join relation, the name
-	 * indicates which foreign tables are being joined and the join type used.
-	 */
-	char	   *relation_name;
-
-	/* Outer relation information */
-	RelOptInfo *outerrel;
-
-	/* Grouping information */
-	List	   *grouped_tlist;
-
-	/* Subquery information */
-	bool		make_outerrel_subquery; /* do we deparse outerrel as a
-										 * subquery? */
-	bool		make_innerrel_subquery; /* do we deparse innerrel as a
-										 * subquery? */
-	Relids		lower_subquery_rels;	/* all relids appearing in lower
-										 * subqueries */
-
-	/*
-	 * Index of the relation.  It is used to create an alias to a subquery
-	 * representing the relation.
-	 */
-	int			relation_index;
-
-	/* Upper relation information */
-	UpperRelationKind stage;
-}			SpdRelationInfo;
-
-/*
- * SpdFdwPrivate keeps child node plan information for each child table belonging to the parent table.
- * pgspider_core creates plans for child table node from each spd_GetForeignRelSize(), spd_GetForeignPaths(), spd_GetForeignPlan().
- * SpdFdwPrivate is created at spd_GetForeignSize() using spd_AllocatePrivate(),
- * and freed at spd_EndForeignScan() using spd_ReleasePrivate().
- *
- * We classify SpdFdwPrivate member into the following categories
- *  a) necessary only in planning routines(before getForeignPlan)
- *  b) necessary only in execution routines(after beginForeignScan)
- *  c) necessary both in planning and execution routines.
- * We should pass only c) members from getForeignPlan to beginForeignScan for speedup.
- * We use serialization and de-serialization method for passing c) members.
- */
-typedef struct SpdFdwPrivate
-{
-	/* USE ONLY IN PLANNING */
-	List	   *base_remote_conds;	/* Base restrict conditions are given to child */
-	List	   *base_local_conds;	/* Base restrict conditions are not given to child */
-	List	   *upper_targets;
-	List	   *url_list;		/* IN clause for SELECT */
-
-	PlannerInfo *spd_root;		/* Copy of root planner info. This is used by
-								 * aggregation pushdown. */
-	SpdRelationInfo rinfo;		/* pgspider relation info */
-	TupleDesc	child_comp_tupdesc; /* temporary tuple desc */
-	List	   *pPseudoAggList; /* List of server oids which aggregate
-								 * function is not pushed down */
-	RelOptInfo *joinrel_child;	/* Child join relation. */
-
-	/* USE IN BOTH PLANNING AND EXECUTION */
-	int			node_num;		/* number of child tables */
-	int			nThreads;		/* Number of alive threads */
-	int			idx_url_tlist;	/* index of __spd_url in tlist. -1 if not used */
-
-	bool		agg_query;		/* aggregation flag */
-	bool		isFirst;		/* First time of iteration foreign scan with
-								 * aggregation query */
-	bool		groupby_has_spdurl; /* flag to check if __spd_url is in group
-									 * clause */
-
-	List	   *child_comp_tlist;	/* child complite target list */
-	List	   *child_tlist;	/* child target list without __spd_url */
-	List	   *mapping_tlist;	/* mapping list orig and pgspider */
-
-	List	   *groupby_target; /* group target tlist number */
-
-	TupleTableSlot *child_comp_slot;	/* temporary slot */
-	StringInfo	groupby_string; /* GROUP BY string for aggregation temp table */
-
-	ChildInfo  *childinfo;		/* ChildInfo List */
-
-	List	   *having_quals;	/* qualitifications for HAVING which are
-								 * passed to childs */
-	bool		has_having_quals;	/* Root plan has qualification applied for
-									 * HAVING */
-	bool		has_stub_star_regex_function;	/* mark if query has stub star
-												 * regex function */
-	bool		record_function;	/* mark if function return record type */
-
-	bool		orderby_query;	/* ORDER BY flag */
-	bool		limit_query;	/* LIMIT/OFFSET flag */
-
-	CmdType		operation;
-
-	SpdTimeMeasureInfo tm_info; /* time measure info */
-
-	/* USE ONLY IN EXECUTION */
-	pthread_t	foreign_scan_threads[NODES_MAX];	/* scan child node thread */
-	pthread_t	foreign_modify_threads[NODES_MAX];	/* modify child node thread  */
-	Datum	  **agg_values;		/* aggregation temp table result set */
-	bool	  **agg_nulls;		/* aggregation temp table result set */
-	int			agg_tuples;		/* Number of aggregation tuples from temp
-								 * table */
-	int			agg_num;		/* agg_values cursor */
-	Oid		   *agg_value_type; /* aggregation parameters */
-	Datum	   *ret_agg_values; /* result for groupby */
-	int			temp_num_cols;	/* number of columns of temp table */
-	char	   *temp_table_name;	/* name of temp table */
-	bool		is_explain;		/* explain or not */
-	MemoryContext es_query_cxt; /* temporary context */
-	MemoryContext temp_cxt;		/* context for temporary data */
-	pthread_rwlock_t scan_mutex;
-	pthread_rwlock_t modify_mutex;
-	int			startNodeId;	/* Node ID to start checking child slot for
-								 * round robin */
-	int			lastThreadId;	/* The index of the last thread that we get
-								 * the slot from */
-	SpdPendingRequest requestPendingChildThread;			/* pending request for all child thread */
-	pthread_mutex_t	thread_pending_mutex;	/* mutex for pending condition */
-	pthread_cond_t	thread_pending_cond;	/* pending condition */
-	Oid			modify_serveroid;			/* The oid of the server that we get the slot from */
-	Oid			modify_tableoid;			/* The oid of the foreign table that we get the slot from */
-}			SpdFdwPrivate;
 
 typedef struct SpdurlWalkerContext
 {
@@ -794,6 +612,9 @@ typedef struct CallbackList
 	spdTransactionCallback			spd_transaction_callback;
 	void			   			   *arg; /* All the callback use the same arg */
 } CallbackList;
+
+/* For Data Compression Transfer */
+pthread_mutex_t thread_socket_server_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /*
  * g_node_offset shows child node offset into list_thread_top_contexts array.
@@ -13464,7 +13285,9 @@ spd_CreateChildForeignModifyMtstate(ModifyTable *node, PlannerInfo *child_root, 
  */
 static void
 spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
-						  pthread_rwlock_t *modify_mutex)
+						  pthread_rwlock_t *modify_mutex, List **socketThreadInfos,
+						  bool data_compression_transfer_enabled,
+						  SocketThreadInfo **socketThreadInfo)
 {
 	ChildNodeInfo *child_node_info = spd_get_child_node_info(pChildInfo->server_oid, pChildInfo->oid);
 	MemoryContext oldcontext = CurrentMemoryContext;
@@ -13512,6 +13335,13 @@ spd_BeginForeignModifyChild(ModifyThreadInfo *mtThrdInfo, ChildInfo *pChildInfo,
 														mtThrdInfo->eflags);
 				SPD_UNLOCK_CATCH(&child_node_info->scan_modify_mutex);
 			}
+		}
+
+		/* each pgspider_fdw child will share its SocketThreadInfo with the socket server thread */
+		if (strcmp(mtThrdInfo->fdw->fdwname, PGSPIDER_FDW_NAME) == 0 && data_compression_transfer_enabled == true)
+		{
+			*socketThreadInfo = (SocketThreadInfo *) mtThrdInfo->mtstate->resultRelInfo->ri_FdwState;
+			*socketThreadInfos = lappend(*socketThreadInfos, *socketThreadInfo);
 		}
 	}
 	PG_CATCH();
@@ -14010,6 +13840,7 @@ spd_ForeignModify_thread(void *arg)
 	ChildInfo  *pChildInfo = &fdw_private->childinfo[mtThrdInfo->childInfoIndex];
 	Latch		LocalLatchData;
 	ChildThreadInfo *child_thread_info = NULL;
+	SocketThreadInfo *socketThreadInfo = NULL;
 
 #ifdef GETPROGRESS_ENABLED
 	PGcancel   *cancel;
@@ -14061,7 +13892,12 @@ spd_ForeignModify_thread(void *arg)
 	build_guc_variables_child_thread();
 
 	/* BeginForeignModify */
-	spd_BeginForeignModifyChild(mtThrdInfo, pChildInfo, &fdw_private->modify_mutex);
+	if (fdw_private->data_compression_transfer_enabled)
+	{
+		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeInteger(fdw_private->socketInfo->socket_port));
+		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeInteger(fdw_private->socketInfo->function_timeout));
+	}
+	spd_BeginForeignModifyChild(mtThrdInfo, pChildInfo, &fdw_private->modify_mutex, &fdw_private->socketInfo->socketThreadInfos, fdw_private->data_compression_transfer_enabled, &socketThreadInfo);
 
 	THREAD_ERROR_INIT_CHECK(mtThrdInfo, requestEndModify, SPD_MDF_STATE_ERROR, SPD_MDF_STATE_ERROR_INIT)
 
@@ -14202,6 +14038,35 @@ THREAD_EXIT:
 	gettimeofday(&e, NULL);
 	elog(DEBUG1, "thread%d all time = %lf", mtThrdInfo->serverId, (e.tv_sec - s.tv_sec) + (e.tv_usec - s.tv_usec) * 1.0E-6);
 #endif
+
+	/* End child send_insert_data thread */
+	if (fdw_private->data_compression_transfer_enabled && mtThrdInfo->state == SPD_MDF_STATE_ERROR)
+	{
+		int			rtn;
+
+		if (socketThreadInfo && socketThreadInfo->childThreadState != DCT_MDF_STATE_FINISH)
+		{
+			spd_end_insert_data_thread(socketThreadInfo);
+
+			/* Wait child thread send_insert_data exit */
+			while (socketThreadInfo->childThreadState != DCT_MDF_STATE_FINISH)
+				pthread_yield();
+		}
+
+		/* end socket_server thread */
+		pthread_mutex_lock(&thread_socket_server_mutex);
+		if (fdw_private->socket_server_thread > 0)
+		{
+			spd_end_socket_server(&fdw_private->socketInfo->server_fd,
+								  &fdw_private->socketInfo->end_server);
+
+			rtn = pthread_join(fdw_private->socket_server_thread, NULL);
+			if (rtn != 0)
+				mtThrdInfo->child_thread_error_msg = psprintf("Failed to join socket thread in spd_ForeignModify_thread. Returned %d.", rtn);
+			fdw_private->socket_server_thread = 0;
+		}
+		pthread_mutex_unlock(&thread_socket_server_mutex);
+	}
 
 	/* decrease num_child_thread_running when start a child thread */
 	pthread_mutex_lock(&thread_running_mutex);
@@ -14362,6 +14227,57 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 			if (ready == true)
 				break;
 		}
+	}
+
+	/*
+	 * If there is pgspider_fdw and it has option 'endpoint',
+	 * Create the socket server thread in a new thread
+	 */
+	fdw_private->data_compression_transfer_enabled = spd_check_data_compression_transfer_option(fdw_private->childinfo,
+																								fdw_private->node_num);
+
+	if (fdw_private->data_compression_transfer_enabled == true &&
+		(eflags & EXEC_FLAG_EXPLAIN_ONLY) == false &&
+		 fdw_private->operation == CMD_INSERT)
+	{
+		int			err;
+		sigset_t	old_mask;
+		int			socket_port;
+		int			function_timeout;
+		Relation	rel = resultRelInfo->ri_RelationDesc;
+		SocketInfo *socketInfo;
+
+		spd_get_dct_option(rel, &socket_port, &function_timeout);
+
+		socketInfo =  (SocketInfo *) palloc0(sizeof(SocketInfo));
+		fdw_private->socketInfo = socketInfo;
+
+		socketInfo->socket_port = socket_port;
+		socketInfo->function_timeout = function_timeout;
+		socketInfo->thrd_ResourceOwner = ResourceOwnerCreate(CurrentResourceOwner, "socket server thread resource owner");
+		socketInfo->threadTopMemoryContext = AllocSetContextCreate(TopMemoryContext,
+																	"socket server thread top memory context",
+																	ALLOCSET_DEFAULT_MINSIZE,
+																	ALLOCSET_DEFAULT_INITSIZE,
+																	ALLOCSET_DEFAULT_MAXSIZE);
+		socketInfo->threadMemoryContext = AllocSetContextCreate(estate->es_query_cxt,
+							  "socket server thread memory context",
+							  ALLOCSET_DEFAULT_MINSIZE,
+							  ALLOCSET_DEFAULT_INITSIZE,
+							  ALLOCSET_DEFAULT_MAXSIZE);
+
+		socketInfo->err = NULL;
+		socketInfo->end_server = false;
+
+		/* Block signal when creating child thread for safety */
+		SPD_SIGBLOCK_TRY(old_mask);
+		err = pthread_create(&fdw_private->socket_server_thread,
+							NULL,
+							&spd_socket_server_thread,
+							(void *) socketInfo);
+		if (err != 0)
+			ereport(ERROR, (errmsg("Cannot create thread! error=%d", err)));
+		SPD_SIGBLOCK_END_TRY(old_mask);
 	}
 
 	for (i = 0; i < fdw_private->node_num; i++)
@@ -15357,6 +15273,7 @@ spd_EndForeignModify(EState *estate,
 {
 	int			i;
 	int			node_incr;
+	int			rtn;
 	ModifyThreadInfo *mtThrdInfo = resultRelInfo->spd_mtstate;
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) resultRelInfo->ri_FdwState;
 
@@ -15367,6 +15284,22 @@ spd_EndForeignModify(EState *estate,
 
 	if (!fdw_private)
 		return;
+
+	/* End socket server thread */
+	if (fdw_private->socket_server_thread)
+	{
+		/* close socket descriptor */
+		if (fdw_private->socketInfo->server_fd)
+			spd_end_socket_server(&fdw_private->socketInfo->server_fd,
+								  &fdw_private->socketInfo->end_server);
+
+		rtn = pthread_join(fdw_private->socket_server_thread, NULL);
+		if (rtn != 0)
+			elog(ERROR, "Failed to join socket thread in EndForeignModify. Returned %d.", rtn);
+
+		if (fdw_private->socketInfo->err != NULL)
+			elog(ERROR, "server_socket: %s", fdw_private->socketInfo->err);
+	}
 
 	spd_end_child_foreign_modify_thread(mtThrdInfo);
 
