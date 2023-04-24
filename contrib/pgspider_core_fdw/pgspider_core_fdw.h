@@ -88,19 +88,40 @@ typedef struct ChildInfo
 	int			index_threadinfo;	/* index for ForeignScanThreadInfo array */
 }			ChildInfo;
 
+/*
+ * SpdModifyThreadState
+ *		State of foreign modify child thread.
+ *
+ * There four state groups:
+ *	- "execute state": child thread start init modify data.
+ *	- "end state": child thread wait and free scan resource if requested.
+ *	- "error state": child thread in error handing.
+ *
+ * Note:
+ *	- the "state" and "state group" order should not be changed.
+ *	- when creating new state at the beginning or end of each group,
+ * it may affect other code, for example spd_wait_transaction_foreign_modify_thread_safe
+ * will wait for the thread to come out of "execution state" under the
+ * condition "<= SPD_MDF_STATE_EXEC".
+ */
 typedef enum
 {
-	SPD_MDF_STATE_INIT,
-	SPD_MDF_STATE_BEGIN,
-	SPD_MDF_STATE_PRE_EXEC,
-	SPD_MDF_STATE_EXEC_SIMPLE_INSERT,
-	SPD_MDF_STATE_EXEC_BATCH_INSERT,
-	SPD_MDF_STATE_EXEC,
-	SPD_MDF_STATE_PRE_END,
-	SPD_MDF_STATE_END,
-	SPD_MDF_STATE_FINISH,
-	SPD_MDF_STATE_ERROR_INIT,
-	SPD_MDF_STATE_ERROR
+	/* execute state */
+	SPD_MDF_STATE_INIT,			/* child thread initialize resource: global variable, memory context... */
+	SPD_MDF_STATE_BEGIN,		/* child thread start call BeginForeignModify of child node */
+	SPD_MDF_STATE_PRE_EXEC,		/* child thread calling BeginForeignModify of child node  */
+	SPD_MDF_STATE_EXEC_SIMPLE_INSERT,	/* child thread start batch insert to child node */
+	SPD_MDF_STATE_EXEC_BATCH_INSERT,	/* child thread start foreign insert to child node */
+	SPD_MDF_STATE_EXEC, 		/* child thread doing foreign modify to child node */
+
+	/* end state */
+	SPD_MDF_STATE_PRE_END,		/* child thread wait end foreign modify request from main thread */
+	SPD_MDF_STATE_END,			/* child thread calling end foreign modify of child node */
+	SPD_MDF_STATE_FINISH,		/* child thread exited without ERROR */
+
+	/* error state */
+	SPD_MDF_STATE_ERROR_INIT,	/* child thread encountered an ERROR */
+	SPD_MDF_STATE_ERROR			/* child thread got ERROR signal from main thread */
 }			SpdModifyThreadState;
 
 typedef struct ModifyThreadInfo
