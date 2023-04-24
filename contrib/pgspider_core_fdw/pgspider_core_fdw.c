@@ -180,19 +180,43 @@ PG_MODULE_MAGIC;
 			return false; \
 	} while (0)
 
+/*
+ * SpdForeignScanThreadState
+ *		State of foreign scan and direct modify child thread.
+ *
+ * There four state groups:
+ *	- "execute state": child thread start init and fetch data.
+ *	- "end state": child thread wait and free scan resource if requested.
+ *	- "error state": child thread in error handing.
+ *	- "pending state": child thread has been requested to sleep.
+ *
+ * Note:
+ *	- the "state" and "state group" order should not be changed.
+ *	- when creating new state at the beginning or end of each group,
+ * it may affect other code, for example spd_wait_transaction_thread_safe
+ * will wait for the thread to come out of "execution state" under the
+ * condition "< SPD_FS_STATE_PRE_END".
+ */
 typedef enum
 {
-	SPD_FS_STATE_INIT,
-	SPD_FS_STATE_WAIT_BEGIN,
-	SPD_FS_STATE_BEGIN,
-	SPD_FS_STATE_ITERATE,
-	SPD_FS_STATE_ITERATE_RUNNING,
-	SPD_FS_STATE_PRE_END,
-	SPD_FS_STATE_END,
-	SPD_FS_STATE_FINISH,
-	SPD_FS_STATE_ERROR_INIT,
-	SPD_FS_STATE_ERROR,
-	SPD_FS_STATE_PENDING
+	/* execute state */
+	SPD_FS_STATE_INIT,			/* child thread initialize resource: global variable, memory context... */
+	SPD_FS_STATE_WAIT_BEGIN,	/* child thread start call BeginForeignScan of child node */
+	SPD_FS_STATE_BEGIN,			/* child thread calling BeginForeignScan of child node  */
+	SPD_FS_STATE_ITERATE,		/* child thread start fetch data of child node */
+	SPD_FS_STATE_ITERATE_RUNNING, /* child thread fetching data of child node */
+
+	/* end state */
+	SPD_FS_STATE_PRE_END,		/* child thread wait end foreign scan request from main thread */
+	SPD_FS_STATE_END,			/* child thread calling EndForeignScan of child node */
+	SPD_FS_STATE_FINISH,		/* child thread exited without ERROR */
+
+	/* error state */
+	SPD_FS_STATE_ERROR_INIT,	/* child thread encountered an ERROR */
+	SPD_FS_STATE_ERROR,			/* child thread got ERROR signal from main thread */
+
+	/* pending state */
+	SPD_FS_STATE_PENDING		/* child thread got pending request */
 }			SpdForeignScanThreadState;
 
 typedef enum
@@ -8336,11 +8360,11 @@ spd_end_child_node_foreign_modify_thread_explicit(ModifyThreadInfo *mtThrdInfo, 
 }
 
 /**
- * There are three states of child threads that the local transaction state can not be changed:
+ * There are four states of child threads that the local transaction state can not be changed:
  *	* SPD_FS_STATE_INIT state: Child thread is just before calling child BeginForeignScan.
  *	* SPD_FS_STATE_BEGIN state: Child thread is in child BeginForeignScan for creating foreign transaction.
  *		In two above states, foreign transaction must be created before local transaction state changed.
- *	* SPD_FS_STATE_ITERATE state: Child thread is in child IterateForeignScan to fetch data.
+ *	* SPD_FS_STATE_ITERATE and SPD_FS_STATE_ITERATE_RUNNING state: Child thread is in child IterateForeignScan to fetch data.
  *		In this state, child thread is pended for changing states in local transaction
  *
  *  spd_wait_transaction_thread_safe: wait child thread state is safe with local transaction state changing
@@ -8355,7 +8379,7 @@ spd_wait_transaction_thread_safe(ForeignScanThreadInfo *fssThrdInfo)
 
 	for (node_incr = 0; node_incr < fdw_private->nThreads; node_incr++)
 	{
-		while (fssThrdInfo[node_incr].state <= SPD_FS_STATE_ITERATE)
+		while (fssThrdInfo[node_incr].state < SPD_FS_STATE_PRE_END)
 		{
 			pthread_yield();
 		}
