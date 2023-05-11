@@ -402,6 +402,7 @@ It is required to provide`endpoint` and `relay` options to active this feature.
 - **Oracle**  
 - **GridDB**  
 - **PGSpider**  
+- **InfluxDB (only support migrating to InfluxDB v2.0)**
 
 #### Options supported:  
 - **relay** as *string*, required 
@@ -420,6 +421,10 @@ It is required to provide`endpoint` and `relay` options to active this feature.
       Proxy for cURL request.  
       If value is set by 'no', disable the use of proxy.  
       If value is not set, cURL uses environmental variables.  
+- **org** as *string*, optional  
+      The organization name of data store of InfluxDB server v2.0.  
+      This option is only used when migrating to InfluxDB server v2.0.  
+      If migrating to InfluxDB server v2.0 without org option, error will be raise.
 
 Examples:
   ```sql
@@ -430,7 +435,8 @@ Examples:
   CREATE SERVER pgspider FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host 'pgspider.example.com', port '4813', dbname 'test');
   CREATE SERVER mysql FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host 'mysql.example.com', port '3306');
   CREATE SERVER griddb FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host 'griddb.example.com', port '20002', clustername 'GridDB');
-  CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'oracle.example.com:1521/XE');
+  CREATE SERVER oracle FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'oracle.example.com:1521/XE');
+  CREATE SERVER influx FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'influxdb.example.com', port '38086', dbname 'test', version '2');
 
   -- MIGRATE NONE
   MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -438,7 +444,8 @@ Examples:
           pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
           mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
-          oracle OPTIONS (table 'table', relay 'cloudfunc');
+          oracle OPTIONS (table 'table', relay 'cloudfunc'),
+          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
 
   -- MIGRATE TO
   MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -446,7 +453,8 @@ Examples:
           pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
           mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
-          oracle OPTIONS (table 'table', relay 'cloudfunc');
+          oracle OPTIONS (table 'table', relay 'cloudfunc'),
+          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
 
   -- MIGRATE REPLACE
   MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -454,7 +462,8 @@ Examples:
           pgspider OPTIONS (table_name 'table', relay 'cloudfunc'), 
           mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
-          oracle OPTIONS (table 'table', relay 'cloudfunc');
+          oracle OPTIONS (table 'table', relay 'cloudfunc'),
+          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
   ```
 
 ## Note

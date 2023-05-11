@@ -396,6 +396,18 @@ is_valid_option(const char *keyword, Oid context)
 		 */
 		if (strcmp(keyword, "dbname") == 0 || strcmp(keyword, "table") == 0)
 			return true;
+		
+		/*
+		 * InfluxDB FDW does not support org option now, it is specified by user
+		 * through MIGRATE command.
+		 * InfluxDB support tags option to indicates this column as containing values
+		 * of tags in InfluxDB measurement.
+		 *
+		 * Ignore its validation in pgspider_fdw.
+		 */
+		if (strcmp(keyword, "org") == 0 || strcmp(keyword, "tags") == 0)
+			return true;
+
 		if (context == opt->optcontext && strcmp(opt->keyword, keyword) == 0)
 			return true;
 	}

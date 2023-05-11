@@ -29,6 +29,7 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"
+#include "utils/varlena.h"
 #include "storage/latch.h"
 
 
@@ -55,6 +56,7 @@ init_AuthenticationData(AuthenticationData * data)
 {
 	data->user = NULL;
 	data->pwd = NULL;
+	data->token = NULL;
 }
 
 /*
@@ -69,6 +71,7 @@ init_ConnectionURLData(ConnectionURLData * data)
 	data->port = 0;
 	data->clusterName = NULL;
 	data->dbName = NULL;
+	data->org = NULL;
 }
 
 /*
@@ -82,6 +85,23 @@ init_DDLData(DDLData * data)
 	data->columnInfos = NULL;
 	data->numColumn = 0;
 	data->existFlag = false;
+}
+
+/*
+ * init_DataCompressionTransferOption
+ * 		Initialize DataCompressionTransferOption context
+ */
+void
+init_DataCompressionTransferOption(DataCompressionTransferOption * data)
+{
+	data->endpoint = NULL;
+	data->proxy = NULL;
+	data->table_name = NULL;
+	data->serverID = 0;
+	data->userID = 0;
+	data->function_timeout = 0;
+	data->org = NULL;
+	data->tagsList = NULL;
 }
 
 /*
@@ -442,6 +462,9 @@ pgspiderCalculateInsertDataSize(PGSpiderFdwModifyState * fmstate, InsertData * i
 		 */
 		if (insertData->columnInfos[i].columnType == BIT_TYPE)
 			size += SHORT_SIZE;
+
+		/* size to store isTagKey. */
+		size += BOOL_SIZE;
 	}
 
 	/* Add size to store the array of values. */
@@ -633,6 +656,9 @@ pgspiderSerializeData(PGSpiderFdwModifyState * fmstate, InsertData * insertData,
 		memcpy(nextIndex, &col.columnType, DATA_TYPE_SIZE);
 		nextIndex += DATA_TYPE_SIZE;
 
+		*nextIndex = col.isTagKey;
+		nextIndex += BOOL_SIZE;
+
 		if (col.columnType == BIT_TYPE)
 		{
 			/* Only support 1 modifier, so only need 2 bytes */
@@ -787,11 +813,59 @@ transfer_data_type_mapping(Oid typ, int32 typmod, Oid typmodout, int *typmodoutI
 }
 
 /*
+ * Parse a comma-separated string and return a list of tag keys of a foreign table.
+ * Specify for only InfluxDB server.
+ */
+static List *
+pgspider_extract_tags_list(char *in_string)
+{
+	List	   *tags_list = NIL;
+
+	/* SplitIdentifierString scribbles on its input, so pstrdup first */
+	if (!SplitIdentifierString(pstrdup(in_string), ',', &tags_list))
+	{
+		/* Syntax error in tags list */
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("parameter \"%s\" must be a list of tag keys",
+						"tags")));
+	}
+
+	return tags_list;
+}
+
+/*
+ * This function check whether column is tag key or not.
+ * Return true if it is tag, otherwise return false.
+ * Specify for InfluxDB server.
+ */
+static bool
+pgspider_is_tag_key(const char *colname, List *tagsList)
+{
+	ListCell   *lc;
+
+	/* If there is no tag in tagsList, it means column is field */
+	if (list_length(tagsList) == 0)
+		return false;
+
+	/* Check whether column is tag or not */
+	foreach(lc, tagsList)
+	{
+		char	   *name = (char *) lfirst(lc);
+
+		if (strcmp(colname, name) == 0)
+			return true;
+	}
+
+	return false;
+}
+
+/*
  * create_column_info_array
  *		Create array of columns for Data Compression Transfer Feature
  */
 ColumnInfo *
-create_column_info_array(Relation rel, List *target_attrs)
+create_column_info_array(Relation rel, List *target_attrs, List *tagsList)
 {
 	ColumnInfo *columnInfos;
 	ListCell   *lc;
@@ -820,6 +894,12 @@ create_column_info_array(Relation rel, List *target_attrs)
 		columnInfos[i].columnName = NameStr(attr->attname);
 		columnInfos[i].notNull = attr->attnotnull;
 		columnInfos[i].columnType = typ;
+
+		if (pgspider_is_tag_key(columnInfos[i].columnName, tagsList))
+			columnInfos[i].isTagKey = true;
+		else
+			columnInfos[i].isTagKey = false;
+
 		columnInfos[i].typemod = typemodout;
 		i++;
 	}
@@ -1002,16 +1082,16 @@ jsonifyColumnInfo(StringInfo strInfo, ColumnInfo * colInfo, int len)
  * 		Prepare Conection URL Data before sending data to Function.
  */
 void
-pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid serverid, Oid userid)
+pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, DataCompressionTransferOption *dct_option)
 {
 	ForeignDataWrapper *fdw;
 	ForeignServer *fs;
 	UserMapping *user;
 	ListCell   *lc;
 
-	fs = GetForeignServer(serverid);
+	fs = GetForeignServer(dct_option->serverID);
 	fdw = GetForeignDataWrapper(fs->fdwid);
-	user = GetUserMapping(userid, serverid);
+	user = GetUserMapping(dct_option->userID, dct_option->serverID);
 
 	if (strcmp(fdw->fdwname, POSTGRES_FDW_NAME) == 0)
 		connData->targetDB = POSTGRESDB;
@@ -1023,6 +1103,8 @@ pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid
 		connData->targetDB = GRIDDB;
 	else if (strcmp(fdw->fdwname, ORACLE_FDW_NAME) == 0)
 		connData->targetDB = ORACLEDB;
+	else if (strcmp(fdw->fdwname, INFLUXDB_FDW_NAME) == 0)
+		connData->targetDB = INFLUXDB;
 	else
 		elog(ERROR, "Not support datasource type: %s", fdw->fdwname);
 
@@ -1072,7 +1154,8 @@ pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid
 			}
 
 			if (connData->targetDB == PGSPIDERDB ||
-				connData->targetDB == POSTGRESDB)
+				connData->targetDB == POSTGRESDB ||
+				connData->targetDB == INFLUXDB)
 			{
 				if (strcmp(def->defname, "dbname") == 0)
 					connData->dbName = defGetString(def);
@@ -1111,6 +1194,10 @@ pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid
 			}
 		}
 	}
+
+	/* Save organization name to make connection to InfluxDB */
+	if (connData->targetDB == INFLUXDB)
+		connData->org = dct_option->org;
 }
 
 /*
@@ -1118,12 +1205,12 @@ pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid
  *		Prepare Authentication Data before sending data to Function.
  */
 void
-pgspiderPrepareAuthenticationData(AuthenticationData * authData, Oid serverid, Oid userid)
+pgspiderPrepareAuthenticationData(AuthenticationData * authData, DataCompressionTransferOption *dct_option)
 {
 	UserMapping *user;
 	ListCell   *lc;
 
-	user = GetUserMapping(userid, serverid);
+	user = GetUserMapping(dct_option->userID, dct_option->serverID);
 
 	foreach(lc, user->options)
 	{
@@ -1134,6 +1221,8 @@ pgspiderPrepareAuthenticationData(AuthenticationData * authData, Oid serverid, O
 			authData->user = defGetString(def);
 		else if (strcmp(def->defname, "password") == 0)
 			authData->pwd = defGetString(def);
+		else if (strcmp(def->defname, "auth_token") == 0)
+			authData->token = defGetString(def);
 	}
 }
 
@@ -1142,7 +1231,7 @@ pgspiderPrepareAuthenticationData(AuthenticationData * authData, Oid serverid, O
  *		Prepare DDL Data before sending data to Function.
  */
 void
-pgspiderPrepareDDLData(DDLData * ddldata, Relation rel, char *table_name, bool existFlag)
+pgspiderPrepareDDLData(DDLData * ddldata, Relation rel, bool existFlag, DataCompressionTransferOption * dct_option)
 {
 	TupleDesc	tupdesc = RelationGetDescr(rel);
 	List	   *target_attrs = NIL;
@@ -1159,8 +1248,8 @@ pgspiderPrepareDDLData(DDLData * ddldata, Relation rel, char *table_name, bool e
 		target_attrs = lappend_int(target_attrs, i + 1);
 	}
 
-	ddldata->columnInfos = create_column_info_array(rel, target_attrs);
-	ddldata->tableName = table_name;
+	ddldata->columnInfos = create_column_info_array(rel, target_attrs, NULL);
+	ddldata->tableName = dct_option->table_name;
 	ddldata->numColumn = list_length(target_attrs);
 	ddldata->existFlag = existFlag;
 }
@@ -1184,6 +1273,7 @@ pgspiderPrepareDDLRequestData(StringInfo jsonBody,
 	/* Append AuthenticationData */
 	stringInfoAppendStringValue(jsonBody, "user", authData->user, ',');
 	stringInfoAppendStringValue(jsonBody, "pass", authData->pwd, ',');
+	stringInfoAppendStringValue(jsonBody, "token", authData->token, ',');
 
 	/* Append ConnectionURLData */
 	appendStringInfo(jsonBody, "\"targetDB\" : %d, ", connData->targetDB);
@@ -1191,6 +1281,7 @@ pgspiderPrepareDDLRequestData(StringInfo jsonBody,
 	appendStringInfo(jsonBody, "\"port\" : %d, ", connData->port);
 	stringInfoAppendStringValue(jsonBody, "clusterName", connData->clusterName, ',');
 	stringInfoAppendStringValue(jsonBody, "dbName", connData->dbName, ',');
+	stringInfoAppendStringValue(jsonBody, "org", connData->org, ',');
 
 	/* Append DDLData */
 	stringInfoAppendStringValue(jsonBody, "tableName", ddlData->tableName, ',');
@@ -1230,13 +1321,15 @@ pgspiderPrepareInsertRequestData(StringInfo jsonBody,
 	/* Append AuthenticationData */
 	stringInfoAppendStringValue(jsonBody, "user", authData->user, ',');
 	stringInfoAppendStringValue(jsonBody, "pass", authData->pwd, ',');
+	stringInfoAppendStringValue(jsonBody, "token", authData->token, ',');
 
 	/* Append ConnectionURLData */
 	appendStringInfo(jsonBody, "\"targetDB\" : %d, ", connData->targetDB);
 	stringInfoAppendStringValue(jsonBody, "host", connData->host, ',');
 	appendStringInfo(jsonBody, "\"port\" : %d, ", connData->port);
 	stringInfoAppendStringValue(jsonBody, "clusterName", connData->clusterName, ',');
-	stringInfoAppendStringValue(jsonBody, "dbName", connData->dbName, '\0');
+	stringInfoAppendStringValue(jsonBody, "dbName", connData->dbName, ',');
+	stringInfoAppendStringValue(jsonBody, "org", connData->org, '\0');
 
 	appendStringInfoString(jsonBody, " }");
 }
@@ -1779,6 +1872,10 @@ get_data_compression_transfer_option(PGSpiderExecuteMode mode, Relation rel, Dat
 			(void) parse_int(defGetString(def), &dct_option->serverID, 0, NULL);
 		else if (strcmp(def->defname, "userid") == 0)
 			(void) parse_int(defGetString(def), &dct_option->userID, 0, NULL);
+		else if (strcmp(def->defname, "org") == 0)
+			dct_option->org = defGetString(def);
+		else if (strcmp(def->defname, "tags") == 0)
+			dct_option->tagsList = pgspider_extract_tags_list(defGetString(def));
 	}
 
 	/*
