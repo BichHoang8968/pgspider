@@ -18,6 +18,8 @@ INFLUXDB_NAME_1=test1
 INFLUXDB_NAME_2=test2
 INFLUXDB_NAME_3=test3
 INFLUXDB_ORG=myorg
+container_name_v2='influxdb_server_v2'
+influxdbV2_image='influxdb:2.2'
 
 function clean_docker_img()
 {
@@ -40,16 +42,11 @@ then
     ./initdb ../test_data_compression
     sed -i 's/#port = 5432.*/port = '$POSTGRES_PORT'/' ../test_data_compression/postgresql.conf
     ./pg_ctl -D ../test_data_compression start
-    sleep 2
-    ./createdb -p $POSTGRES_PORT $POSTGRES_DB_1
-    ./createdb -p $POSTGRES_PORT $POSTGRES_DB_2
-    ./createdb -p $POSTGRES_PORT $POSTGRES_DB_3
   fi
   if ! ./pg_isready -p $POSTGRES_PORT
   then
     echo "Start PostgreSQL"
     ./pg_ctl -D ../test_data_compression start
-    sleep 2
   fi
 
   # Start PGSPIDER
@@ -59,16 +56,11 @@ then
     ./initdb ../test_data_compression
     sed -i 's/#port = 4813.*/port = '$PGSPIDER_PORT'/' ../test_data_compression/postgresql.conf
     ./pg_ctl -D ../test_data_compression start
-    sleep 2
-    ./createdb -p $PGSPIDER_PORT $PGSPIDER_DB_1
-    ./createdb -p $PGSPIDER_PORT $PGSPIDER_DB_2
-    ./createdb -p $PGSPIDER_PORT $PGSPIDER_DB_3
   fi
   if ! ./pg_isready -p $PGSPIDER_PORT
   then
     echo "Start PGSpider"
     ./pg_ctl -D ../test_data_compression start
-    sleep 2
   fi
 
   # default cluster name: dockerGridDB
@@ -98,13 +90,11 @@ then
     -e NOTIFICATION_ADDRESS=239.0.0.4 \
     ${griddb_image}
 
-
   # Start MySQL
   if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
   then
     echo "Start MySQL Server"
     systemctl start mysqld.service
-    sleep 2
   fi
 
   # Start Oracle server
@@ -112,13 +102,29 @@ then
   then
     echo "Start Oracle Server"
     systemctl start oracle-xe-21c.service
-    sleep 2
   fi
 
-  sleep 30
+  # Start InfluxDB
+  clean_docker_img ${container_name_v2}
+
+  docker run  -d --name ${container_name_v2} -it -p 38086:8086 \
+              -e "DOCKER_INFLUXDB_INIT_MODE=setup" \
+              -e "DOCKER_INFLUXDB_INIT_USERNAME=root" \
+              -e "DOCKER_INFLUXDB_INIT_PASSWORD=rootroot" \
+              -e "DOCKER_INFLUXDB_INIT_ORG=$INFLUXDB_ORG" \
+              -e "DOCKER_INFLUXDB_INIT_BUCKET=mybucket" \
+              -e "DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=mytoken" \
+              -e "INFLUXD_STORAGE_WRITE_TIMEOUT=100s" \
+              -v $(pwd)/init_influx:/tmp \
+              ${influxdbV2_image}
 fi
 
 cd $CURR_PATH
+# Influxdb/oracle startup might be slow, need retention awhile before executing command.
+# Retention time depends on each machine, this value should be max of {influxdb startup time, oracle startup time}.
+#
+# In test environment, default value is 30s.
+sleep 30
 
 # Setup oracle
 sqlplus / as sysdba << EOF
@@ -134,6 +140,9 @@ mysql -u root -pMysql_1234 -e "DROP DATABASE IF EXISTS $MYSQL_DB_3;"
 mysql -u root -pMysql_1234 -e "CREATE DATABASE $MYSQL_DB_3;"
 
 # Setup Postgres
+$POSTGRES_HOME/bin/createdb -p $POSTGRES_PORT $POSTGRES_DB_1
+$POSTGRES_HOME/bin/createdb -p $POSTGRES_PORT $POSTGRES_DB_2
+$POSTGRES_HOME/bin/createdb -p $POSTGRES_PORT $POSTGRES_DB_3
 $POSTGRES_HOME/bin/psql -p $POSTGRES_PORT $POSTGRES_DB_1 -c "create user postgres with encrypted password 'postgres';"
 $POSTGRES_HOME/bin/psql -p $POSTGRES_PORT $POSTGRES_DB_1 -c "grant all privileges on database $POSTGRES_DB_1 to postgres;"
 $POSTGRES_HOME/bin/psql -p $POSTGRES_PORT $POSTGRES_DB_1 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
@@ -161,6 +170,9 @@ $POSTGRES_HOME/bin/psql -p $POSTGRES_PORT $POSTGRES_DB_3 -c "ALTER USER postgres
 $POSTGRES_HOME/bin/psql -p $POSTGRES_PORT $POSTGRES_DB_3 -c "DROP TABLE IF EXISTS \"T 2\";"
 
 # Setup PGSpider
+$PGSPIDER_HOME/bin/createdb -p $PGSPIDER_PORT $PGSPIDER_DB_1
+$PGSPIDER_HOME/bin/createdb -p $PGSPIDER_PORT $PGSPIDER_DB_2
+$PGSPIDER_HOME/bin/createdb -p $PGSPIDER_PORT $PGSPIDER_DB_3
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_1 -c "create user postgres with encrypted password 'postgres';"
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_1 -c "grant all privileges on database $PGSPIDER_DB_1 to postgres;"
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_1 -c "GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO postgres;"
@@ -202,3 +214,19 @@ $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_3 -c "DROP TABLE IF EXIST
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_3 -c "DROP TABLE IF EXISTS t15;"
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_3 -c "DROP TABLE IF EXISTS t18;"
 $PGSPIDER_HOME/bin/psql -p $PGSPIDER_PORT $PGSPIDER_DB_3 -c "DROP TABLE IF EXISTS t21;"
+
+# Setup influxdb
+# create buket and database mapping for v2
+INFLUXDB_1=$(docker exec ${container_name_v2} influx bucket create -n $INFLUXDB_NAME_1 --org $INFLUXDB_ORG | grep $INFLUXDB_NAME_1 | cut -f 1)
+docker exec ${container_name_v2} influx v1 dbrp create --bucket-id $INFLUXDB_1 --db $INFLUXDB_NAME_1 --rp autogen --default --org $INFLUXDB_ORG
+INFLUXDB_2=$(docker exec ${container_name_v2} influx bucket create -n $INFLUXDB_NAME_2 --org $INFLUXDB_ORG | grep $INFLUXDB_NAME_2 | cut -f 1)
+docker exec ${container_name_v2} influx v1 dbrp create --bucket-id $INFLUXDB_2 --db $INFLUXDB_NAME_2 --rp autogen --default --org $INFLUXDB_ORG
+INFLUXDB_3=$(docker exec ${container_name_v2} influx bucket create -n $INFLUXDB_NAME_3 --org $INFLUXDB_ORG | grep $INFLUXDB_NAME_3 | cut -f 1)
+docker exec ${container_name_v2} influx v1 dbrp create --bucket-id $INFLUXDB_3 --db $INFLUXDB_NAME_3 --rp autogen --default --org $INFLUXDB_ORG
+
+# Notes: griddb docker startup sometimes failover due to recovery at initial stage.
+# In case of initial recovery, griddb node fail to join cluster.
+# Below command workaround this situation
+docker exec ${griddb_container_name1} /bin/bash -c 'gs_joincluster -w -c dockerGridDB -u admin/admin'
+docker exec ${griddb_container_name2} /bin/bash -c 'gs_joincluster -w -c dockerGridDB -u admin/admin'
+docker exec ${griddb_container_name3} /bin/bash -c 'gs_joincluster -w -c dockerGridDB -u admin/admin'

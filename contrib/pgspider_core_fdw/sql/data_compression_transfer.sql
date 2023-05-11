@@ -14,6 +14,8 @@ CREATE EXTENSION mysql_fdw;
 CREATE EXTENSION oracle_fdw;
 --Testcase 6:
 CREATE EXTENSION griddb_fdw;
+--Testcase 690:
+CREATE EXTENSION influxdb_fdw;
 
 --Testcase 7:
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
@@ -26,13 +28,13 @@ CREATE SERVER cloud_test FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'ht
 --Testcase 9:
 CREATE USER MAPPING FOR public SERVER cloud_test;
 --Testcase 10:
-CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test1');
-
+CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
+--Testcase 818:
+CREATE SERVER influxdb_svr_test FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test1', version '2', retention_policy '');
 --Testcase 11:
 CREATE USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (user 'postgres', password 'postgres');
+--Testcase 819:
+CREATE USER MAPPING FOR public SERVER influxdb_svr_test OPTIONS (auth_token 'mytoken');
 
 --Testcase 12:
 CREATE TABLE test_options (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "char", c7 date, c8 numeric, c9 float8,
@@ -130,6 +132,55 @@ MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_tim
 --Testcase 29:
 DROP TABLE test_options;
 
+--Testcase 820:
+CREATE TABLE test_options (time timestamp with time zone, tag1 text, field1 integer, tag2 text, field2 integer);
+
+--Testcase 821:
+INSERT INTO test_options VALUES ('2004-10-19 10:23:54+02', 'tag1_1', 1, 'tag2_1', 2);
+--Testcase 822:
+INSERT INTO test_options VALUES ('2004-10-19 12:23:54+02', 'tag1_2', 3, 'tag2_2', 4);
+
+--Testcase 827:
+SELECT * FROM test_options ORDER BY time;
+
+--Testcase 828:
+-- Migrate influxdb fail, missing org option
+MIGRATE TABLE test_options TO tbl_influxdb OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_options', relay 'cloud_test', tags 'tag1, tag2');
+
+-- Test tags option and time column, migrate succeed
+--Testcase 823:
+MIGRATE TABLE test_options TO tbl_influxdb OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_options', relay 'cloud_test', org 'myorg', tags 'tag1, tag2');
+
+--Testcase 824:
+SELECT * FROM tbl_influxdb ORDER BY time;
+--Testcase 825:
+DROP DATASOURCE TABLE tbl_influxdb;
+
+--Testcase 829:
+CREATE TABLE test_time_text (time timestamp with time zone, time_text text, tag1 text, field1 integer, tag2 text, field2 integer);
+--Testcase 830:
+INSERT INTO test_time_text VALUES ('2021-03-03 00:00:01+07', '2021-02-03T00:00:03.123456789Z', 'tag1', 1, 'tag2', 2);
+--Testcase 831:
+INSERT INTO test_time_text VALUES ('2021-02-02 00:00:01+05', '2021-02-02T00:00:02.123456789Z', 'tag3', 3, 'tag4', 4);
+--Testcase 832:
+SELECT * FROM test_time_text ORDER by time;
+
+-- Migrate influxdb succeed, Inserting value has both 'time_text' and 'time' columns specified. the 'time' will be ignored
+--Testcase 833:
+MIGRATE TABLE test_time_text TO tbl_time_text OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_time_text', relay 'cloud_test', org 'myorg');
+--Testcase 834:
+SELECT * FROM tbl_time_text ORDER by time;
+--Testcase 835:
+DROP DATASOURCE TABLE tbl_time_text;
+
+--Testcase 828:
+DROP FOREIGN TABLE tbl_time_text;
+--Testcase 826:
+DROP FOREIGN TABLE tbl_influxdb;
+--Testcase 827:
+DROP TABLE test_options;
+--Testcase 836:
+DROP TABLE test_time_text;
 --Testcase 30:
 DROP SERVER postgres_svr_test CASCADE;
 --Testcase 31:
@@ -229,20 +280,11 @@ SELECT count(*) FROM ft1;
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 --Testcase 64:
-CREATE SERVER postgres1 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test1');
+CREATE SERVER postgres1 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
 --Testcase 65:
-CREATE SERVER postgres2 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test2');
+CREATE SERVER postgres2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test2');
 --Testcase 66:
-CREATE SERVER postgres3 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test3');
+CREATE SERVER postgres3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test3');
 
 --Testcase 67:
 CREATE USER MAPPING FOR public SERVER postgres1 OPTIONS (user 'postgres', password 'postgres');
@@ -631,20 +673,11 @@ SELECT count(*) FROM ft1;
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 --Testcase 194:
-CREATE SERVER pgspider1 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test1');
+CREATE SERVER pgspider1 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test1');
 --Testcase 195:
-CREATE SERVER pgspider2 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test2');
+CREATE SERVER pgspider2 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test2');
 --Testcase 196:
-CREATE SERVER pgspider3 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test3');
+CREATE SERVER pgspider3 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test3');
 
 --Testcase 197:
 CREATE USER MAPPING FOR public SERVER pgspider1 OPTIONS (user 'postgres', password 'postgres');
@@ -988,17 +1021,11 @@ SELECT count(*) FROM ft1;
 SELECT * FROM ft1 LIMIT 10;
 
 --Testcase 303:
-CREATE SERVER mysql1 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 --Testcase 304:
-CREATE SERVER mysql2 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 --Testcase 305:
-CREATE SERVER mysql3 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql3 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 
 --Testcase 306:
 CREATE USER MAPPING FOR public SERVER mysql1 OPTIONS (username 'root', password 'Mysql_1234');
@@ -1345,20 +1372,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 -- Griddb use port 20001 for JDBC connection
 --Testcase 413:
-CREATE SERVER griddb1 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20002',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb1 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20002', clustername 'dockerGridDB');
 --Testcase 414:
-CREATE SERVER griddb2 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20003',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb2 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20003', clustername 'dockerGridDB');
 --Testcase 415:
-CREATE SERVER griddb3 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20004',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb3 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20004', clustername 'dockerGridDB');
 
 --Testcase 416:
 CREATE USER MAPPING FOR public SERVER griddb1 OPTIONS (username 'admin', password 'admin');
@@ -1828,14 +1846,11 @@ SELECT count(*) FROM ft1;
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 --Testcase 523:
-CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 --Testcase 524:
-CREATE SERVER oracle2 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle2 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 --Testcase 525:
-CREATE SERVER oracle3 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle3 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 
 --Testcase 526:
 CREATE USER MAPPING FOR public SERVER oracle1 OPTIONS (user 'test1', password 'test1');
@@ -2153,6 +2168,360 @@ DROP FOREIGN TABLE ft1;
 --Testcase 627:
 DROP TABLE t1;
 -- ===================================================================
+-- TO INFLUXDB SERVER
+-- ===================================================================
+--Testcase 691:
+CREATE FOREIGN TABLE ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+--Testcase 692:
+CREATE DATASOURCE TABLE ft1;
+--Testcase 693:
+INSERT INTO t1
+	 SELECT id,
+	        id % 1000,
+		id % 100,
+		id / 110,
+		id / 2,
+		id * 3,
+		'1970-01-01'::date + ((id % 100) || ' days')::interval,
+		'1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
+	        '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
+	        'ora' || id,
+	        to_char(id, 'FM00000'),
+	        'foo',
+		'\x151354865131651321'
+	FROM generate_series(1, 20000) id;
+--Testcase 694:
+SELECT count(*) FROM ft1;
+--Testcase 695:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+--Testcase 696:
+CREATE SERVER influx1 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test1', version '2', retention_policy '');
+--Testcase 697:
+CREATE SERVER influx2 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test2', version '2', retention_policy '');
+--Testcase 698:
+CREATE SERVER influx3 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test3', version '2', retention_policy '');
+--Testcase 699:
+CREATE USER MAPPING FOR public SERVER influx1 OPTIONS (auth_token 'mytoken');
+--Testcase 700:
+CREATE USER MAPPING FOR public SERVER influx2 OPTIONS (auth_token 'mytoken');
+--Testcase 701:
+CREATE USER MAPPING FOR public SERVER influx3 OPTIONS (auth_token 'mytoken');
+
+-- * migrate sigle target server and single relay server
+-- MIGRATE NONE
+--Testcase 702:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 703:
+\d
+-- create foreign table to check new datasource
+--Testcase 704:
+CREATE foreign table ft_test (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+
+-- Check data for first 10 records and number of records
+--Testcase 705:
+SELECT count(*) FROM ft_test;
+--Testcase 706:
+SELECT * FROM ft_test ORDER BY c1 LIMIT 10;
+--Testcase 707:
+DROP DATASOURCE TABLE ft_test;
+--Testcase 708:
+DROP FOREIGN TABLE ft_test; 
+
+-- MIGRATE TO
+--Testcase 709:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 710:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 711:
+SELECT count(*) FROM ft2;
+--Testcase 710:
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+--Testcase 712:
+DROP DATASOURCE TABLE ft2;
+--Testcase 713:
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE REPLACE
+--Testcase 714:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 715:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 716:
+SELECT count(*) FROM ft1;
+--Testcase 717:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+--Testcase 718:
+DROP DATASOURCE TABLE ft1;
+--Testcase 719:
+DROP FOREIGN TABLE ft1;
+
+-- create again src table
+--Testcase 720:
+CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+
+-- * migrate multi target server and single relay server
+-- MIGRATE NONE
+--Testcase 721:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 722:
+\d
+
+-- create foreign table to check new datasource
+--Testcase 723:
+CREATE foreign table ft_test1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+--Testcase 724:
+CREATE foreign table ft_test2 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx2 OPTIONS (table 'T2');
+--Testcase 725:
+CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx3 OPTIONS (table 'T2');
+
+-- Check data for first 10 records and number of records
+--Testcase 726:
+SELECT count(*) FROM ft_test1;
+--Testcase 727:
+SELECT * FROM ft_test1 ORDER BY c1 LIMIT 10;
+--Testcase 728:
+DROP DATASOURCE TABLE ft_test1;
+--Testcase 729:
+DROP FOREIGN TABLE ft_test1;
+--Testcase 730:
+SELECT count(*) FROM ft_test2;
+--Testcase 731:
+SELECT * FROM ft_test2 ORDER BY c1 LIMIT 10;
+--Testcase 732:
+DROP DATASOURCE TABLE ft_test2;
+--Testcase 733:
+DROP FOREIGN TABLE ft_test2;
+--Testcase 734:
+SELECT count(*) FROM ft_test3;
+--Testcase 735:
+SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
+--Testcase 736:
+DROP DATASOURCE TABLE ft_test3;
+--Testcase 737:
+DROP FOREIGN TABLE ft_test3;
+
+-- MIGRATE TO
+--Testcase 738:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 739:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 740:
+SELECT count(*) FROM ft2;
+--Testcase 741:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
+--Testcase 742:
+SELECT * FROM ft2__influx2__0 ORDER BY c1 LIMIT 10;
+--Testcase 743:
+SELECT * FROM ft2__influx3__0 ORDER BY c1 LIMIT 10;
+--Testcase 744:
+DROP DATASOURCE TABLE ft2__influx1__0;
+--Testcase 745:
+DROP DATASOURCE TABLE ft2__influx2__0;
+--Testcase 746:
+DROP DATASOURCE TABLE ft2__influx3__0;
+--Testcase 747:
+DROP FOREIGN TABLE ft2__influx1__0;
+--Testcase 748:
+DROP FOREIGN TABLE ft2__influx2__0;
+--Testcase 749:
+DROP FOREIGN TABLE ft2__influx3__0;
+--Testcase 750:
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE REPLACE
+--Testcase 751:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+--Testcase 752:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 753:
+SELECT count(*) FROM ft1;
+--Testcase 754:
+SELECT * FROM ft1__influx1__0 ORDER BY c1 LIMIT 10;
+--Testcase 755:
+SELECT * FROM ft1__influx2__0 ORDER BY c1 LIMIT 10;
+--Testcase 756:
+SELECT * FROM ft1__influx3__0 ORDER BY c1 LIMIT 10;
+--Testcase 757:
+DROP DATASOURCE TABLE ft1__influx1__0;
+--Testcase 758:
+DROP DATASOURCE TABLE ft1__influx2__0;
+--Testcase 759:
+DROP DATASOURCE TABLE ft1__influx3__0;
+--Testcase 760:
+DROP FOREIGN TABLE ft1__influx1__0;
+--Testcase 761:
+DROP FOREIGN TABLE ft1__influx2__0;
+--Testcase 762:
+DROP FOREIGN TABLE ft1__influx3__0;
+--Testcase 763:
+DROP FOREIGN TABLE ft1;
+
+-- create again src table
+--Testcase 764:
+CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+
+-- * migrate multi target server and multi relay server
+-- MIGRATE NONE
+--Testcase 765:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+--Testcase 766:
+\d
+
+-- create foreign table to check new datasource
+--Testcase 767:
+CREATE foreign table ft_test1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+--Testcase 768:
+CREATE foreign table ft_test2 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx2 OPTIONS (table 'T2');
+--Testcase 769:
+CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx3 OPTIONS (table 'T2');
+
+-- Check data for first 10 records and number of records
+--Testcase 770:
+SELECT count(*) FROM ft_test1;
+--Testcase 771:
+SELECT * FROM ft_test1 ORDER BY c1 LIMIT 10;
+--Testcase 772:
+DROP DATASOURCE TABLE ft_test1;
+--Testcase 773:
+DROP FOREIGN TABLE ft_test1;
+
+--Testcase 774:
+SELECT count(*) FROM ft_test2;
+--Testcase 775:
+SELECT * FROM ft_test2 ORDER BY c1 LIMIT 10;
+--Testcase 776:
+DROP DATASOURCE TABLE ft_test2;
+--Testcase 777:
+DROP FOREIGN TABLE ft_test2;
+
+--Testcase 778:
+SELECT count(*) FROM ft_test3;
+--Testcase 779:
+SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
+--Testcase 780:
+DROP DATASOURCE TABLE ft_test3;
+--Testcase 781:
+DROP FOREIGN TABLE ft_test3;
+
+-- MIGRATE TO
+--Testcase 782:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+--Testcase 783:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 784:
+SELECT count(*) FROM ft2;
+--Testcase 785:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
+--Testcase 786:
+SELECT * FROM ft2__influx2__0 ORDER BY c1 LIMIT 10;
+--Testcase 787:
+SELECT * FROM ft2__influx3__0 ORDER BY c1 LIMIT 10;
+--Testcase 788:
+DROP DATASOURCE TABLE ft2__influx1__0;
+--Testcase 789:
+DROP DATASOURCE TABLE ft2__influx2__0;
+--Testcase 790:
+DROP DATASOURCE TABLE ft2__influx3__0;
+--Testcase 791:
+DROP FOREIGN TABLE ft2__influx1__0;
+--Testcase 792:
+DROP FOREIGN TABLE ft2__influx2__0;
+--Testcase 793:
+DROP FOREIGN TABLE ft2__influx3__0;
+--Testcase 794:
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE REPLACE
+--Testcase 795:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+--Testcase 796:
+\d
+
+-- Check data for first 10 records and number of records
+--Testcase 797:
+SELECT count(*) FROM ft1;
+--Testcase 798:
+SELECT * FROM ft1__influx1__0 ORDER BY c1 LIMIT 10;
+--Testcase 799:
+SELECT * FROM ft1__influx2__0 ORDER BY c1 LIMIT 10;
+--Testcase 800:
+SELECT * FROM ft1__influx3__0 ORDER BY c1 LIMIT 10;
+--Testcase 801:
+DROP DATASOURCE TABLE ft1__influx1__0;
+--Testcase 802:
+DROP DATASOURCE TABLE ft1__influx2__0;
+--Testcase 803:
+DROP DATASOURCE TABLE ft1__influx3__0;
+--Testcase 804:
+DROP FOREIGN TABLE ft1__influx1__0;
+--Testcase 805:
+DROP FOREIGN TABLE ft1__influx2__0;
+--Testcase 806:
+DROP FOREIGN TABLE ft1__influx3__0;
+--Testcase 807:
+DROP FOREIGN TABLE ft1;
+
+--Testcase 816:
+DROP TABLE t1;
+-- ===================================================================
 -- TO DIFERENCE TARGET SERVER
 -- ===================================================================
 --Testcase 628:
@@ -2186,7 +2555,8 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 'multi1', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 --Testcase 633:
 \d
 
@@ -2211,6 +2581,10 @@ CREATE foreign table ft_test4 (c1 bigint, c2 int, c3 smallint,
 CREATE foreign table ft_test5 (c1 bigint, c2 int, c3 smallint,
     c4 float4, c5 float8, c6 bool, c7 timestamp, c8 text
 )SERVER oracle1 OPTIONS (table 'multi');
+--Testcase 808:
+CREATE foreign table ft_test6 (c1 bigint, c2 int, c3 smallint,
+    c4 float4, c5 float8, c6 bool, c7 timestamp, c8 text
+)SERVER influx1 OPTIONS (table 'multi');
 
 -- Check data for first 10 records and number of records
 ALTER SERVER griddb1 OPTIONS (drop host);
@@ -2236,6 +2610,10 @@ SELECT * FROM ft_test4 ORDER BY c1 LIMIT 10;
 SELECT count(*) FROM ft_test5;
 --Testcase 648:
 SELECT * FROM ft_test5 ORDER BY c1 LIMIT 10;
+--Testcase 809:
+SELECT count(*) FROM ft_test6;
+--Testcase 810:
+SELECT * FROM ft_test6 ORDER BY c1 LIMIT 10;
 
 --Testcase 649:
 DROP DATASOURCE TABLE ft_test1;
@@ -2245,6 +2623,8 @@ DROP DATASOURCE TABLE ft_test3;
 DROP DATASOURCE TABLE ft_test4;
 --Testcase 652:
 DROP DATASOURCE TABLE ft_test5;
+--Testcase 811:
+DROP DATASOURCE TABLE ft_test6;
 --Testcase 653:
 DROP FOREIGN TABLE ft_test1;
 --Testcase 654:
@@ -2255,6 +2635,8 @@ DROP FOREIGN TABLE ft_test3;
 DROP FOREIGN TABLE ft_test4;
 --Testcase 657:
 DROP FOREIGN TABLE ft_test5;
+--Testcase 812:
+DROP FOREIGN TABLE ft_test6;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
 ALTER SERVER griddb1 OPTIONS (add port '20002');
@@ -2265,7 +2647,8 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
         pgspider1 OPTIONS (table_name 'multi2', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 --Testcase 658:
 \d
 
@@ -2285,6 +2668,8 @@ SELECT * FROM ft2__mysql1__0 ORDER BY c1 LIMIT 10;
 SELECT * FROM ft2__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 664:
 SELECT * FROM ft2__oracle1__0 ORDER BY c1 LIMIT 10;
+--Testcase 813:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
 --Testcase 665:
 DROP DATASOURCE TABLE ft2__postgres1__0;
 --Testcase 666:
@@ -2293,6 +2678,8 @@ DROP DATASOURCE TABLE ft2__mysql1__0;
 DROP DATASOURCE TABLE ft2__griddb1__0;
 --Testcase 668:
 DROP DATASOURCE TABLE ft2__oracle1__0;
+--Testcase 814:
+DROP DATASOURCE TABLE ft2__influx1__0;
 --Testcase 669:
 DROP FOREIGN TABLE ft2__postgres1__0;
 --Testcase 670:
@@ -2303,6 +2690,8 @@ DROP FOREIGN TABLE ft2__mysql1__0;
 DROP FOREIGN TABLE ft2__griddb1__0;
 --Testcase 673:
 DROP FOREIGN TABLE ft2__oracle1__0;
+--Testcase 815:
+DROP FOREIGN TABLE ft2__influx1__0;
 --Testcase 674:
 DROP FOREIGN TABLE ft2;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
@@ -2315,7 +2704,8 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         pgspider1 OPTIONS (table_name 'multi3', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 --Testcase 675:
 \d
 
@@ -2353,6 +2743,8 @@ DROP EXTENSION mysql_fdw CASCADE;
 DROP EXTENSION oracle_fdw CASCADE;
 --Testcase 687:
 DROP EXTENSION griddb_fdw CASCADE;
+--Testcase 817:
+DROP EXTENSION influxdb_fdw CASCADE;
 --Testcase 688:
 DROP EXTENSION pgspider_fdw CASCADE;
 --Testcase 689:

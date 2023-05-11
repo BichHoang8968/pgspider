@@ -14,6 +14,8 @@ CREATE EXTENSION mysql_fdw;
 CREATE EXTENSION oracle_fdw;
 --Testcase 6:
 CREATE EXTENSION griddb_fdw;
+--Testcase 690:
+CREATE EXTENSION influxdb_fdw;
 --Testcase 7:
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
 -- ===================================================================
@@ -25,12 +27,13 @@ CREATE SERVER cloud_test FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'ht
 --Testcase 9:
 CREATE USER MAPPING FOR public SERVER cloud_test;
 --Testcase 10:
-CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test1');
+CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
+--Testcase 818:
+CREATE SERVER influxdb_svr_test FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test1', version '2', retention_policy '');
 --Testcase 11:
 CREATE USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (user 'postgres', password 'postgres');
+--Testcase 819:
+CREATE USER MAPPING FOR public SERVER influxdb_svr_test OPTIONS (auth_token 'mytoken');
 --Testcase 12:
 CREATE TABLE test_options (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "char", c7 date, c8 numeric, c9 float8,
     c10 float4, c11 int, c12 varchar(10), c13 char(10), c14 smallint, c15 time, c16 timetz, c17 timestamp, c18 timestamptz,
@@ -48,7 +51,7 @@ ALTER SERVER cloud_test OPTIONS (DROP proxy);
 -- Succeed migrate
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
-INFO:  compression ratio: 1.840
+INFO:  compression ratio: 1.793
 --Testcase 15:
 SELECT * FROM test_tbl ORDER BY c1;
   c1  |      c2      |    c3    |          c4          | c5 | c6 |     c7     |  c8   |  c9  |  c10  | c11 |    c12    |    c13     | c14 |   c15    |     c16     |         c17         |          c18           |  c19  |  c21  |   c22   |     c23     |    c24    |  c25  |       c26       |  c27  |     c28     |       c29       |      c30      |           c31           |         c32         |            c33            |                      c34                      |                         c35                         
@@ -89,9 +92,9 @@ ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Fail
 -- Migrate repeat on same targets, migrate succeed with different table name
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test1_tbl', relay 'cloud_test'), postgres_svr_test OPTIONS (table_name 'test2_tbl', relay 'cloud_test');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 1.183
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
-INFO:  compression ratio: 1.187
-INFO:  compression ratio: 1.204
+INFO:  compression ratio: 1.212
 --Testcase 18:
 SELECT * FROM test_tbl ORDER BY c1;
   c1  |      c2      |    c3    |          c4          | c5 | c6 |     c7     |  c8   |  c9  |  c10  | c11 |    c12    |    c13     | c14 |   c15    |     c16     |         c17         |          c18           |  c19  |  c21  |   c22   |     c23     |    c24    |  c25  |       c26       |  c27  |     c28     |       c29       |      c30      |           c31           |         c32         |            c33            |                      c34                      |                         c35                         |      __spd_url      
@@ -149,6 +152,76 @@ MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_tim
 ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: org.postgresql.util.PSQLException: FATAL: role "user" does not exist
 --Testcase 29:
 DROP TABLE test_options;
+--Testcase 820:
+CREATE TABLE test_options (time timestamp with time zone, tag1 text, field1 integer, tag2 text, field2 integer);
+--Testcase 821:
+INSERT INTO test_options VALUES ('2004-10-19 10:23:54+02', 'tag1_1', 1, 'tag2_1', 2);
+--Testcase 822:
+INSERT INTO test_options VALUES ('2004-10-19 12:23:54+02', 'tag1_2', 3, 'tag2_2', 4);
+--Testcase 827:
+SELECT * FROM test_options ORDER BY time;
+          time          |  tag1  | field1 |  tag2  | field2 
+------------------------+--------+--------+--------+--------
+ 2004-10-19 01:23:54-07 | tag1_1 |      1 | tag2_1 |      2
+ 2004-10-19 03:23:54-07 | tag1_2 |      3 | tag2_2 |      4
+(2 rows)
+
+--Testcase 828:
+-- Migrate influxdb fail, missing org option
+MIGRATE TABLE test_options TO tbl_influxdb OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_options', relay 'cloud_test', tags 'tag1, tag2');
+ERROR:  PGSpider: org must be specified along with relay
+-- Test tags option and time column, migrate succeed
+--Testcase 823:
+MIGRATE TABLE test_options TO tbl_influxdb OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_options', relay 'cloud_test', org 'myorg', tags 'tag1, tag2');
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 1.077
+--Testcase 824:
+SELECT * FROM tbl_influxdb ORDER BY time;
+          time          |  tag1  | field1 |  tag2  | field2 
+------------------------+--------+--------+--------+--------
+ 2004-10-19 01:23:54-07 | tag1_1 |      1 | tag2_1 |      2
+ 2004-10-19 03:23:54-07 | tag1_2 |      3 | tag2_2 |      4
+(2 rows)
+
+--Testcase 825:
+DROP DATASOURCE TABLE tbl_influxdb;
+--Testcase 829:
+CREATE TABLE test_time_text (time timestamp with time zone, time_text text, tag1 text, field1 integer, tag2 text, field2 integer);
+--Testcase 830:
+INSERT INTO test_time_text VALUES ('2021-03-03 00:00:01+07', '2021-02-03T00:00:03.123456789Z', 'tag1', 1, 'tag2', 2);
+--Testcase 831:
+INSERT INTO test_time_text VALUES ('2021-02-02 00:00:01+05', '2021-02-02T00:00:02.123456789Z', 'tag3', 3, 'tag4', 4);
+--Testcase 832:
+SELECT * FROM test_time_text ORDER by time;
+          time          |           time_text            | tag1 | field1 | tag2 | field2 
+------------------------+--------------------------------+------+--------+------+--------
+ 2021-02-01 11:00:01-08 | 2021-02-02T00:00:02.123456789Z | tag3 |      3 | tag4 |      4
+ 2021-03-02 09:00:01-08 | 2021-02-03T00:00:03.123456789Z | tag1 |      1 | tag2 |      2
+(2 rows)
+
+-- Migrate influxdb succeed, Inserting value has both 'time_text' and 'time' columns specified. the 'time' will be ignored
+--Testcase 833:
+MIGRATE TABLE test_time_text TO tbl_time_text OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_time_text', relay 'cloud_test', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 1.116
+--Testcase 834:
+SELECT * FROM tbl_time_text ORDER by time;
+             time              |           time_text            | tag1 | field1 | tag2 | field2 
+-------------------------------+--------------------------------+------+--------+------+--------
+ 2021-02-01 16:00:02.123457-08 | 2021-02-02T00:00:02.123456789Z | tag3 |      3 | tag4 |      4
+ 2021-02-02 16:00:03.123457-08 | 2021-02-03T00:00:03.123456789Z | tag1 |      1 | tag2 |      2
+(2 rows)
+
+--Testcase 835:
+DROP DATASOURCE TABLE tbl_time_text;
+--Testcase 828:
+DROP FOREIGN TABLE tbl_time_text;
+--Testcase 826:
+DROP FOREIGN TABLE tbl_influxdb;
+--Testcase 827:
+DROP TABLE test_options;
+--Testcase 836:
+DROP TABLE test_time_text;
 --Testcase 30:
 DROP SERVER postgres_svr_test CASCADE;
 NOTICE:  drop cascades to user mapping for public on server postgres_svr_test
@@ -260,20 +333,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 (10 rows)
 
 --Testcase 64:
-CREATE SERVER postgres1 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test1');
+CREATE SERVER postgres1 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
 --Testcase 65:
-CREATE SERVER postgres2 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test2');
+CREATE SERVER postgres2 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test2');
 --Testcase 66:
-CREATE SERVER postgres3 FOREIGN DATA WRAPPER postgres_fdw
-OPTIONS (host '127.0.0.1',
-		 port '5432',
-		 dbname 'test3');
+CREATE SERVER postgres3 FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test3');
 --Testcase 67:
 CREATE USER MAPPING FOR public SERVER postgres1 OPTIONS (user 'postgres', password 'postgres');
 --Testcase 68:
@@ -284,17 +348,17 @@ CREATE USER MAPPING FOR public SERVER postgres3 OPTIONS (user 'postgres', passwo
 -- MIGRATE NONE
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.891
-INFO:  compression ratio: 171.918
-INFO:  compression ratio: 172.342
-INFO:  compression ratio: 174.713
-INFO:  compression ratio: 172.308
-INFO:  compression ratio: 172.665
-INFO:  compression ratio: 174.289
-INFO:  compression ratio: 173.260
-INFO:  compression ratio: 170.846
-INFO:  compression ratio: 173.663
-INFO:  compression ratio: 146.321
+INFO:  compression ratio: 174.201
+INFO:  compression ratio: 172.382
+INFO:  compression ratio: 172.647
+INFO:  compression ratio: 173.962
+INFO:  compression ratio: 172.984
+INFO:  compression ratio: 171.520
+INFO:  compression ratio: 172.451
+INFO:  compression ratio: 172.730
+INFO:  compression ratio: 171.533
+INFO:  compression ratio: 172.667
+INFO:  compression ratio: 146.672
 --Testcase 70:
 \d
             List of relations
@@ -342,17 +406,17 @@ DROP FOREIGN TABLE ft_test;
 -- MIGRATE TO
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.891
-INFO:  compression ratio: 171.918
-INFO:  compression ratio: 172.342
-INFO:  compression ratio: 174.713
-INFO:  compression ratio: 172.308
-INFO:  compression ratio: 172.665
-INFO:  compression ratio: 174.289
-INFO:  compression ratio: 173.260
-INFO:  compression ratio: 170.846
-INFO:  compression ratio: 173.663
-INFO:  compression ratio: 146.321
+INFO:  compression ratio: 174.201
+INFO:  compression ratio: 172.382
+INFO:  compression ratio: 172.647
+INFO:  compression ratio: 173.962
+INFO:  compression ratio: 172.984
+INFO:  compression ratio: 171.520
+INFO:  compression ratio: 172.451
+INFO:  compression ratio: 172.730
+INFO:  compression ratio: 171.533
+INFO:  compression ratio: 172.667
+INFO:  compression ratio: 146.672
 --Testcase 76:
 \d
             List of relations
@@ -394,17 +458,17 @@ DROP FOREIGN TABLE ft2;
 -- MIGRATE REPLACE
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.891
-INFO:  compression ratio: 171.918
-INFO:  compression ratio: 172.342
-INFO:  compression ratio: 174.713
-INFO:  compression ratio: 172.308
-INFO:  compression ratio: 172.665
-INFO:  compression ratio: 174.289
-INFO:  compression ratio: 173.260
-INFO:  compression ratio: 170.846
-INFO:  compression ratio: 173.663
-INFO:  compression ratio: 146.321
+INFO:  compression ratio: 174.201
+INFO:  compression ratio: 172.382
+INFO:  compression ratio: 172.647
+INFO:  compression ratio: 173.962
+INFO:  compression ratio: 172.984
+INFO:  compression ratio: 171.520
+INFO:  compression ratio: 172.451
+INFO:  compression ratio: 172.730
+INFO:  compression ratio: 171.533
+INFO:  compression ratio: 172.667
+INFO:  compression ratio: 146.672
 --Testcase 81:
 \d
             List of relations
@@ -458,18 +522,18 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 134.648
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 135.296
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 132.509
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 135.252
 --Testcase 87:
 \d
             List of relations
@@ -588,19 +652,20 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 134.648
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 132.509
 --Testcase 103:
+\d
                   List of relations
  Schema |       Name        |     Type      |  Owner  
 --------+-------------------+---------------+---------
@@ -690,18 +755,18 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 134.648
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 135.296
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 132.509
 --Testcase 115:
 \d
                   List of relations
@@ -798,23 +863,23 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud2'),
         postgres3 OPTIONS (table_name 'T 2', relay 'cloud3');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 122.241
+INFO:  Batch Insert for pgspider_fdw, batch size = 1927
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 132.509
+INFO:  compression ratio: 122.874
 --Testcase 128:
 \d
             List of relations
@@ -933,18 +998,18 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 134.648
-INFO:  compression ratio: 135.296
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 132.509
 --Testcase 144:
 \d
                   List of relations
@@ -1036,21 +1101,21 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 122.241
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 132.509
+INFO:  compression ratio: 122.874
 --Testcase 156:
 \d
                   List of relations
@@ -1212,20 +1277,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 (10 rows)
 
 --Testcase 194:
-CREATE SERVER pgspider1 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test1');
+CREATE SERVER pgspider1 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test1');
 --Testcase 195:
-CREATE SERVER pgspider2 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test2');
+CREATE SERVER pgspider2 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test2');
 --Testcase 196:
-CREATE SERVER pgspider3 FOREIGN DATA WRAPPER pgspider_fdw
-OPTIONS (host '127.0.0.1',
-		 port '14813',
-		 dbname 'test3');
+CREATE SERVER pgspider3 FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (host '127.0.0.1', port '14813', dbname 'test3');
 --Testcase 197:
 CREATE USER MAPPING FOR public SERVER pgspider1 OPTIONS (user 'postgres', password 'postgres');
 --Testcase 198:
@@ -1236,17 +1292,17 @@ CREATE USER MAPPING FOR public SERVER pgspider3 OPTIONS (user 'postgres', passwo
 -- MIGRATE NONE
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.891
-INFO:  compression ratio: 171.918
-INFO:  compression ratio: 172.342
-INFO:  compression ratio: 174.713
-INFO:  compression ratio: 172.308
-INFO:  compression ratio: 172.665
-INFO:  compression ratio: 174.289
-INFO:  compression ratio: 173.260
-INFO:  compression ratio: 170.846
-INFO:  compression ratio: 173.663
-INFO:  compression ratio: 146.321
+INFO:  compression ratio: 174.201
+INFO:  compression ratio: 172.382
+INFO:  compression ratio: 172.647
+INFO:  compression ratio: 173.962
+INFO:  compression ratio: 172.984
+INFO:  compression ratio: 171.520
+INFO:  compression ratio: 172.451
+INFO:  compression ratio: 172.730
+INFO:  compression ratio: 171.533
+INFO:  compression ratio: 172.667
+INFO:  compression ratio: 146.672
 --Testcase 200:
 \d
             List of relations
@@ -1292,17 +1348,17 @@ DROP FOREIGN TABLE ft_test;
 -- MIGRATE TO
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 't1', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 174.385
-INFO:  compression ratio: 172.655
-INFO:  compression ratio: 172.319
-INFO:  compression ratio: 174.311
-INFO:  compression ratio: 173.937
-INFO:  compression ratio: 171.744
-INFO:  compression ratio: 172.932
-INFO:  compression ratio: 173.727
-INFO:  compression ratio: 172.170
-INFO:  compression ratio: 173.289
-INFO:  compression ratio: 146.878
+INFO:  compression ratio: 175.053
+INFO:  compression ratio: 170.805
+INFO:  compression ratio: 171.406
+INFO:  compression ratio: 173.028
+INFO:  compression ratio: 172.336
+INFO:  compression ratio: 172.115
+INFO:  compression ratio: 173.589
+INFO:  compression ratio: 173.732
+INFO:  compression ratio: 171.168
+INFO:  compression ratio: 172.528
+INFO:  compression ratio: 147.635
 --Testcase 205:
 \d
             List of relations
@@ -1342,17 +1398,17 @@ DROP FOREIGN TABLE ft2;
 -- MIGRATE REPLACE
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 't2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 174.385
-INFO:  compression ratio: 172.655
-INFO:  compression ratio: 172.319
-INFO:  compression ratio: 174.311
-INFO:  compression ratio: 173.937
-INFO:  compression ratio: 171.744
-INFO:  compression ratio: 172.932
-INFO:  compression ratio: 173.727
-INFO:  compression ratio: 172.170
-INFO:  compression ratio: 173.289
-INFO:  compression ratio: 146.878
+INFO:  compression ratio: 175.053
+INFO:  compression ratio: 170.805
+INFO:  compression ratio: 171.406
+INFO:  compression ratio: 173.028
+INFO:  compression ratio: 172.336
+INFO:  compression ratio: 172.115
+INFO:  compression ratio: 173.589
+INFO:  compression ratio: 173.732
+INFO:  compression ratio: 171.168
+INFO:  compression ratio: 172.528
+INFO:  compression ratio: 147.635
 --Testcase 209:
 \d
             List of relations
@@ -1404,18 +1460,18 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 173.053
-INFO:  compression ratio: 172.661
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 170.462
-INFO:  compression ratio: 172.661
-INFO:  compression ratio: 170.462
-INFO:  compression ratio: 171.941
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 133.259
-INFO:  compression ratio: 134.960
-INFO:  compression ratio: 134.932
+INFO:  compression ratio: 171.243
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 170.560
+INFO:  compression ratio: 171.243
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 171.487
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 171.876
+INFO:  compression ratio: 171.487
+INFO:  compression ratio: 133.675
+INFO:  compression ratio: 134.861
+INFO:  compression ratio: 134.444
 --Testcase 214:
 \d
             List of relations
@@ -1528,18 +1584,18 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 172.661
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 173.053
-INFO:  compression ratio: 172.661
-INFO:  compression ratio: 170.462
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 171.849
-INFO:  compression ratio: 170.462
-INFO:  compression ratio: 171.941
-INFO:  compression ratio: 134.932
-INFO:  compression ratio: 134.960
-INFO:  compression ratio: 133.259
+INFO:  compression ratio: 171.243
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 170.560
+INFO:  compression ratio: 171.243
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 171.487
+INFO:  compression ratio: 171.487
+INFO:  compression ratio: 171.854
+INFO:  compression ratio: 171.876
+INFO:  compression ratio: 133.675
+INFO:  compression ratio: 134.861
+INFO:  compression ratio: 134.444
 --Testcase 227:
 \d
                   List of relations
@@ -1625,18 +1681,18 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 134.648
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 132.509
 --Testcase 236:
 \d
                   List of relations
@@ -1726,24 +1782,24 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't13', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't14', relay 'cloud2'),
         pgspider3 OPTIONS (table_name 't15', relay 'cloud3');
+INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 122.241
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 122.874
+INFO:  compression ratio: 132.509
+INFO:  compression ratio: 135.252
 --Testcase 246:
 \d
             List of relations
@@ -1856,18 +1912,18 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 170.597
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 134.648
-INFO:  compression ratio: 133.414
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 172.221
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.706
+INFO:  compression ratio: 132.509
+INFO:  compression ratio: 135.252
 --Testcase 259:
 \d
                   List of relations
@@ -1951,23 +2007,23 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         pgspider2 OPTIONS (table_name 't20', relay 'cloud2'),
         pgspider3 OPTIONS (table_name 't21', relay 'cloud3');
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  Batch Insert for pgspider_fdw, batch size = 1927
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 173.239
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 171.034
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 173.985
-INFO:  compression ratio: 172.262
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 135.296
-INFO:  compression ratio: 133.414
-INFO:  compression ratio: 131.804
-INFO:  compression ratio: 122.241
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 172.294
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 172.458
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 169.770
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 174.531
+INFO:  compression ratio: 134.950
+INFO:  compression ratio: 122.874
+INFO:  compression ratio: 135.252
+INFO:  compression ratio: 132.509
 --Testcase 268:
 \d
                   List of relations
@@ -2122,17 +2178,11 @@ SELECT * FROM ft1 LIMIT 10;
 (10 rows)
 
 --Testcase 303:
-CREATE SERVER mysql1 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql1 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 --Testcase 304:
-CREATE SERVER mysql2 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql2 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 --Testcase 305:
-CREATE SERVER mysql3 FOREIGN DATA WRAPPER mysql_fdw
-OPTIONS (host '127.0.0.1',
-		 port '3306');
+CREATE SERVER mysql3 FOREIGN DATA WRAPPER mysql_fdw OPTIONS (host '127.0.0.1', port '3306');
 --Testcase 306:
 CREATE USER MAPPING FOR public SERVER mysql1 OPTIONS (username 'root', password 'Mysql_1234');
 --Testcase 307:
@@ -2143,11 +2193,11 @@ CREATE USER MAPPING FOR public SERVER mysql3 OPTIONS (username 'root', password 
 -- MIGRATE NONE
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 109.302
-INFO:  compression ratio: 106.158
-INFO:  compression ratio: 90.921
-INFO:  compression ratio: 105.908
-INFO:  compression ratio: 88.954
+INFO:  compression ratio: 110.125
+INFO:  compression ratio: 106.856
+INFO:  compression ratio: 90.713
+INFO:  compression ratio: 105.435
+INFO:  compression ratio: 88.423
 --Testcase 309:
 \d
             List of relations
@@ -2194,11 +2244,11 @@ DROP FOREIGN TABLE ft_test;
 -- MIGRATE TO
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 109.302
-INFO:  compression ratio: 106.158
-INFO:  compression ratio: 90.921
-INFO:  compression ratio: 105.908
-INFO:  compression ratio: 88.954
+INFO:  compression ratio: 110.125
+INFO:  compression ratio: 106.856
+INFO:  compression ratio: 90.713
+INFO:  compression ratio: 105.435
+INFO:  compression ratio: 88.423
 --Testcase 315:
 \d
             List of relations
@@ -2240,11 +2290,11 @@ DROP FOREIGN TABLE ft2;
 -- MIGRATE REPLACE
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 109.302
-INFO:  compression ratio: 106.158
-INFO:  compression ratio: 90.921
-INFO:  compression ratio: 105.908
-INFO:  compression ratio: 88.954
+INFO:  compression ratio: 110.125
+INFO:  compression ratio: 106.856
+INFO:  compression ratio: 90.713
+INFO:  compression ratio: 105.435
+INFO:  compression ratio: 88.423
 --Testcase 320:
 \d
             List of relations
@@ -2296,13 +2346,13 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql3 OPTIONS (dbname 'test3', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 102.844
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 101.930
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 96.099
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 103.107
+INFO:  compression ratio: 98.310
+INFO:  compression ratio: 103.192
+INFO:  compression ratio: 93.281
+INFO:  compression ratio: 96.207
 --Testcase 326:
 \d
             List of relations
@@ -2417,13 +2467,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
         mysql3 OPTIONS (dbname 'test3', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 102.844
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 101.930
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 103.107
-INFO:  compression ratio: 96.099
+INFO:  compression ratio: 98.310
+INFO:  compression ratio: 103.192
+INFO:  compression ratio: 93.281
+INFO:  compression ratio: 96.207
 --Testcase 342:
 \d
                  List of relations
@@ -2514,13 +2564,13 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         mysql3 OPTIONS (dbname 'test3', table_name 'T 2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 102.844
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 101.930
-INFO:  compression ratio: 96.099
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 103.107
+INFO:  compression ratio: 98.310
+INFO:  compression ratio: 103.192
+INFO:  compression ratio: 96.207
+INFO:  compression ratio: 93.281
 --Testcase 354:
 \d
                  List of relations
@@ -2616,20 +2666,20 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud2'),
         mysql3 OPTIONS (dbname 'test3', table_name 'T 2', relay 'cloud3');
 WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 62.859
+INFO:  compression ratio: 98.310
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 56.131
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 74.805
-INFO:  compression ratio: 75.556
-INFO:  compression ratio: 74.411
-INFO:  compression ratio: 61.713
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 96.099
-INFO:  compression ratio: 58.871
-INFO:  compression ratio: 64.280
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 73.369
+INFO:  compression ratio: 74.092
+INFO:  compression ratio: 74.243
+INFO:  compression ratio: 60.734
+INFO:  compression ratio: 93.281
+INFO:  compression ratio: 96.207
+INFO:  compression ratio: 58.086
+INFO:  compression ratio: 62.998
 --Testcase 367:
 \d
             List of relations
@@ -2745,12 +2795,12 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 101.930
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 103.107
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 96.099
+INFO:  compression ratio: 102.844
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 98.310
+INFO:  compression ratio: 103.192
+INFO:  compression ratio: 93.281
+INFO:  compression ratio: 96.207
 --Testcase 383:
 \d
                  List of relations
@@ -2841,19 +2891,19 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         mysql3 OPTIONS (dbname 'test3', table_name 'T 2', relay 'cloud3');
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 62.859
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 98.310
 INFO:  Batch Insert for pgspider_fdw, batch size = 4681
-INFO:  compression ratio: 56.131
-INFO:  compression ratio: 107.173
-INFO:  compression ratio: 98.061
-INFO:  compression ratio: 74.805
-INFO:  compression ratio: 75.556
-INFO:  compression ratio: 74.411
-INFO:  compression ratio: 96.099
-INFO:  compression ratio: 61.713
-INFO:  compression ratio: 92.665
-INFO:  compression ratio: 58.871
-INFO:  compression ratio: 64.280
+INFO:  compression ratio: 103.253
+INFO:  compression ratio: 73.369
+INFO:  compression ratio: 74.092
+INFO:  compression ratio: 74.243
+INFO:  compression ratio: 60.734
+INFO:  compression ratio: 96.207
+INFO:  compression ratio: 93.281
+INFO:  compression ratio: 58.086
+INFO:  compression ratio: 62.998
 --Testcase 395:
 \d
                  List of relations
@@ -2983,20 +3033,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 -- Griddb use port 20001 for JDBC connection
 --Testcase 413:
-CREATE SERVER griddb1 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20002',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb1 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20002', clustername 'dockerGridDB');
 --Testcase 414:
-CREATE SERVER griddb2 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20003',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb2 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20003', clustername 'dockerGridDB');
 --Testcase 415:
-CREATE SERVER griddb3 FOREIGN DATA WRAPPER griddb_fdw
-OPTIONS (host '127.0.0.1',
-		 port '20004',
-		 clustername 'dockerGridDB');
+CREATE SERVER griddb3 FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '127.0.0.1', port '20004', clustername 'dockerGridDB');
 --Testcase 416:
 CREATE USER MAPPING FOR public SERVER griddb1 OPTIONS (username 'admin', password 'admin');
 --Testcase 417:
@@ -3170,9 +3211,9 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb3 OPTIONS (table_name 't3', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  compression ratio: 1.959
-INFO:  compression ratio: 1.964
+INFO:  compression ratio: 1.965
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  compression ratio: 1.964
 --Testcase 436:
 \d
@@ -3305,7 +3346,7 @@ INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  compression ratio: 1.959
-INFO:  compression ratio: 1.964
+INFO:  compression ratio: 1.965
 INFO:  compression ratio: 1.964
 --Testcase 452:
 \d
@@ -3415,10 +3456,10 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         griddb3 OPTIONS (table_name 't3', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.959
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
+INFO:  compression ratio: 1.965
 --Testcase 464:
 \d
                  List of relations
@@ -3533,16 +3574,16 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  Batch Insert for pgspider_fdw, batch size = 5000
-INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  compression ratio: 1.868
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.874
 INFO:  compression ratio: 1.871
 INFO:  compression ratio: 1.846
-INFO:  compression ratio: 1.869
-INFO:  compression ratio: 1.931
+INFO:  compression ratio: 1.868
 INFO:  compression ratio: 1.863
+INFO:  compression ratio: 1.931
 INFO:  compression ratio: 1.841
 --Testcase 477:
 \d
@@ -3674,12 +3715,12 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 5000
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  Batch Insert for pgspider_fdw, batch size = 5000
 INFO:  compression ratio: 1.960
 INFO:  compression ratio: 1.964
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
 INFO:  compression ratio: 1.964
-INFO:  compression ratio: 1.931
 INFO:  compression ratio: 1.923
+INFO:  compression ratio: 1.931
 --Testcase 493:
 \d
                  List of relations
@@ -3787,16 +3828,16 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         griddb2 OPTIONS (table_name 't2', relay 'cloud2'),
         griddb3 OPTIONS (table_name 't3', relay 'cloud3');
 WARNING:  Can not calculate suitable batch size, using the default batch size
-INFO:  Batch Insert for pgspider_fdw, batch size = 1000
-INFO:  Batch Insert for pgspider_fdw, batch size = 5000
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  compression ratio: 1.868
 INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.964
 INFO:  compression ratio: 1.874
 INFO:  compression ratio: 1.871
 INFO:  compression ratio: 1.846
-INFO:  compression ratio: 1.869
+INFO:  compression ratio: 1.868
 INFO:  compression ratio: 1.931
 INFO:  compression ratio: 1.863
 INFO:  compression ratio: 1.841
@@ -3952,14 +3993,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 (10 rows)
 
 --Testcase 523:
-CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle1 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 --Testcase 524:
-CREATE SERVER oracle2 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle2 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 --Testcase 525:
-CREATE SERVER oracle3 FOREIGN DATA WRAPPER oracle_fdw
-OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
+CREATE SERVER oracle3 FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'localhost:1521/XE', isolation_level 'read_committed', nchar 'true');
 --Testcase 526:
 CREATE USER MAPPING FOR public SERVER oracle1 OPTIONS (user 'test1', password 'test1');
 --Testcase 527:
@@ -3971,9 +4009,9 @@ CREATE USER MAPPING FOR public SERVER oracle3 OPTIONS (user 'test3', password 't
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 3.063
-INFO:  compression ratio: 3.112
+INFO:  compression ratio: 3.110
 INFO:  compression ratio: 3.025
-INFO:  compression ratio: 3.000
+INFO:  compression ratio: 3.001
 --Testcase 529:
 \d
             List of relations
@@ -4021,9 +4059,9 @@ DROP FOREIGN TABLE ft_test;
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 3.063
-INFO:  compression ratio: 3.112
+INFO:  compression ratio: 3.110
 INFO:  compression ratio: 3.025
-INFO:  compression ratio: 3.000
+INFO:  compression ratio: 3.001
 --Testcase 535:
 \d
             List of relations
@@ -4066,9 +4104,9 @@ DROP FOREIGN TABLE ft2;
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 3.063
-INFO:  compression ratio: 3.112
+INFO:  compression ratio: 3.110
 INFO:  compression ratio: 3.025
-INFO:  compression ratio: 3.000
+INFO:  compression ratio: 3.001
 --Testcase 540:
 \d
             List of relations
@@ -4121,12 +4159,12 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
-INFO:  compression ratio: 2.882
-INFO:  compression ratio: 2.889
 INFO:  compression ratio: 2.885
+INFO:  compression ratio: 2.882
+INFO:  compression ratio: 2.888
 INFO:  compression ratio: 2.689
-INFO:  compression ratio: 2.686
 INFO:  compression ratio: 2.687
+INFO:  compression ratio: 2.688
 --Testcase 546:
 \d
             List of relations
@@ -4241,13 +4279,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
         oracle3 OPTIONS (table 'T2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
-INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.888
 INFO:  compression ratio: 2.882
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 2.885
-INFO:  compression ratio: 2.889
-INFO:  compression ratio: 2.687
-INFO:  compression ratio: 2.686
 INFO:  compression ratio: 2.689
+INFO:  compression ratio: 2.687
+INFO:  compression ratio: 2.688
 --Testcase 562:
 \d
                  List of relations
@@ -4338,13 +4376,13 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         oracle3 OPTIONS (table 'T2', relay 'cloud1');
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
-INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.888
 INFO:  compression ratio: 2.882
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 2.885
-INFO:  compression ratio: 2.889
 INFO:  compression ratio: 2.687
+INFO:  compression ratio: 2.688
 INFO:  compression ratio: 2.689
-INFO:  compression ratio: 2.686
 --Testcase 574:
 \d
                  List of relations
@@ -4441,19 +4479,19 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle3 OPTIONS (table 'T2', relay 'cloud3');
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
-INFO:  Batch Insert for pgspider_fdw, batch size = 5000
-INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 2.838
-INFO:  compression ratio: 2.890
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
 INFO:  compression ratio: 2.882
+INFO:  compression ratio: 2.890
 INFO:  compression ratio: 2.903
-INFO:  compression ratio: 2.875
-INFO:  compression ratio: 2.685
-INFO:  compression ratio: 2.687
+INFO:  compression ratio: 2.871
 INFO:  compression ratio: 2.753
-INFO:  compression ratio: 2.665
-INFO:  compression ratio: 2.668
-INFO:  compression ratio: 2.599
+INFO:  compression ratio: 2.666
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.686
+INFO:  compression ratio: 2.678
+INFO:  compression ratio: 2.604
 --Testcase 587:
 \d
             List of relations
@@ -4569,13 +4607,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  Batch Insert for pgspider_fdw, batch size = 5000
-INFO:  Batch Insert for pgspider_fdw, batch size = 5000
-INFO:  compression ratio: 2.886
-INFO:  compression ratio: 2.890
 INFO:  compression ratio: 2.882
-INFO:  compression ratio: 2.687
-INFO:  compression ratio: 2.685
-INFO:  compression ratio: 2.683
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
+INFO:  compression ratio: 2.890
+INFO:  compression ratio: 2.886
+INFO:  compression ratio: 2.686
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.690
 --Testcase 603:
 \d
                  List of relations
@@ -4667,18 +4705,18 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 WARNING:  Can not calculate suitable batch size, using the default batch size
 INFO:  Batch Insert for pgspider_fdw, batch size = 1000
 INFO:  Batch Insert for pgspider_fdw, batch size = 5000
-INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 2.838
 INFO:  compression ratio: 2.890
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
 INFO:  compression ratio: 2.882
 INFO:  compression ratio: 2.903
-INFO:  compression ratio: 2.875
-INFO:  compression ratio: 2.687
-INFO:  compression ratio: 2.685
+INFO:  compression ratio: 2.871
 INFO:  compression ratio: 2.753
-INFO:  compression ratio: 2.665
-INFO:  compression ratio: 2.668
-INFO:  compression ratio: 2.599
+INFO:  compression ratio: 2.666
+INFO:  compression ratio: 2.678
+INFO:  compression ratio: 2.686
+INFO:  compression ratio: 2.604
+INFO:  compression ratio: 2.688
 --Testcase 615:
 \d
                  List of relations
@@ -4764,6 +4802,878 @@ DROP FOREIGN TABLE ft1;
 --Testcase 627:
 DROP TABLE t1;
 -- ===================================================================
+-- TO INFLUXDB SERVER
+-- ===================================================================
+--Testcase 691:
+CREATE FOREIGN TABLE ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+--Testcase 692:
+CREATE DATASOURCE TABLE ft1;
+--Testcase 693:
+INSERT INTO t1
+	 SELECT id,
+	        id % 1000,
+		id % 100,
+		id / 110,
+		id / 2,
+		id * 3,
+		'1970-01-01'::date + ((id % 100) || ' days')::interval,
+		'1970-01-01'::timestamp + ((id % 100) || ' days')::interval,
+	        '1970-01-01'::timestamptz + ((id % 100) || ' days')::interval,
+	        'ora' || id,
+	        to_char(id, 'FM00000'),
+	        'foo',
+		'\x151354865131651321'
+	FROM generate_series(1, 20000) id;
+--Testcase 694:
+SELECT count(*) FROM ft1;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 695:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 696:
+CREATE SERVER influx1 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test1', version '2', retention_policy '');
+--Testcase 697:
+CREATE SERVER influx2 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test2', version '2', retention_policy '');
+--Testcase 698:
+CREATE SERVER influx3 FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '38086', dbname 'test3', version '2', retention_policy '');
+--Testcase 699:
+CREATE USER MAPPING FOR public SERVER influx1 OPTIONS (auth_token 'mytoken');
+--Testcase 700:
+CREATE USER MAPPING FOR public SERVER influx2 OPTIONS (auth_token 'mytoken');
+--Testcase 701:
+CREATE USER MAPPING FOR public SERVER influx3 OPTIONS (auth_token 'mytoken');
+-- * migrate sigle target server and single relay server
+-- MIGRATE NONE
+--Testcase 702:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 3.063
+INFO:  compression ratio: 3.110
+INFO:  compression ratio: 3.025
+INFO:  compression ratio: 3.001
+--Testcase 703:
+\d
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
+ public | ft1  | foreign table | vagrant
+ public | t1   | table         | vagrant
+(2 rows)
+
+-- create foreign table to check new datasource
+--Testcase 704:
+CREATE foreign table ft_test (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+-- Check data for first 10 records and number of records
+--Testcase 705:
+SELECT count(*) FROM ft_test;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 706:
+SELECT * FROM ft_test ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 707:
+DROP DATASOURCE TABLE ft_test;
+--Testcase 708:
+DROP FOREIGN TABLE ft_test; 
+-- MIGRATE TO
+--Testcase 709:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 3.063
+INFO:  compression ratio: 3.110
+INFO:  compression ratio: 3.025
+INFO:  compression ratio: 3.001
+--Testcase 710:
+\d
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
+ public | ft1  | foreign table | vagrant
+ public | ft2  | foreign table | vagrant
+ public | t1   | table         | vagrant
+(3 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 711:
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 710:
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 712:
+DROP DATASOURCE TABLE ft2;
+--Testcase 713:
+DROP FOREIGN TABLE ft2;
+-- MIGRATE REPLACE
+--Testcase 714:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 3.063
+INFO:  compression ratio: 3.110
+INFO:  compression ratio: 3.025
+INFO:  compression ratio: 3.001
+--Testcase 715:
+\d
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
+ public | ft1  | foreign table | vagrant
+ public | t1   | table         | vagrant
+(2 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 716:
+SELECT count(*) FROM ft1;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 717:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 718:
+DROP DATASOURCE TABLE ft1;
+--Testcase 719:
+DROP FOREIGN TABLE ft1;
+-- create again src table
+--Testcase 720:
+CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+-- * migrate multi target server and single relay server
+-- MIGRATE NONE
+--Testcase 721:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.888
+INFO:  compression ratio: 2.882
+INFO:  compression ratio: 2.885
+INFO:  compression ratio: 2.687
+INFO:  compression ratio: 2.689
+INFO:  compression ratio: 2.688
+--Testcase 722:
+\d
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
+ public | ft1  | foreign table | vagrant
+ public | t1   | table         | vagrant
+(2 rows)
+
+-- create foreign table to check new datasource
+--Testcase 723:
+CREATE foreign table ft_test1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+--Testcase 724:
+CREATE foreign table ft_test2 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx2 OPTIONS (table 'T2');
+--Testcase 725:
+CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx3 OPTIONS (table 'T2');
+-- Check data for first 10 records and number of records
+--Testcase 726:
+SELECT count(*) FROM ft_test1;
+ count 
+-------
+  6667
+(1 row)
+
+--Testcase 727:
+SELECT * FROM ft_test1 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 728:
+DROP DATASOURCE TABLE ft_test1;
+--Testcase 729:
+DROP FOREIGN TABLE ft_test1;
+--Testcase 730:
+SELECT count(*) FROM ft_test2;
+ count 
+-------
+  6667
+(1 row)
+
+--Testcase 731:
+SELECT * FROM ft_test2 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 732:
+DROP DATASOURCE TABLE ft_test2;
+--Testcase 733:
+DROP FOREIGN TABLE ft_test2;
+--Testcase 734:
+SELECT count(*) FROM ft_test3;
+ count 
+-------
+  6666
+(1 row)
+
+--Testcase 735:
+SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 736:
+DROP DATASOURCE TABLE ft_test3;
+--Testcase 737:
+DROP FOREIGN TABLE ft_test3;
+-- MIGRATE TO
+--Testcase 738:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.888
+INFO:  compression ratio: 2.882
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.885
+INFO:  compression ratio: 2.689
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.687
+--Testcase 739:
+\d
+                 List of relations
+ Schema |      Name       |     Type      |  Owner  
+--------+-----------------+---------------+---------
+ public | ft1             | foreign table | vagrant
+ public | ft2             | foreign table | vagrant
+ public | ft2__influx1__0 | foreign table | vagrant
+ public | ft2__influx2__0 | foreign table | vagrant
+ public | ft2__influx3__0 | foreign table | vagrant
+ public | t1              | table         | vagrant
+(6 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 740:
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 741:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 742:
+SELECT * FROM ft2__influx2__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 743:
+SELECT * FROM ft2__influx3__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 744:
+DROP DATASOURCE TABLE ft2__influx1__0;
+--Testcase 745:
+DROP DATASOURCE TABLE ft2__influx2__0;
+--Testcase 746:
+DROP DATASOURCE TABLE ft2__influx3__0;
+--Testcase 747:
+DROP FOREIGN TABLE ft2__influx1__0;
+--Testcase 748:
+DROP FOREIGN TABLE ft2__influx2__0;
+--Testcase 749:
+DROP FOREIGN TABLE ft2__influx3__0;
+--Testcase 750:
+DROP FOREIGN TABLE ft2;
+-- MIGRATE REPLACE
+--Testcase 751:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud1', org 'myorg');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.885
+INFO:  compression ratio: 2.882
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.888
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.689
+INFO:  compression ratio: 2.687
+--Testcase 752:
+\d
+                 List of relations
+ Schema |      Name       |     Type      |  Owner  
+--------+-----------------+---------------+---------
+ public | ft1             | foreign table | vagrant
+ public | ft1__influx1__0 | foreign table | vagrant
+ public | ft1__influx2__0 | foreign table | vagrant
+ public | ft1__influx3__0 | foreign table | vagrant
+ public | t1              | table         | vagrant
+(5 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 753:
+SELECT count(*) FROM ft1;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 754:
+SELECT * FROM ft1__influx1__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 755:
+SELECT * FROM ft1__influx2__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 756:
+SELECT * FROM ft1__influx3__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 757:
+DROP DATASOURCE TABLE ft1__influx1__0;
+--Testcase 758:
+DROP DATASOURCE TABLE ft1__influx2__0;
+--Testcase 759:
+DROP DATASOURCE TABLE ft1__influx3__0;
+--Testcase 760:
+DROP FOREIGN TABLE ft1__influx1__0;
+--Testcase 761:
+DROP FOREIGN TABLE ft1__influx2__0;
+--Testcase 762:
+DROP FOREIGN TABLE ft1__influx3__0;
+--Testcase 763:
+DROP FOREIGN TABLE ft1;
+-- create again src table
+--Testcase 764:
+CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER loopback OPTIONS (table_name 't1');
+-- * migrate multi target server and multi relay server
+-- MIGRATE NONE
+--Testcase 765:
+MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 2.838
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
+INFO:  compression ratio: 2.882
+INFO:  compression ratio: 2.890
+INFO:  compression ratio: 2.903
+INFO:  compression ratio: 2.871
+INFO:  compression ratio: 2.753
+INFO:  compression ratio: 2.666
+INFO:  compression ratio: 2.678
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.686
+INFO:  compression ratio: 2.604
+--Testcase 766:
+\d
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
+ public | ft1  | foreign table | vagrant
+ public | t1   | table         | vagrant
+(2 rows)
+
+-- create foreign table to check new datasource
+--Testcase 767:
+CREATE foreign table ft_test1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx1 OPTIONS (table 'T2');
+--Testcase 768:
+CREATE foreign table ft_test2 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx2 OPTIONS (table 'T2');
+--Testcase 769:
+CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8, 
+    c6 numeric, c7 date, c8 timestamp, c9 timestamptz, c10 varchar(10), c11 text,
+    c12 char(10), c13 bytea
+)SERVER influx3 OPTIONS (table 'T2');
+-- Check data for first 10 records and number of records
+--Testcase 770:
+SELECT count(*) FROM ft_test1;
+ count 
+-------
+  6667
+(1 row)
+
+--Testcase 771:
+SELECT * FROM ft_test1 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 772:
+DROP DATASOURCE TABLE ft_test1;
+--Testcase 773:
+DROP FOREIGN TABLE ft_test1;
+--Testcase 774:
+SELECT count(*) FROM ft_test2;
+ count 
+-------
+  6667
+(1 row)
+
+--Testcase 775:
+SELECT * FROM ft_test2 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 776:
+DROP DATASOURCE TABLE ft_test2;
+--Testcase 777:
+DROP FOREIGN TABLE ft_test2;
+--Testcase 778:
+SELECT count(*) FROM ft_test3;
+ count 
+-------
+  6666
+(1 row)
+
+--Testcase 779:
+SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 780:
+DROP DATASOURCE TABLE ft_test3;
+--Testcase 781:
+DROP FOREIGN TABLE ft_test3;
+-- MIGRATE TO
+--Testcase 782:
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 2.838
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
+INFO:  compression ratio: 2.890
+INFO:  compression ratio: 2.882
+INFO:  compression ratio: 2.903
+INFO:  compression ratio: 2.871
+INFO:  compression ratio: 2.753
+INFO:  compression ratio: 2.666
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.686
+INFO:  compression ratio: 2.678
+INFO:  compression ratio: 2.604
+--Testcase 783:
+\d
+                 List of relations
+ Schema |      Name       |     Type      |  Owner  
+--------+-----------------+---------------+---------
+ public | ft1             | foreign table | vagrant
+ public | ft2             | foreign table | vagrant
+ public | ft2__influx1__0 | foreign table | vagrant
+ public | ft2__influx2__0 | foreign table | vagrant
+ public | ft2__influx3__0 | foreign table | vagrant
+ public | t1              | table         | vagrant
+(6 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 784:
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 785:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 786:
+SELECT * FROM ft2__influx2__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 787:
+SELECT * FROM ft2__influx3__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 788:
+DROP DATASOURCE TABLE ft2__influx1__0;
+--Testcase 789:
+DROP DATASOURCE TABLE ft2__influx2__0;
+--Testcase 790:
+DROP DATASOURCE TABLE ft2__influx3__0;
+--Testcase 791:
+DROP FOREIGN TABLE ft2__influx1__0;
+--Testcase 792:
+DROP FOREIGN TABLE ft2__influx2__0;
+--Testcase 793:
+DROP FOREIGN TABLE ft2__influx3__0;
+--Testcase 794:
+DROP FOREIGN TABLE ft2;
+-- MIGRATE REPLACE
+--Testcase 795:
+MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER 
+        influx1 OPTIONS (table 'T2', relay 'cloud1', org 'myorg'),
+        influx2 OPTIONS (table 'T2', relay 'cloud2', org 'myorg'), 
+        influx3 OPTIONS (table 'T2', relay 'cloud3', org 'myorg');
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  compression ratio: 2.838
+INFO:  compression ratio: 2.882
+INFO:  Batch Insert for pgspider_fdw, batch size = 5000
+INFO:  compression ratio: 2.890
+INFO:  compression ratio: 2.903
+INFO:  compression ratio: 2.871
+INFO:  compression ratio: 2.753
+INFO:  compression ratio: 2.666
+INFO:  compression ratio: 2.678
+INFO:  compression ratio: 2.688
+INFO:  compression ratio: 2.604
+INFO:  compression ratio: 2.686
+--Testcase 796:
+\d
+                 List of relations
+ Schema |      Name       |     Type      |  Owner  
+--------+-----------------+---------------+---------
+ public | ft1             | foreign table | vagrant
+ public | ft1__influx1__0 | foreign table | vagrant
+ public | ft1__influx2__0 | foreign table | vagrant
+ public | ft1__influx3__0 | foreign table | vagrant
+ public | t1              | table         | vagrant
+(5 rows)
+
+-- Check data for first 10 records and number of records
+--Testcase 797:
+SELECT count(*) FROM ft1;
+ count 
+-------
+ 20000
+(1 row)
+
+--Testcase 798:
+SELECT * FROM ft1__influx1__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  1 |  1 |  1 |  0 |  0 |  3 | 1970-01-02 | 1970-01-02 00:00:00 | 1970-01-02 00:00:00-08 | ora1  | 00001 | foo        | \x151354865131651321
+  4 |  4 |  4 |  0 |  2 | 12 | 1970-01-05 | 1970-01-05 00:00:00 | 1970-01-05 00:00:00-08 | ora4  | 00004 | foo        | \x151354865131651321
+  7 |  7 |  7 |  0 |  3 | 21 | 1970-01-08 | 1970-01-08 00:00:00 | 1970-01-08 00:00:00-08 | ora7  | 00007 | foo        | \x151354865131651321
+ 10 | 10 | 10 |  0 |  5 | 30 | 1970-01-11 | 1970-01-11 00:00:00 | 1970-01-11 00:00:00-08 | ora10 | 00010 | foo        | \x151354865131651321
+ 13 | 13 | 13 |  0 |  6 | 39 | 1970-01-14 | 1970-01-14 00:00:00 | 1970-01-14 00:00:00-08 | ora13 | 00013 | foo        | \x151354865131651321
+ 16 | 16 | 16 |  0 |  8 | 48 | 1970-01-17 | 1970-01-17 00:00:00 | 1970-01-17 00:00:00-08 | ora16 | 00016 | foo        | \x151354865131651321
+ 19 | 19 | 19 |  0 |  9 | 57 | 1970-01-20 | 1970-01-20 00:00:00 | 1970-01-20 00:00:00-08 | ora19 | 00019 | foo        | \x151354865131651321
+ 22 | 22 | 22 |  0 | 11 | 66 | 1970-01-23 | 1970-01-23 00:00:00 | 1970-01-23 00:00:00-08 | ora22 | 00022 | foo        | \x151354865131651321
+ 25 | 25 | 25 |  0 | 12 | 75 | 1970-01-26 | 1970-01-26 00:00:00 | 1970-01-26 00:00:00-08 | ora25 | 00025 | foo        | \x151354865131651321
+ 28 | 28 | 28 |  0 | 14 | 84 | 1970-01-29 | 1970-01-29 00:00:00 | 1970-01-29 00:00:00-08 | ora28 | 00028 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 799:
+SELECT * FROM ft1__influx2__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  2 |  2 |  2 |  0 |  1 |  6 | 1970-01-03 | 1970-01-03 00:00:00 | 1970-01-03 00:00:00-08 | ora2  | 00002 | foo        | \x151354865131651321
+  5 |  5 |  5 |  0 |  2 | 15 | 1970-01-06 | 1970-01-06 00:00:00 | 1970-01-06 00:00:00-08 | ora5  | 00005 | foo        | \x151354865131651321
+  8 |  8 |  8 |  0 |  4 | 24 | 1970-01-09 | 1970-01-09 00:00:00 | 1970-01-09 00:00:00-08 | ora8  | 00008 | foo        | \x151354865131651321
+ 11 | 11 | 11 |  0 |  5 | 33 | 1970-01-12 | 1970-01-12 00:00:00 | 1970-01-12 00:00:00-08 | ora11 | 00011 | foo        | \x151354865131651321
+ 14 | 14 | 14 |  0 |  7 | 42 | 1970-01-15 | 1970-01-15 00:00:00 | 1970-01-15 00:00:00-08 | ora14 | 00014 | foo        | \x151354865131651321
+ 17 | 17 | 17 |  0 |  8 | 51 | 1970-01-18 | 1970-01-18 00:00:00 | 1970-01-18 00:00:00-08 | ora17 | 00017 | foo        | \x151354865131651321
+ 20 | 20 | 20 |  0 | 10 | 60 | 1970-01-21 | 1970-01-21 00:00:00 | 1970-01-21 00:00:00-08 | ora20 | 00020 | foo        | \x151354865131651321
+ 23 | 23 | 23 |  0 | 11 | 69 | 1970-01-24 | 1970-01-24 00:00:00 | 1970-01-24 00:00:00-08 | ora23 | 00023 | foo        | \x151354865131651321
+ 26 | 26 | 26 |  0 | 13 | 78 | 1970-01-27 | 1970-01-27 00:00:00 | 1970-01-27 00:00:00-08 | ora26 | 00026 | foo        | \x151354865131651321
+ 29 | 29 | 29 |  0 | 14 | 87 | 1970-01-30 | 1970-01-30 00:00:00 | 1970-01-30 00:00:00-08 | ora29 | 00029 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 800:
+SELECT * FROM ft1__influx3__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |     c7     |         c8          |           c9           |  c10  |  c11  |    c12     |         c13          
+----+----+----+----+----+----+------------+---------------------+------------------------+-------+-------+------------+----------------------
+  3 |  3 |  3 |  0 |  1 |  9 | 1970-01-04 | 1970-01-04 00:00:00 | 1970-01-04 00:00:00-08 | ora3  | 00003 | foo        | \x151354865131651321
+  6 |  6 |  6 |  0 |  3 | 18 | 1970-01-07 | 1970-01-07 00:00:00 | 1970-01-07 00:00:00-08 | ora6  | 00006 | foo        | \x151354865131651321
+  9 |  9 |  9 |  0 |  4 | 27 | 1970-01-10 | 1970-01-10 00:00:00 | 1970-01-10 00:00:00-08 | ora9  | 00009 | foo        | \x151354865131651321
+ 12 | 12 | 12 |  0 |  6 | 36 | 1970-01-13 | 1970-01-13 00:00:00 | 1970-01-13 00:00:00-08 | ora12 | 00012 | foo        | \x151354865131651321
+ 15 | 15 | 15 |  0 |  7 | 45 | 1970-01-16 | 1970-01-16 00:00:00 | 1970-01-16 00:00:00-08 | ora15 | 00015 | foo        | \x151354865131651321
+ 18 | 18 | 18 |  0 |  9 | 54 | 1970-01-19 | 1970-01-19 00:00:00 | 1970-01-19 00:00:00-08 | ora18 | 00018 | foo        | \x151354865131651321
+ 21 | 21 | 21 |  0 | 10 | 63 | 1970-01-22 | 1970-01-22 00:00:00 | 1970-01-22 00:00:00-08 | ora21 | 00021 | foo        | \x151354865131651321
+ 24 | 24 | 24 |  0 | 12 | 72 | 1970-01-25 | 1970-01-25 00:00:00 | 1970-01-25 00:00:00-08 | ora24 | 00024 | foo        | \x151354865131651321
+ 27 | 27 | 27 |  0 | 13 | 81 | 1970-01-28 | 1970-01-28 00:00:00 | 1970-01-28 00:00:00-08 | ora27 | 00027 | foo        | \x151354865131651321
+ 30 | 30 | 30 |  0 | 15 | 90 | 1970-01-31 | 1970-01-31 00:00:00 | 1970-01-31 00:00:00-08 | ora30 | 00030 | foo        | \x151354865131651321
+(10 rows)
+
+--Testcase 801:
+DROP DATASOURCE TABLE ft1__influx1__0;
+--Testcase 802:
+DROP DATASOURCE TABLE ft1__influx2__0;
+--Testcase 803:
+DROP DATASOURCE TABLE ft1__influx3__0;
+--Testcase 804:
+DROP FOREIGN TABLE ft1__influx1__0;
+--Testcase 805:
+DROP FOREIGN TABLE ft1__influx2__0;
+--Testcase 806:
+DROP FOREIGN TABLE ft1__influx3__0;
+--Testcase 807:
+DROP FOREIGN TABLE ft1;
+--Testcase 816:
+DROP TABLE t1;
+-- ===================================================================
 -- TO DIFERENCE TARGET SERVER
 -- ===================================================================
 --Testcase 628:
@@ -4812,22 +5722,25 @@ MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 'multi1', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.247
-INFO:  compression ratio: 2.254
-INFO:  compression ratio: 2.253
-INFO:  compression ratio: 2.252
-INFO:  compression ratio: 2.248
+INFO:  compression ratio: 2.050
+INFO:  compression ratio: 2.061
+INFO:  compression ratio: 2.058
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
+INFO:  compression ratio: 2.057
+INFO:  compression ratio: 2.055
+INFO:  compression ratio: 2.054
 --Testcase 633:
 \d
-           List of relations
- Schema | Name |     Type      |  Owner   
---------+------+---------------+----------
+            List of relations
+ Schema | Name |     Type      |  Owner  
+--------+------+---------------+---------
  public | ft1  | foreign table | vagrant
  public | t1   | table         | vagrant
 (2 rows)
@@ -4853,6 +5766,10 @@ CREATE foreign table ft_test4 (c1 bigint, c2 int, c3 smallint,
 CREATE foreign table ft_test5 (c1 bigint, c2 int, c3 smallint,
     c4 float4, c5 float8, c6 bool, c7 timestamp, c8 text
 )SERVER oracle1 OPTIONS (table 'multi');
+--Testcase 808:
+CREATE foreign table ft_test6 (c1 bigint, c2 int, c3 smallint,
+    c4 float4, c5 float8, c6 bool, c7 timestamp, c8 text
+)SERVER influx1 OPTIONS (table 'multi');
 -- Check data for first 10 records and number of records
 ALTER SERVER griddb1 OPTIONS (drop host);
 ALTER SERVER griddb1 OPTIONS (drop port);
@@ -4861,7 +5778,7 @@ ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 SELECT count(*) FROM ft_test1;
  count 
 -------
-  4000
+  3334
 (1 row)
 
 --Testcase 640:
@@ -4869,22 +5786,22 @@ SELECT * FROM ft_test1 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   1 |  1 |  1 |  0 |  0 | t  | 1970-01-02 00:00:00 | 00001
-  6 |  6 |  6 |  0 |  3 | t  | 1970-01-07 00:00:00 | 00006
- 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
- 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
- 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
- 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
+  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
+ 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
+ 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
+ 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
  31 | 31 | 31 |  0 | 15 | t  | 1970-02-01 00:00:00 | 00031
- 36 | 36 | 36 |  0 | 18 | t  | 1970-02-06 00:00:00 | 00036
- 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
- 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
+ 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
+ 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 55 | 55 | 55 |  0 | 27 | t  | 1970-02-25 00:00:00 | 00055
 (10 rows)
 
 --Testcase 641:
 SELECT count(*) FROM ft_test2;
  count 
 -------
-  4000
+  3334
 (1 row)
 
 --Testcase 642:
@@ -4892,22 +5809,22 @@ SELECT * FROM ft_test2 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   2 |  2 |  2 |  0 |  1 | t  | 1970-01-03 00:00:00 | 00002
-  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
- 12 | 12 | 12 |  0 |  6 | t  | 1970-01-13 00:00:00 | 00012
- 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
- 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
- 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
+  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
+ 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
+ 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
+ 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
  32 | 32 | 32 |  0 | 16 | t  | 1970-02-02 00:00:00 | 00032
- 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
- 42 | 42 | 42 |  0 | 21 | t  | 1970-02-12 00:00:00 | 00042
- 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
+ 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
+ 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 56 | 56 | 56 |  0 | 28 | t  | 1970-02-26 00:00:00 | 00056
 (10 rows)
 
 --Testcase 643:
 SELECT count(*) FROM ft_test3;
  count 
 -------
-  4000
+  3333
 (1 row)
 
 --Testcase 644:
@@ -4915,22 +5832,22 @@ SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   3 |  3 |  3 |  0 |  1 | t  | 1970-01-04 00:00:00 | 00003
-  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
- 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
- 18 | 18 | 18 |  0 |  9 | t  | 1970-01-19 00:00:00 | 00018
- 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
- 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
+  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
+ 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
+ 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
+ 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
  33 | 33 | 33 |  0 | 16 | t  | 1970-02-03 00:00:00 | 00033
- 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
- 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
- 48 | 48 | 48 |  0 | 24 | t  | 1970-02-18 00:00:00 | 00048
+ 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
+ 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
+ 51 | 51 | 51 |  0 | 25 | t  | 1970-02-21 00:00:00 | 00051
+ 57 | 57 | 57 |  0 | 28 | t  | 1970-02-27 00:00:00 | 00057
 (10 rows)
 
 --Testcase 645:
 SELECT count(*) FROM ft_test4;
  count 
 -------
-  4000
+  3333
 (1 row)
 
 --Testcase 646:
@@ -4938,22 +5855,22 @@ SELECT * FROM ft_test4 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   4 |  4 |  4 |  0 |  2 | t  | 1970-01-05 00:00:00 | 00004
-  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
- 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
- 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
- 24 | 24 | 24 |  0 | 12 | t  | 1970-01-25 00:00:00 | 00024
- 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
+ 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
+ 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
+ 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
+ 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
  34 | 34 | 34 |  0 | 17 | t  | 1970-02-04 00:00:00 | 00034
- 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
- 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
- 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
+ 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 52 | 52 | 52 |  0 | 26 | t  | 1970-02-22 00:00:00 | 00052
+ 58 | 58 | 58 |  0 | 29 | t  | 1970-02-28 00:00:00 | 00058
 (10 rows)
 
 --Testcase 647:
 SELECT count(*) FROM ft_test5;
  count 
 -------
-  4000
+  3333
 (1 row)
 
 --Testcase 648:
@@ -4961,15 +5878,38 @@ SELECT * FROM ft_test5 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   5 |  5 |  5 |  0 |  2 | t  | 1970-01-06 00:00:00 | 00005
- 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
- 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
- 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
- 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
- 30 | 30 | 30 |  0 | 15 | t  | 1970-01-31 00:00:00 | 00030
+ 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
+ 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
+ 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
+ 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
  35 | 35 | 35 |  0 | 17 | t  | 1970-02-05 00:00:00 | 00035
- 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
- 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
- 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
+ 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 53 | 53 | 53 |  0 | 26 | t  | 1970-02-23 00:00:00 | 00053
+ 59 | 59 | 59 |  0 | 29 | t  | 1970-03-01 00:00:00 | 00059
+(10 rows)
+
+--Testcase 809:
+SELECT count(*) FROM ft_test6;
+ count 
+-------
+  3333
+(1 row)
+
+--Testcase 810:
+SELECT * FROM ft_test6 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
+----+----+----+----+----+----+---------------------+-------
+  6 |  6 |  6 |  0 |  3 | t  | 1970-01-07 00:00:00 | 00006
+ 12 | 12 | 12 |  0 |  6 | t  | 1970-01-13 00:00:00 | 00012
+ 18 | 18 | 18 |  0 |  9 | t  | 1970-01-19 00:00:00 | 00018
+ 24 | 24 | 24 |  0 | 12 | t  | 1970-01-25 00:00:00 | 00024
+ 30 | 30 | 30 |  0 | 15 | t  | 1970-01-31 00:00:00 | 00030
+ 36 | 36 | 36 |  0 | 18 | t  | 1970-02-06 00:00:00 | 00036
+ 42 | 42 | 42 |  0 | 21 | t  | 1970-02-12 00:00:00 | 00042
+ 48 | 48 | 48 |  0 | 24 | t  | 1970-02-18 00:00:00 | 00048
+ 54 | 54 | 54 |  0 | 27 | t  | 1970-02-24 00:00:00 | 00054
+ 60 | 60 | 60 |  0 | 30 | t  | 1970-03-02 00:00:00 | 00060
 (10 rows)
 
 --Testcase 649:
@@ -4980,6 +5920,8 @@ DROP DATASOURCE TABLE ft_test3;
 DROP DATASOURCE TABLE ft_test4;
 --Testcase 652:
 DROP DATASOURCE TABLE ft_test5;
+--Testcase 811:
+DROP DATASOURCE TABLE ft_test6;
 --Testcase 653:
 DROP FOREIGN TABLE ft_test1;
 --Testcase 654:
@@ -4990,6 +5932,8 @@ DROP FOREIGN TABLE ft_test3;
 DROP FOREIGN TABLE ft_test4;
 --Testcase 657:
 DROP FOREIGN TABLE ft_test5;
+--Testcase 812:
+DROP FOREIGN TABLE ft_test6;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
 ALTER SERVER griddb1 OPTIONS (add port '20002');
@@ -4999,31 +5943,35 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
         pgspider1 OPTIONS (table_name 'multi2', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.252
-INFO:  compression ratio: 2.248
+INFO:  compression ratio: 2.061
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.253
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.247
-INFO:  compression ratio: 2.254
+INFO:  compression ratio: 2.050
+INFO:  compression ratio: 2.057
+INFO:  compression ratio: 2.058
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
+INFO:  compression ratio: 2.055
+INFO:  compression ratio: 2.054
 --Testcase 658:
 \d
-                 List of relations
- Schema |       Name        |     Type      |  Owner   
---------+-------------------+---------------+----------
+                  List of relations
+ Schema |       Name        |     Type      |  Owner  
+--------+-------------------+---------------+---------
  public | ft1               | foreign table | vagrant
  public | ft2               | foreign table | vagrant
  public | ft2__griddb1__0   | foreign table | vagrant
+ public | ft2__influx1__0   | foreign table | vagrant
  public | ft2__mysql1__0    | foreign table | vagrant
  public | ft2__oracle1__0   | foreign table | vagrant
  public | ft2__pgspider1__0 | foreign table | vagrant
  public | ft2__postgres1__0 | foreign table | vagrant
  public | t1                | table         | vagrant
-(8 rows)
+(9 rows)
 
 -- Check data for first 10 records and number of records
 ALTER SERVER griddb1 OPTIONS (drop host);
@@ -5041,15 +5989,15 @@ SELECT * FROM ft2__postgres1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   1 |  1 |  1 |  0 |  0 | t  | 1970-01-02 00:00:00 | 00001
-  6 |  6 |  6 |  0 |  3 | t  | 1970-01-07 00:00:00 | 00006
- 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
- 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
- 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
- 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
+  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
+ 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
+ 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
+ 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
  31 | 31 | 31 |  0 | 15 | t  | 1970-02-01 00:00:00 | 00031
- 36 | 36 | 36 |  0 | 18 | t  | 1970-02-06 00:00:00 | 00036
- 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
- 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
+ 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
+ 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 55 | 55 | 55 |  0 | 27 | t  | 1970-02-25 00:00:00 | 00055
 (10 rows)
 
 --Testcase 661:
@@ -5057,15 +6005,15 @@ SELECT * FROM ft2__pgspider1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   2 |  2 |  2 |  0 |  1 | t  | 1970-01-03 00:00:00 | 00002
-  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
- 12 | 12 | 12 |  0 |  6 | t  | 1970-01-13 00:00:00 | 00012
- 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
- 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
- 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
+  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
+ 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
+ 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
+ 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
  32 | 32 | 32 |  0 | 16 | t  | 1970-02-02 00:00:00 | 00032
- 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
- 42 | 42 | 42 |  0 | 21 | t  | 1970-02-12 00:00:00 | 00042
- 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
+ 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
+ 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 56 | 56 | 56 |  0 | 28 | t  | 1970-02-26 00:00:00 | 00056
 (10 rows)
 
 --Testcase 662:
@@ -5073,15 +6021,15 @@ SELECT * FROM ft2__mysql1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   3 |  3 |  3 |  0 |  1 | t  | 1970-01-04 00:00:00 | 00003
-  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
- 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
- 18 | 18 | 18 |  0 |  9 | t  | 1970-01-19 00:00:00 | 00018
- 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
- 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
+  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
+ 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
+ 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
+ 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
  33 | 33 | 33 |  0 | 16 | t  | 1970-02-03 00:00:00 | 00033
- 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
- 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
- 48 | 48 | 48 |  0 | 24 | t  | 1970-02-18 00:00:00 | 00048
+ 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
+ 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
+ 51 | 51 | 51 |  0 | 25 | t  | 1970-02-21 00:00:00 | 00051
+ 57 | 57 | 57 |  0 | 28 | t  | 1970-02-27 00:00:00 | 00057
 (10 rows)
 
 --Testcase 663:
@@ -5089,15 +6037,15 @@ SELECT * FROM ft2__griddb1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   4 |  4 |  4 |  0 |  2 | t  | 1970-01-05 00:00:00 | 00004
-  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
- 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
- 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
- 24 | 24 | 24 |  0 | 12 | t  | 1970-01-25 00:00:00 | 00024
- 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
+ 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
+ 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
+ 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
+ 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
  34 | 34 | 34 |  0 | 17 | t  | 1970-02-04 00:00:00 | 00034
- 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
- 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
- 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
+ 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 52 | 52 | 52 |  0 | 26 | t  | 1970-02-22 00:00:00 | 00052
+ 58 | 58 | 58 |  0 | 29 | t  | 1970-02-28 00:00:00 | 00058
 (10 rows)
 
 --Testcase 664:
@@ -5105,15 +6053,31 @@ SELECT * FROM ft2__oracle1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   5 |  5 |  5 |  0 |  2 | t  | 1970-01-06 00:00:00 | 00005
- 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
- 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
- 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
- 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
- 30 | 30 | 30 |  0 | 15 | t  | 1970-01-31 00:00:00 | 00030
+ 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
+ 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
+ 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
+ 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
  35 | 35 | 35 |  0 | 17 | t  | 1970-02-05 00:00:00 | 00035
- 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
- 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
- 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
+ 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 53 | 53 | 53 |  0 | 26 | t  | 1970-02-23 00:00:00 | 00053
+ 59 | 59 | 59 |  0 | 29 | t  | 1970-03-01 00:00:00 | 00059
+(10 rows)
+
+--Testcase 813:
+SELECT * FROM ft2__influx1__0 ORDER BY c1 LIMIT 10;
+ c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
+----+----+----+----+----+----+---------------------+-------
+  6 |  6 |  6 |  0 |  3 | t  | 1970-01-07 00:00:00 | 00006
+ 12 | 12 | 12 |  0 |  6 | t  | 1970-01-13 00:00:00 | 00012
+ 18 | 18 | 18 |  0 |  9 | t  | 1970-01-19 00:00:00 | 00018
+ 24 | 24 | 24 |  0 | 12 | t  | 1970-01-25 00:00:00 | 00024
+ 30 | 30 | 30 |  0 | 15 | t  | 1970-01-31 00:00:00 | 00030
+ 36 | 36 | 36 |  0 | 18 | t  | 1970-02-06 00:00:00 | 00036
+ 42 | 42 | 42 |  0 | 21 | t  | 1970-02-12 00:00:00 | 00042
+ 48 | 48 | 48 |  0 | 24 | t  | 1970-02-18 00:00:00 | 00048
+ 54 | 54 | 54 |  0 | 27 | t  | 1970-02-24 00:00:00 | 00054
+ 60 | 60 | 60 |  0 | 30 | t  | 1970-03-02 00:00:00 | 00060
 (10 rows)
 
 --Testcase 665:
@@ -5124,6 +6088,8 @@ DROP DATASOURCE TABLE ft2__mysql1__0;
 DROP DATASOURCE TABLE ft2__griddb1__0;
 --Testcase 668:
 DROP DATASOURCE TABLE ft2__oracle1__0;
+--Testcase 814:
+DROP DATASOURCE TABLE ft2__influx1__0;
 --Testcase 669:
 DROP FOREIGN TABLE ft2__postgres1__0;
 --Testcase 670:
@@ -5134,6 +6100,8 @@ DROP FOREIGN TABLE ft2__mysql1__0;
 DROP FOREIGN TABLE ft2__griddb1__0;
 --Testcase 673:
 DROP FOREIGN TABLE ft2__oracle1__0;
+--Testcase 815:
+DROP FOREIGN TABLE ft2__influx1__0;
 --Testcase 674:
 DROP FOREIGN TABLE ft2;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
@@ -5145,30 +6113,34 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
         pgspider1 OPTIONS (table_name 'multi3', relay 'cloud1'),
         mysql1 OPTIONS (dbname 'test1', table_name 'multi', relay 'cloud1'),
         griddb1 OPTIONS (table_name 'multi', relay 'cloud1'),
-        oracle1 OPTIONS (table 'multi', relay 'cloud1');
+        oracle1 OPTIONS (table 'multi', relay 'cloud1'),
+        influx1 OPTIONS (table 'multi', relay 'cloud1', org 'myorg');
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.254
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.247
-INFO:  compression ratio: 2.252
 INFO:  Batch Insert for pgspider_fdw, batch size = 8191
-INFO:  compression ratio: 2.248
-INFO:  compression ratio: 2.253
+INFO:  compression ratio: 2.055
+INFO:  compression ratio: 2.054
+INFO:  compression ratio: 2.057
+INFO:  compression ratio: 2.061
+INFO:  compression ratio: 2.050
+INFO:  Batch Insert for pgspider_fdw, batch size = 8191
+INFO:  compression ratio: 2.058
 --Testcase 675:
 \d
-                 List of relations
+                  List of relations
  Schema |       Name        |     Type      |  Owner  
 --------+-------------------+---------------+---------
  public | ft1               | foreign table | vagrant
  public | ft1__griddb1__0   | foreign table | vagrant
+ public | ft1__influx1__0   | foreign table | vagrant
  public | ft1__mysql1__0    | foreign table | vagrant
  public | ft1__oracle1__0   | foreign table | vagrant
  public | ft1__pgspider1__0 | foreign table | vagrant
  public | ft1__postgres1__0 | foreign table | vagrant
  public | t1                | table         | vagrant
-(7 rows)
+(8 rows)
 
 -- Check data for first 10 records and number of records
 ALTER SERVER griddb1 OPTIONS (drop host);
@@ -5186,15 +6158,15 @@ SELECT * FROM ft1__postgres1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   1 |  1 |  1 |  0 |  0 | t  | 1970-01-02 00:00:00 | 00001
-  6 |  6 |  6 |  0 |  3 | t  | 1970-01-07 00:00:00 | 00006
- 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
- 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
- 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
- 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
+  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
+ 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
+ 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
+ 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
  31 | 31 | 31 |  0 | 15 | t  | 1970-02-01 00:00:00 | 00031
- 36 | 36 | 36 |  0 | 18 | t  | 1970-02-06 00:00:00 | 00036
- 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
- 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
+ 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
+ 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 55 | 55 | 55 |  0 | 27 | t  | 1970-02-25 00:00:00 | 00055
 (10 rows)
 
 --Testcase 678:
@@ -5202,15 +6174,15 @@ SELECT * FROM ft1__pgspider1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   2 |  2 |  2 |  0 |  1 | t  | 1970-01-03 00:00:00 | 00002
-  7 |  7 |  7 |  0 |  3 | t  | 1970-01-08 00:00:00 | 00007
- 12 | 12 | 12 |  0 |  6 | t  | 1970-01-13 00:00:00 | 00012
- 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
- 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
- 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
+  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
+ 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
+ 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
+ 26 | 26 | 26 |  0 | 13 | t  | 1970-01-27 00:00:00 | 00026
  32 | 32 | 32 |  0 | 16 | t  | 1970-02-02 00:00:00 | 00032
- 37 | 37 | 37 |  0 | 18 | t  | 1970-02-07 00:00:00 | 00037
- 42 | 42 | 42 |  0 | 21 | t  | 1970-02-12 00:00:00 | 00042
- 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
+ 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
+ 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 56 | 56 | 56 |  0 | 28 | t  | 1970-02-26 00:00:00 | 00056
 (10 rows)
 
 --Testcase 679:
@@ -5218,15 +6190,15 @@ SELECT * FROM ft1__mysql1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   3 |  3 |  3 |  0 |  1 | t  | 1970-01-04 00:00:00 | 00003
-  8 |  8 |  8 |  0 |  4 | t  | 1970-01-09 00:00:00 | 00008
- 13 | 13 | 13 |  0 |  6 | t  | 1970-01-14 00:00:00 | 00013
- 18 | 18 | 18 |  0 |  9 | t  | 1970-01-19 00:00:00 | 00018
- 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
- 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
+  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
+ 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
+ 21 | 21 | 21 |  0 | 10 | t  | 1970-01-22 00:00:00 | 00021
+ 27 | 27 | 27 |  0 | 13 | t  | 1970-01-28 00:00:00 | 00027
  33 | 33 | 33 |  0 | 16 | t  | 1970-02-03 00:00:00 | 00033
- 38 | 38 | 38 |  0 | 19 | t  | 1970-02-08 00:00:00 | 00038
- 43 | 43 | 43 |  0 | 21 | t  | 1970-02-13 00:00:00 | 00043
- 48 | 48 | 48 |  0 | 24 | t  | 1970-02-18 00:00:00 | 00048
+ 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
+ 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
+ 51 | 51 | 51 |  0 | 25 | t  | 1970-02-21 00:00:00 | 00051
+ 57 | 57 | 57 |  0 | 28 | t  | 1970-02-27 00:00:00 | 00057
 (10 rows)
 
 --Testcase 680:
@@ -5234,15 +6206,15 @@ SELECT * FROM ft1__griddb1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   4 |  4 |  4 |  0 |  2 | t  | 1970-01-05 00:00:00 | 00004
-  9 |  9 |  9 |  0 |  4 | t  | 1970-01-10 00:00:00 | 00009
- 14 | 14 | 14 |  0 |  7 | t  | 1970-01-15 00:00:00 | 00014
- 19 | 19 | 19 |  0 |  9 | t  | 1970-01-20 00:00:00 | 00019
- 24 | 24 | 24 |  0 | 12 | t  | 1970-01-25 00:00:00 | 00024
- 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
+ 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
+ 16 | 16 | 16 |  0 |  8 | t  | 1970-01-17 00:00:00 | 00016
+ 22 | 22 | 22 |  0 | 11 | t  | 1970-01-23 00:00:00 | 00022
+ 28 | 28 | 28 |  0 | 14 | t  | 1970-01-29 00:00:00 | 00028
  34 | 34 | 34 |  0 | 17 | t  | 1970-02-04 00:00:00 | 00034
- 39 | 39 | 39 |  0 | 19 | t  | 1970-02-09 00:00:00 | 00039
- 44 | 44 | 44 |  0 | 22 | t  | 1970-02-14 00:00:00 | 00044
- 49 | 49 | 49 |  0 | 24 | t  | 1970-02-19 00:00:00 | 00049
+ 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
+ 46 | 46 | 46 |  0 | 23 | t  | 1970-02-16 00:00:00 | 00046
+ 52 | 52 | 52 |  0 | 26 | t  | 1970-02-22 00:00:00 | 00052
+ 58 | 58 | 58 |  0 | 29 | t  | 1970-02-28 00:00:00 | 00058
 (10 rows)
 
 --Testcase 681:
@@ -5250,15 +6222,15 @@ SELECT * FROM ft1__oracle1__0 ORDER BY c1 LIMIT 10;
  c1 | c2 | c3 | c4 | c5 | c6 |         c7          |  c8   
 ----+----+----+----+----+----+---------------------+-------
   5 |  5 |  5 |  0 |  2 | t  | 1970-01-06 00:00:00 | 00005
- 10 | 10 | 10 |  0 |  5 | t  | 1970-01-11 00:00:00 | 00010
- 15 | 15 | 15 |  0 |  7 | t  | 1970-01-16 00:00:00 | 00015
- 20 | 20 | 20 |  0 | 10 | t  | 1970-01-21 00:00:00 | 00020
- 25 | 25 | 25 |  0 | 12 | t  | 1970-01-26 00:00:00 | 00025
- 30 | 30 | 30 |  0 | 15 | t  | 1970-01-31 00:00:00 | 00030
+ 11 | 11 | 11 |  0 |  5 | t  | 1970-01-12 00:00:00 | 00011
+ 17 | 17 | 17 |  0 |  8 | t  | 1970-01-18 00:00:00 | 00017
+ 23 | 23 | 23 |  0 | 11 | t  | 1970-01-24 00:00:00 | 00023
+ 29 | 29 | 29 |  0 | 14 | t  | 1970-01-30 00:00:00 | 00029
  35 | 35 | 35 |  0 | 17 | t  | 1970-02-05 00:00:00 | 00035
- 40 | 40 | 40 |  0 | 20 | t  | 1970-02-10 00:00:00 | 00040
- 45 | 45 | 45 |  0 | 22 | t  | 1970-02-15 00:00:00 | 00045
- 50 | 50 | 50 |  0 | 25 | t  | 1970-02-20 00:00:00 | 00050
+ 41 | 41 | 41 |  0 | 20 | t  | 1970-02-11 00:00:00 | 00041
+ 47 | 47 | 47 |  0 | 23 | t  | 1970-02-17 00:00:00 | 00047
+ 53 | 53 | 53 |  0 | 26 | t  | 1970-02-23 00:00:00 | 00053
+ 59 | 59 | 59 |  0 | 29 | t  | 1970-03-01 00:00:00 | 00059
 (10 rows)
 
 --Testcase 682:
@@ -5311,6 +6283,18 @@ drop cascades to server griddb2
 drop cascades to user mapping for public on server griddb2
 drop cascades to server griddb3
 drop cascades to user mapping for public on server griddb3
+--Testcase 817:
+DROP EXTENSION influxdb_fdw CASCADE;
+NOTICE:  drop cascades to 9 other objects
+DETAIL:  drop cascades to server influxdb_svr_test
+drop cascades to user mapping for public on server influxdb_svr_test
+drop cascades to server influx1
+drop cascades to user mapping for public on server influx1
+drop cascades to foreign table ft1__influx1__0
+drop cascades to server influx2
+drop cascades to user mapping for public on server influx2
+drop cascades to server influx3
+drop cascades to user mapping for public on server influx3
 --Testcase 688:
 DROP EXTENSION pgspider_fdw CASCADE;
 NOTICE:  drop cascades to 13 other objects

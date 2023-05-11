@@ -2040,24 +2040,24 @@ pgspiderExecForeignBatchInsert(EState *estate,
 		AuthenticationData authData;
 		ConnectionURLData connData;
 		int			compressedlength;
-		DataCompressionTransferOption *dct_option;
+		DataCompressionTransferOption dct_option;
 		MemoryContext oldcontext;
 
 		MemoryContextReset(fmstate->temp_cxt);
 		oldcontext = MemoryContextSwitchTo(fmstate->temp_cxt);
 
-		dct_option = (DataCompressionTransferOption *) palloc0(sizeof(DataCompressionTransferOption));
+		init_DataCompressionTransferOption(&dct_option);
 
 		/* get information to send request to function */
-		get_data_compression_transfer_option(BATCH_INSERT, fmstate->rel, dct_option);
+		get_data_compression_transfer_option(BATCH_INSERT, fmstate->rel, &dct_option);
 
 		init_InsertData(&insertData);
 
 		/* Set tablename */
-		insertData.tableName = dct_option->table_name;
+		insertData.tableName = dct_option.table_name;
 
 		/* Set ColumnInfo */
-		insertData.columnInfos = create_column_info_array(fmstate->rel, fmstate->target_attrs);
+		insertData.columnInfos = create_column_info_array(fmstate->rel, fmstate->target_attrs, dct_option.tagsList);
 
 		/* Set TransferValue */
 		insertData.values = create_values_array(fmstate, slots, *numSlots);
@@ -2096,15 +2096,16 @@ pgspiderExecForeignBatchInsert(EState *estate,
 			ereport(ERROR, (errmsg("pgspider_fdw: Cannot create thread! error=%d", err)));
 		SPD_SIGBLOCK_END_TRY(old_mask);
 
-		/* Send request to Function */
 		init_AuthenticationData(&authData);
 		init_ConnectionURLData(&connData);
 
-		pgspiderPrepareAuthenticationData(&authData, dct_option->serverID, dct_option->userID);
-		pgspiderPrepareConnectionURLData(&connData, fmstate->rel, dct_option->serverID, dct_option->userID);
+		pgspiderPrepareAuthenticationData(&authData, &dct_option);
+		pgspiderPrepareConnectionURLData(&connData, fmstate->rel, &dct_option);
 
-		dct_option->function_timeout = fmstate->function_timeout;
-		PGSpiderRequestFunctionStart(BATCH_INSERT, dct_option, fmstate, &authData, &connData, NULL);
+		dct_option.function_timeout = fmstate->function_timeout;
+
+		/* Send request to Function */
+		PGSpiderRequestFunctionStart(BATCH_INSERT, &dct_option, fmstate, &authData, &connData, NULL);
 
 		err = pthread_join(fmstate->socket_thread, NULL);
 		if (err != 0)
@@ -7935,9 +7936,9 @@ ExecForeignDDL(Oid serverOid,
 	init_ConnectionURLData(&connData);
 	init_DDLData(&ddlData);
 
-	pgspiderPrepareAuthenticationData(&authData, dct_option->serverID, dct_option->userID);
-	pgspiderPrepareConnectionURLData(&connData, rel, dct_option->serverID, dct_option->userID);
-	pgspiderPrepareDDLData(&ddlData, rel, dct_option->table_name, exists_flag);
+	pgspiderPrepareAuthenticationData(&authData, dct_option);
+	pgspiderPrepareConnectionURLData(&connData, rel, dct_option);
+	pgspiderPrepareDDLData(&ddlData, rel, exists_flag, dct_option);
 
 	/* create query */
 	if (operation == 0)

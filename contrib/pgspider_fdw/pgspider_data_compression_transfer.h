@@ -25,6 +25,7 @@
 #define MYSQL_FDW_NAME 						"mysql_fdw"
 #define GRIDDB_FDW_NAME 					"griddb_fdw"
 #define ORACLE_FDW_NAME 					"oracle_fdw"
+#define INFLUXDB_FDW_NAME 					"influxdb_fdw"
 #define PGFDW_HEADER_FORMAT_JSON 			"Content-Type:application/json"
 #define PGFDW_HEADER_KEY_CONTENT_LENGTH 	"Content-Length"
 #define PGFDW_HTTP_POST_METHOD 				"POST"
@@ -190,6 +191,8 @@ typedef struct AuthenticationData
 								 * data source */
 	char	   *pwd;			/* password used to authenticate at the cloud
 								 * data source */
+	char	   *token;			/* token used to authenticate at the InfluxDB
+								 * data source */
 }			AuthenticationData;
 
 /*
@@ -202,6 +205,7 @@ typedef struct ConnectionURLData
 	int			port;			/* port address of the data source */
 	char	   *clusterName;	/* cluster name, in case of GridDB */
 	char	   *dbName;			/* database name */
+	char	   *org;			/* organization name of data store of InfluxDB */
 }			ConnectionURLData;
 
 /*
@@ -215,6 +219,8 @@ typedef struct ColumnInfo
 	TransferDataType columnType;	/* data type of the column */
 	int			typemod;		/* type modifier in case of varchar(n),
 								 * char(n), etc */
+	bool		isTagKey;		/* true if column is tag key,
+								 * specify for InfluxDB server */
 }			ColumnInfo;
 
 
@@ -270,6 +276,9 @@ typedef struct DataCompressionTransferOption
 	int			serverID;		/* indicates server ID of target server */
 	int			userID;			/* indicates user ID of target server */
 	int			function_timeout;	/* timeout to rest API request */
+	char	   *org;				/* organization name of data store of InfluxDB*/
+	List	   *tagsList;		/* Contain tag keys of a foreign table,
+								 * specify for InfluxDB server */
 }			DataCompressionTransferOption;
 
 
@@ -279,17 +288,18 @@ extern void	PGSpiderRequestFunctionStart(PGSpiderExecuteMode mode,
 										 AuthenticationData * authData,
 										 ConnectionURLData * connData,
 										 DDLData * ddlData);
-extern void pgspiderPrepareAuthenticationData(AuthenticationData * authData, Oid serverid, Oid userid);
-extern void pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, Oid serverid, Oid userid);
-extern void pgspiderPrepareDDLData(DDLData * ddldata, Relation rel, char *table_name, bool existFlag);
+extern void pgspiderPrepareAuthenticationData(AuthenticationData * authData, DataCompressionTransferOption *dct_option);
+extern void pgspiderPrepareConnectionURLData(ConnectionURLData * connData, Relation rel, DataCompressionTransferOption *dct_option);
+extern void pgspiderPrepareDDLData(DDLData * ddldata, Relation rel, bool existFlag, DataCompressionTransferOption *dct_option);
 extern void get_data_compression_transfer_option(PGSpiderExecuteMode mode, Relation rel, DataCompressionTransferOption * dct_option);
 extern void init_InsertData(InsertData * data);
 extern void init_AuthenticationData(AuthenticationData * data);
 extern void init_ConnectionURLData(ConnectionURLData * data);
 extern void init_DDLData(DDLData * data);
+extern void init_DataCompressionTransferOption(DataCompressionTransferOption * data);
 extern char *pgspiderCompressData(PGSpiderFdwModifyState * fmstate, InsertData * insertData, char **sizeInfors, int *compressedlength);
 extern void *send_insert_data_thread(void *arg);
 extern bool check_data_compression_transfer_option(Relation rel);
-extern ColumnInfo * create_column_info_array(Relation rel, List *target_attrs);
+extern ColumnInfo * create_column_info_array(Relation rel, List *target_attrs, List *tagsList);
 extern TransferValue *create_values_array(PGSpiderFdwModifyState * fmstate, TupleTableSlot **slots, int numSlots);
 #endif							/* PGSPIDER_DATA_COMPRESSION_TRANSFER_H */
