@@ -1552,6 +1552,8 @@ ALTER SERVER griddb3 OPTIONS (drop port);
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 453:
 SELECT count(*) FROM ft2;
+--Testcase 690:
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 --Testcase 454:
 SELECT * FROM ft2__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 455:
@@ -1602,6 +1604,8 @@ ALTER SERVER griddb3 OPTIONS (drop port);
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 465:
 SELECT count(*) FROM ft1;
+--Testcase 691:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 --Testcase 466:
 SELECT * FROM ft1__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 467:
@@ -1729,6 +1733,8 @@ ALTER SERVER griddb3 OPTIONS (drop port);
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 494:
 SELECT count(*) FROM ft2;
+--Testcase 692:
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 --Testcase 495:
 SELECT * FROM ft2__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 496:
@@ -1779,6 +1785,8 @@ ALTER SERVER griddb3 OPTIONS (drop port);
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 506:
 SELECT count(*) FROM ft1;
+--Testcase 693:
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 --Testcase 507:
 SELECT * FROM ft1__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 508:
