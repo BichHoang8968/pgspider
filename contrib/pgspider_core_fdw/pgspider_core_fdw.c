@@ -1186,17 +1186,17 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeM
 	 */
 	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot *) slot)->tuple)
 	{
-		/*
-		 * TODO: we can probably skip heap_copytuple as in virtual tuple case
-		 * for some fdws
-		 */
-		ExecStoreHeapTuple(slot->tts_ops->copy_heap_tuple(slot),
-						   que->tuples[idx],
-						   false);
+		HeapTuple tuple = slot->tts_ops->get_heap_tuple(slot);
+
+		/* Extract heap tuple data into values and isnull arrays */
+		heap_deform_tuple(tuple, slot->tts_tupleDescriptor, que->tuples[idx]->tts_values, que->tuples[idx]->tts_isnull);
+
+		/* Copy tuple's tid */
+		que->tuples[idx]->tts_tid = tuple->t_self;
 	}
 	else
 	{
-		/* Virtual tuple */
+		/* Store virtual tuple */
 		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
@@ -1216,15 +1216,15 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeM
 			}
 		}
 		else
-
 			/*
-			 * Even if deep copy is not necessary, tts_values array cannot be
-			 * reused because it is overwritten by child fdw
-			 */
+			* Even if deep copy is not necessary, tts_values array cannot be
+			* reused because it is overwritten by child fdw
+			*/
 			memcpy(que->tuples[idx]->tts_values, slot->tts_values, (natts * sizeof(Datum)));
-
-		ExecStoreVirtualTuple(que->tuples[idx]);
 	}
+
+	ExecStoreVirtualTuple(que->tuples[idx]);
+
 	/* serveroid and tableoid are also stored so that we can know where the slot is from */
 	que->serveroid[idx] = serveroid;
 	que->tableoid[idx] = tableoid;
@@ -1256,6 +1256,7 @@ spd_queue_get(SpdTupleQueue * que, SpdQueueState * queue_state, Oid *serveroid, 
 	}
 
 	temp = que->tuples[que->start];
+
 	/* serveroid and tableoid are also stored so that we can know where the slot is from */
 	*serveroid = que->serveroid[que->start];
 	*tableoid = que->tableoid[que->start];
@@ -11311,8 +11312,8 @@ spd_IterateForeignScan(ForeignScanState *node)
 	EState	   *estate = node->ss.ps.state;
 	int			count = 0;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
-	TupleTableSlot *slot = NULL,
-			   *tempSlot = NULL;
+	TupleTableSlot *tempSlot = NULL;	/* the virtual slot of main thread */
+	TupleTableSlot *slot = NULL;		/* the virtual slot of child thread */
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 	List	   *mapping_tlist;
 	MemoryContext oldcontext;
@@ -11402,7 +11403,7 @@ spd_IterateForeignScan(ForeignScanState *node)
 			for (;;)
 			{
 				slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId, &fdw_private->tm_info, &fdw_private->modify_serveroid, &fdw_private->modify_tableoid);
-				if (slot == NULL)
+				if (TupIsNull(slot))
 					break;
 
 				spd_insert_into_temp_table(slot, node, fdw_private);
@@ -11427,8 +11428,6 @@ spd_IterateForeignScan(ForeignScanState *node)
 		}
 
 		fdw_private->isFirst = false;
-
-		return tempSlot;
 	}
 	else
 	{
@@ -11438,11 +11437,29 @@ spd_IterateForeignScan(ForeignScanState *node)
 		 */
 		fdw_private->isFirst = false;
 
+		tempSlot = node->ss.ss_ScanTupleSlot;
+		ExecClearTuple(tempSlot);
+
+		/* Get slot from the queue */
 		slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId, &fdw_private->tm_info, &fdw_private->modify_serveroid, &fdw_private->modify_tableoid);
+
+		if (TupIsNull(slot))
+			return NULL;
+
+		/*
+		 * Store virtual slot under the management of main thread
+		 * to avoid conflict with child thread since both of them
+		 * handle slots of the same queue at the same time.
+		 */
+		tempSlot->tts_values = slot->tts_values;
+		tempSlot->tts_isnull = slot->tts_isnull;
+		if (ItemPointerIsValid(&(slot->tts_tid)))
+			tempSlot->tts_tid = slot->tts_tid;
+		ExecStoreVirtualTuple(tempSlot);
 	}
 
 	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ITERATE);
-	return slot;
+	return tempSlot;
 }
 
 /**
@@ -12602,7 +12619,8 @@ spd_IterateDirectModify(ForeignScanState *node)
 	int			count = 0;
 	EState	   *estate = node->ss.ps.state;
 	ForeignScanThreadInfo *fssThrdInfo = node->spd_fsstate;
-	TupleTableSlot *slot = node->ss.ss_ScanTupleSlot;
+	TupleTableSlot *tempSlot = node->ss.ss_ScanTupleSlot;	/* the virtual slot of main thread */
+	TupleTableSlot *slot = NULL;				/* the virtual slot of child thread */
 	SpdFdwPrivate *fdw_private = (SpdFdwPrivate *) fssThrdInfo[0].private;
 	int			node_incr;
 
@@ -12637,6 +12655,7 @@ spd_IterateDirectModify(ForeignScanState *node)
 	 * only.
 	 */
 	fdw_private->isFirst = false;
+	ExecClearTuple(tempSlot);
 
 	slot = nextChildTuple(fssThrdInfo, fdw_private->nThreads, &count, &fdw_private->startNodeId, &fdw_private->lastThreadId, &fdw_private->tm_info, &fdw_private->modify_serveroid, &fdw_private->modify_tableoid);
 
@@ -12645,7 +12664,21 @@ spd_IterateDirectModify(ForeignScanState *node)
 		estate->es_processed += fssThrdInfo[node_incr].fsstate->ss.ps.state->es_processed;
 	}
 
-	return slot;
+	if (TupIsNull(slot))
+		return NULL;
+
+	/*
+	 * Store virtual slot under the management of main thread
+	 * to avoid conflict with child thread since both of them
+	 * handle slots of the same queue at the same time.
+	 */
+	tempSlot->tts_values = slot->tts_values;
+	tempSlot->tts_isnull = slot->tts_isnull;
+	/* copy tuple's tid if possible */
+	if (ItemPointerIsValid(&(slot->tts_tid)))
+		tempSlot->tts_tid = slot->tts_tid;
+	ExecStoreVirtualTuple(tempSlot);
+	return tempSlot;
 }
 
 /**
