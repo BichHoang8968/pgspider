@@ -254,7 +254,7 @@ HINT:  You will need to rewrite or cast the expression.
 --Testcase 39:
 INSERT INTO tntbl1 (SELECT c1+20, c2+50, c3 FROM tntbl1 ORDER BY 1, 2, 3);
 ERROR:  Error occurred on a child table "tntbl1__mysql_svr__0".
-DETAIL:  failed to execute the MySQL query: 
+DETAIL:  mysql_fdw: failed to execute the MySQL query: 
 Duplicate entry '10' for key 'tntbl1.PRIMARY'
 --Testcase 40:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8, c9 FROM tntbl1 ORDER BY 1, 2, 3;

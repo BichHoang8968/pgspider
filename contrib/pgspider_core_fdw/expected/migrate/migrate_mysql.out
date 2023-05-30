@@ -94,7 +94,7 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 -- OK when MIGRATE parquet_s3_fdw to parquet_s3_fdw, 'dirname' inherited from source table
 --Testcase 14:
 MIGRATE TABLE ft1 SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:74: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:74: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- Does not create new foreign table
 --Testcase 15:
@@ -121,11 +121,11 @@ CREATE FOREIGN TABLE tmp_ftbl (
 ) SERVER dest_svr OPTIONS (:tmp_dest_foreigntable_opt);
 --Testcase 17:
 SELECT * FROM tmp_ftbl ORDER BY c1 LIMIT 10;
-psql:sql/migrate/migrate_ddl_command.sql:96: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:96: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.TBL1' doesn't exist
 --Testcase 18:
 SELECT count(*) FROM tmp_ftbl; -- It should return 1000 rows
-psql:sql/migrate/migrate_ddl_command.sql:99: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:99: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.TBL1' doesn't exist
 -- Insert more data to new datasource
 --Testcase 19:
@@ -139,11 +139,11 @@ INSERT INTO tmp_ftbl
 	       id % 10,
 	       'foo'
 	FROM generate_series(1000, 1009) id;
-psql:sql/migrate/migrate_ddl_command.sql:112: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:112: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.TBL1' doesn't exist
 --Testcase 20:
 SELECT count(*) FROM tmp_ftbl; -- It should return 1010 rows
-psql:sql/migrate/migrate_ddl_command.sql:115: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:115: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.TBL1' doesn't exist
 --Testcase 21:
 SELECT count(*) FROM ft1; -- It should return 1000 rows
@@ -155,7 +155,7 @@ SELECT count(*) FROM ft1; -- It should return 1000 rows
 -- Clean up datasources
 --Testcase 22:
 DROP DATASOURCE TABLE tmp_ftbl;
-psql:sql/migrate/migrate_ddl_command.sql:121: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:121: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown table 'destdb.TBL1'
 --Testcase 23:
 DROP FOREIGN TABLE tmp_ftbl;
@@ -332,7 +332,7 @@ INSERT INTO ft1
 -- OK when MIGRATE parquet_s3_fdw to parquet_s3_fdw, 'dirname' inherited from source table
 --Testcase 46:
 MIGRATE TABLE ft1 REPLACE SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:266: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:266: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- foreign table of source server has been removed,
 -- foreign table of destination server is created.
@@ -414,7 +414,7 @@ DROP DATASOURCE TABLE ft1;
 DROP FOREIGN TABLE ft1;
 --Testcase 56:
 DROP DATASOURCE TABLE tmp_ftbl;
-psql:sql/migrate/migrate_ddl_command.sql:318: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:318: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown table 'sourcedb.TBL1'
 --Testcase 57:
 DROP FOREIGN TABLE tmp_ftbl;
@@ -588,7 +588,7 @@ INSERT INTO ft1
 -- OK when MIGRATE parquet_s3_fdw to parquet_s3_fdw, 'dirname' inherited from source table
 --Testcase 78:
 MIGRATE TABLE ft1 TO ft2 SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:460: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:460: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- foreign table of source server is kept
 -- foreign table of destination server is created
@@ -855,7 +855,7 @@ INSERT INTO ft1
 -- OK when MIGRATE parquet_s3_fdw to parquet_s3_fdw, 'dirname' inherited from source table
 --Testcase 112:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr') SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:635: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:635: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 113:
@@ -1193,7 +1193,7 @@ SELECT * FROM ft1__source_svr__0 ORDER BY c1 LIMIT 10;
 -- Failed if dest_svr is server of mysql_fdw or parquet_s3_fdw.
 --Testcase 159:
 MIGRATE TABLE ft1 SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:864: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:864: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- Does not create new foreign table
 --Testcase 160:
@@ -1234,11 +1234,11 @@ ALTER FOREIGN TABLE tmp_ftbl OPTIONS (SET :tablename_opt 'ft1');
 
 --Testcase 164:
 SELECT * FROM tmp_ftbl ORDER BY c1 LIMIT 10;
-psql:sql/migrate/migrate_ddl_command.sql:893: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:893: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.ft1' doesn't exist
 --Testcase 165:
 SELECT count(*) FROM tmp_ftbl; -- It should return 1000 rows
-psql:sql/migrate/migrate_ddl_command.sql:895: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:895: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.ft1' doesn't exist
 --Testcase 166:
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
@@ -1275,11 +1275,11 @@ INSERT INTO tmp_ftbl
 	       id % 10,
 	       'foo'
 	FROM generate_series(1000, 1009) id;
-psql:sql/migrate/migrate_ddl_command.sql:912: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:912: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.ft1' doesn't exist
 --Testcase 169:
 SELECT count(*) FROM tmp_ftbl; -- It should return 1010 rows
-psql:sql/migrate/migrate_ddl_command.sql:915: ERROR:  failed to prepare the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:915: ERROR:  mysql_fdw: failed to prepare the MySQL query: 
 Table 'destdb.ft1' doesn't exist
 --Testcase 170:
 SELECT count(*) FROM ft1; -- It should return 1000 rows
@@ -1297,7 +1297,7 @@ DROP FOREIGN TABLE ft1__source_svr__0;
 DROP FOREIGN TABLE ft1;
 --Testcase 174:
 DROP DATASOURCE TABLE tmp_ftbl;
-psql:sql/migrate/migrate_ddl_command.sql:927: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:927: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown table 'destdb.ft1'
 --Testcase 175:
 DROP FOREIGN TABLE tmp_ftbl;
@@ -1533,7 +1533,7 @@ INSERT INTO ft1__source_svr__0
 -- Failed if dest_svr is server of mysql_fdw or parquet_s3_fdw.
 --Testcase 202:
 MIGRATE TABLE ft1 REPLACE SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:1103: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:1103: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- foreign table of source server has been removed,
 -- foreign table of destination server is created.
@@ -1802,7 +1802,7 @@ INSERT INTO ft1__source_svr__0
 -- Failed if dest_svr is server of mysql_fdw or parquet_s3_fdw.
 --Testcase 234:
 MIGRATE TABLE ft1 TO ft2 SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:1319: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:1319: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- foreign table of source server is kept
 -- foreign table of destination server is created
@@ -2100,7 +2100,7 @@ INSERT INTO ft1__source_svr__0
 -- Failed if dest_svr is server of mysql_fdw or parquet_s3_fdw.
 --Testcase 272:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr') SERVER dest_svr;
-psql:sql/migrate/migrate_ddl_command.sql:1522: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:1522: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Unknown database 'public'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 273:
@@ -2460,7 +2460,7 @@ SELECT * FROM existed_ft1 ORDER BY c1 LIMIT 10;
 -- MIGRATE datasource
 --Testcase 322:
 MIGRATE TABLE ft1 TO ft2 SERVER dest_svr OPTIONS (:dest_foreigntable_opt); -- failed
-psql:sql/migrate/migrate_ddl_command.sql:1765: ERROR:  failed to execute the MySQL query: 
+psql:sql/migrate/migrate_ddl_command.sql:1765: ERROR:  mysql_fdw: failed to execute the MySQL query: 
 Table 'TBL2' already exists
 --Testcase 323:
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;

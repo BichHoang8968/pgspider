@@ -24,17 +24,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE __spd_url <> '/pgspider/sqlite_svr' LI
 
 --Testcase 2:
 SELECT * FROM tbl01 WHERE __spd_url <> '/pgspider/sqlite_svr' LIMIT NULL;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 3:
@@ -70,17 +70,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c6*c10+c8-c9, c11 FROM tbl01 WHE
 
 --Testcase 6:
 SELECT c1, c2, c3 || c7, c4-c5, c6*c10+c8-c9, c11 FROM tbl01 WHERE __spd_url != '$' LIMIT ALL;
-           c1            |          c2          |                              ?column?                              |       ?column?        |  ?column?  |         c11         
--------------------------+----------------------+--------------------------------------------------------------------+-----------------------+------------+---------------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |     573709551602.9688 | -1.79e+108 | 9999-12-31 23:59:59
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастливCôte dIvoire Fijifoxju                       |            35641421.7 | -1.79e+108 | 9999-12-31 23:59:59
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |           898768.0313 | -1.79e+108 | 9999-12-31 23:59:59
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                  6608 | -1.79e+108 | 9999-12-31 23:59:59
- ABCDEF                  | some extent          | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                |               12.0313 | -1.79e+108 | 9999-12-31 23:59:59
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |      61614981278.9687 | -1.79e+108 | 9999-12-31 23:59:59
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854776e+18 | -1.79e+108 | 9999-12-31 23:59:59
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            651284.755 | -1.79e+108 | 9999-12-31 23:59:59
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |     573709551602.9688 | -1.79e+108 | 9999-12-31 23:59:59
+               c1               |               c2               |                              ?column?                              |       ?column?        |  ?column?  |         c11         
+--------------------------------+--------------------------------+--------------------------------------------------------------------+-----------------------+------------+---------------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |     573709551602.9688 | -1.79e+108 | 9999-12-31 23:59:59
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастливCôte dIvoire Fijifoxju                       |            35641421.7 | -1.79e+108 | 9999-12-31 23:59:59
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |           898768.0313 | -1.79e+108 | 9999-12-31 23:59:59
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                  6608 | -1.79e+108 | 9999-12-31 23:59:59
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                |               12.0313 | -1.79e+108 | 9999-12-31 23:59:59
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |      61614981278.9687 | -1.79e+108 | 9999-12-31 23:59:59
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854776e+18 | -1.79e+108 | 9999-12-31 23:59:59
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            651284.755 | -1.79e+108 | 9999-12-31 23:59:59
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |     573709551602.9688 | -1.79e+108 | 9999-12-31 23:59:59
 (9 rows)
 
 --LIMIT/OFFSET 2
@@ -97,17 +97,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE __spd_url <> '/pgspider' OFFSET NULL;
 
 --Testcase 8:
 SELECT * FROM tbl01 WHERE __spd_url <> '/pgspider' OFFSET NULL;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 9:
@@ -123,17 +123,17 @@ EXPLAIN VERBOSE SELECT c5, c6, c7, c8, c1, c2, c3, c4  FROM tbl01 WHERE __spd_ur
 
 --Testcase 10:
 SELECT c5, c6, c7, c8, c1, c2, c3, c4  FROM tbl01 WHERE __spd_url ilike '%svr_' OFFSET 0;
-    c5     | c6  |           c7           |   c8    |           c1            |          c2          |                      c3                      |         c4          
------------+-----+------------------------+---------+-------------------------+----------------------+----------------------------------------------+---------------------
-   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615
-    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654
-  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756
-       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595
-  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0
- 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891
-  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807
-  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545
-   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615
+    c5     | c6  |           c7           |   c8    |               c1               |               c2               |                      c3                      |         c4          
+-----------+-----+------------------------+---------+--------------------------------+--------------------------------+----------------------------------------------+---------------------
+   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615
+    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654
+  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756
+       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595
+  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0
+ 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891
+  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807
+  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545
+   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615
 (9 rows)
 
 --Testcase 11:
@@ -152,16 +152,16 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5+c8+c9, c11 FROM tbl01 WHERE __spd
 
 --Testcase 12:
 SELECT c1, c2, c3 || c7, c4-c5+c8+c9, c11 FROM tbl01 WHERE __spd_url != '$' OFFSET 1;
-           c1            |          c2          |                              ?column?                              | ?column?  |         c11         
--------------------------+----------------------+--------------------------------------------------------------------+-----------+---------------------
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастливCôte dIvoire Fijifoxju                       | 1.79e+108 | 9999-12-31 23:59:59
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       | 1.79e+108 | 9999-12-31 23:59:59
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  | 1.79e+108 | 9999-12-31 23:59:59
- ABCDEF                  | some extent          | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                | 1.79e+108 | 9999-12-31 23:59:59
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        | 1.79e+108 | 9999-12-31 23:59:59
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 1.79e+108 | 9999-12-31 23:59:59
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             | 1.79e+108 | 9999-12-31 23:59:59
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju | 1.79e+108 | 9999-12-31 23:59:59
+               c1               |               c2               |                              ?column?                              | ?column?  |         c11         
+--------------------------------+--------------------------------+--------------------------------------------------------------------+-----------+---------------------
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастливCôte dIvoire Fijifoxju                       | 1.79e+108 | 9999-12-31 23:59:59
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       | 1.79e+108 | 9999-12-31 23:59:59
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  | 1.79e+108 | 9999-12-31 23:59:59
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                | 1.79e+108 | 9999-12-31 23:59:59
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        | 1.79e+108 | 9999-12-31 23:59:59
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 1.79e+108 | 9999-12-31 23:59:59
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             | 1.79e+108 | 9999-12-31 23:59:59
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju | 1.79e+108 | 9999-12-31 23:59:59
 (8 rows)
 
 --LIMIT/OFFSET 3
@@ -280,9 +280,9 @@ EXPLAIN VERBOSE SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) 
 
 --Testcase 22:
 SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) FROM tbl01 WHERE __spd_url NOT ILIKE 'sBi(' ORDER BY 1, 2 LIMIT ALL OFFSET NULL;
-     min     |      min      |          max          |          min           | count 
--------------+---------------+-----------------------+------------------------+-------
- ~!@#$%^&*() | -{}[]|:;<>?/. | 9.223372036854776e+18 | 8.017767999999999e+112 |     9
+              min               |              min               |          max          |          min           | count 
+--------------------------------+--------------------------------+-----------------------+------------------------+-------
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | 9.223372036854776e+18 | 8.017767999999999e+112 |     9
 (1 row)
 
 --Testcase 23:
@@ -331,17 +331,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4 - c5 + c6, c7, c8 FROM tbl01 WHERE __spd_u
 
 --Testcase 26:
 SELECT c1, c2, c3, c4 - c5 + c6, c7, c8 FROM tbl01 WHERE __spd_url != '%svr_' GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING c3 != 'any' LIMIT 10;
-           c1            |          c2          |                      c3                      |       ?column?        |           c7           |   c8    
--------------------------+----------------------+----------------------------------------------+-----------------------+------------------------+---------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |               16.0313 | Côte dIvoire Fijifoxju | 5464646
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |     573709551597.9688 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |           898771.0313 | Côte dIvoire Fijifoxju | 5464646
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |     573709551647.9688 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                  6608 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35641422.7 | Côte dIvoire Fijifoxju | 5464646
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9.223372036854776e+18 | Côte dIvoire Fijifoxju | 5464646
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |      61614981290.9687 | Côte dIvoire Fijifoxju | 5464646
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |            651239.755 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                      c3                      |       ?column?        |           c7           |   c8    
+--------------------------------+--------------------------------+----------------------------------------------+-----------------------+------------------------+---------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |               16.0313 | Côte dIvoire Fijifoxju | 5464646
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |     573709551597.9688 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |           898771.0313 | Côte dIvoire Fijifoxju | 5464646
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |     573709551647.9688 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                  6608 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35641422.7 | Côte dIvoire Fijifoxju | 5464646
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9.223372036854776e+18 | Côte dIvoire Fijifoxju | 5464646
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |      61614981290.9687 | Côte dIvoire Fijifoxju | 5464646
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |            651239.755 | Côte dIvoire Fijifoxju | 5464646
 (9 rows)
 
 --Testcase 27:
@@ -423,16 +423,16 @@ EXPLAIN VERBOSE SELECT c8, c7, c5, c3, c2, c6, c1, c4 FROM tbl01 WHERE __spd_url
 
 --Testcase 32:
 SELECT c8, c7, c5, c3, c2, c6, c1, c4 FROM tbl01 WHERE __spd_url ilike '%svr_' GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING c3 != 'thing' OFFSET 1;
-   c8    |           c7           |    c5     |                      c3                      |          c2          | c6  |           c1            |         c4          
----------+------------------------+-----------+----------------------------------------------+----------------------+-----+-------------------------+---------------------
- 5464646 | Côte dIvoire Fijifoxju |   12.0313 | いろはにほへど　ちりぬるをわがよたれぞ　つた | brown fox            |  -5 | Canada Denmark          |        573709551615
- 5464646 | Côte dIvoire Fijifoxju |  -12.0313 | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | And to some extent   |   3 | Checkpoint              |              898756
- 5464646 | Côte dIvoire Fijifoxju |   12.0313 | 今日はとても幸せです 今日はとても幸せです    | abcdefghij           |  45 | I am happy today        |        573709551615
- 5464646 | Côte dIvoire Fijifoxju |       -13 | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | abcdefghij           |   0 | On sangen hauskaa, että |                6595
- 5464646 | Côte dIvoire Fijifoxju |    2232.3 | Днес съм много щастлив                       | extent the rendit$%^ |   1 | XinChàoBạn              |            35643654
- 5464646 | Côte dIvoire Fijifoxju |  133.2212 | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | Một ngày vui vẻ      | 127 | a kwik di kwik          | 9223372036854775807
- 5464646 | Côte dIvoire Fijifoxju | 6612.0313 | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | -{}[]|:;<>?/.        |  12 | ~!@#$%^&*()             |         61614987891
- 5464646 | Côte dIvoire Fijifoxju |  3260.245 | ขอขอบคุณอย่างจริงใจ                             | Im finſteren         | -45 | съм много               |              654545
+   c8    |           c7           |    c5     |                      c3                      |               c2               | c6  |               c1               |         c4          
+---------+------------------------+-----------+----------------------------------------------+--------------------------------+-----+--------------------------------+---------------------
+ 5464646 | Côte dIvoire Fijifoxju |   12.0313 | いろはにほへど　ちりぬるをわがよたれぞ　つた | brown fox                      |  -5 | Canada Denmark                 |        573709551615
+ 5464646 | Côte dIvoire Fijifoxju |  -12.0313 | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | And to some extent             |   3 | Checkpoint                     |              898756
+ 5464646 | Côte dIvoire Fijifoxju |   12.0313 | 今日はとても幸せです 今日はとても幸せです    | abcdefghij                     |  45 | I am happy today               |        573709551615
+ 5464646 | Côte dIvoire Fijifoxju |       -13 | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | abcdefghij                     |   0 | On sangen hauskaa, että        |                6595
+ 5464646 | Côte dIvoire Fijifoxju |    2232.3 | Днес съм много щастлив                       | extent the rendit$%^           |   1 | XinChàoBạn                     |            35643654
+ 5464646 | Côte dIvoire Fijifoxju |  133.2212 | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | Một ngày vui vẻ                | 127 | a kwik di kwik                 | 9223372036854775807
+ 5464646 | Côte dIvoire Fijifoxju | 6612.0313 | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | -{}[]|:;<>?/.                  |  12 | ~!@#$%^&*()                    |         61614987891
+ 5464646 | Côte dIvoire Fijifoxju |  3260.245 | ขอขอบคุณอย่างจริงใจ                             | Im finſteren                   | -45 | съм много                      |              654545
 (8 rows)
 
 --Testcase 33:
@@ -515,16 +515,16 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE __spd_url
 
 --Testcase 38:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE __spd_url != '%svr_' GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING c3 != 'impossible' LIMIT 10 OFFSET 1;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
 (8 rows)
 
 --Testcase 39:
@@ -778,17 +778,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 LIMIT 10;
 
 --Testcase 58:
 SELECT * FROM tbl01 LIMIT 10;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 59:
@@ -803,17 +803,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4-22.2, c5+2.232, c6*12.11, c9+2.12, c10 + 2
 
 --Testcase 60:
 SELECT c1, c2, c3, c4-22.2, c5+2.232, c6*12.11, c9+2.12, c10 + 232.23 FROM tbl01 LIMIT ALL;
-           c1            |          c2          |                      c3                      |      ?column?       |      ?column?      |      ?column?      | ?column?  | ?column? 
--------------------------+----------------------+----------------------------------------------+---------------------+--------------------+--------------------+-----------+----------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |      573709551592.8 | 14.263300000000001 |  544.9499999999999 | 1.79e+108 |   444.23
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |          35643631.8 |           2234.532 |              12.11 | 1.79e+108 |   444.23
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |            898733.8 | -9.799299999999999 |              36.33 | 1.79e+108 |   444.23
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |              6572.8 |            -10.768 |                  0 | 1.79e+108 |   444.23
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |               -22.2 | -9.799299999999999 |              48.44 | 1.79e+108 |   444.23
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |       61614987868.8 |          6614.2633 |             145.32 | 1.79e+108 |   444.23
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854776000 |           135.4532 |            1537.97 | 1.79e+108 |   444.23
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |            654522.8 |           3262.477 | -544.9499999999999 | 1.79e+108 |   444.23
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |      573709551592.8 | 14.263300000000001 |             -60.55 | 1.79e+108 |   444.23
+               c1               |               c2               |                      c3                      |      ?column?       |      ?column?      |      ?column?      | ?column?  | ?column? 
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+--------------------+--------------------+-----------+----------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |      573709551592.8 | 14.263300000000001 |  544.9499999999999 | 1.79e+108 |   444.23
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |          35643631.8 |           2234.532 |              12.11 | 1.79e+108 |   444.23
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |            898733.8 | -9.799299999999999 |              36.33 | 1.79e+108 |   444.23
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |              6572.8 |            -10.768 |                  0 | 1.79e+108 |   444.23
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |               -22.2 | -9.799299999999999 |              48.44 | 1.79e+108 |   444.23
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |       61614987868.8 |          6614.2633 |             145.32 | 1.79e+108 |   444.23
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854776000 |           135.4532 |            1537.97 | 1.79e+108 |   444.23
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |            654522.8 |           3262.477 | -544.9499999999999 | 1.79e+108 |   444.23
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |      573709551592.8 | 14.263300000000001 |             -60.55 | 1.79e+108 |   444.23
 (9 rows)
 
 --Testcase 61:
@@ -869,12 +869,12 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 LIMIT 10 OFFSET 5;
 
 --Testcase 66:
 SELECT * FROM tbl01 LIMIT 10 OFFSET 5;
-       c1       |       c2        |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
-----------------+-----------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- ~!@#$%^&*()    | -{}[]|:;<>?/.   | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik | Một ngày vui vẻ | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много      | Im finſteren    | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark | brown fox       | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (4 rows)
 
 --Testcase 67:
@@ -889,17 +889,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4 / 2, c5 + 100, c6*2, c9-23, c10 FROM tbl01
 
 --Testcase 68:
 SELECT c1, c2, c3, c4 / 2, c5 + 100, c6*2, c9-23, c10 FROM tbl01 LIMIT ALL OFFSET 0;
-           c1            |          c2          |                      c3                      |      ?column?       | ?column?  | ?column? | ?column?  | c10 
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+----------+-----------+-----
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        286854775807 |  112.0313 |       90 | 1.79e+108 | 212
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            17821827 |    2332.3 |        2 | 1.79e+108 | 212
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              449378 |   87.9687 |        6 | 1.79e+108 | 212
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                3297 |        87 |        0 | 1.79e+108 | 212
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |   87.9687 |        8 | 1.79e+108 | 212
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         30807493945 | 6712.0313 |       24 | 1.79e+108 | 212
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 4611686018427387903 |  233.2212 |      254 | 1.79e+108 | 212
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              327272 |  3360.245 |      -90 | 1.79e+108 | 212
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        286854775807 |  112.0313 |      -10 | 1.79e+108 | 212
+               c1               |               c2               |                      c3                      |      ?column?       | ?column?  | ?column? | ?column?  | c10 
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+----------+-----------+-----
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        286854775807 |  112.0313 |       90 | 1.79e+108 | 212
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            17821827 |    2332.3 |        2 | 1.79e+108 | 212
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              449378 |   87.9687 |        6 | 1.79e+108 | 212
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                3297 |        87 |        0 | 1.79e+108 | 212
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |   87.9687 |        8 | 1.79e+108 | 212
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         30807493945 | 6712.0313 |       24 | 1.79e+108 | 212
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 4611686018427387903 |  233.2212 |      254 | 1.79e+108 | 212
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              327272 |  3360.245 |      -90 | 1.79e+108 | 212
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        286854775807 |  112.0313 |      -10 | 1.79e+108 | 212
 (9 rows)
 
 --Testcase 69:
@@ -958,12 +958,12 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
 
 --Testcase 74:
 SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
-       c1       |       c2        |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
-----------------+-----------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- ~!@#$%^&*()    | -{}[]|:;<>?/.   | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik | Một ngày vui vẻ | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много      | Im finſteren    | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark | brown fox       | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (4 rows)
 
 --Testcase 75:
@@ -979,12 +979,12 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/22+c8, c5+12*c9, c11 FROM tbl01 WHER
 
 --Testcase 76:
 SELECT c1, c2, c3 || c7, c4/22+c8, c5+12*c9, c11 FROM tbl01 WHERE c7 NOT IN ('inbetween', 'simple') LIMIT 15 OFFSET 5;
-       c1       |       c2        |                              ?column?                              |      ?column?      |  ?column?  |         c11         
-----------------+-----------------+--------------------------------------------------------------------+--------------------+------------+---------------------
- ~!@#$%^&*()    | -{}[]|:;<>?/.   | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |         2806145913 | 2.148e+109 | 9999-12-31 23:59:59
- a kwik di kwik | Một ngày vui vẻ | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 419244183498863546 | 2.148e+109 | 9999-12-31 23:59:59
- съм много      | Im finſteren    | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            5494398 | 2.148e+109 | 9999-12-31 23:59:59
- Canada Denmark | brown fox       | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |        26083171537 | 2.148e+109 | 9999-12-31 23:59:59
+               c1               |               c2               |                              ?column?                              |      ?column?      |  ?column?  |         c11         
+--------------------------------+--------------------------------+--------------------------------------------------------------------+--------------------+------------+---------------------
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |         2806145913 | 2.148e+109 | 9999-12-31 23:59:59
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 419244183498863546 | 2.148e+109 | 9999-12-31 23:59:59
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            5494398 | 2.148e+109 | 9999-12-31 23:59:59
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |        26083171537 | 2.148e+109 | 9999-12-31 23:59:59
 (4 rows)
 
 --Testcase 77:
@@ -1236,12 +1236,12 @@ EXPLAIN VERBOSE SELECT c1, c2 || c3 || c7, ceil(c4-c5), abs(c8/c9) FROM tbl01 WH
 
 --Testcase 98:
 SELECT c1, c2 || c3 || c7, ceil(c4-c5), abs(c8/c9) FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY 1, 2, 3, 4 ORDER BY 1 DESC, 2, 3, 4 LIMIT 15;
-        c1        |                                  ?column?                                   |         ceil          |           abs           
-------------------+-----------------------------------------------------------------------------+-----------------------+-------------------------
- I am happy today | abcdefghij今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju   |          573709551603 | 3.0528748603351957e-102
- Canada Denmark   | brown foxいろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |          573709551603 | 3.0528748603351957e-102
- a kwik di kwik   | Một ngày vui vẻጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju       | 9.223372036854776e+18 | 3.0528748603351957e-102
- ~!@#$%^&*()      | -{}[]|:;<>?/.ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                    |           61614981279 | 3.0528748603351957e-102
+               c1               |                                  ?column?                                   |         ceil          |           abs           
+--------------------------------+-----------------------------------------------------------------------------+-----------------------+-------------------------
+ I am happy today               | abcdefghij今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju   |          573709551603 | 3.0528748603351957e-102
+ Canada Denmark                 | brown foxいろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |          573709551603 | 3.0528748603351957e-102
+ a kwik di kwik                 | Một ngày vui vẻጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju       | 9.223372036854776e+18 | 3.0528748603351957e-102
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                    |           61614981279 | 3.0528748603351957e-102
 (4 rows)
 
 --Testcase 99:
@@ -1508,16 +1508,16 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE c3 != 'we
 
 --Testcase 120:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE c3 != 'wef' ORDER BY c1 LIMIT 10 OFFSET 1;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
 (8 rows)
 
 --Testcase 121:
@@ -1714,17 +1714,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 ORDER B
 
 --Testcase 136:
 SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 ORDER BY c1, c2, c3 LIMIT 15;
-           c1            |          c2          |                               ?column?                                |         c4          | ?column? 
--------------------------+----------------------+-----------------------------------------------------------------------+---------------------+----------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico123Côte dIvoire Fijifoxju                |                   0 |     5464
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた123Côte dIvoire Fijifoxju |        573709551615 |     5464
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら123Côte dIvoire Fijifoxju       |              898756 |     5464
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです123Côte dIvoire Fijifoxju    |        573709551615 |     5464
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.123Côte dIvoire Fijifoxju                  |                6595 |     5464
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив123Côte dIvoire Fijifoxju                       |            35643654 |     5464
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ123Côte dIvoire Fijifoxju             | 9223372036854775807 |     5464
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ123Côte dIvoire Fijifoxju                        |         61614987891 |     5464
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ123Côte dIvoire Fijifoxju                             |              654545 |     5464
+               c1               |               c2               |                               ?column?                                |         c4          | ?column? 
+--------------------------------+--------------------------------+-----------------------------------------------------------------------+---------------------+----------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico123Côte dIvoire Fijifoxju                |                   0 |     5464
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた123Côte dIvoire Fijifoxju |        573709551615 |     5464
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら123Côte dIvoire Fijifoxju       |              898756 |     5464
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです123Côte dIvoire Fijifoxju    |        573709551615 |     5464
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.123Côte dIvoire Fijifoxju                  |                6595 |     5464
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив123Côte dIvoire Fijifoxju                       |            35643654 |     5464
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ123Côte dIvoire Fijifoxju             | 9223372036854775807 |     5464
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ123Côte dIvoire Fijifoxju                        |         61614987891 |     5464
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ123Côte dIvoire Fijifoxju                             |              654545 |     5464
 (9 rows)
 
 --Testcase 137:
@@ -1843,13 +1843,13 @@ EXPLAIN VERBOSE SELECT c1, c2 || c3, 1, 2, 'abc' FROM tbl01 ORDER BY c1, c2, c3 
 
 --Testcase 146:
 SELECT c1, c2 || c3, 1, 2, 'abc' FROM tbl01 ORDER BY c1, c2, c3 LIMIT 5;
-           c1            |                         ?column?                         | ?column? | ?column? | ?column? 
--------------------------+----------------------------------------------------------+----------+----------+----------
- ABCDEF                  | some extentGuinea-Bissau Honduras Mexico                 |        1 |        2 | abc
- Canada Denmark          | brown foxいろはにほへど　ちりぬるをわがよたれぞ　つた    |        1 |        2 | abc
- Checkpoint              | And to some extent色は匂へど 散りぬるを我が世誰ぞ 常なら |        1 |        2 | abc
- I am happy today        | abcdefghij今日はとても幸せです 今日はとても幸せです      |        1 |        2 | abc
- On sangen hauskaa, että | abcdefghij~!@#$%^&*()_+=-{}[]|:;<>?/.                    |        1 |        2 | abc
+               c1               |                         ?column?                         | ?column? | ?column? | ?column? 
+--------------------------------+----------------------------------------------------------+----------+----------+----------
+ ABCDEF                         | some extentGuinea-Bissau Honduras Mexico                 |        1 |        2 | abc
+ Canada Denmark                 | brown foxいろはにほへど　ちりぬるをわがよたれぞ　つた    |        1 |        2 | abc
+ Checkpoint                     | And to some extent色は匂へど 散りぬるを我が世誰ぞ 常なら |        1 |        2 | abc
+ I am happy today               | abcdefghij今日はとても幸せです 今日はとても幸せです      |        1 |        2 | abc
+ On sangen hauskaa, että        | abcdefghij~!@#$%^&*()_+=-{}[]|:;<>?/.                    |        1 |        2 | abc
 (5 rows)
 
 --LIMIT/OFFSET 21
@@ -1884,17 +1884,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 LIMIT 15;
 
 --Testcase 150:
 SELECT c1, c2, c3, __spd_url FROM tbl01 LIMIT 15;
-           c1            |          c2          |                      c3                      |  __spd_url   
--------------------------+----------------------+----------------------------------------------+--------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | /sqlite_svr/
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた | /sqlite_svr/
+               c1               |               c2               |                      c3                      |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+--------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた | /sqlite_svr/
 (9 rows)
 
 --Testcase 151:
@@ -2126,16 +2126,16 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c
 
 --Testcase 168:
 SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7 HAVING string_agg(c3, c7) != '9u3wro' OFFSET 1;
-           c1            |          c2          |                              ?column?                              |       ?column?        
--------------------------+----------------------+--------------------------------------------------------------------+-----------------------
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |       5737095503.9687
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |             8999.0313
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |       5737095503.9687
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                    78
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастливCôte dIvoire Fijifoxju                       |              354203.7
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854763e+16
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |        616143265.9687
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |              3284.755
+               c1               |               c2               |                              ?column?                              |       ?column?        
+--------------------------------+--------------------------------+--------------------------------------------------------------------+-----------------------
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |       5737095503.9687
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |             8999.0313
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |       5737095503.9687
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                    78
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастливCôte dIvoire Fijifoxju                       |              354203.7
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854763e+16
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |        616143265.9687
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |              3284.755
 (8 rows)
 
 --LIMIT/OFFSET 23
@@ -2449,13 +2449,13 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 ORDER BY __spd_
 
 --Testcase 194:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 ORDER BY __spd_url LIMIT 5;
-           c1            |          c2          |                    c3                     |      c4      |    c5    | c6 |           c7           |   c8    
--------------------------+----------------------+-------------------------------------------+--------------+----------+----+------------------------+---------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです | 573709551615 |  12.0313 | 45 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                    |     35643654 |   2232.3 |  1 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら    |       898756 | -12.0313 |  3 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.               |         6595 |      -13 |  0 | Côte dIvoire Fijifoxju | 5464646
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico             |            0 | -12.0313 |  4 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                    c3                     |      c4      |    c5    | c6 |           c7           |   c8    
+--------------------------------+--------------------------------+-------------------------------------------+--------------+----------+----+------------------------+---------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです | 573709551615 |  12.0313 | 45 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                    |     35643654 |   2232.3 |  1 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら    |       898756 | -12.0313 |  3 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.               |         6595 |      -13 |  0 | Côte dIvoire Fijifoxju | 5464646
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico             |            0 | -12.0313 |  4 | Côte dIvoire Fijifoxju | 5464646
 (5 rows)
 
 --Testcase 195:
@@ -2501,10 +2501,10 @@ EXPLAIN VERBOSE SELECT c1, c2 || c3, c4-c5, c8/23+c9, c11 FROM tbl01 ORDER BY __
 
 --Testcase 198:
 SELECT c1, c2 || c3, c4-c5, c8/23+c9, c11 FROM tbl01 ORDER BY __spd_url LIMIT 2;
-        c1        |                      ?column?                       |     ?column?      | ?column?  |         c11         
-------------------+-----------------------------------------------------+-------------------+-----------+---------------------
- XinChàoBạn       | extent the rendit$%^Днес съм много щастлив          |        35641421.7 | 1.79e+108 | 9999-12-31 23:59:59
- I am happy today | abcdefghij今日はとても幸せです 今日はとても幸せです | 573709551602.9688 | 1.79e+108 | 9999-12-31 23:59:59
+               c1               |                      ?column?                       |     ?column?      | ?column?  |         c11         
+--------------------------------+-----------------------------------------------------+-------------------+-----------+---------------------
+ XinChàoBạn                     | extent the rendit$%^Днес съм много щастлив          |        35641421.7 | 1.79e+108 | 9999-12-31 23:59:59
+ I am happy today               | abcdefghij今日はとても幸せです 今日はとても幸せです | 573709551602.9688 | 1.79e+108 | 9999-12-31 23:59:59
 (2 rows)
 
 --LIMIT/OFFSET 26
@@ -2613,13 +2613,13 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 ORDER BY __spd_url LIMIT 5 OFFSET 3;
 
 --Testcase 206:
 SELECT * FROM tbl01 ORDER BY __spd_url LIMIT 5 OFFSET 3;
-           c1            |       c2        |                c3                |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+-----------------+----------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- On sangen hauskaa, että | abcdefghij      | ~!@#$%^&*()_+=-{}[]|:;<>?/.      |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ABCDEF                  | some extent     | Guinea-Bissau Honduras Mexico    |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.   | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ            |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren    | ขอขอบคุณอย่างจริงใจ                 |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                c3                |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.      |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico    |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ            |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                 |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (5 rows)
 
 --Testcase 207:
@@ -2641,9 +2641,9 @@ EXPLAIN VERBOSE SELECT c7, c8, c6, c4, c5, c3, c2, c1 FROM tbl01 ORDER BY __spd_
 
 --Testcase 208:
 SELECT c7, c8, c6, c4, c5, c3, c2, c1 FROM tbl01 ORDER BY __spd_url LIMIT 1 OFFSET 1;
-           c7           |   c8    | c6 |      c4      |   c5    |                    c3                     |     c2     |        c1        
-------------------------+---------+----+--------------+---------+-------------------------------------------+------------+------------------
- Côte dIvoire Fijifoxju | 5464646 | 45 | 573709551615 | 12.0313 | 今日はとても幸せです 今日はとても幸せです | abcdefghij | I am happy today
+           c7           |   c8    | c6 |      c4      |   c5    |                    c3                     |               c2               |               c1               
+------------------------+---------+----+--------------+---------+-------------------------------------------+--------------------------------+--------------------------------
+ Côte dIvoire Fijifoxju | 5464646 | 45 | 573709551615 | 12.0313 | 今日はとても幸せです 今日はとても幸せです | abcdefghij                     | I am happy today              
 (1 row)
 
 --Testcase 209:
@@ -2689,17 +2689,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 ORDER BY c1 ASC, c2 DESC, c3;
 
 --Testcase 212:
 SELECT * FROM tbl01 ORDER BY c1 ASC, c2 DESC, c3;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 213:
@@ -2715,17 +2715,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4 /2, c5 + 23.12, c6 * 23, c9 - 23, c10 + 23
 
 --Testcase 214:
 SELECT c1, c2, c3, c4 /2, c5 + 23.12, c6 * 23, c9 - 23, c10 + 231 FROM tbl01 ORDER BY 1 ASC,2 DESC, 3 ASC;
-           c1            |          c2          |                      c3                      |      ?column?       |      ?column?      | ?column? | ?column?  | ?column? 
--------------------------+----------------------+----------------------------------------------+---------------------+--------------------+----------+-----------+----------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 | 11.088700000000001 |       92 | 1.79e+108 |      443
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        286854775807 |            35.1513 |     -115 | 1.79e+108 |      443
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              449378 | 11.088700000000001 |       69 | 1.79e+108 |      443
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        286854775807 |            35.1513 |     1035 | 1.79e+108 |      443
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                3297 | 10.120000000000001 |        0 | 1.79e+108 |      443
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            17821827 |            2255.42 |       23 | 1.79e+108 |      443
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 4611686018427387903 | 156.34120000000001 |     2921 | 1.79e+108 |      443
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         30807493945 | 6635.1512999999995 |      276 | 1.79e+108 |      443
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              327272 |           3283.365 |    -1035 | 1.79e+108 |      443
+               c1               |               c2               |                      c3                      |      ?column?       |      ?column?      | ?column? | ?column?  | ?column? 
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+--------------------+----------+-----------+----------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 | 11.088700000000001 |       92 | 1.79e+108 |      443
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        286854775807 |            35.1513 |     -115 | 1.79e+108 |      443
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              449378 | 11.088700000000001 |       69 | 1.79e+108 |      443
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        286854775807 |            35.1513 |     1035 | 1.79e+108 |      443
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                3297 | 10.120000000000001 |        0 | 1.79e+108 |      443
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            17821827 |            2255.42 |       23 | 1.79e+108 |      443
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 4611686018427387903 | 156.34120000000001 |     2921 | 1.79e+108 |      443
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         30807493945 | 6635.1512999999995 |      276 | 1.79e+108 |      443
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              327272 |           3283.365 |    -1035 | 1.79e+108 |      443
 (9 rows)
 
 --Testcase 215:
@@ -2741,17 +2741,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/(c9+c6) FROM tbl01 ORDER BY c
 
 --Testcase 216:
 SELECT c1, c2, c3 || c7, c4-c5, c8/(c9+c6) FROM tbl01 ORDER BY c4-c5 DESC, c8/2 ASC;
-           c1            |          c2          |                              ?column?                              |       ?column?        |        ?column?         
--------------------------+----------------------+--------------------------------------------------------------------+-----------------------+-------------------------
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854776e+18 | 3.0528748603351957e-102
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |     573709551602.9688 | 3.0528748603351957e-102
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |     573709551602.9688 | 3.0528748603351957e-102
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |      61614981278.9687 | 3.0528748603351957e-102
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастливCôte dIvoire Fijifoxju                       |            35641421.7 | 3.0528748603351957e-102
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |           898768.0313 | 3.0528748603351957e-102
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            651284.755 | 3.0528748603351957e-102
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                  6608 | 3.0528748603351957e-102
- ABCDEF                  | some extent          | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                |               12.0313 | 3.0528748603351957e-102
+               c1               |               c2               |                              ?column?                              |       ?column?        |        ?column?         
+--------------------------------+--------------------------------+--------------------------------------------------------------------+-----------------------+-------------------------
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju             | 9.223372036854776e+18 | 3.0528748603351957e-102
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せですCôte dIvoire Fijifoxju    |     573709551602.9688 | 3.0528748603351957e-102
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つたCôte dIvoire Fijifoxju |     573709551602.9688 | 3.0528748603351957e-102
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝCôte dIvoire Fijifoxju                        |      61614981278.9687 | 3.0528748603351957e-102
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастливCôte dIvoire Fijifoxju                       |            35641421.7 | 3.0528748603351957e-102
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常ならCôte dIvoire Fijifoxju       |           898768.0313 | 3.0528748603351957e-102
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจCôte dIvoire Fijifoxju                             |            651284.755 | 3.0528748603351957e-102
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.Côte dIvoire Fijifoxju                  |                  6608 | 3.0528748603351957e-102
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras MexicoCôte dIvoire Fijifoxju                |               12.0313 | 3.0528748603351957e-102
 (9 rows)
 
 --ORDER BY 2
@@ -2771,17 +2771,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 ORDER BY __spd_url;
 
 --Testcase 218:
 SELECT * FROM tbl01 ORDER BY __spd_url;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 219:
@@ -2829,17 +2829,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url;
 
 --Testcase 222:
 SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 ORDER BY __spd_url;
-           c1            |          c2          |                      c3                      | ?column? | ?column? | ?column? 
--------------------------+----------------------+----------------------------------------------+----------+----------+----------
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        1 |        2 | abc
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |        1 |        2 | abc
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |        1 |        2 | abc
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |        1 |        2 | abc
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |        1 |        2 | abc
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |        1 |        2 | abc
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             |        1 |        2 | abc
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |        1 |        2 | abc
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        1 |        2 | abc
+               c1               |               c2               |                      c3                      | ?column? | ?column? | ?column? 
+--------------------------------+--------------------------------+----------------------------------------------+----------+----------+----------
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        1 |        2 | abc
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |        1 |        2 | abc
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |        1 |        2 | abc
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |        1 |        2 | abc
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |        1 |        2 | abc
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |        1 |        2 | abc
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             |        1 |        2 | abc
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |        1 |        2 | abc
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        1 |        2 | abc
 (9 rows)
 
 --ORDER BY 3
@@ -2978,17 +2978,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
 
 --Testcase 236:
 SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
-           c1            |          c2          |                      c3                      |  __spd_url   
--------------------------+----------------------+----------------------------------------------+--------------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | /sqlite_svr/
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             | /sqlite_svr/
+               c1               |               c2               |                      c3                      |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+--------------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       | /sqlite_svr/
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             | /sqlite_svr/
 (9 rows)
 
 --Testcase 237:
@@ -3473,17 +3473,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE __spd_url
 
 --Testcase 274:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE __spd_url != '%svr_' GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 ORDER BY 1, 2, 3;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
 (9 rows)
 
 --Testcase 275:
@@ -3500,17 +3500,17 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE __spd_url != 'ae' ORDER BY c1, c2;
 
 --Testcase 276:
 SELECT * FROM tbl01 WHERE __spd_url != 'ae' ORDER BY c1, c2;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    |    c9     | c10 |         c11         |  __spd_url   
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------+-----------+-----+---------------------+--------------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646 | 1.79e+108 | 212 | 9999-12-31 23:59:59 | /sqlite_svr/
 (9 rows)
 
 --Testcase 277:
@@ -3561,17 +3561,17 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE c3 != 'we
 
 --Testcase 282:
 SELECT c1, c2, c3, c4, c5, c6, c7, c8 FROM tbl01 WHERE c3 != 'wef' ORDER BY c1;
-           c1            |          c2          |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
--------------------------+----------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
- ABCDEF                  | some extent          | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646
- Canada Denmark          | brown fox            | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
- Checkpoint              | And to some extent   | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
- I am happy today        | abcdefghij           | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
- On sangen hauskaa, että | abcdefghij           | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
- XinChàoBạn              | extent the rendit$%^ | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
- a kwik di kwik          | Một ngày vui vẻ      | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
- ~!@#$%^&*()             | -{}[]|:;<>?/.        | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
- съм много               | Im finſteren         | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
+               c1               |               c2               |                      c3                      |         c4          |    c5     | c6  |           c7           |   c8    
+--------------------------------+--------------------------------+----------------------------------------------+---------------------+-----------+-----+------------------------+---------
+ ABCDEF                         | some extent                    | Guinea-Bissau Honduras Mexico                |                   0 |  -12.0313 |   4 | Côte dIvoire Fijifoxju | 5464646
+ Canada Denmark                 | brown fox                      | いろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551615 |   12.0313 |  -5 | Côte dIvoire Fijifoxju | 5464646
+ Checkpoint                     | And to some extent             | 色は匂へど 散りぬるを我が世誰ぞ 常なら       |              898756 |  -12.0313 |   3 | Côte dIvoire Fijifoxju | 5464646
+ I am happy today               | abcdefghij                     | 今日はとても幸せです 今日はとても幸せです    |        573709551615 |   12.0313 |  45 | Côte dIvoire Fijifoxju | 5464646
+ On sangen hauskaa, että        | abcdefghij                     | ~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |       -13 |   0 | Côte dIvoire Fijifoxju | 5464646
+ XinChàoBạn                     | extent the rendit$%^           | Днес съм много щастлив                       |            35643654 |    2232.3 |   1 | Côte dIvoire Fijifoxju | 5464646
+ a kwik di kwik                 | Một ngày vui vẻ                | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 |  133.2212 | 127 | Côte dIvoire Fijifoxju | 5464646
+ ~!@#$%^&*()                    | -{}[]|:;<>?/.                  | ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987891 | 6612.0313 |  12 | Côte dIvoire Fijifoxju | 5464646
+ съм много                      | Im finſteren                   | ขอขอบคุณอย่างจริงใจ                             |              654545 |  3260.245 | -45 | Côte dIvoire Fijifoxju | 5464646
 (9 rows)
 
 --Testcase 283:
@@ -3888,17 +3888,17 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER
 
 --Testcase 308:
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER BY c7), c1, c2 FROM tbl01 WHERE c9 >= c8 GROUP BY c1, c2, c8, c9 HAVING c9 >= 0 ORDER BY c1,c2;
-                  string_agg                  |       string_agg       |           c1            |          c2          
-----------------------------------------------+------------------------+-------------------------+----------------------
- Guinea-Bissau Honduras Mexico                | Côte dIvoire Fijifoxju | ABCDEF                  | some extent
- いろはにほへど　ちりぬるをわがよたれぞ　つた | Côte dIvoire Fijifoxju | Canada Denmark          | brown fox
- 色は匂へど 散りぬるを我が世誰ぞ 常なら       | Côte dIvoire Fijifoxju | Checkpoint              | And to some extent
- 今日はとても幸せです 今日はとても幸せです    | Côte dIvoire Fijifoxju | I am happy today        | abcdefghij
- ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | Côte dIvoire Fijifoxju | On sangen hauskaa, että | abcdefghij
- Днес съм много щастлив                       | Côte dIvoire Fijifoxju | XinChàoBạn              | extent the rendit$%^
- ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | Côte dIvoire Fijifoxju | a kwik di kwik          | Một ngày vui vẻ
- ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | Côte dIvoire Fijifoxju | ~!@#$%^&*()             | -{}[]|:;<>?/.
- ขอขอบคุณอย่างจริงใจ                             | Côte dIvoire Fijifoxju | съм много               | Im finſteren
+                  string_agg                  |       string_agg       |               c1               |               c2               
+----------------------------------------------+------------------------+--------------------------------+--------------------------------
+ Guinea-Bissau Honduras Mexico                | Côte dIvoire Fijifoxju | ABCDEF                         | some extent                   
+ いろはにほへど　ちりぬるをわがよたれぞ　つた | Côte dIvoire Fijifoxju | Canada Denmark                 | brown fox                     
+ 色は匂へど 散りぬるを我が世誰ぞ 常なら       | Côte dIvoire Fijifoxju | Checkpoint                     | And to some extent            
+ 今日はとても幸せです 今日はとても幸せです    | Côte dIvoire Fijifoxju | I am happy today               | abcdefghij                    
+ ~!@#$%^&*()_+=-{}[]|:;<>?/.                  | Côte dIvoire Fijifoxju | On sangen hauskaa, että        | abcdefghij                    
+ Днес съм много щастлив                       | Côte dIvoire Fijifoxju | XinChàoBạn                     | extent the rendit$%^          
+ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | Côte dIvoire Fijifoxju | a kwik di kwik                 | Một ngày vui vẻ               
+ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        | Côte dIvoire Fijifoxju | ~!@#$%^&*()                    | -{}[]|:;<>?/.                 
+ ขอขอบคุณอย่างจริงใจ                             | Côte dIvoire Fijifoxju | съм много                      | Im finſteren                  
 (9 rows)
 
 --Testcase 309:
