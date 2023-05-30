@@ -7,9 +7,9 @@ def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 def DCT_DOCKER_PATH = '/home/jenkins/Docker/Server/GCP'
 
-def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'master'
-def BRANCH_MYSQL_FDW = 'master'
+def BRANCH_PGSPIDER = 'fix_leak_connection_child_node'
+def BRANCH_TINYBRACE_FDW = 'fix_leak_connection'
+def BRANCH_MYSQL_FDW = 'fix_leak_connection'
 def BRANCH_SQLITE_FDW = 'master'
 def BRANCH_GRIDDB_FDW = 'master'
 def BRANCH_INFLUXDB_FDW = 'master'

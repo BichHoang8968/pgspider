@@ -52146,7 +52146,7 @@ ERROR:  PGSpider fail to iterate tuple from child thread
  DETAIL: pgspider_fdw fail to get tuples from child process
 {
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL: failed to execute the MySQL query: 
+ DETAIL: mysql_fdw: failed to execute the MySQL query: 
 DATE value is out of range in 'json_value'
 }
 -- select mysql_json_value with normal cast

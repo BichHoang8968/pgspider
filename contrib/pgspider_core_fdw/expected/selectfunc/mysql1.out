@@ -53890,7 +53890,7 @@ SELECT mysql_json_value(c1, '$.a', 'returning date', 'error on error')::date FRO
 --Testcase 4279:
 SELECT mysql_json_value(c1, '$.a', 'returning date', 'error on error')::date FROM s8; -- should fail
 ERROR:  PGSpider fail to iterate tuple from child thread
- DETAIL: failed to execute the MySQL query: 
+ DETAIL:  mysql_fdw: failed to execute the MySQL query: 
 DATE value is out of range in 'json_value'
 -- select mysql_json_value with normal cast
 --Testcase 4280:

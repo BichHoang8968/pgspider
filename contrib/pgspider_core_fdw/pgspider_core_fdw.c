@@ -3520,42 +3520,45 @@ THREAD_EXIT:
 		/* Notify ERROR and transfer error message to main thread */
 		spd_queue_notify_error(&fssthrdInfo->tupleQueue, err->message);
 	}
-	else if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
-	{
-		spd_queue_notify_error(&fssthrdInfo->tupleQueue, NULL);
-	}
 	else
 	{
-		spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
-	}
-
-	/* When there is any error and EndForeignScan of child thead has not been executed, try to call it here */
-	PG_TRY();
-	{
-		if (fssthrdInfo->requestEndScan)
+		if (fssthrdInfo->state == SPD_FS_STATE_ERROR)
 		{
-			SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
-			if (!pChildInfo->pseudo_agg)
-			{
-				fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
-			}
-			else
-			{
-				ExecEndNode(agg_result);
-			}
-
-			SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
-			fssthrdInfo->requestEndScan = false;
+			spd_queue_notify_error(&fssthrdInfo->tupleQueue, NULL);
 		}
+		else
+		{
+			spd_queue_notify_finish(&fssthrdInfo->tupleQueue);
+		}
+
+		/* When there is any error and EndForeignScan of child thead has not been executed, try to call it here */
+		PG_TRY();
+		{
+			if (fssthrdInfo->requestEndScan)
+			{
+				SPD_READ_LOCK_TRY(&fdw_private->scan_mutex);
+				if (!pChildInfo->pseudo_agg)
+				{
+					fssthrdInfo->fdwroutine->EndForeignScan(fssthrdInfo->fsstate);
+				}
+				else
+				{
+					ExecEndNode(agg_result);
+				}
+
+				SPD_RWUNLOCK_CATCH(&fdw_private->scan_mutex);
+				fssthrdInfo->requestEndScan = false;
+			}
+		}
+		PG_CATCH();
+		{
+			/*
+			 * Can not end foreign scan normally because of previous error. Ignore it.
+			 * The main error has been processed and handled by main thread.
+			 */
+		}
+		PG_END_TRY();
 	}
-	PG_CATCH();
-	{
-		/*
-		 * Can not end foreign scan normally because of previous error. Ignore it.
-		 * The main error has been processed and handled by main thread.
-		 */
-	}
-	PG_END_TRY();
 
 	spd_freeThreadContextList();
 
