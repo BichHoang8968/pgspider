@@ -21,6 +21,8 @@ INFLUXDB_ORG=myorg
 container_name_v2='influxdb_server_v2'
 influxdbV2_image='influxdb:2.2'
 
+PGSPIDER_SOCAT_PORT=24814
+
 function clean_docker_img()
 {
   if [ "$(docker ps -aq -f name=^/${1}$)" ]; then
@@ -62,6 +64,16 @@ then
     echo "Start PGSpider"
     ./pg_ctl -D ../test_data_compression start
   fi
+  
+  # Start SOCAT: Simulate port forward 4814->$PGSPIDER_SOCAT_PORT
+  echo "Start socat forward port 4814"
+  ps aux | grep -ie socat | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1
+  socat TCP-LISTEN:$PGSPIDER_SOCAT_PORT,fork TCP:127.0.0.1:4814 &
+  
+  # Start python mock: Simulate ipconfig.me
+  echo "Start trust ip mock: trust_vendor_ip.py"
+  ps aux | grep -ie "trust_vendor_ip.py" | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1
+  python3 $CURR_PATH/trust_vendor_ip.py &
 
   # default cluster name: dockerGridDB
   # default user: admin

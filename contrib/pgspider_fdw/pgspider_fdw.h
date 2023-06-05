@@ -141,6 +141,16 @@ typedef struct PGSpiderFdwConnState
 }			PGSpiderFdwConnState;
 
 /*
+ * Information about NAT network settings
+*/
+typedef struct PGSpiderPublicHostInfo
+{
+	char *public_host;
+	int   public_port;
+	char *ifconfig_service;
+}           PGSpiderPublicHostInfo;
+
+/*
  * Execution state of a foreign insert/update/delete operation.
  */
 typedef struct PGSpiderFdwModifyState
@@ -183,6 +193,7 @@ typedef struct PGSpiderFdwModifyState
 	pthread_t	socket_thread;	/* child thread to send insertion data */
 	bool		data_compression_transfer_enabled;	/* true if data compression transfer
 											 * feature is used */
+	PGSpiderPublicHostInfo *public_host_info; /* public host info if db are behide the NAT */
 }			PGSpiderFdwModifyState;
 
 /* in pgspider_fdw.c */

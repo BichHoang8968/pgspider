@@ -266,6 +266,15 @@ typedef struct SocketInfo
 }			SocketInfo;
 
 /*
+ * List of option for address scanning
+ */
+enum HOST_MODE {
+	MODE_LOCAL = 0,
+	MODE_AUTO,
+	MODE_MANUAL
+};
+typedef enum HOST_MODE HOST_MODE;
+/*
  * Option information for Data Compression Transfer Feauture
  */
 typedef struct DataCompressionTransferOption
@@ -279,6 +288,10 @@ typedef struct DataCompressionTransferOption
 	char	   *org;				/* organization name of data store of InfluxDB*/
 	List	   *tagsList;		/* Contain tag keys of a foreign table,
 								 * specify for InfluxDB server */
+	HOST_MODE   mode;
+	char       *public_host; /* specifies ip to send to notify function */
+	int         public_port; /* specifies port to send to notify function */
+	char       *ifconfig_service;  /* specitifes vendor to get host public ip */
 }			DataCompressionTransferOption;
 
 

@@ -6304,12 +6304,102 @@ ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 --Testcase 683:
 DROP TABLE t1;
--- Clean
+-- ===================================================================
+-- CREATE RELAY SERVER TABLE WITH NAT OPTIONS
+-- ===================================================================
+CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
+CREATE USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (user 'postgres', password 'postgres');
+CREATE SERVER cloud_test FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'http://localhost:8080', proxy 'no', batch_size '10000');
+CREATE USER MAPPING FOR public SERVER cloud_test;
+CREATE table test_nat_tbl (c1 bigint);
+INSERT INTO test_nat_tbl VALUES (10000);
+-- Migrate fail, ifconfig_service does not correct
 --Testcase 684:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2222') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Public IP Mode
+ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
+DETAIL:  pgspider_fdw: Request failed, server localhost:2222
+-- Migrate fail, ip does not correct
+--Testcase 685:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Manual IP Mode
+ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
+DETAIL:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.net.SocketTimeoutException: connect timed out
+-- Migrate fail, public_host and ifconfig_service cannot both config
+--Testcase 686:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+ERROR:  PGSpider: unexpected both options: public_host & ifconfig_service
+-- Migrate success
+--Testcase 687:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2255' ) SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Public IP Mode
+DROP DATASOURCE TABLE test_tbl;
+DROP FOREIGN TABLE test_tbl;
+-- Migrate fail, port out of range
+--Testcase 688:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '0') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+ERROR:  "public_port" must be an integer value greater than 0 and less than 65536
+-- Migrate fail, port does not correct
+--Testcase 689:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '4444') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Manual IP Mode
+ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
+DETAIL:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.net.ConnectException: Connection refused (Connection refused)
+-- Migrate success, port valid
+--Testcase 690:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '24814') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Manual IP Mode
+DROP DATASOURCE TABLE test_tbl;
+DROP FOREIGN TABLE test_tbl;
+-- Migrate success
+--Testcase 691:
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_port '24814', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+INFO:  pgspider_fdw: Public IP Mode
+-- Migrate success
+--Testcase 692:
+MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
+INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 1.000
+INFO:  pgspider_fdw: Manual IP Mode
+-- Migrate success
+--Testcase 693:
+MIGRATE TABLE test_nat_tbl TO test_tbl3 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl3', relay 'cloud_test');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 1.000
+DROP DATASOURCE TABLE test_tbl;
+DROP DATASOURCE TABLE test_tbl2;
+DROP DATASOURCE TABLE test_tbl3;
+DROP FOREIGN TABLE test_tbl;
+DROP FOREIGN TABLE test_tbl2;
+DROP FOREIGN TABLE test_tbl3;
+DROP TABLE test_nat_tbl;
+DROP SERVER postgres_svr_test CASCADE;
+NOTICE:  drop cascades to user mapping for public on server postgres_svr_test
+-- Clean
+--Testcase 694:
 DROP EXTENSION postgres_fdw CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to server loopback
-drop cascades to user mapping for vagrant on server loopback
+drop cascades to user mapping for tsdv on server loopback
 drop cascades to server postgres1
 drop cascades to user mapping for public on server postgres1
 drop cascades to foreign table ft1__postgres1__0
@@ -6317,7 +6407,7 @@ drop cascades to server postgres2
 drop cascades to user mapping for public on server postgres2
 drop cascades to server postgres3
 drop cascades to user mapping for public on server postgres3
---Testcase 685:
+--Testcase 695:
 DROP EXTENSION mysql_fdw CASCADE;
 NOTICE:  drop cascades to 7 other objects
 DETAIL:  drop cascades to server mysql1
@@ -6327,7 +6417,7 @@ drop cascades to server mysql2
 drop cascades to user mapping for public on server mysql2
 drop cascades to server mysql3
 drop cascades to user mapping for public on server mysql3
---Testcase 686:
+--Testcase 696:
 DROP EXTENSION oracle_fdw CASCADE;
 NOTICE:  drop cascades to 7 other objects
 DETAIL:  drop cascades to server oracle1
@@ -6337,7 +6427,7 @@ drop cascades to server oracle2
 drop cascades to user mapping for public on server oracle2
 drop cascades to server oracle3
 drop cascades to user mapping for public on server oracle3
---Testcase 687:
+--Testcase 697:
 DROP EXTENSION griddb_fdw CASCADE;
 NOTICE:  drop cascades to 7 other objects
 DETAIL:  drop cascades to server griddb1
@@ -6347,7 +6437,7 @@ drop cascades to server griddb2
 drop cascades to user mapping for public on server griddb2
 drop cascades to server griddb3
 drop cascades to user mapping for public on server griddb3
---Testcase 817:
+--Testcase 698:
 DROP EXTENSION influxdb_fdw CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to server influxdb_svr_test
@@ -6359,9 +6449,9 @@ drop cascades to server influx2
 drop cascades to user mapping for public on server influx2
 drop cascades to server influx3
 drop cascades to user mapping for public on server influx3
---Testcase 688:
+--Testcase 699:
 DROP EXTENSION pgspider_fdw CASCADE;
-NOTICE:  drop cascades to 13 other objects
+NOTICE:  drop cascades to 15 other objects
 DETAIL:  drop cascades to server cloud1
 drop cascades to user mapping for public on server cloud1
 drop cascades to server cloud2
@@ -6375,6 +6465,8 @@ drop cascades to server pgspider2
 drop cascades to user mapping for public on server pgspider2
 drop cascades to server pgspider3
 drop cascades to user mapping for public on server pgspider3
---Testcase 689:
+drop cascades to server cloud_test
+drop cascades to user mapping for public on server cloud_test
+--Testcase 700:
 DROP EXTENSION pgspider_core_fdw CASCADE;
 NOTICE:  drop cascades to server pgspider_core_svr

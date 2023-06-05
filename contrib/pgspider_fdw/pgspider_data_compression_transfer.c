@@ -32,7 +32,6 @@
 #include "utils/varlena.h"
 #include "storage/latch.h"
 
-
 /*
  * init_InsertData
  *		Initialize InsertData context
@@ -102,15 +101,22 @@ init_DataCompressionTransferOption(DataCompressionTransferOption * data)
 	data->function_timeout = 0;
 	data->org = NULL;
 	data->tagsList = NULL;
+	data->mode = MODE_LOCAL;
+	data->public_host = NULL;
+	data->ifconfig_service = NULL;
+	data->public_port = 0;
+
 }
 
-/*
- * pgspiderGetExternalIp
- * 		Get public ip of host machine
- */
+static void
+pgspider_curl_init(char *proxy, char *endpoint, int function_timeout,
+				   size_t (*write_body_function) (void *contents, size_t size, size_t nmemb, void *user_data),
+				   void *body, CURL * curl_handle, bool isPost);
+static size_t
+pgspider_write_body(void *contents, size_t size, size_t nmemb, void *user_data);
+
 static char *
-pgspiderGetExternalIp(void)
-{
+pgspiderGetLocalIp(void) {
 	char		hostbuffer[HOST_NAME_MAX];
 	char	   *hostIP;
 	struct hostent *host_entry;
@@ -131,6 +137,72 @@ pgspiderGetExternalIp(void)
 						 host_entry->h_addr_list[0]));
 
 	return pstrdup(hostIP);
+}
+
+static char *
+pgspiderGetPublicIp(DataCompressionTransferOption *dct_option){
+    CURL	   *volatile curl_handle = NULL;
+	body_res	body;
+	long		status;		/* HTTP response status code */
+	struct sockaddr_in sa;
+	/* Initialize response */
+	body.data = NULL;
+	body.size = 0;
+	curl_handle = curl_easy_init();
+	PG_TRY();
+	{
+		/* Init Request */
+		pgspider_curl_init(dct_option->proxy, 
+							dct_option->ifconfig_service, 
+							dct_option->function_timeout, 
+							pgspider_write_body, 
+							(void *) &body, 
+							curl_handle, 
+							false);
+		/* Send request */
+		curl_easy_perform(curl_handle);
+		/* HTTP status code */
+		if (curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &status) != CURLE_OK)
+			elog(ERROR, "pgspider_fdw: Cannot receive status code, server %s", dct_option->ifconfig_service);
+		/* Check error response */
+		if (status != PGREST_HTTP_RES_STATUS_OK)
+			elog(ERROR, "pgspider_fdw: Request failed, server %s", dct_option->ifconfig_service);
+	}
+	PG_CATCH();
+	{
+		if (curl_handle)
+			curl_easy_cleanup(curl_handle);
+		PG_RE_THROW();
+	}
+	PG_END_TRY();
+	/*Address is valid*/
+	if (inet_pton(AF_INET, body.data, &(sa.sin_addr)) != 1){
+		elog(ERROR, "pgspider_fdw: Cannot get ip_address, server %s", dct_option->ifconfig_service);
+	}
+
+	return pstrdup(body.data);
+}
+/*
+ * pgspiderGetExternalIp
+ * 		Get public ip of host machine
+ */
+static char *
+pgspiderGetExternalIp(DataCompressionTransferOption *dct_option)
+{
+	switch (dct_option->mode)
+	{
+	case MODE_LOCAL:
+		return pgspiderGetLocalIp();
+	case MODE_AUTO:
+		elog(INFO, "pgspider_fdw: Public IP Mode");
+		return pgspiderGetPublicIp(dct_option);
+	case MODE_MANUAL:
+		elog(INFO, "pgspider_fdw: Manual IP Mode");
+		return dct_option->public_host;
+	default:
+		break;
+	}
+	return pgspiderGetLocalIp();
 }
 
 /*
@@ -1366,7 +1438,7 @@ pgspider_write_body(void *contents, size_t size, size_t nmemb, void *user_data)
 static void
 pgspider_curl_init(char *proxy, char *endpoint, int function_timeout,
 				   size_t (*write_body_function) (void *contents, size_t size, size_t nmemb, void *user_data),
-				   void *body, CURL * curl_handle)
+				   void *body, CURL * curl_handle, bool isPost)
 {
 	/* Sepcifies HTTP protocol version to use Use HTTP/1.1 as default */
 	if (curl_easy_setopt(curl_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_NONE) != CURLE_OK)
@@ -1407,10 +1479,11 @@ pgspider_curl_init(char *proxy, char *endpoint, int function_timeout,
 	if (curl_easy_setopt(curl_handle, CURLOPT_TIMEOUT, function_timeout) != CURLE_OK)
 		elog(ERROR, "pgspider_fdw: could not set timeout for CURLOPT_TIMEOUT option");
 
-	/* set http method */
-	if (curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, PGFDW_HTTP_POST_METHOD) != CURLE_OK)
-		elog(ERROR, "pgspider_fdw: could not set '%s' method for CURLOPT_CUSTOMREQUEST option.", PGFDW_HTTP_POST_METHOD);
-
+	if(isPost) {
+		/* set http method */
+		if (curl_easy_setopt(curl_handle, CURLOPT_CUSTOMREQUEST, PGFDW_HTTP_POST_METHOD) != CURLE_OK)
+			elog(ERROR, "pgspider_fdw: could not set '%s' method for CURLOPT_CUSTOMREQUEST option.", PGFDW_HTTP_POST_METHOD);
+	}
 	if (write_body_function != NULL)
 	{
 		/* Set CURLOPT_WRITEFUNCTION if specified */
@@ -1501,12 +1574,22 @@ PGSpiderRequestFunctionStart(PGSpiderExecuteMode mode,
 			pgspiderPrepareDDLRequestData(&jsonBody, mode, authData, connData, ddlData);
 			break;
 		case BATCH_INSERT:
-			socket_host = pgspiderGetExternalIp();
-			pgspiderPrepareInsertRequestData(&jsonBody, socket_host,
-											 fmstate->socket_port,
-											 fmstate->socketThreadInfo.serveroid,
-											 fmstate->socketThreadInfo.tableoid,
-											 authData, connData);
+			socket_host = pgspiderGetExternalIp(dct_option);
+
+			if (dct_option->public_port) { /* In case manual port is set */
+				pgspiderPrepareInsertRequestData(&jsonBody, socket_host,
+												dct_option->public_port,
+												fmstate->socketThreadInfo.serveroid,
+												fmstate->socketThreadInfo.tableoid,
+												authData, connData);
+			} else {
+				pgspiderPrepareInsertRequestData(&jsonBody, socket_host,
+												fmstate->socket_port,
+												fmstate->socketThreadInfo.serveroid,
+												fmstate->socketThreadInfo.tableoid,
+												authData, connData);
+			}
+
 			break;
 		default:
 			elog(ERROR, "Unsupported execution mode");
@@ -1530,7 +1613,7 @@ PGSpiderRequestFunctionStart(PGSpiderExecuteMode mode,
 		if (curl_handle == NULL)
 			elog(ERROR, "pgspider_fdw: could not initialize Curl handler.");
 
-		pgspider_curl_init(dct_option->proxy, dct_option->endpoint, dct_option->function_timeout, pgspider_write_body, (void *) &body, curl_handle);
+		pgspider_curl_init(dct_option->proxy, dct_option->endpoint, dct_option->function_timeout, pgspider_write_body, (void *) &body, curl_handle, true);
 
 		/* set content-length */
 		initStringInfo(&http_header);

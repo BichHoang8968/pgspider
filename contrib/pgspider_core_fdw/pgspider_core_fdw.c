@@ -13958,6 +13958,9 @@ spd_ForeignModify_thread(void *arg)
 	{
 		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeInteger(fdw_private->socketInfo->socket_port));
 		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeInteger(fdw_private->socketInfo->function_timeout));
+		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeString(fdw_private->socketInfo->public_host));
+		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeInteger(fdw_private->socketInfo->public_port));
+		pChildInfo->fdw_private = lappend(pChildInfo->fdw_private, makeString(fdw_private->socketInfo->ifconfig_service));
 	}
 	spd_BeginForeignModifyChild(mtThrdInfo, pChildInfo, &fdw_private->modify_mutex, &fdw_private->socketInfo->socketThreadInfos, fdw_private->data_compression_transfer_enabled, &socketThreadInfo);
 
@@ -14308,13 +14311,18 @@ spd_BeginForeignModify(ModifyTableState *mtstate,
 		int			socket_port;
 		int			function_timeout;
 		Relation	rel = resultRelInfo->ri_RelationDesc;
+		char		*public_host = NULL;
+		char        *ifconfig_service =  NULL;
+		int          public_port = -1;
 		SocketInfo *socketInfo;
 
-		spd_get_dct_option(rel, &socket_port, &function_timeout);
-
 		socketInfo =  (SocketInfo *) palloc0(sizeof(SocketInfo));
+		spd_get_dct_option(rel, &socket_port, &function_timeout, &public_host, &public_port, &ifconfig_service);
 		fdw_private->socketInfo = socketInfo;
 
+		socketInfo->public_host = public_host;
+		socketInfo->public_port = public_port;
+		socketInfo->ifconfig_service = ifconfig_service;
 		socketInfo->socket_port = socket_port;
 		socketInfo->function_timeout = function_timeout;
 		socketInfo->thrd_ResourceOwner = ResourceOwnerCreate(CurrentResourceOwner, "socket server thread resource owner");

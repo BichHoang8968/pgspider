@@ -87,7 +87,7 @@ convert_4_bytes_array_to_int(unsigned char byte[])
  * Get option for data compress transfer feature
  */
 void
-spd_get_dct_option(Relation rel, int *socket_port, int *function_timeout)
+spd_get_dct_option(Relation rel, int *socket_port, int *function_timeout, char **public_host, int *public_port, char **ifconfig_service)
 {
 	ForeignTable *table;
 	ListCell   *lc;
@@ -102,6 +102,13 @@ spd_get_dct_option(Relation rel, int *socket_port, int *function_timeout)
 			(void) parse_int(defGetString(def), socket_port, 0, NULL);
 		else if (strcmp(def->defname, "function_timeout") == 0)
 			(void) parse_int(defGetString(def), function_timeout, 0, NULL);
+		else if (strcmp(def->defname, "public_host") == 0) {
+			*public_host = defGetString(def);
+		} else if (strcmp(def->defname, "public_port") == 0) {
+			(void) parse_int(defGetString(def), public_port, 0, NULL);
+		} else if (strcmp(def->defname, "ifconfig_service") == 0) {
+			*ifconfig_service = defGetString(def);
+		}
 	}
 }
 
@@ -132,13 +139,8 @@ spd_setSocketServerThreadContext(SocketInfo * socketInfo)
 	error_context_stack = NULL;
 }
 
-/**
- * get_external_ip()
- *
- * Get public ip of host machine
- */
 static char *
-get_external_ip()
+get_local_ip()
 {
 	char		hostbuffer[HOST_NAME_MAX];
 	char	   *hostIP;
@@ -160,6 +162,21 @@ get_external_ip()
 						host_entry->h_addr_list[0]));
 
 	return pstrdup(hostIP);
+}
+
+/**
+ * get_external_ip()
+ *
+ * Get public ip of host machine
+ */
+static char *
+get_external_ip(bool local_mode)
+{
+	if (local_mode) {
+		return get_local_ip();
+	}
+	elog(INFO, "pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)");
+	return "0.0.0.0";
 }
 
 /**
@@ -253,7 +270,8 @@ spd_freeThreadContextList(void)
 void *
 spd_socket_server_thread(void *arg)
 {
-	SocketInfo *socketInfo = (SocketInfo *) arg;
+	SocketInfo	   *socketInfo = (SocketInfo *) arg;
+	bool 		    local_mode = true;
 	Latch			LocalLatchData;
 	int 			server_fd = -1;	/* Server file descriptor */
 	int 			client_socket = -1;
@@ -282,8 +300,11 @@ spd_socket_server_thread(void *arg)
 	/* Configuration for context of error handling and memory context. */
 	spd_setSocketServerThreadContext(socketInfo);
 
+	if (socketInfo->public_host != NULL || socketInfo->ifconfig_service != NULL) {
+		local_mode = false;
+	}
 	/* get public ip of socket server */
-	external_ip = get_external_ip();
+	external_ip = get_external_ip(local_mode);
 
 	/* Create socket descriptor */
 	if ((server_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) < 0)
