@@ -2473,7 +2473,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
  * @param[out] oids Oid list of child table
  */
 void
-spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oids)
+spd_calculate_datasource_count(Oid foreigntableid, int *nums, Oid **oids)
 {
 	char		query[QUERY_LENGTH];
 	int			ret;
@@ -2501,9 +2501,9 @@ spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oids)
 				   "        JOIN pg_foreign_server fs ON ft.ftserver = fs.oid GROUP BY srvname ORDER BY srvname),"
 				   "regex_pattern AS "
 				   "    (SELECT '^' || relname || '\\_\\_' || srv.srvname  || '\\_\\_[0-9]+$' regex FROM pg_class "
-				   "        CROSS JOIN srv WHERE oid = %d)"
+				   "        CROSS JOIN srv WHERE oid = %u)"
 				   "SELECT oid, relname FROM pg_class "
-				   "    WHERE (relname ~ (SELECT string_agg(regex, '|') FROM regex_pattern)) "
+				   "    WHERE (relname ~ ANY(SELECT regex FROM regex_pattern)) "
 				   "      AND (relname NOT LIKE '%%\\_%%\\_seq') "
 				   "    ORDER BY relname;", foreigntableid);
 
@@ -4080,11 +4080,11 @@ static Oid
 spd_calculate_datasource_tableoid(Oid parent_table, Oid child_server)
 {
 	Oid		   *oids = NULL;
-	int			nums;
+	int			nums = 0;
 	int			i;
 	Oid			tableoid = 0;
 
-	spd_calculate_datasouce_count(parent_table, &nums, &oids);
+	spd_calculate_datasource_count(parent_table, &nums, &oids);
 
 	/* Search the oid of which foreign server is a target. */
 	for (i = 0; i < nums; i++)
@@ -4538,7 +4538,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 {
 	SpdFdwPrivate *fdw_private;
 	Oid		   *oid = NULL;
-	int			nums;
+	int			nums = 0;
 	List	   *new_inurl = NULL;
 	RangeTblEntry *r_entry;
 	char	   *namespace = NULL;
@@ -4559,7 +4559,7 @@ spd_GetForeignRelSize(PlannerInfo *root, RelOptInfo *baserel, Oid foreigntableid
 	baserel->fdw_private = (void *) fdw_private;
 
 	/* Get child datasouce oids and counts. */
-	spd_calculate_datasouce_count(foreigntableid, &nums, &oid);
+	spd_calculate_datasource_count(foreigntableid, &nums, &oid);
 	if (nums == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources.")));
 
@@ -11721,11 +11721,11 @@ spd_IsForeignRelUpdatable(Relation rel)
 	if (updatable)
 	{
 		Oid		   *oid = NULL;
-		int			nums;
+		int			nums = 0;
 		int			i;
 
 		/* Get child datasouce oids and counts. */
-		spd_calculate_datasouce_count(RelationGetRelid(rel), &nums, &oid);
+		spd_calculate_datasource_count(RelationGetRelid(rel), &nums, &oid);
 
 		for (i = 0; i < nums; i++)
 		{
@@ -12793,8 +12793,8 @@ spd_InitPrivate(Oid foreigntableid, List *spd_url_list, int *nums)
 	fdw_private = spd_AllocatePrivate();
 
 	/* Get child datasouce oids and counts. */
-	spd_calculate_datasouce_count(foreigntableid, nums, &oid);
-	if (nums == 0)
+	spd_calculate_datasource_count(foreigntableid, nums, &oid);
+	if (*nums == 0)
 		ereport(ERROR, (errmsg("Cannot Find child datasources.")));
 
 	fdw_private->node_num = *nums;
@@ -12991,7 +12991,7 @@ spd_AddForeignUpdateTargets(PlannerInfo *root,
 	int			i;
 	MemoryContext oldcontext;
 	SpdFdwPrivate *fdw_private;
-	int			nums;
+	int			nums = 0;
 
 	fdw_private = spd_InitPrivate(relid, target_rte->spd_url_list, &nums);
 	root->fdw_private = (void *) fdw_private;

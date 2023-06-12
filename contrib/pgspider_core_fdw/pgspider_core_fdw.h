@@ -393,7 +393,7 @@ extern int	spd_get_node_num(RelOptInfo *baserel);
 
 /* in pgspider_core_fdw.c */
 Oid spd_serverid_of_relation(Oid foreigntableid);
-void spd_calculate_datasouce_count(Oid foreigntableid, int *nums, Oid **oid);
+void spd_calculate_datasource_count(Oid foreigntableid, int *nums, Oid **oids);
 void spd_servername_from_tableoid(Oid foreigntableid, char *srvname);
 void spd_ip_from_server_name(char *serverName, char *ip);
 List *spd_ParseUrl(List *spd_url_list);

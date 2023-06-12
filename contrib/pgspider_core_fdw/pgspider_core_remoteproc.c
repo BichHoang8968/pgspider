@@ -49,7 +49,7 @@ childfunc_target_server(Oid tableoid)
 	int			num_child;
 	Oid		   *oids;	/* Oids of child tables */
 
-	spd_calculate_datasouce_count(tableoid, &num_child, &oids);
+	spd_calculate_datasource_count(tableoid, &num_child, &oids);
 
 	for (int i = 0; i < num_child; i++)
 	{
