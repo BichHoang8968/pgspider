@@ -3560,6 +3560,7 @@ THREAD_EXIT:
 		PG_END_TRY();
 	}
 
+	free_guc_variables_child_thread();
 	spd_freeThreadContextList();
 
 #ifdef MEASURE_TIME
@@ -12347,6 +12348,7 @@ THREAD_EXIT:
 		PG_END_TRY();
 	}
 
+	free_guc_variables_child_thread();
 	spd_freeThreadContextList();
 
 #ifdef MEASURE_TIME
@@ -14092,6 +14094,7 @@ THREAD_EXIT:
 		PG_END_TRY();
 	}
 
+	free_guc_variables_child_thread();
 	spd_freeThreadContextList();
 
 #ifdef MEASURE_TIME
