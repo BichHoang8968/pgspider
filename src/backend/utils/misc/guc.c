@@ -13179,13 +13179,21 @@ copy_guc_variables(void)
 		case PGC_STRING:
 			{
 				struct config_string *conf = (struct config_string *) gconf;
-				char	   *newval;
+				char	   *newval = NULL;
 				void	   *extra = ((struct config_string *) *main_gconf)->gen.extra;
 
 				if (conf->boot_val != NULL)
-					newval = guc_strdup(FATAL, *(((struct config_string *) *main_gconf)->variable));
-				else
-					newval = NULL;
+				{
+					/*
+					 * "search_path" and "DateStyle" are thread variables, duplicate values to avoid
+					 * race condition between threads.
+					 */
+					if (strcmp(conf->gen.name, "search_path") == 0 ||
+						strcmp(conf->gen.name, "DateStyle") == 0)
+						newval = guc_strdup(FATAL, *(((struct config_string *) *main_gconf)->variable));
+					else
+						newval = *(((struct config_string *) *main_gconf)->variable);
+				}
 
 				*conf->variable = conf->reset_val = newval;
 				conf->gen.extra = conf->reset_extra = extra;
@@ -13205,6 +13213,47 @@ copy_guc_variables(void)
 	}
 
 	SPD_UNLOCK_CATCH(&guc_mutex);
+}
+
+/*
+ * free_guc_variables_child_thread
+ * 		Free guc_variables for child thread.
+ */
+void
+free_guc_variables_child_thread(void)
+{
+	int i;
+
+	for (i = 0; i < num_guc_variables; i++)
+	{
+		struct config_generic *gconf = guc_variables[i];
+
+		switch (gconf->vartype)
+		{
+			case PGC_STRING:
+				{
+					struct config_string *conf = (struct config_string *) gconf;
+
+					if ((*conf->variable) == NULL)
+						break;
+
+					/*
+					 * In copy_guc_variables, new value is created by guc_strdup(),
+					 * free it to avoid memory leak.
+					 */
+					if (strcmp(conf->gen.name, "search_path") == 0 ||
+						strcmp(conf->gen.name, "DateStyle") == 0)
+						free(*conf->variable);
+
+					break;
+				}
+			default:
+				break;
+		}
+	}
+
+	if (guc_variables)
+		free(guc_variables);
 }
 
 /* Build a guc_variables for child thread */
