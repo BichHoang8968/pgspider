@@ -2153,30 +2153,40 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 	 */
 	if (data_compression_transfer_enabled)
 	{
-		int buffer_size = 100 
-						+ (context->public_host == NULL ? 0 : strlen(context->public_host)) 
-						+ (context->ifconfig_service == NULL ? 0 : strlen(context->ifconfig_service));
-		char *options = (char *) palloc0(buffer_size);
-		sprintf(options, "");
-		if(context->public_host) {
-			strcat(options, psprintf(", public_host '%s'", context->public_host));
+		StringInfoData options;
+		initStringInfo(&options);
+		
+		/*
+		 * pgspider_fdw notify public_host to function in compression transfer
+		 */
+		if (context->public_host)
+		{
+			appendStringInfo(&options, ", public_host '%s'", context->public_host);
 		}
 
-		if(context->public_port != context->socket_port) {
-			strcat(options, psprintf(", public_port '%d'", context->public_port));
+		/* Default public_port is socket_port
+		 * psgpider_fdw notify public_port to function in compression transfer
+		 * pgspider_core_fdw listen socket_port
+		 */
+		if (context->public_port != context->socket_port)
+		{
+			appendStringInfo(&options, ", public_port '%d'", context->public_port);
 		}
 
-		if(context->ifconfig_service) {
-			strcat(options, psprintf(", ifconfig_service '%s'", context->ifconfig_service));
+		/*
+		 * pgspider_fdw get ip from ifconfig_service then notify to function in compression transfer
+		 */
+		if (context->ifconfig_service)
+		{
+			appendStringInfo(&options, ", ifconfig_service '%s'", context->ifconfig_service);
 		}
-
+		
 		multitenant_table = psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s OPTIONS (socket_port '%d', function_timeout '%d' %s);",
 										context->dest_table_fullname, collist,
 										quote_identifier(context->use_multitenant_server),
 										context->socket_port, 
 										context->function_timeout,
-										options);
-		pfree(options);
+										options.data);
 	}
 	else
 	{
@@ -2500,7 +2510,7 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 	char	   *collist = NULL;
 	migrate_cmd_context context;
 	List	   *relay_command_list = NIL;
-    bool        is_public_port_set = false;
+	bool        is_public_port_set = false;
 	/* context init */
 	spd_migrate_context_init(&context);
 
@@ -2544,14 +2554,17 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 			{
 				(void) parse_int(defGetString(def), &context.function_timeout, 0, NULL);
 			} 
-			else if (strcmp(def->defname, "public_host") == 0) {
+			else if (strcmp(def->defname, "public_host") == 0)
+			{
 				context.public_host = defGetString(def);
 			}
-			else if (strcmp(def->defname, "public_port") == 0) {
+			else if (strcmp(def->defname, "public_port") == 0)
+			{
 				(void) parse_int(defGetString(def), &context.public_port, 0, NULL);
 				is_public_port_set = true;
 			}
-			else if (strcmp(def->defname, "ifconfig_service") == 0) {
+			else if (strcmp(def->defname, "ifconfig_service") == 0)
+			{
 				context.ifconfig_service = defGetString(def);
 			}
 			else
@@ -2560,12 +2573,14 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 			}
 		}
 
-		if (!is_public_port_set) {
+		if (!is_public_port_set)
+		{
 			context.public_port = context.socket_port;
 		}
 		
-		if (context.public_host != NULL && context.ifconfig_service != NULL) {
-			elog(ERROR, "PGSpider: unexpected both options: public_host & ifconfig_service");
+		if (context.public_host != NULL && context.ifconfig_service != NULL)
+		{
+			elog(ERROR, "PGSpider: unexpected both options, either public_host or ifconfig_service are specified");
 		}
 
 

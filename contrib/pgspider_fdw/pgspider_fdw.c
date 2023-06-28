@@ -2033,22 +2033,27 @@ pgspiderExecForeignInsert(EState *estate,
  *      Check NAT option pass from foreigncmds.c: spd_create_migrate_dest_table
  *
 */
-static void pgspiderSetupHostInfo(PGSpiderFdwModifyState *fmstate , DataCompressionTransferOption *dct_option) {
+static void pgspiderSetupHostInfo(PGSpiderFdwModifyState *fmstate , DataCompressionTransferOption *dct_option)
+{
 	PGSpiderPublicHostInfo *info = fmstate->public_host_info;
-	if(fmstate->public_host_info == NULL) {
+	if(fmstate->public_host_info == NULL) 
+	{
 		return;
 	}
 
-	if (info->public_host != NULL) {
+	if (info->public_host != NULL)
+	{
 		dct_option->mode = MODE_MANUAL;
 		dct_option->public_host = info->public_host;
 	}
 
-	if (info->public_port > 0) {
+	if (info->public_port > 0)
+	{
 		dct_option->public_port = info->public_port;
 	}
 
-	if (info->ifconfig_service != NULL) {
+	if (info->ifconfig_service != NULL)
+	{
 		dct_option->mode = MODE_AUTO;
 		dct_option->ifconfig_service = info->ifconfig_service;
 	}

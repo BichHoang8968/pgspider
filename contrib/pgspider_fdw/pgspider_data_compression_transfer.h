@@ -268,12 +268,13 @@ typedef struct SocketInfo
 /*
  * List of option for address scanning
  */
-enum HOST_MODE {
-	MODE_LOCAL = 0,
-	MODE_AUTO,
-	MODE_MANUAL
-};
-typedef enum HOST_MODE HOST_MODE;
+typedef enum HOST_MODE
+{
+	MODE_LOCAL = 0, /* Notify local IP to function */
+	MODE_AUTO,      /* Notify ip get from external service - ifconfig_service */
+	MODE_MANUAL     /* Notify ip get from user specification */
+}			HOST_MODE;
+
 /*
  * Option information for Data Compression Transfer Feauture
  */

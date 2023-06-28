@@ -6316,32 +6316,23 @@ INSERT INTO test_nat_tbl VALUES (10000);
 -- Migrate fail, ifconfig_service does not correct
 --Testcase 684:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2222') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Public IP Mode
 ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
-DETAIL:  pgspider_fdw: Request failed, server localhost:2222
+DETAIL:  pgspider_fdw: Curl error. Failed connect to localhost:2222; Connection refused
 -- Migrate fail, ip does not correct
 --Testcase 685:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
-INFO:  Batch Insert for pgspider_fdw, batch size = 10000
-INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Manual IP Mode
-ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
-DETAIL:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.net.SocketTimeoutException: connect timed out
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+ERROR:  "public_host" must be ip address
 -- Migrate fail, public_host and ifconfig_service cannot both config
 --Testcase 686:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-ERROR:  PGSpider: unexpected both options: public_host & ifconfig_service
+ERROR:  PGSpider: unexpected both options, either public_host or ifconfig_service are specified
 -- Migrate success
 --Testcase 687:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2255' ) SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Public IP Mode
 DROP DATASOURCE TABLE test_tbl;
 DROP FOREIGN TABLE test_tbl;
 -- Migrate fail, port out of range
@@ -6351,35 +6342,27 @@ ERROR:  "public_port" must be an integer value greater than 0 and less than 6553
 -- Migrate fail, port does not correct
 --Testcase 689:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '4444') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Manual IP Mode
 ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
 DETAIL:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.net.ConnectException: Connection refused (Connection refused)
 -- Migrate success, port valid
 --Testcase 690:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '24814') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Manual IP Mode
 DROP DATASOURCE TABLE test_tbl;
 DROP FOREIGN TABLE test_tbl;
 -- Migrate success
 --Testcase 691:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_port '24814', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
-INFO:  pgspider_fdw: Public IP Mode
 -- Migrate success
 --Testcase 692:
 MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
-INFO:  pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 1.000
-INFO:  pgspider_fdw: Manual IP Mode
 -- Migrate success
 --Testcase 693:
 MIGRATE TABLE test_nat_tbl TO test_tbl3 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl3', relay 'cloud_test');
@@ -6399,7 +6382,7 @@ NOTICE:  drop cascades to user mapping for public on server postgres_svr_test
 DROP EXTENSION postgres_fdw CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to server loopback
-drop cascades to user mapping for tsdv on server loopback
+drop cascades to user mapping for vagrant on server loopback
 drop cascades to server postgres1
 drop cascades to user mapping for public on server postgres1
 drop cascades to foreign table ft1__postgres1__0

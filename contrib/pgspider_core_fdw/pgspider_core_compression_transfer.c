@@ -102,11 +102,16 @@ spd_get_dct_option(Relation rel, int *socket_port, int *function_timeout, char *
 			(void) parse_int(defGetString(def), socket_port, 0, NULL);
 		else if (strcmp(def->defname, "function_timeout") == 0)
 			(void) parse_int(defGetString(def), function_timeout, 0, NULL);
-		else if (strcmp(def->defname, "public_host") == 0) {
+		else if (strcmp(def->defname, "public_host") == 0)
+		{
 			*public_host = defGetString(def);
-		} else if (strcmp(def->defname, "public_port") == 0) {
+		}
+		else if (strcmp(def->defname, "public_port") == 0)
+		{
 			(void) parse_int(defGetString(def), public_port, 0, NULL);
-		} else if (strcmp(def->defname, "ifconfig_service") == 0) {
+		}
+		else if (strcmp(def->defname, "ifconfig_service") == 0)
+		{
 			*ifconfig_service = defGetString(def);
 		}
 	}
@@ -172,10 +177,11 @@ get_local_ip()
 static char *
 get_external_ip(bool local_mode)
 {
-	if (local_mode) {
+	if (local_mode)
+	{
 		return get_local_ip();
 	}
-	elog(INFO, "pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)");
+	elog(DEBUG1, "pgspider_core_fdw: Listen INADDR_ANY (0.0.0.0)");
 	return "0.0.0.0";
 }
 
@@ -271,7 +277,7 @@ void *
 spd_socket_server_thread(void *arg)
 {
 	SocketInfo	   *socketInfo = (SocketInfo *) arg;
-	bool 		    local_mode = true;
+	bool			local_mode = true;
 	Latch			LocalLatchData;
 	int 			server_fd = -1;	/* Server file descriptor */
 	int 			client_socket = -1;
@@ -300,7 +306,8 @@ spd_socket_server_thread(void *arg)
 	/* Configuration for context of error handling and memory context. */
 	spd_setSocketServerThreadContext(socketInfo);
 
-	if (socketInfo->public_host != NULL || socketInfo->ifconfig_service != NULL) {
+	if (socketInfo->public_host != NULL || socketInfo->ifconfig_service != NULL)
+	{
 		local_mode = false;
 	}
 	/* get public ip of socket server */

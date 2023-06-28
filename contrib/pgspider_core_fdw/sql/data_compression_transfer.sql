@@ -2759,7 +2759,7 @@ INSERT INTO test_nat_tbl VALUES (10000);
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2222') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 -- Migrate fail, ip does not correct
 --Testcase 685:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 -- Migrate fail, public_host and ifconfig_service cannot both config
 --Testcase 686:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');

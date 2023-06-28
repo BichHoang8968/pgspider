@@ -25,6 +25,7 @@
 #include "pgspider_core_timemeasure.h"
 #include "libpq-fe.h"
 #include <arpa/inet.h>
+
 void
 			SpdFdwCreateSpi(char *sql_text, int expect_ret);
 
@@ -280,10 +281,11 @@ pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 			value = defGetString(def);
 
 			is_ip  = inet_pton(AF_INET, value, &(sa.sin_addr)) == 1;
-			if (!is_ip) {
+			if (!is_ip)
+			{
 				ereport(ERROR,
 					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						errmsg("\"%s\" must be auto, local or ip address",
+						errmsg("\"%s\" must be ip address",
 							def->defname)));
 			}
 			
@@ -330,9 +332,6 @@ InitSpdFdwOptions(void)
 		/* data compression transfer */
 		{"socket_port", ForeignTableRelationId, false},
 		{"function_timeout", ForeignTableRelationId, false},
-		{"public_host", ForeignServerRelationId, false},
-		{"public_port", ForeignServerRelationId, false},
-		{"ifconfig_service", ForeignServerRelationId, false},
 		{"public_host", ForeignTableRelationId, false},
 		{"public_port", ForeignTableRelationId, false},
 		{"ifconfig_service", ForeignTableRelationId, false},
