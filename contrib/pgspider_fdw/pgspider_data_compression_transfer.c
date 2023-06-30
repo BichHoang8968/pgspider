@@ -130,16 +130,43 @@ pgspiderGetLocalIp(void)
     /* Get host name */
     hostname = gethostname(hostbuffer, sizeof(hostbuffer));
     if (hostname == -1)
-        elog(ERROR, "Failed to get host name");
+        elog(ERROR, "pgspider_fdw: Failed to get host name");
 
     /* Get host information */
     host_entry = gethostbyname(hostbuffer);
     if (host_entry == NULL)
-        elog(ERROR, "Failed to get host information");
+        elog(ERROR, "pgspider_fdw: Failed to get host information");
 
     /* Convert Internet network address into ASCII string */
     hostIP = inet_ntoa(*((struct in_addr *)
                          host_entry->h_addr_list[0]));
+
+    return pstrdup(hostIP);
+}
+
+/*
+ * pgspiderGetHostIp
+ *     Get ip from manual public_host.
+ */
+static char *
+pgspiderGetHostIp(const char *public_host) 
+{
+    char           hostIP[INET_ADDRSTRLEN];
+    struct hostent *host_entry;
+	struct sockaddr_in sa;
+
+    /* Get host information */
+    host_entry = gethostbyname(public_host);
+    if (host_entry == NULL)
+        elog(ERROR, "pgspider_fdw: Failed to get host information");
+
+    /* Convert Internet network address into ASCII string */
+    if (!inet_ntop(AF_INET, ((struct in_addr *)
+                         host_entry->h_addr_list[0]), hostIP, INET_ADDRSTRLEN))
+    {
+        char *error = strerror(errno);
+        elog(ERROR,"pgspider_fdw: public_host error. %s", error);
+    }
 
     return pstrdup(hostIP);
 }
@@ -234,7 +261,7 @@ pgspiderGetExternalIp(DataCompressionTransferOption *dct_option)
         return pgspiderGetPublicIp(dct_option);
     case MODE_MANUAL:
         elog(DEBUG1, "pgspider_fdw: Manual IP Mode");
-        return dct_option->public_host;
+        return pgspiderGetHostIp(dct_option->public_host);
     default:
         break;
     }

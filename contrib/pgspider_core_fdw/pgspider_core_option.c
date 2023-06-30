@@ -264,33 +264,15 @@ pgspider_core_fdw_validator(PG_FUNCTION_ARGS)
 			if (!is_parsed)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("invalid value for integer option \"%s\": %s",
+						 errmsg("pgspider_core_fdw: invalid value for integer option \"%s\": %s",
 								def->defname, value)));
 
 			if (int_val <= 0 || int_val >= 65536)
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						 errmsg("\"%s\" must be an integer value greater than 0 and less than 65536",
+						 errmsg("pgspider_core_fdw: \"%s\" must be an integer value greater than 0 and less than 65536",
 								def->defname)));
 		}
-		else if (strcmp(def->defname, "public_host") == 0)
-		{
-			char	   *value;
-			bool        is_ip;
-			struct sockaddr_in sa;
-			value = defGetString(def);
-
-			is_ip  = inet_pton(AF_INET, value, &(sa.sin_addr)) == 1;
-			if (!is_ip)
-			{
-				ereport(ERROR,
-					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-						errmsg("\"%s\" must be ip address",
-							def->defname)));
-			}
-			
-		}
-
 	}
 
 	PG_RETURN_VOID();

@@ -6320,10 +6320,18 @@ INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
 ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
 DETAIL:  pgspider_fdw: Curl error. Failed connect to localhost:2222; Connection refused
--- Migrate fail, ip does not correct
+-- Migrate fail, host does not correct
 --Testcase 685:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-ERROR:  "public_host" must be ip address
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
+DETAIL:  pgspider_fdw: Failed to get host information
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider_no_exist.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.943
+ERROR:  Error occurred on a child table "test_tbl__cloud_test__0".
+DETAIL:  pgspider_fdw: Failed to get host information
 -- Migrate fail, public_host and ifconfig_service cannot both config
 --Testcase 686:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
@@ -6338,7 +6346,11 @@ DROP FOREIGN TABLE test_tbl;
 -- Migrate fail, port out of range
 --Testcase 688:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '0') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-ERROR:  "public_port" must be an integer value greater than 0 and less than 65536
+ERROR:  pgspider_core_fdw: "public_port" must be an integer value greater than 0 and less than 65536
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '65536') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+ERROR:  pgspider_core_fdw: "public_port" must be an integer value greater than 0 and less than 65536
+MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port 'localhost') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+ERROR:  pgspider_core_fdw: "public_port" must be an integer value greater than 0 and less than 65536
 -- Migrate fail, port does not correct
 --Testcase 689:
 MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '4444') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
@@ -6360,7 +6372,7 @@ INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 0.943
 -- Migrate success
 --Testcase 692:
-MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
+MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
 INFO:  Batch Insert for pgspider_fdw, batch size = 10000
 INFO:  compression ratio: 1.000
 -- Migrate success

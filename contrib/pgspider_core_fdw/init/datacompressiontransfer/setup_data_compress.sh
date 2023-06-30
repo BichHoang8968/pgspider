@@ -65,6 +65,13 @@ then
     ./pg_ctl -D ../test_data_compression start
   fi
   
+  # Create host_name alias
+  test -f /etc/hosts || sudo touch /etc/hosts
+  echo "Edit /etc/hosts: map 127.0.0.1 to pgspider.test"
+  if ! grep -q pgspider.test "/etc/hosts"; then
+    echo '127.0.0.1 pgspider.test' | sudo tee -a /etc/hosts
+  fi
+
   # Start SOCAT: Simulate port forward 4814->$PGSPIDER_SOCAT_PORT
   echo "Start socat forward port 4814"
   ps aux | grep -ie socat | awk '{print $2}' | xargs kill -9 > /dev/null 2>&1

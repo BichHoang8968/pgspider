@@ -170,12 +170,12 @@ get_local_ip()
 }
 
 /**
- * get_external_ip()
+ * get_listen_ip()
  *
- * Get public ip of host machine
+ * Listen ip of host machine
  */
 static char *
-get_external_ip(bool local_mode)
+get_listen_ip(bool local_mode)
 {
 	if (local_mode)
 	{
@@ -288,7 +288,7 @@ spd_socket_server_thread(void *arg)
 	int 			client = sizeof(cli);
 	struct timeval 	timeout = {.tv_usec = 0};
 	ListCell 	   *lc;
-	char	 	   *external_ip;
+	char	 	   *listen_ip;
 	bool	  		matched_child_thread;
 	fd_set			working_fds, master_fds;
 	int 			rv, max_fd, ret;
@@ -311,7 +311,7 @@ spd_socket_server_thread(void *arg)
 		local_mode = false;
 	}
 	/* get public ip of socket server */
-	external_ip = get_external_ip(local_mode);
+	listen_ip = get_listen_ip(local_mode);
 
 	/* Create socket descriptor */
 	if ((server_fd = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0)) < 0)
@@ -329,7 +329,7 @@ spd_socket_server_thread(void *arg)
 	}
 
 	address.sin_family = AF_INET;
-	address.sin_addr.s_addr = inet_addr(external_ip);
+	address.sin_addr.s_addr = inet_addr(listen_ip);
 	address.sin_port = htons(socket_port);
 
 	if (bind(server_fd, (struct sockaddr *) &address, addrlen) < 0)

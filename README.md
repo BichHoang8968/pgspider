@@ -424,7 +424,21 @@ It is required to provide`endpoint` and `relay` options to active this feature.
 - **org** as *string*, optional  
       The organization name of data store of InfluxDB server v2.0.  
       This option is only used when migrating to InfluxDB server v2.0.  
-      If migrating to InfluxDB server v2.0 without org option, error will be raise.
+      If migrating to InfluxDB server v2.0 without org option, error will be raise.  
+- **public_host** as *string*, optional  
+      The hostname or endpoint of host server.  
+      This option is use only in Data Compression Transfer Feature.  
+      If PGSPider is behide the NAT, specify host help relay to known host IP address.  
+      **public_host** is conflict with **ifconfig_service**, specify both options will raise error.  
+- **public_port** as *interger*, optional, default equal to **socket_port**  
+      The public port of PGSpider.  
+      This option is use only in Data Compression Transfer Feature.  
+      If PGSPider is behide the NAT, specify forward port help connection through NAT.  
+- **ifconfig_service** as *string*, optional  
+      The public service to lookup host ip (Example: ifconfig.me, ifconfig.co).  
+      This option is use only in Data Compression Transfer Feature.  
+      If PGSPider is behide the NAT, server can request external service to get host IP.  
+      **ifconfig_service** is conflict with **public_host**, specify both options will raise error.
 
 Examples:
   ```sql
