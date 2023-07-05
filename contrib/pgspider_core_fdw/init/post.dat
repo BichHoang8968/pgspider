@@ -40,3 +40,6 @@ CREATE TABLE tbl03_5 (i int);
 DROP TABLE IF EXISTS test2;
 CREATE TABLE test2 (i int);
 INSERT INTO test2 VALUES(1111);
+
+DROP TABLE IF EXISTS usermap;
+CREATE TABLE usermap(dtype text, id text , name text, location text, parentid text, updatetime timestamp DEFAULT now());

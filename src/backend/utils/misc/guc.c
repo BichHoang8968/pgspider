@@ -13149,64 +13149,87 @@ copy_guc_variables(void)
 			case PGC_BOOL:
 			{
 				struct config_bool *conf = (struct config_bool *) gconf;
-				bool		newval = *(((struct config_bool *) *main_gconf)->variable);
+				bool		reset_val = ((struct config_bool *) *main_gconf)->reset_val;
 				void	   *extra = ((struct config_bool *) *main_gconf)->gen.extra;
+				void	   *reset_extra = ((struct config_bool *) *main_gconf)->reset_extra;
 
-				*conf->variable = conf->reset_val = newval;
-				conf->gen.extra = conf->reset_extra = extra;
+				conf->reset_val = reset_val;
+				conf->gen.extra = extra;
+				conf->reset_extra = reset_extra;
 				break;
 			}
-		case PGC_INT:
+			case PGC_INT:
 			{
 				struct config_int *conf = (struct config_int *) gconf;
-				int		newval = *(((struct config_int *) *main_gconf)->variable);
+				int			reset_val = ((struct config_int *) *main_gconf)->reset_val;
 				void	   *extra = ((struct config_int *) *main_gconf)->gen.extra;
+				void	   *reset_extra = ((struct config_int *) *main_gconf)->reset_extra;
 
-				*conf->variable = conf->reset_val = newval;
-				conf->gen.extra = conf->reset_extra = extra;
-				break;
-			}
-		case PGC_REAL:
-			{
-				struct config_real *conf = (struct config_real *) gconf;
-				double		newval = *(((struct config_real *) *main_gconf)->variable);
-				void	   *extra = ((struct config_real *) *main_gconf)->gen.extra;
-
-				*conf->variable = conf->reset_val = newval;
-				conf->gen.extra = conf->reset_extra = extra;
-				break;
-			}
-		case PGC_STRING:
-			{
-				struct config_string *conf = (struct config_string *) gconf;
-				char	   *newval = NULL;
-				void	   *extra = ((struct config_string *) *main_gconf)->gen.extra;
-
-				if (conf->boot_val != NULL)
+				if (strcmp(conf->gen.name, "extra_float_digits") == 0)
 				{
-					/*
-					 * "search_path" and "DateStyle" are thread variables, duplicate values to avoid
-					 * race condition between threads.
-					 */
-					if (strcmp(conf->gen.name, "search_path") == 0 ||
-						strcmp(conf->gen.name, "DateStyle") == 0)
-						newval = guc_strdup(FATAL, *(((struct config_string *) *main_gconf)->variable));
-					else
-						newval = *(((struct config_string *) *main_gconf)->variable);
+					int		newval = *(((struct config_int *) *main_gconf)->variable);
+
+					*conf->variable = newval;
 				}
 
-				*conf->variable = conf->reset_val = newval;
-				conf->gen.extra = conf->reset_extra = extra;
+				conf->reset_val = reset_val;
+				conf->gen.extra = extra;
+				conf->reset_extra = reset_extra;
 				break;
 			}
-		case PGC_ENUM:
+			case PGC_REAL:
+			{
+				struct config_real *conf = (struct config_real *) gconf;
+				double		reset_val = ((struct config_real *) *main_gconf)->reset_val;
+				void	   *extra = ((struct config_real *) *main_gconf)->gen.extra;
+				void	   *reset_extra = ((struct config_real *) *main_gconf)->reset_extra;
+
+				conf->reset_val = reset_val;
+				conf->gen.extra = extra;
+				conf->reset_extra = reset_extra;
+				break;
+			}
+			case PGC_STRING:
+			{
+				struct config_string *conf = (struct config_string *) gconf;
+				char	   *reset_val = ((struct config_string *) *main_gconf)->reset_val;
+				void	   *extra = ((struct config_string *) *main_gconf)->gen.extra;
+				void	   *reset_extra = ((struct config_string *) *main_gconf)->reset_extra;
+
+				/*
+				 * "search_path" and "DateStyle" are thread variables, duplicate values to avoid
+				 * race condition between threads.
+				 */
+				if (strcmp(conf->gen.name, "search_path") == 0 ||
+					strcmp(conf->gen.name, "DateStyle") == 0)
+				{
+					char   *newval = guc_strdup(FATAL, *(((struct config_string *) *main_gconf)->variable));
+
+					*conf->variable = newval;
+				}
+
+				conf->reset_val = reset_val;
+				conf->gen.extra = extra;
+				conf->reset_extra = reset_extra;
+				break;
+			}
+			case PGC_ENUM:
 			{
 				struct config_enum *conf = (struct config_enum *) gconf;
-				int			newval = *(((struct config_enum *) *main_gconf)->variable);
+				int			reset_val = ((struct config_enum *) *main_gconf)->reset_val;
 				void	   *extra = ((struct config_enum *) *main_gconf)->gen.extra;
+				void	   *reset_extra = ((struct config_enum *) *main_gconf)->reset_extra;
 
-				*conf->variable = conf->reset_val = newval;
-				conf->gen.extra = conf->reset_extra = extra;
+				if (strcmp(conf->gen.name, "IntervalStyle") == 0)
+				{
+					int		newval = *(((struct config_enum *) *main_gconf)->variable);
+
+					*conf->variable = newval;
+				}
+
+				conf->reset_val = reset_val;
+				conf->gen.extra = extra;
+				conf->reset_extra = reset_extra;
 				break;
 			}
 		}
