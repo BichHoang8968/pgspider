@@ -391,19 +391,19 @@ SELECT * FROM test1 ORDER BY timestamp, col3;
 CREATE FOREIGN TABLE test1__parquet_s3_svr__8 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dummy-file.parquet');
 --Testcase 34:
 SELECT * FROM test1__parquet_s3_svr__8;
-ERROR:  parquet_s3_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+ERROR:  parquet_s3_fdw: failed to extract row groups from Parquet file: failed to open Parquet file HeadObject failed ('s3://test-bucket/dummy-file.parquet')
 -- Bucket does not exist
 --Testcase 35:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__9 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://dummy-bucket');
 --Testcase 36:
 SELECT * FROM test1__parquet_s3_svr__8;
-ERROR:  parquet_s3_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+ERROR:  parquet_s3_fdw: failed to extract row groups from Parquet file: failed to open Parquet file HeadObject failed ('s3://test-bucket/dummy-file.parquet')
 -- Directory does not exist
 --Testcase 37:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__10 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (dirname 's3://test-bucket/dummy-dir');
 --Testcase 38:
 SELECT * FROM test1__parquet_s3_svr__8;
-ERROR:  parquet_s3_fdw: failed to exctract row groups from Parquet file: failed to open Parquet file HeadObject failed
+ERROR:  parquet_s3_fdw: failed to extract row groups from Parquet file: failed to open Parquet file HeadObject failed ('s3://test-bucket/dummy-file.parquet')
 -- Use both options 'filename' and 'dirname'
 --Testcase 39:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__11 (timestamp timestamp, col1 text, col2 bigint, col3 double precision) SERVER parquet_s3_svr OPTIONS (filename 's3://test-bucket/dir1/file1.parquet', dirname 's3://test-bucket/dir1');
