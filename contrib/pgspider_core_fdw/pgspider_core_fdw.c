@@ -15868,6 +15868,7 @@ spd_GetRootQueryPathkeys(PlannerInfo *root, PlannerInfo *root_child)
 	root_child->distinct_pathkeys = root->distinct_pathkeys;
 	root_child->sort_pathkeys = root->sort_pathkeys;
 	root_child->query_pathkeys = root->query_pathkeys;
+	root_child->eq_classes = root->eq_classes;
 }
 
 /*
