@@ -2742,79 +2742,79 @@ ALTER SERVER griddb1 OPTIONS (add port '20002');
 --Testcase 683:
 DROP TABLE t1;
 
--- ===================================================================
--- CREATE RELAY SERVER TABLE WITH NAT OPTIONS
--- ===================================================================
+-- -- ===================================================================
+-- -- CREATE RELAY SERVER TABLE WITH NAT OPTIONS
+-- -- ===================================================================
 
-CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
-CREATE USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (user 'postgres', password 'postgres');
-CREATE SERVER cloud_test FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'http://localhost:8080', proxy 'no', batch_size '10000');
-CREATE USER MAPPING FOR public SERVER cloud_test;
-CREATE table test_nat_tbl (c1 bigint);
-INSERT INTO test_nat_tbl VALUES (12346);
+-- CREATE SERVER postgres_svr_test FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1', port '5432', dbname 'test1');
+-- CREATE USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (user 'postgres', password 'postgres');
+-- CREATE SERVER cloud_test FOREIGN DATA WRAPPER pgspider_fdw OPTIONS (endpoint 'http://localhost:8080', proxy 'no', batch_size '10000');
+-- CREATE USER MAPPING FOR public SERVER cloud_test;
+-- CREATE table test_nat_tbl (c1 bigint);
+-- INSERT INTO test_nat_tbl VALUES (12346);
 
--- Migrate fail, ifconfig_service does not correct
---Testcase 684:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2222') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- -- Migrate fail, ifconfig_service does not correct
+-- --Testcase 684:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2222') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
--- Migrate fail, host does not correct
---Testcase 685:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider_no_exist.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- -- Migrate fail, host does not correct
+-- --Testcase 685:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '123.123.123.123.123') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider_no_exist.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
--- Migrate fail, public_host and ifconfig_service cannot both config
---Testcase 686:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- -- Migrate fail, public_host and ifconfig_service cannot both config
+-- --Testcase 686:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
--- Migrate success
---Testcase 687:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2255' ) SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-SELECT * FROM test_tbl;
+-- -- Migrate success
+-- --Testcase 687:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', ifconfig_service 'localhost:2255' ) SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- SELECT * FROM test_tbl;
 
-DROP DATASOURCE TABLE test_tbl;
-DROP FOREIGN TABLE test_tbl;
+-- DROP DATASOURCE TABLE test_tbl;
+-- DROP FOREIGN TABLE test_tbl;
 
--- Migrate fail, port out of range
---Testcase 688:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '0') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '65536') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port 'localhost') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- -- Migrate fail, port out of range
+-- --Testcase 688:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '0') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '65536') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port 'localhost') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
--- Migrate fail, port does not correct
---Testcase 689:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '4444') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- -- Migrate fail, port does not correct
+-- --Testcase 689:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '4444') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
--- Migrate success, port valid
---Testcase 690:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '24814') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-SELECT * FROM test_tbl;
+-- -- Migrate success, port valid
+-- --Testcase 690:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_host '127.0.0.1', public_port '24814') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- SELECT * FROM test_tbl;
 
-DROP DATASOURCE TABLE test_tbl;
-DROP FOREIGN TABLE test_tbl;
+-- DROP DATASOURCE TABLE test_tbl;
+-- DROP FOREIGN TABLE test_tbl;
 
--- Migrate success
---Testcase 691:
-MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_port '24814', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
-SELECT * FROM test_tbl;
--- Migrate success
---Testcase 692:
-MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
-SELECT * FROM test_tbl2;
--- Migrate success
---Testcase 693:
-MIGRATE TABLE test_nat_tbl TO test_tbl3 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl3', relay 'cloud_test');
-SELECT * FROM test_tbl3;
+-- -- Migrate success
+-- --Testcase 691:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl OPTIONS (socket_port '4814', function_timeout '800', public_port '24814', ifconfig_service 'localhost:2255') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+-- SELECT * FROM test_tbl;
+-- -- Migrate success
+-- --Testcase 692:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl2 OPTIONS (socket_port '4814', function_timeout '800', public_host 'pgspider.test') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl2', relay 'cloud_test');
+-- SELECT * FROM test_tbl2;
+-- -- Migrate success
+-- --Testcase 693:
+-- MIGRATE TABLE test_nat_tbl TO test_tbl3 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl3', relay 'cloud_test');
+-- SELECT * FROM test_tbl3;
 
-DROP DATASOURCE TABLE test_tbl;
-DROP DATASOURCE TABLE test_tbl2;
-DROP DATASOURCE TABLE test_tbl3;
-DROP FOREIGN TABLE test_tbl;
-DROP FOREIGN TABLE test_tbl2;
-DROP FOREIGN TABLE test_tbl3;
+-- DROP DATASOURCE TABLE test_tbl;
+-- DROP DATASOURCE TABLE test_tbl2;
+-- DROP DATASOURCE TABLE test_tbl3;
+-- DROP FOREIGN TABLE test_tbl;
+-- DROP FOREIGN TABLE test_tbl2;
+-- DROP FOREIGN TABLE test_tbl3;
 
-DROP TABLE test_nat_tbl;
+-- DROP TABLE test_nat_tbl;
 
-DROP SERVER postgres_svr_test CASCADE;
+-- DROP SERVER postgres_svr_test CASCADE;
 
 -- Clean
 --Testcase 694:

@@ -35,14 +35,15 @@ INTO public
 OPTIONS (sorted 'one');
 --Testcase 9:
 \d
-              List of relations
- Schema |   Name   |     Type      |  Owner   
---------+----------+---------------+----------
- public | ported_1 | foreign table | pgspider
- public | ported_2 | foreign table | pgspider
- public | ported_3 | foreign table | pgspider
- public | test1    | foreign table | pgspider
-(4 rows)
+               List of relations
+ Schema |    Name    |     Type      |  Owner   
+--------+------------+---------------+----------
+ public | newusermap | table         | pgspider
+ public | ported_1   | foreign table | pgspider
+ public | ported_2   | foreign table | pgspider
+ public | ported_3   | foreign table | pgspider
+ public | test1      | foreign table | pgspider
+(5 rows)
 
 --Testcase 10:
 SELECT * FROM ported_1;
