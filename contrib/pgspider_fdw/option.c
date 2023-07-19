@@ -117,7 +117,7 @@ pgspider_fdw_validator(PG_FUNCTION_ARGS)
 
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-					 errmsg("invalid option \"%s\"", def->defname),
+					 errmsg("pgspider_fdw:  invalid option \"%s\"", def->defname),
 					 buf.len > 0
 					 ? errhint("Valid options in this context are: %s",
 							   buf.data)
@@ -300,7 +300,6 @@ InitPgFdwOptions(void)
 		{"function_timeout", ForeignServerRelationId, false},
 		{"serverid", ForeignTableRelationId, false},
 		{"userid", ForeignTableRelationId, false},
-
 		{NULL, InvalidOid, false}
 	};
 

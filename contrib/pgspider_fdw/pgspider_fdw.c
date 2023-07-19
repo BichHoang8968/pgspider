@@ -114,7 +114,13 @@ enum FdwModifyPrivateIndex
 	/* Port of socket for DATA COMPRESSION TRANSFER */
 	FdwModifyPrivateSocketPort,
 	/* Function timeout of Rest request for DATA COMPRESSION TRANSFER */
-	FdwModifyPrivateFunctionTimeout
+	FdwModifyPrivateFunctionTimeout,
+	/* Public host address for DATA COMPRESSION TRANSFER */
+	FdwModifyPrivatePublicHostAddr,
+	/* Public host port for DATA COMPRESSION TRANSFER */
+	FdwModifyPrivatePublicHostPort,
+	/* Public Vendor IP for DATA COMPRESSION TRANSFER */
+	FdwModifyPrivateTrustVendorIP,
 };
 
 /*
@@ -445,6 +451,7 @@ static PGSpiderFdwModifyState * create_foreign_modify(EState *estate,
 													  List *retrieved_attrs,
 													  int socket_port,
 													  int function_timeout,
+													  PGSpiderPublicHostInfo *publicHostInfo,
 													  bool data_compression_transfer_enabled);
 static TupleTableSlot **execute_foreign_modify(EState *estate,
 											   ResultRelInfo *resultRelInfo,
@@ -1936,6 +1943,7 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 	int			function_timeout = 0,
 				socket_port = 0;
 	bool		data_compression_transfer_enabled = false;
+	PGSpiderPublicHostInfo *public_host_info = NULL;
 	RangeTblEntry *rte;
 
 	/*
@@ -1962,6 +1970,10 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 	{
 		socket_port = intVal(list_nth(fdw_private, FdwModifyPrivateSocketPort));
 		function_timeout = intVal(list_nth(fdw_private, FdwModifyPrivateFunctionTimeout));
+		public_host_info = (PGSpiderPublicHostInfo*) palloc0(sizeof(PGSpiderPublicHostInfo));
+		public_host_info->public_host = strVal(list_nth(fdw_private, FdwModifyPrivatePublicHostAddr));
+		public_host_info->public_port = intVal(list_nth(fdw_private, FdwModifyPrivatePublicHostPort));
+		public_host_info->ifconfig_service = strVal(list_nth(fdw_private, FdwModifyPrivateTrustVendorIP));
 	}
 
 	/* Find RTE. */
@@ -1981,6 +1993,7 @@ pgspiderBeginForeignModify(ModifyTableState *mtstate,
 									retrieved_attrs,
 									socket_port,
 									function_timeout,
+									public_host_info,
 									data_compression_transfer_enabled);
 
 	resultRelInfo->ri_FdwState = fmstate;
@@ -2013,6 +2026,37 @@ pgspiderExecForeignInsert(EState *estate,
 		resultRelInfo->ri_FdwState = fmstate;
 
 	return rslot ? *rslot : NULL;
+}
+
+/*
+ * pgspiderSetupHostInfo
+ *      Check NAT option pass from foreigncmds.c: spd_create_migrate_dest_table
+ *
+*/
+static void pgspiderSetupHostInfo(PGSpiderFdwModifyState *fmstate , DataCompressionTransferOption *dct_option)
+{
+	PGSpiderPublicHostInfo *info = fmstate->public_host_info;
+	if(fmstate->public_host_info == NULL) 
+	{
+		return;
+	}
+
+	if (info->public_host != NULL)
+	{
+		dct_option->mode = MODE_MANUAL;
+		dct_option->public_host = info->public_host;
+	}
+
+	if (info->public_port > 0)
+	{
+		dct_option->public_port = info->public_port;
+	}
+
+	if (info->ifconfig_service != NULL)
+	{
+		dct_option->mode = MODE_AUTO;
+		dct_option->ifconfig_service = info->ifconfig_service;
+	}
 }
 
 /*
@@ -2103,7 +2147,7 @@ pgspiderExecForeignBatchInsert(EState *estate,
 		pgspiderPrepareConnectionURLData(&connData, fmstate->rel, &dct_option);
 
 		dct_option.function_timeout = fmstate->function_timeout;
-
+		pgspiderSetupHostInfo(fmstate, &dct_option);
 		/* Send request to Function */
 		PGSpiderRequestFunctionStart(BATCH_INSERT, &dct_option, fmstate, &authData, &connData, NULL);
 
@@ -2371,7 +2415,7 @@ pgspiderBeginForeignInsert(ModifyTableState *mtstate,
 									values_end_len,
 									retrieved_attrs != NIL,
 									retrieved_attrs,
-									0, 0, false);
+									0, 0, NULL, false);
 
 	/*
 	 * If the given resultRelInfo already has PGSpiderFdwModifyState set, it
@@ -4093,6 +4137,7 @@ create_foreign_modify(EState *estate,
 					  List *retrieved_attrs,
 					  int socket_port,
 					  int function_timeout,
+                      PGSpiderPublicHostInfo *publicHostInfo,
 					  bool data_compression_transfer_enabled)
 {
 	PGSpiderFdwModifyState *fmstate;
@@ -4128,6 +4173,7 @@ create_foreign_modify(EState *estate,
 			fmstate->socketThreadInfo.tableoid = table->relid;
 			fmstate->socket_port = socket_port;
 			fmstate->function_timeout = function_timeout;
+			fmstate->public_host_info = publicHostInfo;
 			fmstate->data_compression_transfer_enabled = data_compression_transfer_enabled;
 		}
 		else
@@ -5407,7 +5453,7 @@ pgspiderImportForeignSchema(ImportForeignSchemaStmt *stmt, Oid serverOid)
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
-					 errmsg("invalid option \"%s\"", def->defname)));
+					 errmsg("pgspider_fdw: invalid option \"%s\"", def->defname)));
 	}
 
 	/*

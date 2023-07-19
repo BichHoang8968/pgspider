@@ -258,7 +258,9 @@ typedef struct SocketInfo
 	bool	end_server;			/* flag to determine if socket server closed */
 	char   *err;				/* the error message of child socket server thread */
 	List   *socketThreadInfos;	/* Shared list with child pgspider_fdw */
-
+	char    *public_host;
+	int      public_port;
+	char    *ifconfig_service;
 	/* context for server socket thread */
 	ResourceOwner thrd_ResourceOwner;
 	MemoryContext threadTopMemoryContext;

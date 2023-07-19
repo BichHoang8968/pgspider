@@ -106,6 +106,11 @@ typedef struct migrate_cmd_context
 
 	/* temporary table prefix temp_<time create> */
 	char	   *temp_prefix;
+
+	/* temporary host info*/
+	char       *public_host;
+	int         public_port;
+	char       *ifconfig_service;
 } migrate_cmd_context;
 
 #define DCT_DEFAULT_BATCH_SIZE 1000			/* Default batch size for Data Compression Transfer Feature */
@@ -2148,10 +2153,40 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 	 */
 	if (data_compression_transfer_enabled)
 	{
-		multitenant_table = psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s OPTIONS (socket_port '%d', function_timeout '%d');",
+		StringInfoData options;
+		initStringInfo(&options);
+		
+		/*
+		 * pgspider_fdw notify public_host to function in compression transfer
+		 */
+		if (context->public_host)
+		{
+			appendStringInfo(&options, ", public_host '%s'", context->public_host);
+		}
+
+		/* Default public_port is socket_port
+		 * psgpider_fdw notify public_port to function in compression transfer
+		 * pgspider_core_fdw listen socket_port
+		 */
+		if (context->public_port != context->socket_port)
+		{
+			appendStringInfo(&options, ", public_port '%d'", context->public_port);
+		}
+
+		/*
+		 * pgspider_fdw get ip from ifconfig_service then notify to function in compression transfer
+		 */
+		if (context->ifconfig_service)
+		{
+			appendStringInfo(&options, ", ifconfig_service '%s'", context->ifconfig_service);
+		}
+		
+		multitenant_table = psprintf("CREATE FOREIGN TABLE %s(%s, __spd_url text) SERVER %s OPTIONS (socket_port '%d', function_timeout '%d' %s);",
 										context->dest_table_fullname, collist,
 										quote_identifier(context->use_multitenant_server),
-										context->socket_port, context->function_timeout);
+										context->socket_port, 
+										context->function_timeout,
+										options.data);
 	}
 	else
 	{
@@ -2475,7 +2510,7 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 	char	   *collist = NULL;
 	migrate_cmd_context context;
 	List	   *relay_command_list = NIL;
-
+	bool        is_public_port_set = false;
 	/* context init */
 	spd_migrate_context_init(&context);
 
@@ -2498,7 +2533,9 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 		context.src_table_name = pstrdup(RelationGetRelationName(src_rel));
 		context.src_table_fullname = spd_relation_get_full_name(src_rel);
 		context.src_table_is_multitenant = spd_is_multitenant_table(src_rel);
-
+		context.public_host = NULL;
+		context.public_port = 0;
+		context.ifconfig_service = NULL;
 		/* Get option USE_MULTITENANT_SERVER */
 		foreach(lc, stmt->dest_table_options)
 		{
@@ -2516,12 +2553,36 @@ CreateMigrateCommands(MigrateTableStmt * stmt, List **cmds, List **c_cmds)
 			else if (strcmp(def->defname, "function_timeout") == 0)
 			{
 				(void) parse_int(defGetString(def), &context.function_timeout, 0, NULL);
+			} 
+			else if (strcmp(def->defname, "public_host") == 0)
+			{
+				context.public_host = defGetString(def);
+			}
+			else if (strcmp(def->defname, "public_port") == 0)
+			{
+				(void) parse_int(defGetString(def), &context.public_port, 0, NULL);
+				is_public_port_set = true;
+			}
+			else if (strcmp(def->defname, "ifconfig_service") == 0)
+			{
+				context.ifconfig_service = defGetString(def);
 			}
 			else
 			{
 				elog(ERROR, "PGSpider: unexpected option: %s", def->defname);
 			}
 		}
+
+		if (!is_public_port_set)
+		{
+			context.public_port = context.socket_port;
+		}
+		
+		if (context.public_host != NULL && context.ifconfig_service != NULL)
+		{
+			elog(ERROR, "PGSpider: unexpected both options, either public_host or ifconfig_service are specified");
+		}
+
 
 		/* dest table is multitenant table */
 		if (list_length(stmt->dest_server_list) > 1 || context.use_multitenant_server)
