@@ -2391,6 +2391,7 @@ spd_add_to_flat_tlist(List *tlist, Expr *expr, List **mapping_tlist,
 	{
 		case T_OpExpr:
 		case T_BoolExpr:
+		case T_ScalarArrayOpExpr:
 			{
 				/* Add original mapping list. */
 				if (!spd_tlist_member(expr, tlist, &target_num) && !is_having_qual)

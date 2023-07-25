@@ -2625,27 +2625,45 @@ SELECT c1, c2, c3 || c7, c4-c5, c8/c9 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7
 
 --Testcase 163:
 EXPLAIN VERBOSE SELECT c4/12+c5, c6, c7, c8/(c5-c9), c10, c11 + '3 days'::interval FROM tbl01 GROUP BY c3, c4, c5, c6, c7, c8, c9, c10, c11 HAVING c3 = ANY(array_agg(c3)) OFFSET 3;
-                                                                              QUERY PLAN                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=474.24..474.24 rows=1 width=1606)
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=596.98..600.60 rows=7 width=1606)
    Output: ((((c4 / 12))::double precision + c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, ((c11 + '@ 3 days'::interval)), c3, c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=353.59..474.24 rows=1 width=1606)
-         Output: ((((c4 / 12))::double precision + c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, ((c11 + '@ 3 days'::interval)), c3, c4, c5, c8, c9, c11
-         Node: postgres_svr_1 / Status: Alive
-           Limit push-down: no
-           Agg push-down: yes
-           Relations: Aggregate on (public.tbl01)
-           Remote SQL: SELECT c4, c5, c6, c7, c8, c9, c10, c11, c3, (c3 = ANY (array_agg(c3))) FROM public.tbl01 GROUP BY 9, 1, 2, 3, 4, 5, 6, 7, 8
-         Node: postgres_svr_2 / Status: Alive
-           Limit push-down: no
-           Agg push-down: yes
-           Relations: Aggregate on (public.tbl01)
-           Remote SQL: SELECT c4, c5, c6, c7, c8, c9, c10, c11, c3, (c3 = ANY (array_agg(c3))) FROM public.tbl01 GROUP BY 9, 1, 2, 3, 4, 5, 6, 7, 8
+   ->  HashAggregate  (cost=595.43..600.60 rows=10 width=1606)
+         Output: (((c4 / 12))::double precision + c5), c6, c7, ((c8)::double precision / (c5 - c9)), c10, (c11 + '@ 3 days'::interval), c3, c4, c5, c8, c9, c11
+         Group Key: tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
+         Filter: (tbl01.c3 = ANY (array_agg(tbl01.c3)))
+         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1582)
+               Output: c6, c7, c10, c3, c4, c5, c8, c9, c11
+               Node: postgres_svr_1 / Status: Alive
+                 Limit push-down: no
+                 Remote SQL: SELECT c3, c4, c5, c6, c7, c8, c9, c10, c11 FROM public.tbl01
+               Node: postgres_svr_2 / Status: Alive
+                 Limit push-down: no
+                 Remote SQL: SELECT c3, c4, c5, c6, c7, c8, c9, c10, c11 FROM public.tbl01
 (14 rows)
 
 --Testcase 164:
 SELECT c4/12+c5, c6, c7, c8/(c5-c9), c10, c11 + '3 days'::interval FROM tbl01 GROUP BY c3, c4, c5, c6, c7, c8, c9, c10, c11 HAVING c3 = ANY(array_agg(c3)) OFFSET 3;
-psql:sql/limit/limit_orderby.sql:351: ERROR:  syntax error at or near ")"
+  ?column?  | c6 |                  c7                  |        ?column?        | c10 |      ?column?       
+------------+----+--------------------------------------+------------------------+-----+---------------------
+       -474 | 33 | ((-99999,999999),(1,1))              |     -5.352002992767734 |   6 | 0001-01-04 00:00:00
+         37 | 33 | Ông là nhà văn                       |    -12.137270946894748 |   7 | 2008-10-22 10:23:54
+   45364.25 | 33 | {"name":"9a1b5b13a5d5"}              |     102.48912565644419 |   5 | 4000-01-03 23:59:58
+  62032.453 | 33 | сковорода                            |    -1.0744568371105303 |   8 | 2008-10-22 10:23:54
+    7235.25 | 33 | 友達と会うので遅刻した               |                     -0 |   0 | 2019-10-22 10:23:54
+   45364.25 | 33 | {"name":"9a1b5b13a5d5"}              |     102.48912565644419 |   5 | 4000-01-03 23:59:58
+    9673.65 | 33 | 2f404849-f62c-4234-b0c8-e230bd694045 |     0.5236644380194273 |   2 | 2004-10-22 10:23:54
+ -652640.25 | 33 | 友達と会うので遅刻した               |  -0.010010111263826726 |   5 | 2019-10-22 10:23:54
+ -656280.25 | 33 | 格納用のドキュメント                 |       69.5275376740044 |   0 | 2004-10-22 10:23:54
+ -656285.25 | 33 | 友達と会うので遅刻した               |  -0.010010111263826726 |   5 | 2019-10-22 10:23:54
+ -652640.25 | 33 | 友達と会うので遅刻した               |    -11227948664328.355 |   5 | 2000-01-04 00:00:00
+    2815.75 | 33 | {"name":"b!WX4IJ%"}                  | -6.131212999999999e-12 |   1 | 2000-01-04 00:00:00
+     322.75 | 33 | {"name":"b!WX4IJ%"}                  | -6.131212999999999e-12 |   1 | 0001-01-04 00:00:00
+ -656280.25 | 33 | 格納用のドキュメント                 |       69.5275376740044 |   0 | 2004-10-22 10:23:54
+         37 | 33 | Ông là nhà văn                       |    -12.137270946894748 |   7 | 2008-10-22 10:23:54
+(15 rows)
+
 --Testcase 165:
 EXPLAIN VERBOSE SELECT c1 || c2, c3, abs(c4-c5), abs(c8/23+c9), c11 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING string_agg(c3, ' ' ORDER BY c3) != 'a3W' OFFSET 1;
                                                                  QUERY PLAN                                                                 

@@ -3897,41 +3897,39 @@ SELECT c1, c2, c3 || c7, c4-c5, c8/c9 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7
 psql:sql/limit/limit_orderby.sql:347: ERROR:  division by zero
 --Testcase 163:
 EXPLAIN VERBOSE SELECT c4/12+c5, c6, c7, c8/(c5-c9), c10, c11 + '3 days'::interval FROM tbl01 GROUP BY c3, c4, c5, c6, c7, c8, c9, c10, c11 HAVING c3 = ANY(array_agg(c3)) OFFSET 3;
-                                                                              QUERY PLAN                                                                              
-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=237.12..237.12 rows=1 width=1606)
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=7611.63..7615.26 rows=7 width=1606)
    Output: ((((c4 / 12))::double precision + c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, ((c11 + '@ 3 days'::interval)), c3, c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=176.79..237.12 rows=1 width=1606)
-         Output: ((((c4 / 12))::double precision + c5)), c6, c7, (((c8)::double precision / (c5 - c9))), c10, ((c11 + '@ 3 days'::interval)), c3, c4, c5, c8, c9, c11
-         Node: file_svr / Status: Alive
-           Limit push-down: no
-           Agg push-down: no
-           Foreign File: /tmp/file_fdw_multi.csv
-           Foreign File Size: 1346 b
-         Node: influx_svr / Status: Alive
-           Limit push-down: no
-           Agg push-down: no
-           InfluxDB query: SELECT "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11" FROM "tbl01"
-         Node: mysql_svr / Status: Alive
-           Limit push-down: no
-           Agg push-down: no
-           Local server startup cost: 10
-           Remote query: SELECT `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM `limit_orderby`.`tbl01`
-         Node: postgres_svr / Status: Alive
-           Limit push-down: no
-           Agg push-down: yes
-           Relations: Aggregate on (public.tbl01)
-           Remote SQL: SELECT c4, c5, c6, c7, c8, c9, c10, c11, c3, (c3 = ANY (array_agg(c3))) FROM public.tbl01 GROUP BY 9, 1, 2, 3, 4, 5, 6, 7, 8
-         Node: tinybrace_svr / Status: Alive
-           Limit push-down: no
-           Agg push-down: no
-           TinyBrace query: SELECT `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM "tbl01"
-           TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
-(28 rows)
+   ->  HashAggregate  (cost=7610.08..7615.26 rows=10 width=1606)
+         Output: (((c4 / 12))::double precision + c5), c6, c7, ((c8)::double precision / (c5 - c9)), c10, (c11 + '@ 3 days'::interval), c3, c4, c5, c8, c9, c11
+         Group Key: tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
+         Filter: (tbl01.c3 = ANY (array_agg(tbl01.c3)))
+         ->  Foreign Scan on public.tbl01  (cost=220.00..7267.38 rows=13708 width=1582)
+               Output: c6, c7, c10, c3, c4, c5, c8, c9, c11
+               Node: file_svr / Status: Alive
+                 Limit push-down: no
+                 Foreign File: /tmp/file_fdw_multi.csv
+                 Foreign File Size: 1346 b
+               Node: influx_svr / Status: Alive
+                 Limit push-down: no
+                 InfluxDB query: SELECT "c3", "c4", "c5", "c6", "c7", "c8", "c9", "c10", "c11" FROM "tbl01"
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: no
+                 Local server startup cost: 10
+                 Remote query: SELECT `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM `limit_orderby`.`tbl01`
+               Node: postgres_svr / Status: Alive
+                 Limit push-down: no
+                 Remote SQL: SELECT c3, c4, c5, c6, c7, c8, c9, c10, c11 FROM public.tbl01
+               Node: tinybrace_svr / Status: Alive
+                 Limit push-down: no
+                 TinyBrace query: SELECT `c3`, `c4`, `c5`, `c6`, `c7`, `c8`, `c9`, `c10`, `c11` FROM "tbl01"
+                 TinyBrace plan: SCAN TABLE tbl01 (~1000000 rows)
+(26 rows)
 
 --Testcase 164:
 SELECT c4/12+c5, c6, c7, c8/(c5-c9), c10, c11 + '3 days'::interval FROM tbl01 GROUP BY c3, c4, c5, c6, c7, c8, c9, c10, c11 HAVING c3 = ANY(array_agg(c3)) OFFSET 3;
-psql:sql/limit/limit_orderby.sql:351: ERROR:  syntax error at or near ")"
+psql:sql/limit/limit_orderby.sql:351: ERROR:  division by zero
 --Testcase 165:
 EXPLAIN VERBOSE SELECT c1 || c2, c3, abs(c4-c5), abs(c8/23+c9), c11 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING string_agg(c3, ' ' ORDER BY c3) != 'a3W' OFFSET 1;
                                                                  QUERY PLAN                                                                 
