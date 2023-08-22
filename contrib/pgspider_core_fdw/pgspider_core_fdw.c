@@ -1186,17 +1186,19 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeM
 	 */
 	if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot *) slot)->tuple)
 	{
-		HeapTuple tuple = slot->tts_ops->get_heap_tuple(slot);
-
-		/* Extract heap tuple data into values and isnull arrays */
-		heap_deform_tuple(tuple, slot->tts_tupleDescriptor, que->tuples[idx]->tts_values, que->tuples[idx]->tts_isnull);
-
-		/* Copy tuple's tid */
-		que->tuples[idx]->tts_tid = tuple->t_self;
+		/*
+		 * For some FDWs like postgres_fdw, pgspider_fdw, they can reset batch_cxt
+		 * tuple memory context while PGSpider Core is using data allocated by that
+		 * memory context. Using a copy of an entire tuple is necessary to avoid corrupt
+		 * record data.
+		 */
+		ExecStoreHeapTuple(slot->tts_ops->copy_heap_tuple(slot),
+						   que->tuples[idx],
+						   false);
 	}
 	else
 	{
-		/* Store virtual tuple */
+		/* Virtual tuple */
 		natts = que->tuples[idx]->tts_tupleDescriptor->natts;
 		memcpy(que->tuples[idx]->tts_isnull, slot->tts_isnull, natts * sizeof(bool));
 
@@ -1217,13 +1219,13 @@ spd_queue_add(SpdTupleQueue * que, TupleTableSlot *slot, bool deepcopy, SpdTimeM
 		}
 		else
 			/*
-			* Even if deep copy is not necessary, tts_values array cannot be
-			* reused because it is overwritten by child fdw
-			*/
+			 * Even if deep copy is not necessary, tts_values array cannot be
+			 * reused because it is overwritten by child fdw
+			 */
 			memcpy(que->tuples[idx]->tts_values, slot->tts_values, (natts * sizeof(Datum)));
-	}
 
-	ExecStoreVirtualTuple(que->tuples[idx]);
+		ExecStoreVirtualTuple(que->tuples[idx]);
+	}
 
 	/* serveroid and tableoid are also stored so that we can know where the slot is from */
 	que->serveroid[idx] = serveroid;
@@ -11452,15 +11454,30 @@ spd_IterateForeignScan(ForeignScanState *node)
 			return NULL;
 
 		/*
-		 * Store virtual slot under the management of main thread
-		 * to avoid conflict with child thread since both of them
-		 * handle slots of the same queue at the same time.
+		 * Return main tuple slot which used main memory context via tts_mcxt variable.
+		 * This is used to avoid using the shared memory context via tts_mcxt variable
+		 * while PGSpider Core allocates some memories into tts_mcxt memory context and
+		 * child thread tries to free some memories in that context concurrently. That
+		 * make memory context corrupted.
+		 *
+		 * The child slot had gotten from the queue, it is either a HeapTuple slot or a VirtualTuple
+		 * slot when adding a child slot to queue, main slot will point to the built child tuple
+		 * for HeapTuple case or point to the built child values/isnull arrays for VirtualTuple case.
 		 */
-		tempSlot->tts_values = slot->tts_values;
-		tempSlot->tts_isnull = slot->tts_isnull;
-		if (ItemPointerIsValid(&(slot->tts_tid)))
-			tempSlot->tts_tid = slot->tts_tid;
-		ExecStoreVirtualTuple(tempSlot);
+		if (TTS_IS_HEAPTUPLE(slot) && ((HeapTupleTableSlot *) slot)->tuple)
+		{
+			HeapTupleTableSlot *hslot = (HeapTupleTableSlot *) slot;
+
+			ExecStoreHeapTuple(hslot->tuple, tempSlot, false);
+		}
+		else
+		{
+			/* Virtual tuple */
+			tempSlot->tts_values = slot->tts_values;
+			tempSlot->tts_isnull = slot->tts_isnull;
+
+			ExecStoreVirtualTuple(tempSlot);
+		}
 	}
 
 	spd_tm_accum_diff(&fdw_private->tm_info, SPD_TM_PARENT_ID, SPD_TM_PARENT_ITERATE);
