@@ -17,13 +17,14 @@ dnl Read the Autoconf manual for details.
 dnl
 m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
 
-AC_INIT([PostgreSQL], [15.0], [pgsql-bugs@lists.postgresql.org], [], [https://www.postgresql.org/])
+AC_INIT([PGSpider], [15.0], [pgsql-bugs@lists.postgresql.org], [], [https://github.com/pgspider/pgspider])
 
 m4_if(m4_defn([m4_PACKAGE_VERSION]), [2.69], [], [m4_fatal([Autoconf version 2.69 is required.
-Untested combinations of 'autoconf' and PostgreSQL versions are not
+Untested combinations of 'autoconf' and PGSpider versions are not
 recommended.  You can remove the check from 'configure.ac' but it is then
 your responsibility whether the result works or not.])])
 AC_COPYRIGHT([Copyright (c) 1996-2022, PostgreSQL Global Development Group])
+AC_COPYRIGHT([Copyright (c) 2018, TOSHIBA CORPORATION])
 AC_CONFIG_SRCDIR([src/backend/access/common/heaptuple.c])
 AC_CONFIG_AUX_DIR(config)
 AC_PREFIX_DEFAULT(/usr/local/pgspider)
@@ -33,14 +34,16 @@ AC_DEFINE_UNQUOTED(CONFIGURE_ARGS, ["$ac_configure_args"], [Saved arguments from
 [PG_MINORVERSION=`expr "$PACKAGE_VERSION" : '.*\.\([0-9][0-9]*\)'`]
 test -n "$PG_MINORVERSION" || PG_MINORVERSION=0
 AC_SUBST(PG_MAJORVERSION)
-AC_DEFINE_UNQUOTED(PG_MAJORVERSION, "$PG_MAJORVERSION", [PostgreSQL major version as a string])
-AC_DEFINE_UNQUOTED(PG_MAJORVERSION_NUM, $PG_MAJORVERSION, [PostgreSQL major version number])
-AC_DEFINE_UNQUOTED(PG_MINORVERSION_NUM, $PG_MINORVERSION, [PostgreSQL minor version number])
+AC_DEFINE_UNQUOTED(PG_MAJORVERSION, "$PG_MAJORVERSION", [PGSpider major version as a string])
+AC_DEFINE_UNQUOTED(PG_MAJORVERSION_NUM, $PG_MAJORVERSION, [PGSpider major version number])
+AC_DEFINE_UNQUOTED(PG_MINORVERSION_NUM, $PG_MINORVERSION, [PGSpider minor version number])
+AC_DEFINE_UNQUOTED(PGSPIDER, 1, [Define to 1 to enable features of PGSpider server.])
+AC_DEFINE_UNQUOTED(PD_STORED, 1, [Define to 1 to enable Parallel Distributed Stored Function feature.])
 
 PGAC_ARG_REQ(with, extra-version, [STRING], [append STRING to version],
              [PG_VERSION="$PACKAGE_VERSION$withval"],
              [PG_VERSION="$PACKAGE_VERSION"])
-AC_DEFINE_UNQUOTED(PG_VERSION, "$PG_VERSION", [PostgreSQL version as a string])
+AC_DEFINE_UNQUOTED(PG_VERSION, "$PG_VERSION", [PGSpider version as a string])
 
 AC_CANONICAL_HOST
 
@@ -79,7 +82,7 @@ esac
   if test x"$template" = x"" ; then
     AC_MSG_ERROR([[
 *******************************************************************
-PostgreSQL has apparently not been ported to your platform yet.
+PGSpider has apparently not been ported to your platform yet.
 To try a manual configuration, look into the src/template directory
 for a similar platform and use the '--with-template=' option.
 
@@ -153,12 +156,12 @@ AC_SUBST(enable_nls)
 AC_SUBST(WANTED_LANGUAGES)
 
 #
-# Default port number (--with-pgport), default 5432
+# Default port number (--with-pgport), default 4813
 #
 AC_MSG_CHECKING([for default port number])
-PGAC_ARG_REQ(with, pgport, [PORTNUM], [set default port number [5432]],
+PGAC_ARG_REQ(with, pgport, [PORTNUM], [set default port number [4813]],
              [default_port=$withval],
-             [default_port=5432])
+             [default_port=4813])
 AC_MSG_RESULT([$default_port])
 # Need both of these because some places want an integer and some a string
 AC_DEFINE_UNQUOTED(DEF_PGPORT, ${default_port},
@@ -716,7 +719,7 @@ AC_COMPILE_IFELSE([AC_LANG_PROGRAM([], [
 choke me
 @%:@endif
 ])], [],
-[AC_MSG_ERROR([Compiling PostgreSQL with clang, on 32bit x86, requires SSE2 support. Use -msse2 or use gcc.])])
+[AC_MSG_ERROR([Compiling PGSpider with clang, on 32bit x86, requires SSE2 support. Use -msse2 or use gcc.])])
 fi
 
 AC_PROG_CPP
@@ -872,7 +875,7 @@ PGAC_ARG_REQ(with, krb-srvnam,
              [with_krb_srvnam="postgres"])
 AC_SUBST(with_krb_srvnam)
 AC_DEFINE_UNQUOTED([PG_KRB_SRVNAM], ["$with_krb_srvnam"],
-                   [Define to the name of the default PostgreSQL service principal in Kerberos (GSSAPI). (--with-krb-srvnam=NAME)])
+                   [Define to the name of the default PGSpider service principal in Kerberos (GSSAPI). (--with-krb-srvnam=NAME)])
 
 
 #
@@ -2372,7 +2375,7 @@ else
   if test x"$ac_cv_file__dev_urandom" = x"no" ; then
     AC_MSG_ERROR([
 no source of strong random numbers was found
-PostgreSQL can use OpenSSL, native Windows API or /dev/urandom as a source of random numbers.])
+PGSpider can use OpenSSL, native Windows API or /dev/urandom as a source of random numbers.])
   fi
 fi
 
@@ -2506,14 +2509,14 @@ else
 fi
 
 AC_DEFINE_UNQUOTED(PG_VERSION_STR,
-                   ["PostgreSQL $PG_VERSION on $host, compiled by $cc_string, `expr $ac_cv_sizeof_void_p \* 8`-bit"],
+                   ["PGSpider $PG_VERSION on $host, compiled by $cc_string, `expr $ac_cv_sizeof_void_p \* 8`-bit"],
                    [A string containing the version number, platform, and C compiler])
 
 # Supply a numeric version string for use by 3rd party add-ons
 # awk -F is a regex on some platforms, and not on others, so make "." a tab
 [PG_VERSION_NUM="`echo $PG_MAJORVERSION $PG_MINORVERSION |
 $AWK '{printf "%d%04d", $1, $2}'`"]
-AC_DEFINE_UNQUOTED(PG_VERSION_NUM, $PG_VERSION_NUM, [PostgreSQL version as a number])
+AC_DEFINE_UNQUOTED(PG_VERSION_NUM, $PG_VERSION_NUM, [PGSpider version as a number])
 AC_SUBST(PG_VERSION_NUM)
 
 # If we are inserting PG_SYSROOT into CPPFLAGS, do so symbolically not
