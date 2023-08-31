@@ -1795,6 +1795,28 @@ spd_relation_get_full_name(Relation rel)
 }
 
 /**
+ * @brief Check if the option should be skipped for specific fdw
+ *
+ * @param[in] fdw_name foreign data wrapper name
+ * @param[in] option option name
+ * @return bool
+ */
+static bool
+spd_skip_fdw_option(char *fdw_name, char *option)
+{
+	/*
+	 * The following option cannot be passed into specific fdw.
+	 * For example, influxdb_fdw does not support "org" option.
+	 * It is added only for support data compression transfer feature.
+	 * Therefore, it should be skipped for influxdb_fdw.
+	 */
+	if (strcmp(fdw_name, "influxdb_fdw") == 0 && strcmp(option, "org") == 0)
+		return true;
+	else
+		return false;
+}
+
+/**
  * @brief create CREATE FOREIGN TABLE command
  *
  * @param buf returned sql
@@ -1803,10 +1825,9 @@ spd_relation_get_full_name(Relation rel)
  * @param server foreign table server info
  * @param need_spdurl flag to specify __spd_url column is needed or not
  * @param relay relay server name for data migrate transfer feature
- * @param need_org flag to specify org option is needed or not
  */
 static char *
-spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateServerItem * server, bool need_spdurl, char *relay, bool need_org)
+spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateServerItem * server, bool need_spdurl, char *relay)
 {
 	ListCell   *optcell;
 	bool		first = true;
@@ -1817,9 +1838,17 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 	char	   *server_name;
 	Oid			serverID;
 	Oid			userID;
+	ForeignDataWrapper *fdw;
 
 	if (relay == NULL)
+	{
+		ForeignServer *fs_target;
+
 		server_name = server->dest_server_name;
+		fs_target = GetForeignServerByName(server->dest_server_name, false);
+		/* Get target fdw */
+		fdw = GetForeignDataWrapper(fs_target->fdwid);
+	}
 	else
 	{
 		ForeignServer *fs_target;
@@ -1833,6 +1862,9 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 		userID = fs_target->owner;
 
 		fs_relay = GetForeignServerByName(relay, false);
+
+		/* Get relay fdw */
+		fdw = GetForeignDataWrapper(fs_relay->fdwid);
 
 		/* check batch_size exists in relay server */
 		foreach(optcell, fs_relay->options)
@@ -1875,7 +1907,8 @@ spd_deparse_create_foreign_table_sql(Relation srcrel, char *table_name, MigrateS
 		if (strcmp(od->defname, "relay") == 0)
 			continue;
 
-		if (strcmp(od->defname, "org") == 0 && need_org == false)
+		/* If options cannot be passed into fdw, skip it */
+		if (spd_skip_fdw_option(fdw->fdwname, od->defname))
 			continue;
 
 		if (!first)
@@ -2209,9 +2242,6 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 		char	   *relay = NULL;
 		char	   *sql_drop_table_child_foreign_table;
 		char	   *sql_create_table_child_foreign_table;
-		char	   *org = NULL;		/*organization name of data store on InfluxDB */
-		ForeignServer *fs_target;
-		ForeignDataWrapper *fdw;
 
 		dest_server_item = (MigrateServerItem *) lfirst(lc);
 		child_idx = spd_server_get_child_idx(&child_svr_list, dest_server_item->dest_server_name);
@@ -2229,7 +2259,7 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 		 * For all fdws, remove `relay` option from the list of server options
 		 * For influxdb fdw, remove `org` option from the list of server options
 		 */
-		sql_create_table_child_foreign_table = spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, NULL, false);
+		sql_create_table_child_foreign_table = spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, NULL);
 		sql_drop_table_child_foreign_table = psprintf("DROP FOREIGN TABLE %s;", child_table_name);
 
 		/* get relay and org option for each child destination server */
@@ -2238,24 +2268,11 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 			DefElem    *def = (DefElem *) lfirst(lc);
 
 			if (strcmp(def->defname, "relay") == 0)
+			{
 				relay = defGetString(def);
-			else if (strcmp(def->defname, "org") == 0)
-				org = defGetString(def);
+				break;
+			}
 		}
-
-		/* validate options for infludDB FDW */
-		fs_target = GetForeignServerByName(dest_server_item->dest_server_name, true);
-		fdw = GetForeignDataWrapper(fs_target->fdwid);
-
-		if (strcmp(fdw->fdwname, "influxdb_fdw") == 0)
-		{
-			if (relay != NULL && org == NULL)
-				elog(ERROR, "PGSpider: org must be specified along with relay");
-		}
-
-		/* validate option for all fdws */
-		if (relay == NULL && org != NULL)
-			elog(ERROR, "PGSpider: org must not be specified if there is no relay");
 
 		if (relay != NULL)
 		{
@@ -2266,7 +2283,7 @@ spd_create_migrate_dest_table(MigrateTableStmt *stmt,
 
 			/* Create foreign table for relay server */
 			spd_add_query(context,
-						  spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, relay, (org != NULL) ? true : false ),
+						  spd_deparse_create_foreign_table_sql(src_rel, child_table_name, dest_server_item, false, relay),
 						  psprintf("DROP FOREIGN TABLE %s;", child_table_name));
 
 			*relay_command_list = lappend(*relay_command_list, psprintf("DROP FOREIGN TABLE %s;", child_table_name));

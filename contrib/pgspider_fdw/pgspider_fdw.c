@@ -2081,8 +2081,6 @@ pgspiderExecForeignBatchInsert(EState *estate,
 		int			err;
 		SocketInfo *socketInfo;
 		sigset_t	old_mask;
-		AuthenticationData authData;
-		ConnectionURLData connData;
 		int			compressedlength;
 		DataCompressionTransferOption dct_option;
 		MemoryContext oldcontext;
@@ -2097,11 +2095,8 @@ pgspiderExecForeignBatchInsert(EState *estate,
 
 		init_InsertData(&insertData);
 
-		/* Set tablename */
-		insertData.tableName = dct_option.table_name;
-
 		/* Set ColumnInfo */
-		insertData.columnInfos = create_column_info_array(fmstate->rel, fmstate->target_attrs, dct_option.tagsList);
+		insertData.columnInfos = create_column_info_array(fmstate->rel, fmstate->target_attrs);
 
 		/* Set TransferValue */
 		insertData.values = create_values_array(fmstate, slots, *numSlots);
@@ -2140,16 +2135,10 @@ pgspiderExecForeignBatchInsert(EState *estate,
 			ereport(ERROR, (errmsg("pgspider_fdw: Cannot create thread! error=%d", err)));
 		SPD_SIGBLOCK_END_TRY(old_mask);
 
-		init_AuthenticationData(&authData);
-		init_ConnectionURLData(&connData);
-
-		pgspiderPrepareAuthenticationData(&authData, &dct_option);
-		pgspiderPrepareConnectionURLData(&connData, fmstate->rel, &dct_option);
-
 		dct_option.function_timeout = fmstate->function_timeout;
 		pgspiderSetupHostInfo(fmstate, &dct_option);
 		/* Send request to Function */
-		PGSpiderRequestFunctionStart(BATCH_INSERT, &dct_option, fmstate, &authData, &connData, NULL);
+		PGSpiderRequestFunctionStart(BATCH_INSERT, &dct_option, fmstate, fmstate->rel, false);
 
 		err = pthread_join(fmstate->socket_thread, NULL);
 		if (err != 0)
@@ -7963,9 +7952,6 @@ ExecForeignDDL(Oid serverOid,
 			   bool exists_flag)
 {
 	bool		data_compression_transfer_enabled;
-	AuthenticationData authData;
-	ConnectionURLData connData;
-	DDLData		ddlData;
 	PGSpiderExecuteMode mode;
 	DataCompressionTransferOption *dct_option = (DataCompressionTransferOption *) palloc0(sizeof(DataCompressionTransferOption));
 
@@ -7977,15 +7963,6 @@ ExecForeignDDL(Oid serverOid,
 	/* get information to send request to Function */
 	get_data_compression_transfer_option(DDL_CREATE, rel, dct_option);
 
-	/* Send request to Function */
-	init_AuthenticationData(&authData);
-	init_ConnectionURLData(&connData);
-	init_DDLData(&ddlData);
-
-	pgspiderPrepareAuthenticationData(&authData, dct_option);
-	pgspiderPrepareConnectionURLData(&connData, rel, dct_option);
-	pgspiderPrepareDDLData(&ddlData, rel, exists_flag, dct_option);
-
 	/* create query */
 	if (operation == 0)
 		mode = DDL_CREATE;
@@ -7995,8 +7972,7 @@ ExecForeignDDL(Oid serverOid,
 
 	/* set default timeout for execute DDL request */
 	dct_option->function_timeout = CURL_TIMEOUT_GCP;
-	PGSpiderRequestFunctionStart(mode, dct_option, NULL,
-								 &authData, &connData, &ddlData);
+	PGSpiderRequestFunctionStart(mode, dct_option, NULL, rel, exists_flag);
 
 	return 0;
 }

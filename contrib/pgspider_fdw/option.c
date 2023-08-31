@@ -28,6 +28,8 @@
 #include "utils/guc.h"
 #include "utils/varlena.h"
 
+#include "dct_targetdb/dct_common.h"
+
 /*
  * Describes the valid options for objects that this wrapper uses.
  */
@@ -386,25 +388,16 @@ is_valid_option(const char *keyword, Oid context)
 	for (opt = pgspider_fdw_options; opt->keyword; opt++)
 	{
 		/*
-		 * MySQL FDW uses dbname option in foreign table but Postgres FDW uses dbname
-		 * option in foreign server.
-		 * Oracle FDW uses table option instead of table_name option.
-		 *
 		 * Different FDWs have different ways to map foreign table name and remote table name.
 		 * And pgspider_fdw has to validate those options which may not belong to pgspider_fdw.
+		 * Return true if options is unique options of FDWs.
 		 */
-		if (strcmp(keyword, "dbname") == 0 || strcmp(keyword, "table") == 0)
-			return true;
-		
-		/*
-		 * InfluxDB FDW does not support org option now, it is specified by user
-		 * through MIGRATE command.
-		 * InfluxDB support tags option to indicates this column as containing values
-		 * of tags in InfluxDB measurement.
-		 *
-		 * Ignore its validation in pgspider_fdw.
-		 */
-		if (strcmp(keyword, "org") == 0 || strcmp(keyword, "tags") == 0)
+		if (is_postgres_unique_option(keyword) ||
+			is_pgspider_unique_option(keyword) ||
+			is_mysql_unique_option(keyword) ||
+			is_griddb_unique_option(keyword) ||
+			is_oracle_unique_option(keyword) ||
+			is_influxdb_unique_option(keyword))
 			return true;
 
 		if (context == opt->optcontext && strcmp(opt->keyword, keyword) == 0)
