@@ -24,6 +24,10 @@
 #include "nodes/extensible.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
+#ifdef PD_STORED
+#include "executor/nodeAgg.h"
+#include "executor/nodeDist.h"
+#endif
 #include "parser/analyze.h"
 #include "parser/parsetree.h"
 #include "rewrite/rewriteHandler.h"
@@ -1156,6 +1160,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	ExplainWorkersState *save_workers_state = es->workers_state;
 	int			save_indent = es->indent;
 	bool		haschildren;
+#ifdef PD_STORED
+	EState	   *estate = planstate->state;
+#endif
 
 	/*
 	 * Prepare per-worker output buffers, if needed.  We'll append the data in
@@ -1987,6 +1994,15 @@ ExplainNode(PlanState *planstate, List *ancestors,
 			if (plan->qual)
 				show_instrumentation_count("Rows Removed by Filter", 1,
 										   planstate, es);
+#ifdef PD_STORED
+			if (estate->is_dist_func)
+			{
+				AggState	*node = castNode(AggState, planstate);
+
+				if (node->numaggs > 0 && OidIsValid(node->peragg->parentfn_oid))
+					agg_explain_distributed_func(node, es);
+			}
+#endif
 			break;
 		case T_WindowAgg:
 			show_upper_qual(plan->qual, "Filter", planstate, ancestors, es);
@@ -2141,9 +2157,15 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		ExplainSubPlans(planstate->initPlan, ancestors, "InitPlan", es);
 
 	/* lefttree */
-	if (outerPlanState(planstate))
-		ExplainNode(outerPlanState(planstate), ancestors,
-					"Outer", NULL, es);
+#ifdef PD_STORED
+	/*
+	 * The outerplan is unnecessary to be executed.
+	 */
+	if (!estate->is_dist_func)
+#endif
+		if (outerPlanState(planstate))
+			ExplainNode(outerPlanState(planstate), ancestors,
+						"Outer", NULL, es);
 
 	/* righttree */
 	if (innerPlanState(planstate))

@@ -3998,7 +3998,7 @@ deparseDropTableSql(StringInfo buf, Relation rel, bool exists_flag)
 #endif	/* PGSPIDER */
 
 #ifdef PD_STORED
-static void
+void
 deparseFunctionName(StringInfo buf, Oid funcoid)
 {
 	HeapTuple	tuple;
