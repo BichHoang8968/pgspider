@@ -244,6 +244,7 @@ extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 extern const char *get_jointype_name(JoinType jointype);
 #ifdef PD_STORED
 extern void deparseFunctionQuery(StringInfo buf, Oid funcoid, Oid tableoid, List *args);
+extern void deparseFunctionName(StringInfo buf, Oid funcoid);
 #endif
 
 #ifdef PGSPIDER
@@ -260,14 +261,14 @@ extern bool is_shippable(Oid objectId, Oid classId, PgFdwRelationInfo *fpinfo);
 #ifdef PD_STORED
 /* in remoteproc.c */
 extern void
-postgresCreateFunction(char *funcname, UserMapping *user);
-extern void
-postgresExecuteFunction(Oid funcoid, Oid tableoid, List *args,
+ExecuteFunction(Oid funcoid, Oid tableoid, List *args,
 						bool, void **private);
+void ExplainFunction(Oid funcoid, Oid tableoid,
+						List *args, bool async, void *private);
 extern bool
-postgresGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
+GetFunctionResultOne(void *private, AttInMetadata *attinmeta,
 							 Datum *values, bool *nulls);
 extern void
-postgresFinalizeFunction(void *private);
+FinalizeFunction(void *private);
 #endif
 #endif							/* POSTGRES_FDW_H */
