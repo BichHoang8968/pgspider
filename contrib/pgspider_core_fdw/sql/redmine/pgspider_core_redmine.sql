@@ -86,17 +86,17 @@ EXPLAIN VERBOSE SELECT id, subject, author FROM issues WHERE id = 2445;
 --Testcase 31:
 SELECT id, subject, author FROM issues WHERE id = 2445;
 --Testcase 32:
-EXPLAIN VERBOSE SELECT tracker, status, priority FROM issues WHERE id >= 441 ORDER BY tracker, status, priority;
+EXPLAIN VERBOSE SELECT tracker, status, priority FROM issues WHERE id >= 1 ORDER BY tracker, status, priority;
 --Testcase 33:
-SELECT tracker, status, priority FROM issues WHERE id >= 441 ORDER BY tracker, status, priority;
+SELECT tracker, status, priority FROM issues WHERE id >= 1 ORDER BY tracker, status, priority;
 --Testcase 34:
-EXPLAIN VERBOSE SELECT * FROM issues WHERE id <= 1654 AND id >= 243 ORDER BY 1, 2, 3, 4, 5;
+EXPLAIN VERBOSE SELECT * FROM issues WHERE id <= 16 AND id >= 1 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 35:
-SELECT * FROM issues WHERE id <= 1654 AND id >= 243 ORDER BY 1, 2, 3, 4, 5;
+SELECT * FROM issues WHERE id <= 16 AND id >= 1 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 36:
-EXPLAIN VERBOSE SELECT author, assigned_to, parent_id FROM issues WHERE subject >= '@!' AND id >= 231 AND description != '' ORDER BY author, assigned_to, parent_id;
+EXPLAIN VERBOSE SELECT author, assigned_to, parent_id FROM issues WHERE subject >= '@!' AND id >= 1 AND description != '' ORDER BY author, assigned_to, parent_id;
 --Testcase 37:
-SELECT author, assigned_to, parent_id FROM issues WHERE subject >= '@!' AND id >= 231 AND description != '' ORDER BY author, assigned_to, parent_id;
+SELECT author, assigned_to, parent_id FROM issues WHERE subject >= '@!' AND id >= 1 AND description != '' ORDER BY author, assigned_to, parent_id;
 --Testcase 38:
 EXPLAIN VERBOSE SELECT id, project, tracker, status, priority, author, assigned_to, parent_id, subject, total_estimated_hours, start_date, due_date, done_ratio, is_private, estimated_hours, total_estimated_hours, spent_hours, total_spent_hours, created_on, updated_on, closed_on, attachments, relations, children, watchers FROM issues WHERE id IN (5545, 8799, 2545, 87854, 2255) OR spent_hours > 0 ORDER BY 1, 2, 3, 4, 5;
 --Testcase 39:
@@ -128,9 +128,9 @@ EXPLAIN VERBOSE SELECT relations, children, watchers FROM issues WHERE descripti
 SELECT relations, children, watchers FROM issues WHERE description IS NOT NULL AND id < 4534 AND spent_hours > 0 AND estimated_hours >= 4 ORDER BY id;
 -- Select columns of resources with LIMIT
 --Testcase 52:
-EXPLAIN VERBOSE SELECT id, project, tracker, status FROM issues WHERE id BETWEEN 1223 AND 3232 ORDER BY id, project, tracker LIMIT 5;
+EXPLAIN VERBOSE SELECT id, project, tracker, status FROM issues WHERE id BETWEEN 10 AND 14 ORDER BY id, project, tracker LIMIT 5;
 --Testcase 53:
-SELECT id, project, tracker, status FROM issues WHERE id BETWEEN 1223 AND 3232 ORDER BY id, project, tracker LIMIT 5;
+SELECT id, project, tracker, status FROM issues WHERE id BETWEEN 10 AND 14 ORDER BY id, project, tracker LIMIT 5;
 --Testcase 54:
 EXPLAIN VERBOSE SELECT priority, author, assigned_to, parent_id FROM issues WHERE description IS NOT NULL AND subject != 'aewfW' ORDER BY priority, author, assigned_to, parent_id LIMIT 3;
 --Testcase 55:
@@ -157,17 +157,17 @@ EXPLAIN VERBOSE SELECT parent_id, author, subject, priority, status FROM issues 
 --Testcase 65:
 SELECT parent_id, author, subject, priority, status FROM issues ORDER BY subject LIMIT 5 OFFSET 1;
 --Testcase 66:
-EXPLAIN VERBOSE SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2344 AND parent_id >= 100 ORDER BY id LIMIT 3 OFFSET 3;
+EXPLAIN VERBOSE SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
 --Testcase 67:
-SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2344 AND parent_id >= 100 ORDER BY id LIMIT 3 OFFSET 3;
+SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
 --Testcase 68:
-EXPLAIN VERBOSE SELECT * FROM (SELECT subject, (watchers[1]).id, (watchers[1]).name, (watchers[2]).id, (watchers[2]).name FROM issues) AS t(s, id1, name1, id2, name2) WHERE t.id1 >= 12 AND t.id2 <= 234 ORDER BY t.s, t.id1, t.id2, t.name1, t.name2 LIMIT 1 OFFSET 1;
+EXPLAIN VERBOSE SELECT * FROM (SELECT subject, (watchers[1]).id, (watchers[1]).name, (watchers[2]).id, (watchers[2]).name FROM issues) AS t(s, id1, name1, id2, name2) WHERE t.id1 >= 1 AND t.id2 <= 23 ORDER BY t.s, t.id1, t.id2, t.name1, t.name2 LIMIT 1 OFFSET 1;
 --Testcase 69:
-SELECT * FROM (SELECT subject, (watchers[1]).id, (watchers[1]).name, (watchers[2]).id, (watchers[2]).name FROM issues) AS t(s, id1, name1, id2, name2) WHERE t.id1 >= 12 AND t.id2 <= 234 ORDER BY t.s, t.id1, t.id2, t.name1, t.name2 LIMIT 1 OFFSET 1;
+SELECT * FROM (SELECT subject, (watchers[1]).id, (watchers[1]).name, (watchers[2]).id, (watchers[2]).name FROM issues) AS t(s, id1, name1, id2, name2) WHERE t.id1 >= 1 AND t.id2 <= 23 ORDER BY t.s, t.id1, t.id2, t.name1, t.name2 LIMIT 1 OFFSET 1;
 --Testcase 70:
-EXPLAIN VERBOSE SELECT is_private, id, (project).id AS pid, (project).name AS pname, subject FROM issues WHERE is_private = FALSE AND id >= 1234 ORDER BY id LIMIT 10 OFFSET 1;
+EXPLAIN VERBOSE SELECT is_private, id, (project).id AS pid, (project).name AS pname, subject FROM issues WHERE is_private = FALSE AND id >= 1 ORDER BY id LIMIT 10 OFFSET 1;
 --Testcase 71:
-SELECT is_private, id, (project).id AS pid, (project).name AS pname, subject FROM issues WHERE is_private = FALSE AND id >= 1234 ORDER BY id LIMIT 10 OFFSET 1;
+SELECT is_private, id, (project).id AS pid, (project).name AS pname, subject FROM issues WHERE is_private = FALSE AND id >= 1 ORDER BY id LIMIT 10 OFFSET 1;
 --Testcase 72:
 EXPLAIN VERBOSE SELECT due_date, status, priority, author, assigned_to FROM issues WHERE description IS NOT NULL AND (priority).id >= 2 ORDER BY (status).id, priority, due_date, author, assigned_to LIMIT 5 OFFSET 1;
 --Testcase 73:

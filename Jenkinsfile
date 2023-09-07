@@ -172,6 +172,8 @@ pipeline {
                         docker exec mysqlserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
                         docker exec tinybraceserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
                         docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
+                        docker exec redmine_server_for_existed_test /bin/bash -c 'bundle exec rails runner -e production /home/test/create_redmine_data.rb'
+                        docker exec redmine_mysql_db /bin/bash -c '/home/test/update_date_time_fields.sh'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_core" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_make_check.out
                     """
