@@ -9,9 +9,9 @@ SET intervalstyle to "postgres";
 CREATE EXTENSION IF NOT EXISTS pgspider_core_fdw;
 
 --Testcase 2:
-CREATE SERVER pgspider_srv FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1', port '50849');
+CREATE SERVER pgspider_core_srv FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1', port '50849');
 --Testcase 3:
-CREATE USER mapping for public server pgspider_srv;
+CREATE USER mapping for public server pgspider_core_srv;
 --Testcase 4:
 CREATE EXTENSION gitlab_fdw;
 
@@ -25,7 +25,7 @@ CREATE SERVER gitlab_svr2 FOREIGN DATA WRAPPER gitlab_fdw OPTIONS (endpoint :END
 CREATE USER MAPPING FOR public SERVER gitlab_svr2 OPTIONS (access_token :ACCESS_TOKEN_2);
 
 --Testcase 9:
-CREATE MULTI TENANT TABLE projects (id bigint, description text, name text, name_with_namespace text, "path" text, path_with_namespace text, created_at timestamp with time zone, default_branch text, ssh_url_to_repo text, http_url_to_repo text, web_url text, readme_url text, avatar_url text, forks_count bigint, star_count bigint, last_activity_at timestamp with time zone, __spd_url text) MULTI TENANT pgspider_srv;
+CREATE MULTI TENANT TABLE projects (id bigint, description text, name text, name_with_namespace text, "path" text, path_with_namespace text, created_at timestamp with time zone, default_branch text, ssh_url_to_repo text, http_url_to_repo text, web_url text, readme_url text, avatar_url text, forks_count bigint, star_count bigint, last_activity_at timestamp with time zone, __spd_url text) MULTI TENANT pgspider_core_srv;
 
 --Testcase 10:
 CREATE FOREIGN TABLE projects__gitlab_svr1__0 (id bigint, description text, name text, name_with_namespace text, "path" text, path_with_namespace text, created_at timestamp with time zone, default_branch text, ssh_url_to_repo text, http_url_to_repo text, web_url text, readme_url text, avatar_url text, forks_count bigint, star_count bigint, last_activity_at timestamp with time zone) SERVER gitlab_svr1 OPTIONS (resource_name 'projects');
@@ -53,9 +53,9 @@ EXPLAIN VERBOSE SELECT * FROM projects WHERE default_branch != 'main' ORDER BY i
 --Testcase 19:
 SELECT * FROM projects WHERE default_branch != 'main' ORDER BY id, __spd_url;
 --Testcase 20:
-EXPLAIN VERBOSE SELECT description, name, name_with_namespace, forks_count, star_count FROM projects WHERE description >= 'X@!@#$' AND name = 'test project gitlab_fdw 1' ORDER BY 1, 2, 3, 4, 5;
+EXPLAIN VERBOSE SELECT description, name, name_with_namespace, forks_count, star_count FROM projects WHERE description >= 'Test' AND name = 'test_project_gitlab_1' ORDER BY 1, 2, 3, 4, 5;
 --Testcase 21:
-SELECT description, name, name_with_namespace, forks_count, star_count FROM projects WHERE description >= 'X@!@#$' AND name = 'test project gitlab_fdw 1' ORDER BY 1, 2, 3, 4, 5;
+SELECT description, name, name_with_namespace, forks_count, star_count FROM projects WHERE description >= 'Test' AND name = 'test_project_gitlab_1' ORDER BY 1, 2, 3, 4, 5;
 
 -- SELECT columns with LIMIT/OFFSET/ORDER BY
 --Testcase 22:

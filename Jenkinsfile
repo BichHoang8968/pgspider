@@ -6,10 +6,11 @@ def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
 def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 def DCT_DOCKER_PATH = '/home/jenkins/Docker/Server/GCP'
+def GITLAB_DOCKER_PATH = '/home/jenkins/Docker/Server/Gitlab'
 
-def BRANCH_PGSPIDER = 'fix_leak_connection_child_node'
-def BRANCH_TINYBRACE_FDW = 'fix_leak_connection'
-def BRANCH_MYSQL_FDW = 'fix_leak_connection'
+def BRANCH_PGSPIDER = env.BRANCH_NAME
+def BRANCH_TINYBRACE_FDW = 'master'
+def BRANCH_MYSQL_FDW = 'master'
 def BRANCH_SQLITE_FDW = 'master'
 def BRANCH_GRIDDB_FDW = 'master'
 def BRANCH_INFLUXDB_FDW = 'master'
@@ -20,7 +21,8 @@ def BRANCH_ORACLE_FDW = 'master'
 def BRANCH_ODBC_FDW = 'master'
 def BRANCH_JDBC_FDW = 'master'
 def BRANCH_REDMINE_FDW = 'master'
-def BRANCH_PGSPIDER_COMPRESSION = 'CloudFunctionRefactored_influxDB_V2'
+def BRANCH_GITLAB_FDW = 'main'
+def BRANCH_PGSPIDER_COMPRESSION = 'main'
 
 pipeline {
     agent {
@@ -452,7 +454,7 @@ pipeline {
                         docker-compose down
                         cd ${DCT_DOCKER_PATH}
                         docker-compose up -d
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_data_compress ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW}" pgspider'
                     """
                 }
             }
@@ -502,6 +504,53 @@ pipeline {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_data_compression', state: 'failed'
                     } else {
                         updateGitlabCommitStatus name: 'pgspider_core_fdw_data_compression', state: 'success'
+                    }
+                }
+            }
+        }
+        stage('prepare_for_pgspider_core_gitlab') {
+            steps {
+                catchError() {
+                    sh """
+                        cd ${DCT_DOCKER_PATH}
+                        docker-compose down
+                        cd ${GITLAB_DOCKER_PATH}
+                        docker-compose up --wait
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_gitlab ${BRANCH_GITLAB_FDW}" pgspider'
+                    """
+                }
+            }
+            post {
+                failure {
+                    echo '** BUILD FAILED !!! NEXT STAGE WILL BE SKIPPED **'
+                    emailext subject: '[CI PGSpider] Prepare for Test Gitlab FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Build', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
+                }
+            }
+        }
+        stage('pgspider_core_gitlab') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec gitlab_server_existed_test /bin/bash -c '/home/test/init_gitlab_test.sh'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_pgspider_core_gitlab" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_gitlab_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_core_gitlab_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_core_gitlab Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_core_gitlab_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_core_gitlab.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_core_gitlab'
+                        sh 'cat pgspider_core_gitlab.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_core_gitlab', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_core_gitlab', state: 'success'
                     }
                 }
             }
@@ -624,6 +673,8 @@ pipeline {
                 cd ${PGSPIDER_DOCKER_PATH}
                 docker-compose down
                 cd ${DCT_DOCKER_PATH}
+                docker-compose down
+                cd ${GITLAB_DOCKER_PATH}
                 docker-compose down
             """
         }
