@@ -397,7 +397,8 @@ is_valid_option(const char *keyword, Oid context)
 			is_mysql_unique_option(keyword) ||
 			is_griddb_unique_option(keyword) ||
 			is_oracle_unique_option(keyword) ||
-			is_influxdb_unique_option(keyword))
+			is_influxdb_unique_option(keyword) ||
+			is_objstorage_unique_option(keyword))
 			return true;
 
 		if (context == opt->optcontext && strcmp(opt->keyword, keyword) == 0)

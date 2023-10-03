@@ -90,9 +90,17 @@ then
   griddb_container_name2=griddb_sv2
   griddb_container_name3=griddb_sv3
 
+  minio_container_name1=minio_1
+  minio_container_name2=minio_2
+  minio_container_name3=minio_3
+
   clean_docker_img ${griddb_container_name1}
   clean_docker_img ${griddb_container_name2}
   clean_docker_img ${griddb_container_name3}
+  
+  clean_docker_img ${minio_container_name1}
+  clean_docker_img ${minio_container_name2}
+  clean_docker_img ${minio_container_name3}
 
   docker run -d --name ${griddb_container_name1} -p 10002:10001 -p 20002:20001 \
       -e GRIDDB_NODE_NUM=1 \
@@ -136,6 +144,31 @@ then
               -e "INFLUXD_STORAGE_WRITE_TIMEOUT=100s" \
               -v $(pwd)/init_influx:/tmp \
               ${influxdbV2_image}
+
+
+  # Start Minio server for Objstorage_fdw: S3 + parquet
+  mkdir -p /tmp/objstorageS3_1/bucket | true
+  mkdir -p /tmp/objstorageS3_2/bucket | true
+  mkdir -p /tmp/objstorageS3_3/bucket | true
+
+  docker run  -d --name ${minio_container_name1} -it -p 9000:9000 \
+              -e "MINIO_ACCESS_KEY=minioadmin" -e "MINIO_SECRET_KEY=minioadmin" \
+              -v /tmp/objstorageS3_1:/data \
+              ${minio_image} \
+              server /data
+
+  docker run  -d --name ${minio_container_name2} -it -p 9001:9000 \
+              -e "MINIO_ACCESS_KEY=minioadmin" -e "MINIO_SECRET_KEY=minioadmin" \
+              -v /tmp/objstorageS3_2:/data \
+              ${minio_image} \
+              server /data
+
+  docker run  -d --name ${minio_container_name3} -it -p 9002:9000 \
+              -e "MINIO_ACCESS_KEY=minioadmin" -e "MINIO_SECRET_KEY=minioadmin" \
+              -v /tmp/objstorageS3_3:/data \
+              ${minio_image} \
+              server /data
+
 fi
 
 cd $CURR_PATH

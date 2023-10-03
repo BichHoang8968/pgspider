@@ -34,12 +34,13 @@
 #include "dct_targetdb/dct_common.h"
 
 static DataSource dtSources[] = {
-	{ POSTGRES_FDW_NAME,    POSTGRESDB,   postgres_PrepareDDLRequestData, postgres_PrepareInsertRequestData },
-	{ PGSPIDER_FDW_NAME,    PGSPIDERDB,   pgspider_PrepareDDLRequestData, pgspider_PrepareInsertRequestData },
-	{ MYSQL_FDW_NAME,       MYSQLDB,      mysql_PrepareDDLRequestData,    mysql_PrepareInsertRequestData },
-	{ GRIDDB_FDW_NAME,      GRIDDB,       griddb_PrepareDDLRequestData,   griddb_PrepareInsertRequestData },
-	{ ORACLE_FDW_NAME,      ORACLEDB,     oracle_PrepareDDLRequestData,   oracle_PrepareInsertRequestData },
-	{ INFLUXDB_FDW_NAME,    INFLUXDB,     influxdb_PrepareDDLRequestData, influxdb_PrepareInsertRequestData },
+	{ POSTGRES_FDW_NAME,    POSTGRESDB,   postgres_PrepareDDLRequestData,   postgres_PrepareInsertRequestData },
+	{ PGSPIDER_FDW_NAME,    PGSPIDERDB,   pgspider_PrepareDDLRequestData,   pgspider_PrepareInsertRequestData },
+	{ MYSQL_FDW_NAME,       MYSQLDB,      mysql_PrepareDDLRequestData,      mysql_PrepareInsertRequestData },
+	{ GRIDDB_FDW_NAME,      GRIDDB,       griddb_PrepareDDLRequestData,     griddb_PrepareInsertRequestData },
+	{ ORACLE_FDW_NAME,      ORACLEDB,     oracle_PrepareDDLRequestData,     oracle_PrepareInsertRequestData },
+	{ INFLUXDB_FDW_NAME,    INFLUXDB,     influxdb_PrepareDDLRequestData,   influxdb_PrepareInsertRequestData },
+	{ OBJSTORAGE_FDW_NAME,  OBJSTORAGE,	  objstorage_PrepareDDLRequestData, objstorage_PrepareInsertRequestData },
 	{ NULL,                 -1,           NULL,                           NULL}
 };
 

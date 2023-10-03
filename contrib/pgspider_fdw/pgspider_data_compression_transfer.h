@@ -43,6 +43,7 @@
 #define GRIDDB_FDW_NAME						"griddb_fdw"
 #define ORACLE_FDW_NAME						"oracle_fdw"
 #define INFLUXDB_FDW_NAME					"influxdb_fdw"
+#define OBJSTORAGE_FDW_NAME					"objstorage_fdw"
 
 /*
  * If system call is interrupted, retry system call
@@ -91,7 +92,8 @@ typedef enum TargetDB
 	MYSQLDB,
 	GRIDDB,
 	INFLUXDB,
-	ORACLEDB
+	ORACLEDB,
+	OBJSTORAGE
 }			TargetDB;
 
 /*

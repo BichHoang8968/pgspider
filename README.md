@@ -403,7 +403,7 @@ It is required to provide`endpoint` and `relay` options to active this feature.
 - **GridDB**  
 - **PGSpider**  
 - **InfluxDB (only support migrating to InfluxDB v2.0)**
-
+- **ObjStorage (only support migrating to AmazonS3 and parquet file)**
 #### Options supported:  
 - **relay** as *string*, required 
       Specifies foreign server of PGSpider FDW which is used to support Data Compression Transfer Feature.  
@@ -451,6 +451,8 @@ Examples:
   CREATE SERVER griddb FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host 'griddb.example.com', port '20002', clustername 'GridDB');
   CREATE SERVER oracle FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver 'oracle.example.com:1521/XE');
   CREATE SERVER influx FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'influxdb.example.com', port '38086', dbname 'test', version '2');
+  CREATE SERVER objstorage_with_endpoint FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://cloud.example.com:9000', storage_type 's3');
+  CREATE SERVER objstorage_with_region FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (region 'us-west-1', storage_type 's3');
 
   -- MIGRATE NONE
   MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -459,7 +461,9 @@ Examples:
           mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
           oracle OPTIONS (table 'table', relay 'cloudfunc'),
-          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
+          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg'),
+          objstorage_with_endpoint OPTION (filename 'bucket/file1.parquet', format 'parquet'),
+          objstorage_with_endpoint OPTION (dirname 'bucket', format 'parquet');
 
   -- MIGRATE TO
   MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -468,7 +472,9 @@ Examples:
           mysql OPTIONS (dbname 'test', table_name 'table', relay 'cloudfunc'),
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
           oracle OPTIONS (table 'table', relay 'cloudfunc'),
-          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
+          influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg'),
+          objstorage_with_region OPTION (filename 'bucket/file1.parquet', format 'parquet'),
+          objstorage_with_region OPTION (dirname 'bucket', format 'parquet');
 
   -- MIGRATE REPLACE
   MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER 
@@ -478,6 +484,8 @@ Examples:
           griddb OPTIONS (table_name 'table', relay 'cloudfunc'),
           oracle OPTIONS (table 'table', relay 'cloudfunc'),
           influx OPTIONS (table 'table', relay 'cloudfunc', org 'myorg');
+          objstorage_with_endpoint OPTION (filename 'bucket/file1.parquet', format 'parquet'),
+          objstorage_with_region OPTION (dirname 'bucket', format 'parquet');
   ```
 
 ## Note

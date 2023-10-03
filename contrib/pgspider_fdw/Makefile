@@ -15,6 +15,7 @@ OBJS = \
 	dct_targetdb/dct_oracle.o \
 	dct_targetdb/dct_pgspider.o \
 	dct_targetdb/dct_postgres.o \
+	dct_targetdb/dct_objstorage.o \
 	shippable.o
 PGFILEDESC = "pgspider_fdw - foreign data wrapper for PGSpider"
 
