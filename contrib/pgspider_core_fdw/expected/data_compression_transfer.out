@@ -16,6 +16,7 @@ CREATE EXTENSION oracle_fdw;
 CREATE EXTENSION griddb_fdw;
 --Testcase 690:
 CREATE EXTENSION influxdb_fdw;
+CREATE EXTENSION objstorage_fdw;
 --Testcase 7:
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
 -- ===================================================================
@@ -6297,6 +6298,17 @@ SELECT * FROM ft1__oracle1__0 ORDER BY c1 LIMIT 10;
  59 | 59 | 59 |  0 | 29 | t  | 1970-03-01 00:00:00 | 00059
 (10 rows)
 
+DROP DATASOURCE TABLE ft1__postgres1__0;
+DROP DATASOURCE TABLE ft1__mysql1__0;
+DROP DATASOURCE TABLE ft1__griddb1__0;
+DROP DATASOURCE TABLE ft1__oracle1__0;
+DROP DATASOURCE TABLE ft1__influx1__0;
+DROP FOREIGN TABLE ft1__postgres1__0;
+DROP FOREIGN TABLE ft1__pgspider1__0;
+DROP FOREIGN TABLE ft1__mysql1__0;
+DROP FOREIGN TABLE ft1__griddb1__0;
+DROP FOREIGN TABLE ft1__oracle1__0;
+DROP FOREIGN TABLE ft1__influx1__0;
 --Testcase 682:
 DROP FOREIGN TABLE ft1;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
@@ -6363,64 +6375,772 @@ DROP TABLE t1;
 -- DROP FOREIGN TABLE test_tbl3;
 -- DROP TABLE test_nat_tbl;
 -- DROP SERVER postgres_svr_test CASCADE;
+-- ===================================================================
+-- TO OBJSTORAGE_FDW: S3 Server + Parquet File
+-- ===================================================================
+CREATE FOREIGN TABLE ft1 (c1 bigint, c2 text, c3 bytea, c4 bool, c5 "char", c6 date, c7 numeric, c8 float8,
+    c9 float4, c10 int, c11 varchar(10), c12 char(10), c13 smallint, c14 timestamptz
+) SERVER loopback OPTIONS (table_name 't1');
+CREATE DATASOURCE TABLE ft1;
+INSERT INTO t1 VALUES (1000, 'textbl_objs3', E'\\xa7a8a9aaabacadaeaf', true, 'a', '2001-01-01', 10000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 1, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (2000, 'text2', E'\\xa7a8a9aaabacadaeaf', true, 'b', '2002-01-01', 20000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 2, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (3000, 'text3', E'\\xa7a8a9aaabacadaeaf', false, 'c', '2003-01-01', 30000, 21122.213, 100.0, 200, 'char array', 'bpchar[]', 3, '2005-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (4000, 'text4', E'\\xa7a8a9aaabacadaeaf', false, 'd', '2004-01-01', 40000, 6565.10, 200.0, 300, 'char array', 'bpchar 1', 4, '2003-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (5000, 'text5', E'\\xa7a8a9aaabacadaeaf', true, 'e', '2005-01-01', 50000, 599.010, 300.0, 400, 'char array', 'bpchar 2', 5, '2003-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (6000, 'text6', E'\\xa7a8a9aaabacadaeaf', false, 'f', '2006-01-01', 60000, 4645.0, -400.0, 500, 'char array', 'bpchar 3', -1, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (7000, 'text7', E'\\xa7a8a9aaabacadaeaf', true, 'g', '2007-01-01', 70000, -435.10, 500.0, -600, 'char array', 'bpchar 4', -2, '2005-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (8000, 'text8', E'\\xa7a8a9aaabacadaeaf', false, 'h', '2008-01-01', 80000, -4578.10, 600.0, 700, 'char array', 'bpchar 5', -3, '2006-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (9000, 'text9', E'\\xa7a8a9aaabacadaeaf', true, 'i', '2009-01-01', 90000, 97878.10, 700.0, 800, 'char array', 'bpchar 6', -4, '2003-10-19 09:00:30+02');
+INSERT INTO t1 VALUES (10000, 'textbl_objs31', E'\\xa7a8a9aaabacadaeaf', false, 'j', '2010-01-01', 10000, 454.10, 800.0, -900, 'char array', 'bpchar 7', 0, '2008-10-19 09:00:30+02');
+do $$
+begin
+  for r in 1..10 loop
+    INSERT INTO t1 SELECT * FROM t1;
+  end loop;
+end;
+$$;
+SELECT count(*) FROM ft1;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+CREATE SERVER objstorageS3_1 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9000', storage_type 's3');
+CREATE SERVER objstorageS3_2 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9001', storage_type 's3');
+CREATE SERVER objstorageS3_3 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9002', storage_type 's3');
+CREATE USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (user 'minioadmin', password 'minioadmin');
+CREATE USER MAPPING FOR public SERVER objstorageS3_2 OPTIONS (user 'minioadmin', password 'minioadmin');
+CREATE USER MAPPING FOR public SERVER objstorageS3_3 OPTIONS (user 'minioadmin', password 'minioadmin');
+-- Abnormal test case
+-- Both region and endpoint are not specified. Throw exception: either "region" or "endpoint" is required.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  either "region" or "endpoint" is required
+ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
+-- Both region and endpoint are specified. This case is handled in objstorage_fdw.
+-- So we do not add test case for it here.
+-- region is invalid. Expectation is error.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
+ALTER SERVER objstorageS3_1 OPTIONS (ADD region 'invalid_region');
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: software.amazon.awssdk.core.exception.SdkClientException: Configured region (invalid_region) and tags ([]) resulted in an invalid URI: https://s3.invalid_region.amazonaws.com. This is usually caused by an invalid region configuration. Valid regions: [af-south-1, ap-east-1, ap-northeast-1, ap-northeast-2, ap-northeast-3, ap-south-1, ap-south-2, ap-southeast-1, ap-southeast-2, ap-southeast-3, ap-southeast-4, aws-global, ca-central-1, eu-central-1, eu-central-2, eu-north-1, eu-south-1, eu-south-2, eu-west-1, eu-west-2, eu-west-3, fips-ca-central-1, fips-us-east-1, fips-us-east-2, fips-us-west-1, fips-us-west-2, il-central-1, me-central-1, me-south-1, sa-east-1, us-east-1, us-east-2, us-west-1, us-west-2, cn-north-1, cn-northwest-1, fips-us-gov-east-1, fips-us-gov-west-1, us-gov-east-1, us-gov-west-1, us-iso-east-1, us-iso-west-1, us-isob-east-1]
+ALTER SERVER objstorageS3_1 OPTIONS (DROP region);
+ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
+-- endpoint is invalid. Expectation is error.
+ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9999');
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: software.amazon.awssdk.core.exception.SdkClientException: Unable to execute HTTP request: Connect to 127.0.0.1:9999 [/127.0.0.1] failed: Connection refused (Connection refused)
+ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9000');
+-- storage_type is not specified. Throw exception: "storage_type" is required.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP storage_type);
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  "storage_type" is required
+ALTER SERVER objstorageS3_1 OPTIONS (ADD storage_type 's3');
+-- storage_type is invalid. Expectation is error. This case is handled in objstorage_fdw.
+-- So we do not add test case for it here.
+-- user is not specified. Throw exception: "user" is required.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP user);
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  "user" is required
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD user 'minioadmin');
+-- user is invalid. Expectation is error.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'invalid_user');
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: java.lang.Exception: software.amazon.awssdk.services.s3.model.S3Exception: null (Service: S3, Status Code: 403, Request ID: 17867C0BBE32DB03)
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'minioadmin');
+-- password is not specified. Throw exception: "password" is required.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP password);
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  "password" is required
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD password 'minioadmin');
+-- password is invalid. Expectation is error.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'invalid_password');
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: java.lang.Exception: software.amazon.awssdk.services.s3.model.S3Exception: null (Service: S3, Status Code: 403, Request ID: 17867C0BBF1A9F1D)
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'minioadmin');
+-- Both filename and dirname are not specified. Throw exception: either "filename" or "dirname" is required.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', format 'parquet');
+ERROR:  either "filename" or "dirname" is required
+-- Both filename and dirname are specified. Throw exception: both "filename" and "dirname" cannot set at the same time.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', dirname 'bucket', format 'parquet');
+ERROR:  "filename" and "dirname" cannot set at the same time
+-- filename is invalid. Expectation is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'invalid_filename', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: software.amazon.awssdk.core.exception.SdkClientException: Unable to marshall request to JSON: Key cannot be empty.
+-- dirname is invalid. Expectation is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'invalid_filename', format 'parquet');
+ERROR:  pgspider_fdw: HTTP_INTERNAL_ERROR: java.lang.Exception: Execute DDL Failed: java.lang.Exception: software.amazon.awssdk.services.s3.model.NoSuchBucketException: The specified bucket does not exist (Service: S3, Status Code: 404, Request ID: 17867C0BC08129DC)
+-- format is not specified. Throw exception: "format" is required.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet');
+ERROR:  "format" is required
+-- format is invalid. Exception is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'invalid_format');
+ERROR:  Only support "parquet" format
+-- some datatypes that are not supported.
+-- bit data type. Expectation is error.
+CREATE FOREIGN TABLE ft_bit (
+        c1 bit(4)
+) SERVER loopback OPTIONS (table_name 'tbl_bit');
+CREATE DATASOURCE TABLE ft_bit;
+INSERT INTO ft_bit VALUES (B'1010'), (B'1000'), (B'1111');
+MIGRATE TABLE ft_bit TO ft_bit2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/bit.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.929
+ERROR:  Error occurred on a child table "ft_bit2__cloud1__0".
+DETAIL:  pgspider_fdw: Function returned error: java.lang.Exception: java.lang.Exception: Cannot create avro schema string. There is datatype that cannot be supported.
+DROP DATASOURCE TABLE ft_bit;
+DROP FOREIGN TABLE ft_bit;
+-- time with time zone. Expectation is error.
+CREATE FOREIGN TABLE ft_timetz (
+        c1 timetz
+) SERVER loopback OPTIONS (table_name 'tbl_timetz');
+CREATE DATASOURCE TABLE ft_timetz;
+INSERT INTO ft_timetz VALUES ('15:00:00 +02:00'), ('16:00:00 +03:00'), ('17:00:00 +04:00');
+MIGRATE TABLE ft_timetz TO ft_timetz2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timetz.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.959
+ERROR:  Error occurred on a child table "ft_timetz2__cloud1__0".
+DETAIL:  pgspider_fdw: Function returned error: java.lang.Exception: java.lang.Exception: Cannot create avro schema string. There is datatype that cannot be supported.
+DROP DATASOURCE TABLE ft_timetz;
+DROP FOREIGN TABLE ft_timetz;
+-- Some data that cannot verify by foreign table of objstorage_fdw
+-- time data type
+CREATE FOREIGN TABLE ft_time (
+        c1 time
+) SERVER loopback OPTIONS (table_name 'tbl_time');
+CREATE DATASOURCE TABLE ft_time;
+INSERT INTO ft_time VALUES ('2001-01-01 00:00:00'::time), ('2001-01-02 00:00:00'::time), ('2001-01-03 00:00:00'::time);
+MIGRATE TABLE ft_time TO ft_time2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/time.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.950
+SELECT count(*) FROM ft_time2;
+ count 
+-------
+     3
+(1 row)
+
+-- objstorage_fdw does not support select time data type
+SELECT * FROM ft_time2;
+ERROR:  objstorage_fdw: ObjStorageHandleNextTuple - arrowToPostgresMappedType: Type not supported time64[us]
+DROP DATASOURCE TABLE ft_time2;
+DROP FOREIGN TABLE ft_time2;
+DROP DATASOURCE TABLE ft_time;
+DROP FOREIGN TABLE ft_time;
+-- timestamp data type
+CREATE FOREIGN TABLE ft_timestamp (
+        c1 timestamp
+) SERVER loopback OPTIONS (table_name 'tbl_timestamp');
+CREATE DATASOURCE TABLE ft_timestamp;
+INSERT INTO ft_timestamp VALUES ('2004-10-19 10:23:54'::timestamp), ('2004-10-20 10:23:54'::timestamp), ('2004-10-21 10:23:54'::timestamp);
+MIGRATE TABLE ft_timestamp TO ft_timestamp2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timestamp.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 10000
+INFO:  compression ratio: 0.946
+SELECT count(*) FROM ft_timestamp2;
+ count 
+-------
+     3
+(1 row)
+
+-- objstorage_fdw does not support convert bigint to time
+SELECT * FROM ft_timestamp2 LIMIT 10;
+ERROR:  coercion pathway from 'bigint' to 'timestamp without time zone' not found
+DROP DATASOURCE TABLE ft_timestamp2;
+DROP FOREIGN TABLE ft_timestamp2;
+DROP DATASOURCE TABLE ft_timestamp;
+DROP FOREIGN TABLE ft_timestamp;
+-- array data types
+CREATE FOREIGN TABLE ft1_arr (c1 bool[], c2 "char"[], c3 char[], c4 bigint[], c5 int[], c6 smallint[],
+    c7 text[], c8 float4[], c9 float8[], c10 varchar[], c11 numeric[], c12 date[], c13 timestamptz[]
+) SERVER loopback OPTIONS (table_name 't1_arr');
+CREATE DATASOURCE TABLE ft1_arr;
+INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b'], ARRAY['a',''], ARRAY[1000,2000], ARRAY[100,200], ARRAY[1,2], ARRAY['textbl_postgres','text2'], ARRAY[1.0,2.0], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres'], ARRAY[10000,20000], ARRAY['2001-01-01'::date,'2001-01-02'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b', 'c'], ARRAY['a','', null], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','text3'], ARRAY[1.0,2.0,null], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres','vartextbl_postgres'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date,'2001-01-04'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, null], ARRAY['a', 'b', 'c', null], ARRAY['a','','x'], ARRAY[1000,null,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2',null], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,-2000,3000], ARRAY[100,-200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,50000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr',null], ARRAY[1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5,6,7,8,9,10], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,40000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true,false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300,400], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,-200,300], ARRAY[1,2,-3,4,-5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,-20000,30000,null], ARRAY['2002-01-01'::date,'2001-01-02'::date,null,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300,400,500], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[-1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[-1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+do $$
+begin
+  for r in 1..10 loop
+    INSERT INTO t1_arr SELECT * FROM t1_arr;
+  end loop;
+end;
+$$;
+SELECT count(*) FROM ft1_arr;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft1_arr ORDER BY c1 LIMIT 10;
+    c1     |    c2     |     c3      |        c4        |          c5           |     c6      |               c7                |    c8     |        c9        |              c10              |         c11         |                c12                 |                                     c13                                      
+-----------+-----------+-------------+------------------+-----------------------+-------------+---------------------------------+-----------+------------------+-------------------------------+---------------------+------------------------------------+------------------------------------------------------------------------------
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+ {f,f,t,t} | {a,b,c,d} | {a,c," ",x} | {1000,2000,3000} | {100,200,300,400,500} | {1,2,3,4,5} | {textbl_postgres,text2,textarr} | {-1,-2,3} | {1000,2000,3000} | {vararr,textarr,vartextarray} | {10000,20000,30000} | {2002-01-01,2001-01-02,2002-01-03} | {"2005-10-19 00:00:30-07","2005-10-20 00:00:30-07","2005-10-21 01:00:00-07"}
+(10 rows)
+
+MIGRATE TABLE ft1_arr TO ft2_arr OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 5041
+INFO:  compression ratio: 225.869
+INFO:  compression ratio: 225.024
+INFO:  compression ratio: 47.520
+SELECT count(*) FROM ft2_arr;
+ count 
+-------
+ 10240
+(1 row)
+
+-- objstorage_fdw does not support select array data types
+SELECT * FROM ft2_arr ORDER BY c1 LIMIT 10;
+ERROR:  objstorage_fdw: ObjStorageHandleNextTuple - arrowToPostgresMappedType: Type not supported list<element: string>
+-- Check number of record
+SELECT count(*) FROM ft2_arr;
+ count 
+-------
+ 10240
+(1 row)
+
+DROP DATASOURCE TABLE ft2_arr;
+DROP FOREIGN TABLE ft2_arr;
+DROP DATASOURCE TABLE ft1_arr;
+DROP FOREIGN TABLE ft1_arr;
+-- MIGRATE single target server and single relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 184.045
+INFO:  compression ratio: 184.841
+INFO:  compression ratio: 83.164
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+-- MIGRATE multi target server and single relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud1', filename 'bucket/dir/file2.parquet', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud1', filename 'bucket/dir2/file3.parquet', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 169.160
+INFO:  compression ratio: 167.435
+INFO:  compression ratio: 166.019
+\d
+                    List of relations
+ Schema |          Name          |     Type      | Owner 
+--------+------------------------+---------------+-------
+ public | ft1                    | foreign table | tsdv
+ public | ft2                    | foreign table | tsdv
+ public | ft2__objstorages3_1__0 | foreign table | tsdv
+ public | ft2__objstorages3_2__0 | foreign table | tsdv
+ public | ft2__objstorages3_3__0 | foreign table | tsdv
+ public | t1                     | table         | tsdv
+(6 rows)
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2;
+-- MIGRATE multi target server and multi relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud2', filename 'bucket/dir/file2.parquet', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud3', filename 'bucket/dir2/file3.parquet', format 'parquet');
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 166.019
+INFO:  compression ratio: 169.160
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 49.610
+\d
+                    List of relations
+ Schema |          Name          |     Type      | Owner 
+--------+------------------------+---------------+-------
+ public | ft1                    | foreign table | tsdv
+ public | ft2                    | foreign table | tsdv
+ public | ft2__objstorages3_1__0 | foreign table | tsdv
+ public | ft2__objstorages3_2__0 | foreign table | tsdv
+ public | ft2__objstorages3_3__0 | foreign table | tsdv
+ public | t1                     | table         | tsdv
+(6 rows)
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2;
+-- MIGRATE single target server and single relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 184.045
+INFO:  compression ratio: 184.841
+INFO:  compression ratio: 83.164
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+-- dirname contain key's prefix
+-- bucket is 'bucket', prefix of key is 'dir1/dir2'
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket/dir1/dir2', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 184.045
+INFO:  compression ratio: 184.841
+INFO:  compression ratio: 83.164
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+-- MIGRATE multi target server and single relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 166.019
+INFO:  compression ratio: 167.435
+INFO:  compression ratio: 169.160
+\d
+                    List of relations
+ Schema |          Name          |     Type      | Owner 
+--------+------------------------+---------------+-------
+ public | ft1                    | foreign table | tsdv
+ public | ft2                    | foreign table | tsdv
+ public | ft2__objstorages3_1__0 | foreign table | tsdv
+ public | ft2__objstorages3_2__0 | foreign table | tsdv
+ public | ft2__objstorages3_3__0 | foreign table | tsdv
+ public | t1                     | table         | tsdv
+(6 rows)
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2;
+-- MIGRATE multi target server and multi relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud2', dirname 'bucket', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud3', dirname 'bucket', format 'parquet');
+WARNING:  Can not calculate suitable batch size, using the default batch size
+INFO:  Batch Insert for pgspider_fdw, batch size = 1000
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  Batch Insert for pgspider_fdw, batch size = 4681
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 169.160
+INFO:  compression ratio: 166.019
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 91.548
+INFO:  compression ratio: 49.610
+\d
+                    List of relations
+ Schema |          Name          |     Type      | Owner 
+--------+------------------------+---------------+-------
+ public | ft1                    | foreign table | tsdv
+ public | ft2                    | foreign table | tsdv
+ public | ft2__objstorages3_1__0 | foreign table | tsdv
+ public | ft2__objstorages3_2__0 | foreign table | tsdv
+ public | ft2__objstorages3_3__0 | foreign table | tsdv
+ public | t1                     | table         | tsdv
+(6 rows)
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+ count 
+-------
+ 10240
+(1 row)
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+  c1  |      c2      |          c3          | c4 | c5 |     c6     |  c7   |   c8   |  c9   | c10 |    c11    |    c12     | c13 |          c14           
+------+--------------+----------------------+----+----+------------+-------+--------+-------+-----+-----------+------------+-----+------------------------
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+ 1000 | textbl_objs3 | \xa7a8a9aaabacadaeaf | t  | a  | 2001-01-01 | 10000 | 1e-107 | 1e-37 | 100 | varchar10 | bpchar10   |   1 | 2004-10-19 01:23:54-07
+(10 rows)
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+DROP FOREIGN TABLE ft2;
 -- Clean
 --Testcase 694:
 DROP EXTENSION postgres_fdw CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to server loopback
 drop cascades to user mapping for vagrant on server loopback
+drop cascades to foreign table ft1
 drop cascades to server postgres1
 drop cascades to user mapping for public on server postgres1
-drop cascades to foreign table ft1__postgres1__0
 drop cascades to server postgres2
 drop cascades to user mapping for public on server postgres2
 drop cascades to server postgres3
 drop cascades to user mapping for public on server postgres3
 --Testcase 695:
 DROP EXTENSION mysql_fdw CASCADE;
-NOTICE:  drop cascades to 7 other objects
+NOTICE:  drop cascades to 6 other objects
 DETAIL:  drop cascades to server mysql1
 drop cascades to user mapping for public on server mysql1
-drop cascades to foreign table ft1__mysql1__0
 drop cascades to server mysql2
 drop cascades to user mapping for public on server mysql2
 drop cascades to server mysql3
 drop cascades to user mapping for public on server mysql3
 --Testcase 696:
 DROP EXTENSION oracle_fdw CASCADE;
-NOTICE:  drop cascades to 7 other objects
+NOTICE:  drop cascades to 6 other objects
 DETAIL:  drop cascades to server oracle1
 drop cascades to user mapping for public on server oracle1
-drop cascades to foreign table ft1__oracle1__0
 drop cascades to server oracle2
 drop cascades to user mapping for public on server oracle2
 drop cascades to server oracle3
 drop cascades to user mapping for public on server oracle3
 --Testcase 697:
 DROP EXTENSION griddb_fdw CASCADE;
-NOTICE:  drop cascades to 7 other objects
+NOTICE:  drop cascades to 6 other objects
 DETAIL:  drop cascades to server griddb1
 drop cascades to user mapping for public on server griddb1
-drop cascades to foreign table ft1__griddb1__0
 drop cascades to server griddb2
 drop cascades to user mapping for public on server griddb2
 drop cascades to server griddb3
 drop cascades to user mapping for public on server griddb3
 --Testcase 698:
 DROP EXTENSION influxdb_fdw CASCADE;
-NOTICE:  drop cascades to 9 other objects
+NOTICE:  drop cascades to 8 other objects
 DETAIL:  drop cascades to server influxdb_svr_test
 drop cascades to user mapping for public on server influxdb_svr_test
 drop cascades to server influx1
 drop cascades to user mapping for public on server influx1
-drop cascades to foreign table ft1__influx1__0
 drop cascades to server influx2
 drop cascades to user mapping for public on server influx2
 drop cascades to server influx3
 drop cascades to user mapping for public on server influx3
+DROP EXTENSION objstorage_fdw CASCADE;
+NOTICE:  drop cascades to 6 other objects
+DETAIL:  drop cascades to server objstorages3_1
+drop cascades to user mapping for public on server objstorages3_1
+drop cascades to server objstorages3_2
+drop cascades to user mapping for public on server objstorages3_2
+drop cascades to server objstorages3_3
+drop cascades to user mapping for public on server objstorages3_3
 --Testcase 699:
 DROP EXTENSION pgspider_fdw CASCADE;
-NOTICE:  drop cascades to 13 other objects
+NOTICE:  drop cascades to 12 other objects
 DETAIL:  drop cascades to server cloud1
 drop cascades to user mapping for public on server cloud1
 drop cascades to server cloud2
@@ -6429,7 +7149,6 @@ drop cascades to server cloud3
 drop cascades to user mapping for public on server cloud3
 drop cascades to server pgspider1
 drop cascades to user mapping for public on server pgspider1
-drop cascades to foreign table ft1__pgspider1__0
 drop cascades to server pgspider2
 drop cascades to user mapping for public on server pgspider2
 drop cascades to server pgspider3

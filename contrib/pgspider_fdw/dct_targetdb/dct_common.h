@@ -22,6 +22,7 @@
 #include "dct_griddb.h"
 #include "dct_oracle.h"
 #include "dct_influxdb.h"
+#include "dct_objstorage.h"
 
 extern char *dct_escape_json_string(char *string);
 extern void dct_stringInfoAppendStringValue(StringInfo strInfo, char *key, char *value, char comma);

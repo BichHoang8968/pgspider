@@ -17,6 +17,8 @@ CREATE EXTENSION griddb_fdw;
 --Testcase 690:
 CREATE EXTENSION influxdb_fdw;
 
+CREATE EXTENSION objstorage_fdw;
+
 --Testcase 7:
 CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
 -- ===================================================================
@@ -2733,6 +2735,20 @@ SELECT * FROM ft1__mysql1__0 ORDER BY c1 LIMIT 10;
 SELECT * FROM ft1__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 681:
 SELECT * FROM ft1__oracle1__0 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft1__postgres1__0;
+DROP DATASOURCE TABLE ft1__mysql1__0;
+DROP DATASOURCE TABLE ft1__griddb1__0;
+DROP DATASOURCE TABLE ft1__oracle1__0;
+DROP DATASOURCE TABLE ft1__influx1__0;
+
+DROP FOREIGN TABLE ft1__postgres1__0;
+DROP FOREIGN TABLE ft1__pgspider1__0;
+DROP FOREIGN TABLE ft1__mysql1__0;
+DROP FOREIGN TABLE ft1__griddb1__0;
+DROP FOREIGN TABLE ft1__oracle1__0;
+DROP FOREIGN TABLE ft1__influx1__0;
+
 --Testcase 682:
 DROP FOREIGN TABLE ft1;
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
@@ -2816,6 +2832,386 @@ DROP TABLE t1;
 
 -- DROP SERVER postgres_svr_test CASCADE;
 
+-- ===================================================================
+-- TO OBJSTORAGE_FDW: S3 Server + Parquet File
+-- ===================================================================
+
+CREATE FOREIGN TABLE ft1 (c1 bigint, c2 text, c3 bytea, c4 bool, c5 "char", c6 date, c7 numeric, c8 float8,
+    c9 float4, c10 int, c11 varchar(10), c12 char(10), c13 smallint, c14 timestamptz
+) SERVER loopback OPTIONS (table_name 't1');
+
+CREATE DATASOURCE TABLE ft1;
+
+INSERT INTO t1 VALUES (1000, 'textbl_objs3', E'\\xa7a8a9aaabacadaeaf', true, 'a', '2001-01-01', 10000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 1, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (2000, 'text2', E'\\xa7a8a9aaabacadaeaf', true, 'b', '2002-01-01', 20000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 2, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (3000, 'text3', E'\\xa7a8a9aaabacadaeaf', false, 'c', '2003-01-01', 30000, 21122.213, 100.0, 200, 'char array', 'bpchar[]', 3, '2005-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (4000, 'text4', E'\\xa7a8a9aaabacadaeaf', false, 'd', '2004-01-01', 40000, 6565.10, 200.0, 300, 'char array', 'bpchar 1', 4, '2003-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (5000, 'text5', E'\\xa7a8a9aaabacadaeaf', true, 'e', '2005-01-01', 50000, 599.010, 300.0, 400, 'char array', 'bpchar 2', 5, '2003-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (6000, 'text6', E'\\xa7a8a9aaabacadaeaf', false, 'f', '2006-01-01', 60000, 4645.0, -400.0, 500, 'char array', 'bpchar 3', -1, '2004-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (7000, 'text7', E'\\xa7a8a9aaabacadaeaf', true, 'g', '2007-01-01', 70000, -435.10, 500.0, -600, 'char array', 'bpchar 4', -2, '2005-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (8000, 'text8', E'\\xa7a8a9aaabacadaeaf', false, 'h', '2008-01-01', 80000, -4578.10, 600.0, 700, 'char array', 'bpchar 5', -3, '2006-10-19 10:23:54+02');
+INSERT INTO t1 VALUES (9000, 'text9', E'\\xa7a8a9aaabacadaeaf', true, 'i', '2009-01-01', 90000, 97878.10, 700.0, 800, 'char array', 'bpchar 6', -4, '2003-10-19 09:00:30+02');
+INSERT INTO t1 VALUES (10000, 'textbl_objs31', E'\\xa7a8a9aaabacadaeaf', false, 'j', '2010-01-01', 10000, 454.10, 800.0, -900, 'char array', 'bpchar 7', 0, '2008-10-19 09:00:30+02');
+
+do $$
+begin
+  for r in 1..10 loop
+    INSERT INTO t1 SELECT * FROM t1;
+  end loop;
+end;
+$$;
+
+SELECT count(*) FROM ft1;
+SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
+
+CREATE SERVER objstorageS3_1 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9000', storage_type 's3');
+CREATE SERVER objstorageS3_2 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9001', storage_type 's3');
+CREATE SERVER objstorageS3_3 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9002', storage_type 's3');
+
+CREATE USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (user 'minioadmin', password 'minioadmin');
+CREATE USER MAPPING FOR public SERVER objstorageS3_2 OPTIONS (user 'minioadmin', password 'minioadmin');
+CREATE USER MAPPING FOR public SERVER objstorageS3_3 OPTIONS (user 'minioadmin', password 'minioadmin');
+
+-- Abnormal test case
+-- Both region and endpoint are not specified. Throw exception: either "region" or "endpoint" is required.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
+
+-- Both region and endpoint are specified. This case is handled in objstorage_fdw.
+-- So we do not add test case for it here.
+
+-- region is invalid. Expectation is error.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
+ALTER SERVER objstorageS3_1 OPTIONS (ADD region 'invalid_region');
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER SERVER objstorageS3_1 OPTIONS (DROP region);
+ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
+
+-- endpoint is invalid. Expectation is error.
+ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9999');
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9000');
+
+-- storage_type is not specified. Throw exception: "storage_type" is required.
+ALTER SERVER objstorageS3_1 OPTIONS (DROP storage_type);
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER SERVER objstorageS3_1 OPTIONS (ADD storage_type 's3');
+
+-- storage_type is invalid. Expectation is error. This case is handled in objstorage_fdw.
+-- So we do not add test case for it here.
+
+-- user is not specified. Throw exception: "user" is required.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP user);
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD user 'minioadmin');
+
+-- user is invalid. Expectation is error.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'invalid_user');
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'minioadmin');
+
+-- password is not specified. Throw exception: "password" is required.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP password);
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD password 'minioadmin');
+
+-- password is invalid. Expectation is error.
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'invalid_password');
+
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'minioadmin');
+
+-- Both filename and dirname are not specified. Throw exception: either "filename" or "dirname" is required.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', format 'parquet');
+
+-- Both filename and dirname are specified. Throw exception: both "filename" and "dirname" cannot set at the same time.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', dirname 'bucket', format 'parquet');
+
+-- filename is invalid. Expectation is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'invalid_filename', format 'parquet');
+
+-- dirname is invalid. Expectation is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'invalid_filename', format 'parquet');
+
+-- format is not specified. Throw exception: "format" is required.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet');
+
+-- format is invalid. Exception is error.
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'invalid_format');
+
+-- some datatypes that are not supported.
+-- bit data type. Expectation is error.
+CREATE FOREIGN TABLE ft_bit (
+        c1 bit(4)
+) SERVER loopback OPTIONS (table_name 'tbl_bit');
+
+CREATE DATASOURCE TABLE ft_bit;
+INSERT INTO ft_bit VALUES (B'1010'), (B'1000'), (B'1111');
+
+MIGRATE TABLE ft_bit TO ft_bit2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/bit.parquet', format 'parquet');
+
+DROP DATASOURCE TABLE ft_bit;
+DROP FOREIGN TABLE ft_bit;
+
+-- time with time zone. Expectation is error.
+CREATE FOREIGN TABLE ft_timetz (
+        c1 timetz
+) SERVER loopback OPTIONS (table_name 'tbl_timetz');
+
+CREATE DATASOURCE TABLE ft_timetz;
+INSERT INTO ft_timetz VALUES ('15:00:00 +02:00'), ('16:00:00 +03:00'), ('17:00:00 +04:00');
+
+MIGRATE TABLE ft_timetz TO ft_timetz2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timetz.parquet', format 'parquet');
+
+DROP DATASOURCE TABLE ft_timetz;
+DROP FOREIGN TABLE ft_timetz;
+
+-- Some data that cannot verify by foreign table of objstorage_fdw
+-- time data type
+CREATE FOREIGN TABLE ft_time (
+        c1 time
+) SERVER loopback OPTIONS (table_name 'tbl_time');
+
+CREATE DATASOURCE TABLE ft_time;
+INSERT INTO ft_time VALUES ('2001-01-01 00:00:00'::time), ('2001-01-02 00:00:00'::time), ('2001-01-03 00:00:00'::time);
+
+MIGRATE TABLE ft_time TO ft_time2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/time.parquet', format 'parquet');
+
+SELECT count(*) FROM ft_time2;
+-- objstorage_fdw does not support select time data type
+SELECT * FROM ft_time2;
+
+DROP DATASOURCE TABLE ft_time2;
+DROP FOREIGN TABLE ft_time2;
+DROP DATASOURCE TABLE ft_time;
+DROP FOREIGN TABLE ft_time;
+
+-- timestamp data type
+CREATE FOREIGN TABLE ft_timestamp (
+        c1 timestamp
+) SERVER loopback OPTIONS (table_name 'tbl_timestamp');
+
+CREATE DATASOURCE TABLE ft_timestamp;
+INSERT INTO ft_timestamp VALUES ('2004-10-19 10:23:54'::timestamp), ('2004-10-20 10:23:54'::timestamp), ('2004-10-21 10:23:54'::timestamp);
+
+MIGRATE TABLE ft_timestamp TO ft_timestamp2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timestamp.parquet', format 'parquet');
+
+SELECT count(*) FROM ft_timestamp2;
+-- objstorage_fdw does not support convert bigint to time
+SELECT * FROM ft_timestamp2 LIMIT 10;
+
+DROP DATASOURCE TABLE ft_timestamp2;
+DROP FOREIGN TABLE ft_timestamp2;
+DROP DATASOURCE TABLE ft_timestamp;
+DROP FOREIGN TABLE ft_timestamp;
+
+-- array data types
+CREATE FOREIGN TABLE ft1_arr (c1 bool[], c2 "char"[], c3 char[], c4 bigint[], c5 int[], c6 smallint[],
+    c7 text[], c8 float4[], c9 float8[], c10 varchar[], c11 numeric[], c12 date[], c13 timestamptz[]
+) SERVER loopback OPTIONS (table_name 't1_arr');
+
+CREATE DATASOURCE TABLE ft1_arr;
+
+INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b'], ARRAY['a',''], ARRAY[1000,2000], ARRAY[100,200], ARRAY[1,2], ARRAY['textbl_postgres','text2'], ARRAY[1.0,2.0], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres'], ARRAY[10000,20000], ARRAY['2001-01-01'::date,'2001-01-02'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b', 'c'], ARRAY['a','', null], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','text3'], ARRAY[1.0,2.0,null], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres','vartextbl_postgres'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date,'2001-01-04'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, null], ARRAY['a', 'b', 'c', null], ARRAY['a','','x'], ARRAY[1000,null,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2',null], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,-2000,3000], ARRAY[100,-200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,50000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr',null], ARRAY[1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5,6,7,8,9,10], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,40000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true,false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300,400], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,-200,300], ARRAY[1,2,-3,4,-5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,-20000,30000,null], ARRAY['2002-01-01'::date,'2001-01-02'::date,null,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300,400,500], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[-1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[-1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+
+do $$
+begin
+  for r in 1..10 loop
+    INSERT INTO t1_arr SELECT * FROM t1_arr;
+  end loop;
+end;
+$$;
+
+SELECT count(*) FROM ft1_arr;
+SELECT * FROM ft1_arr ORDER BY c1 LIMIT 10;
+
+MIGRATE TABLE ft1_arr TO ft2_arr OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+SELECT count(*) FROM ft2_arr;
+-- objstorage_fdw does not support select array data types
+SELECT * FROM ft2_arr ORDER BY c1 LIMIT 10;
+
+-- Check number of record
+SELECT count(*) FROM ft2_arr;
+
+DROP DATASOURCE TABLE ft2_arr;
+DROP FOREIGN TABLE ft2_arr;
+DROP DATASOURCE TABLE ft1_arr;
+DROP FOREIGN TABLE ft1_arr;
+
+-- MIGRATE single target server and single relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE multi target server and single relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud1', filename 'bucket/dir/file2.parquet', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud1', filename 'bucket/dir2/file3.parquet', format 'parquet');
+\d
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE multi target server and multi relay server (with file name is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud2', filename 'bucket/dir/file2.parquet', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud3', filename 'bucket/dir2/file3.parquet', format 'parquet');
+\d
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE single target server and single relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+
+-- dirname contain key's prefix
+-- bucket is 'bucket', prefix of key is 'dir1/dir2'
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
+        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket/dir1/dir2', format 'parquet');
+
+SELECT count(*) FROM ft2;
+SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2;
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE multi target server and single relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
+\d
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2;
+
+-- MIGRATE multi target server and multi relay server (with dirname is specified)
+MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
+        objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
+        objstorageS3_2 OPTIONS (relay 'cloud2', dirname 'bucket', format 'parquet'),
+        objstorageS3_3 OPTIONS (relay 'cloud3', dirname 'bucket', format 'parquet');
+\d
+
+-- Check data for first 10 records and number of records
+SELECT count(*) FROM ft2;
+
+SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
+
+DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+DROP FOREIGN TABLE ft2__objstorageS3_3__0;
+
+DROP FOREIGN TABLE ft2;
+
 -- Clean
 --Testcase 694:
 DROP EXTENSION postgres_fdw CASCADE;
@@ -2827,6 +3223,7 @@ DROP EXTENSION oracle_fdw CASCADE;
 DROP EXTENSION griddb_fdw CASCADE;
 --Testcase 698:
 DROP EXTENSION influxdb_fdw CASCADE;
+DROP EXTENSION objstorage_fdw CASCADE;
 --Testcase 699:
 DROP EXTENSION pgspider_fdw CASCADE;
 --Testcase 700:

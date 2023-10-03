@@ -22,7 +22,7 @@ def BRANCH_ODBC_FDW = 'master'
 def BRANCH_JDBC_FDW = 'master'
 def BRANCH_REDMINE_FDW = 'master'
 def BRANCH_GITLAB_FDW = 'main'
-def BRANCH_PGSPIDER_COMPRESSION = 'main'
+def BRANCH_PGSPIDER_COMPRESSION = 'add_S3_datasource_with_parquet_file'
 
 pipeline {
     agent {
@@ -515,7 +515,7 @@ pipeline {
                         cd ${DCT_DOCKER_PATH}
                         docker-compose down
                         cd ${GITLAB_DOCKER_PATH}
-                        docker-compose up --wait
+                        docker compose up --wait
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_gitlab ${BRANCH_GITLAB_FDW}" pgspider'
                     """
                 }
