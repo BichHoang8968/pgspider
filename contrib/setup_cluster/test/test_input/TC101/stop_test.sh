@@ -13,12 +13,11 @@ then
     echo "Stop PGS1"
     ./pg_ctl -D ../${PGS1_DB} stop #-l ../log.pgs1
     sleep 2
-  fi 
+  fi
 
   #clean DB folder
   cd ${PGS1_DIR}
   rm -rf ${PGS1_DB} || true
-
 fi
 
 cd $CURR_PATH

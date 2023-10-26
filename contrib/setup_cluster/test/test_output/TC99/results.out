@@ -1,21 +1,21 @@
-select * from tbl_postgre;
+select * from tbl_postgre order by c2, __spd_url;
      c1      |    c2     |       c3       | __spd_url 
 -------------+-----------+----------------+-----------
- Caichao     |     25452 | 54562563.21514 | /db2/
- two         |      1222 |    -2563.21514 | /db2/
- threse      |    242322 |         563.87 | /db2/
  simple      | -28391322 |        82563.8 | /db2/
- nothing     |    989839 |         8657.2 | /db2/
  0YJ_gG7l000 |     -9892 |          332.8 | /db2/
  four        |       124 |        463.244 | /db2/
+ two         |      1222 |    -2563.21514 | /db2/
  five        |      8675 |     -29863.212 | /db2/
  six         |      8685 |            563 | /db2/
+ Caichao     |     25452 | 54562563.21514 | /db2/
  MalaysiaNY  |     54645 |    3.321241209 | /db2/
+ threse      |    242322 |         563.87 | /db2/
+ nothing     |    989839 |         8657.2 | /db2/
 (10 rows)
 
-select * from tmp_test_setcluster;
+select * from tmp_test_setcluster order by c2, __spd_url;
 ERROR:  relation "tmp_test_setcluster" does not exist
-LINE 1: select * from tmp_test_setcluster;
+LINE 1: select * from tmp_test_setcluster order by c2, __spd_url;
                       ^
 select * from tbl_grid;
         c1         |     c2      |     c3     | __spd_url 
@@ -33,20 +33,22 @@ select * from tbl_grid;
 (10 rows)
 
 select * from tbl_influx;
+SET
 ERROR:  relation "tbl_influx" does not exist
-LINE 1: select * from tbl_influx;
-                      ^
+LINE 1: SET TIMEZONE to 'UTC'; select * from tbl_influx;
+                                             ^
 select * from tbl_influx_2;
+SET
           time          | sid | sig1  |             sig2             |    sig3    | sig4 | __spd_url 
 ------------------------+-----+-------+------------------------------+------------+------+-----------
- 1970-01-01 08:01:39+08 | id2 |   370 | g029012                      |  109489057 | t    | /db5/
- 1970-01-01 08:16:26+08 | id3 |  9260 | インターフェース設計検討資料 |        -24 | f    | /db5/
- 1970-01-01 09:27:15+08 | id1 | 12120 | aoaowejf                     | 4098219035 | t    | /db5/
- 1970-01-01 10:22:58+08 | id1 |  1250 | システムGUIソフトウエア      |     -10000 | f    | /db5/
- 1970-01-01 11:27:11+08 | id4 |   480 | +!2-3-12030_!@#!)~_#@%)      | 9826357635 | f    | /db5/
- 1970-01-01 20:05:46+08 | id3 |  -230 | C)@maEFJAe=3kake             |          0 | f    | /db5/
- 1970-01-01 22:36:06+08 | id4 |  -340 | 装置開発機能仕               |    9384972 | t    | /db5/
- 1970-01-07 09:54:05+08 | id2 |  2120 | BAEFOAWJ#AWEK                | 1023108589 | f    | /db5/
+ 1970-01-01 00:01:39+00 | id2 |   370 | g029012                      |  109489057 | t    | /db5/
+ 1970-01-01 00:16:26+00 | id3 |  9260 | インターフェース設計検討資料 |        -24 | f    | /db5/
+ 1970-01-01 01:27:15+00 | id1 | 12120 | aoaowejf                     | 4098219035 | t    | /db5/
+ 1970-01-01 02:22:58+00 | id1 |  1250 | システムGUIソフトウエア      |     -10000 | f    | /db5/
+ 1970-01-01 03:27:11+00 | id4 |   480 | +!2-3-12030_!@#!)~_#@%)      | 9826357635 | f    | /db5/
+ 1970-01-01 12:05:46+00 | id3 |  -230 | C)@maEFJAe=3kake             |          0 | f    | /db5/
+ 1970-01-01 14:36:06+00 | id4 |  -340 | 装置開発機能仕               |    9384972 | t    | /db5/
+ 1970-01-07 01:54:05+00 | id2 |  2120 | BAEFOAWJ#AWEK                | 1023108589 | f    | /db5/
 (8 rows)
 
 select * from tbl_mysql;

@@ -23,8 +23,16 @@ Code test for setup_cluster tool is written in path PGSpider/contrib/setup_clust
     - GRIDDB_HOME
     - GRIDDB_CLIENT
     - TINYBRACE_HOME
+    - POSTGREST_BINARY_HOME
+    - DYNAMODB_HOME
+    - GITLAB_HOME
+    - REDMINE_HOME
+    - SQLUMDASH_PATH
+    - JDBC_LIB_PATH
 
-2. Run test by command
+2. In node_information.json, update correct credentials like user, password, endpoint, and so on if any.
+
+3. Run test by command
 
     ./test_setup_cluster.sh
 

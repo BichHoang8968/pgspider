@@ -7,7 +7,9 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include <libpq-fe.h>
 #include "pgspider_node.h"
 #include "error_codes.h"
@@ -29,6 +31,12 @@ static ReturnCode sqlumdashcs_fdw(nodes *option, PGconn *conn);
 static ReturnCode odbc_fdw(nodes *option, PGconn *conn);
 static ReturnCode jdbc_fdw(nodes *option, PGconn *conn);
 static ReturnCode objstorage_fdw(nodes *option, PGconn *conn);
+static ReturnCode gitlab_fdw(nodes *option, PGconn *conn);
+static ReturnCode redmine_fdw(nodes *option, PGconn *conn);
+
+/* Helpful functions */
+static void appendOption(char *sql, char *option_name, char *option_value, bool need_delimiter);
+static const char *cui_quote_identifier(const char *ident);
 
 const		spd_function spd_func[] = {
 	{"file_fdw", file_fdw},
@@ -48,10 +56,14 @@ const		spd_function spd_func[] = {
 	{"dynamodb_fdw", dynamodb_fdw},
 	{"sqlumdashcs_fdw", sqlumdashcs_fdw},
 	{"objstorage_fdw", objstorage_fdw},
+	{"gitlab_fdw", gitlab_fdw},
+	{"redmine_fdw", redmine_fdw},
 	{"pgspider_core_fdw", node_set_spdcore}
 };
 
 const int	extension_size = sizeof(spd_func) / sizeof(*spd_func);
+const char	*sqlTail = ");\n";
+
 
 ReturnCode
 node_set_spdcore(nodes *option, PGconn *conn)
@@ -299,7 +311,6 @@ oracle_fdw(nodes *option, PGconn *conn)
 {
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-	char		sqlTail[4] = ");\n";
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(dbserver '%s'", option->nodename, "oracle_fdw", option->dbserver);
 	if (strlen(option->isolation_level) > 0)
@@ -334,7 +345,6 @@ mongo_fdw(nodes *option, PGconn *conn)
 {
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
-	char		sqlTail[4] = ");\n";
 
 	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(address '%s', port '%s'", option->nodename, "mongo_fdw", option->ip, option->port);
 
@@ -538,13 +548,192 @@ objstorage_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (endpoint '%s');", option->nodename, "objstorage_fdw", option->endpoint);
+	/* storage types need endpoint */
+	if (strcmp(option->storage_type, "local") != 0 )
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s', endpoint '%s');", option->nodename, "objstorage_fdw", option->storage_type, option->endpoint);
+	else
+		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s');", option->nodename, "objstorage_fdw", option->storage_type);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS(username '%s', password '%s');\n",
+	/* storage types need username and password */
+	if (strcmp(option->storage_type, "azure") == 0 || strcmp(option->storage_type, "s3") == 0)
+		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS(user '%s', password '%s');\n",
 			option->nodename, option->user, option->pass);
+	else
+		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s;\n", option->nodename);
+
+	rc = query_execute(conn, sql);
+
+	return rc;
+}
+
+static ReturnCode
+gitlab_fdw(nodes *option, PGconn *conn)
+{
+	ReturnCode	rc;
+	char		sql[QUERY_LEN];
+	bool		need_delimiter = false;
+
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "gitlab_fdw");
+
+	/*
+	 * FDW accepts empty value however should not add empty value
+	 * because connection will be always failed.
+	 */
+	if (strlen(option->endpoint) > 0)
+	{
+		appendOption(sql, "endpoint", option->endpoint, need_delimiter);
+		need_delimiter = true;
+	}
+
+	/*
+	 * Default value is always 0 setting by FDW.
+	 * Only add this option if it is greater than 0
+	 */
+	if (atoi(option->timeout) > 0)
+	{
+		appendOption(sql, "timeout", option->timeout, need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	/*
+	 * FDW accepts empty value however should not add empty value
+	 * because connection will be always failed.
+	 */
+	if (strlen(option->proxy) > 0)
+	{
+		appendOption(sql, "proxy", option->proxy, need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	/* Check dependencies of ssl_verifypeer, ca_file and ca_path */
+	if (strcmp(tolower(option->ssl_verifypeer), "true") == 0)
+	{
+		if (strlen(option->ca_file) == 0 || strlen(option->ca_path) == 0)
+		{
+			PRINT_ERROR("ERROR: ca file and ca path must be set\n");
+			return SETUP_INVALID_CONTENT;
+		}
+
+		appendOption(sql, "ssl_verifypeer", tolower(option->ssl_verifypeer), need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+
+		appendOption(sql, "ca_file", option->ca_file, need_delimiter);
+		appendOption(sql, "ca_path", option->ca_path, need_delimiter);
+	}
+	else
+	{
+		appendOption(sql, "ssl_verifypeer", "false", need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	strcat(sql, sqlTail);
+
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (access_token '%s');\n",
+			option->nodename, option->access_token);
+	rc = query_execute(conn, sql);
+
+	return rc;
+}
+
+static ReturnCode
+redmine_fdw(nodes *option, PGconn *conn)
+{
+	ReturnCode	rc;
+	char		sql[QUERY_LEN];
+	bool		need_delimiter = false;
+
+	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "redmine_fdw");
+
+	/*
+	 * FDW accepts empty value however should not add empty value
+	 * because connection will be always failed.
+	 */
+	if (strlen(option->endpoint) > 0)
+	{
+		appendOption(sql, "endpoint", option->endpoint, need_delimiter);
+		need_delimiter = true;
+	}
+
+	/*
+	 * Default value is always 0 setting by FDW.
+	 * Only add this option if it is greater than 0
+	 */
+	if (atoi(option->timeout) > 0)
+	{
+		appendOption(sql, "timeout", option->timeout, need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	/*
+	 * FDW accepts empty value however we should not add empty value
+	 * because connection will always be failed.
+	 */
+	if (strlen(option->proxy) > 0)
+	{
+		appendOption(sql, "proxy", option->proxy, need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	/* Check dependencies of ssl_verifypeer, ca_file and ca_path */
+	if (strcmp(tolower(option->ssl_verifypeer), "true") == 0)
+	{
+		if (strlen(option->ca_file) == 0 || strlen(option->ca_path) == 0)
+		{
+			PRINT_ERROR("ERROR: ca file and ca path must be set\n");
+			return SETUP_INVALID_CONTENT;
+		}
+
+		appendOption(sql, "ssl_verifypeer", tolower(option->ssl_verifypeer), need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+
+		appendOption(sql, "ca_file", option->ca_file, need_delimiter);
+		appendOption(sql, "ca_path", option->ca_path, need_delimiter);
+	}
+	else
+	{
+		appendOption(sql, "ssl_verifypeer", "false", need_delimiter);
+
+		if (need_delimiter == false)
+			need_delimiter = true;
+	}
+
+	/* close OPTIONS */
+	strcat(sql, sqlTail);
+
+	rc = query_execute(conn, sql);
+	if (rc != SETUP_OK)
+		return rc;
+
+	/*
+	 * FDW accepts the empty value however api_key should not be NULL/empty
+	 * because connection will be failed
+	 */
+	if (strlen(option->api_key) > 0)
+		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (api_key '%s');\n", option->nodename, option->api_key);
+	else
+		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (user '%s', password '%s');\n", option->nodename, option->user, option->pass);
+
 	rc = query_execute(conn, sql);
 
 	return rc;
@@ -585,4 +774,79 @@ mapping_set_file(nodes *option, PGconn *conn, char *filename, int seqnum)
 	printf("file_fdw child foreign table: %s\n", sql);
 
 	return query_execute(conn, sql);
+}
+
+
+/* Helpful functions */
+static void appendOption(char *sql, char *option_name, char *option_value, bool need_delimiter)
+{
+	char		tmpOpt[CONFIG_LEN];
+
+	if (strlen(option_name) == 0)
+		return;
+
+	sprintf(tmpOpt, "%s %s '%s'", need_delimiter?",":"",option_name, cui_quote_identifier(option_value));
+	strcat(sql, tmpOpt);
+}
+
+static const char *
+cui_quote_identifier(const char *ident)
+{
+	/*
+	 * Can avoid quoting if ident starts with a lowercase letter, a uppercase letter or underscore
+	 * and contains only lowercase letters, uppercase letters, digits, and underscores, *and* is
+	 * not any SQL keyword.  Otherwise, supply quotes.
+	 */
+	int			nquotes = 0;
+	bool		safe;
+	const char *ptr;
+	char	   *result;
+	char	   *optr;
+
+	/*
+	 * would like to use <ctype.h> macros here, but they might yield unwanted
+	 * locale-specific results...
+	 */
+	safe = ((ident[0] >= 'a' && ident[0] <= 'z') || ident[0] == '_' || (ident[0] >= 'A' && ident[0] <= 'Z') || 
+			ident[0] == '/');	/* Accept directory path */
+
+	for (ptr = ident; *ptr; ptr++)
+	{
+		char		ch = *ptr;
+
+		if ((ch >= 'a' && ch <= 'z') ||
+			(ch >= 'A' && ch <= 'Z') ||
+			(ch >= '0' && ch <= '9') ||
+			(ch == '_') ||
+			(ch == '/') || (ch == ':') || (ch == '.')) /* Accept http://www. */
+		{
+			/* okay */
+		}
+		else
+		{
+			safe = false;
+			if (ch == '"')
+				nquotes++;
+		}
+	}
+
+	if (safe)
+		return ident;			/* no change needed */
+
+	result = (char *) malloc(strlen(ident) + nquotes + 2 + 1);
+
+	optr = result;
+	*optr++ = '"';
+	for (ptr = ident; *ptr; ptr++)
+	{
+		char		ch = *ptr;
+
+		if (ch == '"')
+			*optr++ = '"';
+		*optr++ = ch;
+	}
+	*optr++ = '"';
+	*optr = '\0';
+
+	return result;
 }

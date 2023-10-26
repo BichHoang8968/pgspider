@@ -1,0 +1,6 @@
+{"One":1,"Two":{"List":[{"Item":1},{"Item":2},{"Item":3}]},"Three":"foo","Four":1514764800000000,"Five":17532,"Six":true,"Seven":0.5}
+{"One":2,"Two":{"List":[{"Item":null},{"Item":5},{"Item":6}]},"Three":"bar","Four":1514851200000000,"Five":17533,"Six":false,"Seven":null}
+{"One":3,"Two":{"List":[{"Item":7},{"Item":8},{"Item":9}]},"Three":"baz","Four":1514937600000000,"Five":17534,"Six":true,"Seven":1}
+{"One":4,"Two":{"List":[{"Item":10},{"Item":11},{"Item":12}]},"Three":"uno","Four":1515024000000000,"Five":17535,"Six":false,"Seven":1.5}
+{"One":5,"Two":{"List":[{"Item":13},{"Item":14},{"Item":15}]},"Three":"dos","Four":1515110400000000,"Five":17536,"Six":false,"Seven":null}
+{"One":6,"Two":{"List":[{"Item":16},{"Item":17},{"Item":18}]},"Three":"tres","Four":1515196800000000,"Five":17537,"Six":false,"Seven":2}

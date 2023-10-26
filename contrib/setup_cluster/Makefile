@@ -1,6 +1,6 @@
 PROGRAM = setup_cluster
-PG_CPPFLAGS = -I$(libpq_srcdir) -I$(top_builddir)/src/include -O0 -g3 
-SHLIB_LINK = $(libpq) 
+PG_CPPFLAGS = -I$(libpq_srcdir) -I$(top_builddir)/src/include -O0 -g3
+SHLIB_LINK = $(libpq)
 OBJS = install_main.o pgspider_node.o install_util.o config.o
 
 ifdef USE_PGXS

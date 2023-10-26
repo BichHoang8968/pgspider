@@ -86,7 +86,7 @@ then
     ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
     sleep 1
   fi
-  rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
+  rm -rf ${GS_HOME}/data/* ${GS_HOME}/txnlog/* ${GS_HOME}/swap/* ${GS_LOG}/*
   sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestSetcluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
   echo "Starting GridDB server..."
   ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
@@ -107,13 +107,15 @@ then
   cp tbl_parquetminio.parquet /tmp/data_s3/setupcluster
   cp tbl_parquetlocal.parquet /tmp/data_local/setupcluster
 
+  minio_image='minio/minio:RELEASE.2021-04-22T15-44-28Z.hotfix.56647434e'
+
   if [ ! "$(docker ps -q -f name=^/${MINIO_CONTAINER}$)" ]; then
     if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${MINIO_CONTAINER}$)" ]; then
         # cleanup
-        docker rm ${MINIO_CONTAINER} 
+        docker rm -f ${MINIO_CONTAINER}
     fi
     # run minio container
-    docker run -d --name ${MINIO_CONTAINER} -it -p 9000:9000 -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" -v /tmp/data_s3:/data minio/minio server /data
+    docker run -d --name ${MINIO_CONTAINER} -it -p 8000:9000 -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" -v /tmp/data_s3:/data ${minio_image} server /data
   fi
 
   # Start for SQLumDash server

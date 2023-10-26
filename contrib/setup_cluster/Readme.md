@@ -1,4 +1,4 @@
-# setup_cluster tool
+## setup_cluster tool
 
 This tool setups a server configuration for PGSpider.
 
@@ -8,7 +8,15 @@ Support only Linux.
 But can build on Windows(not be tested).
 
 ## How to build
-### On Linux:
+### On Linux (Centos 7):
+1. Install Jansson library into the system folders.
+
+```
+sudo yum install jansson-devel
+```
+
+2. Build setup_cluster
+
 ```sh
 make
 ```

@@ -4,6 +4,7 @@ PGS1_DB=setcluster2_db1
 PG1_PORT=5432
 PG1_DB=setcluster2_db2
 
+source /opt/rh/devtoolset-11/enable
 DATA_PATH=$INIT_DATA_PATH
 export http_proxy=
 if [[ "--start" == $1 ]]

@@ -1,0 +1,89 @@
+NOTICE:  extension "file_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_fdw" does not exist, skipping
+NOTICE:  extension "postgres_fdw" does not exist, skipping
+NOTICE:  extension "sqlite_fdw" does not exist, skipping
+NOTICE:  extension "tinybrace_fdw" does not exist, skipping
+NOTICE:  extension "mysql_fdw" does not exist, skipping
+NOTICE:  extension "griddb_fdw" does not exist, skipping
+NOTICE:  extension "influxdb_fdw" does not exist, skipping
+NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
+NOTICE:  extension "mongo_fdw" does not exist, skipping
+NOTICE:  extension "oracle_fdw" does not exist, skipping
+NOTICE:  extension "postgrest_fdw" does not exist, skipping
+NOTICE:  extension "odbc_fdw" does not exist, skipping
+NOTICE:  extension "jdbc_fdw" does not exist, skipping
+NOTICE:  extension "dynamodb_fdw" does not exist, skipping
+NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
+NOTICE:  extension "objstorage_fdw" does not exist, skipping
+NOTICE:  extension "gitlab_fdw" does not exist, skipping
+NOTICE:  extension "redmine_fdw" does not exist, skipping
+NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
+NOTICE:  schema "temp_schema" does not exist, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "commits" already exists, skipping
+NOTICE:  relation "branches" already exists, skipping
+NOTICE:  relation "tags" already exists, skipping
+NOTICE:  relation "projects" already exists, skipping
+NOTICE:  relation "issues" already exists, skipping
+NOTICE:  relation "issue_comments" already exists, skipping
+NOTICE:  relation "time_entries" already exists, skipping
+NOTICE:  relation "issues" already exists, skipping
+NOTICE:  relation "issue_comments" already exists, skipping
+NOTICE:  relation "time_entries" already exists, skipping
+NOTICE:  relation "issues" already exists, skipping
+NOTICE:  relation "issue_comments" already exists, skipping
+NOTICE:  relation "time_entries" already exists, skipping
+NOTICE:  relation "issues" already exists, skipping
+NOTICE:  relation "issue_comments" already exists, skipping
+NOTICE:  relation "time_entries" already exists, skipping
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+file_fdw parent foreign table: CREATE FOREIGN TABLE IF NOT EXISTS "tmp_test_setcluster"(c1 text, c2 bigint, c3 float8,__spd_url text) server db1;
+file_fdw server: CREATE SERVER IF NOT EXISTS db4 FOREIGN DATA WRAPPER file_fdw;
+file_fdw child foreign table: CREATE FOREIGN TABLE tmp_test_setcluster__db4__0(c1 text, c2 bigint, c3 float8) SERVER db4 OPTIONS(filename '/tmp/test_setcluster/tbl_file.csv', format 'csv');
+
+FINISH db1 
+free db2
+free db3
+free db4
+free db5
+free db6
+free db7
+free db8
+free db9
+free db10
+free db11
+free db12
+free db13
+Success to create pgspider tables.

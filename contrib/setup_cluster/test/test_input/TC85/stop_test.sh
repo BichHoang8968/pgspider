@@ -23,7 +23,7 @@ then
   then
     echo "stop PG1"
     ./pg_ctl -D ../${PG1_DB} stop #-l ../log.pg1
-    #can not stop pgspider server because process hang up by dynamdb_fdw and parquet_s3_fdw
+
     pkill -9 pgspider
     sleep 2
   fi

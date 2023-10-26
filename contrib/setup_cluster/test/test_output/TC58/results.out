@@ -1,7 +1,7 @@
-select * from tbl_postgre;
+select * from tbl_postgre order by c2, __spd_url;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
-select * from tmp_test_setcluster;
+select * from tmp_test_setcluster order by c2, __spd_url;
 psql: error: connection to server on socket "/tmp/.s.PGSQL.4813" failed: No such file or directory
 	Is the server running locally and accepting connections on that socket?
 select * from tbl_grid;
