@@ -85,7 +85,7 @@ then
     ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
     sleep 1
   fi
-  rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
+  rm -rf ${GS_HOME}/data/* ${GS_HOME}/txnlog/* ${GS_HOME}/swap/* ${GS_LOG}/*
   sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestSetcluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
   echo "Starting GridDB server..."
   ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin

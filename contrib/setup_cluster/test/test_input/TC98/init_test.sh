@@ -5,7 +5,7 @@ PGS1_DB=setcluster6_db1
 CUR_PATH=$(pwd)
 cd $PGSPIDER_HOME
 cd ../contrib/influxdb_fdw
-source /opt/rh/devtoolset-7/enable
+source /opt/rh/devtoolset-11/enable
 make clean
 make clean CXX_CLIENT=1
 make CXX_CLIENT=1
@@ -46,7 +46,7 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA pub
 container_name_v2='influxdb_server_v2'
 influxdbV2_image='influxdb:2.2'
 
-CUR_PATH = $(pwd)
+CUR_PATH=$(pwd)
 cd $INIT_DATA_PATH/init_influx_cxx
 
 # clean influxdb server if exists

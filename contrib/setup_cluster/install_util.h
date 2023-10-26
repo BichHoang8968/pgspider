@@ -17,11 +17,14 @@
 #define PATH_LEN 1024
 #define READBUF_REN 1024 * 1024
 #define CONFIG_LEN 128
+#define TABLE_NAME_LEN 63
+#define COLUMN_NAME_LEN 59
 #define NODENAME "Nodename"
 #define NODES "Nodes"
 #define MYSQL_DRIVER_OF_JDBC "com.mysql.jdbc.Driver"
 #define MYSQL_DBSERVER_OF_ODBC "mysql"
 #define MONGO_OPTION_LEN 128
+#define GITLAB_OPTION_LEN 128
 #define ORACLE_OPTION_LEN 128
 
 /* An interval time when retrying to create a connection of PGSpider. */
@@ -126,15 +129,29 @@ typedef struct nodes
 
 	/* Specific options for objstorage_fdw */
 	char	   *storage_type;			 /* Storage server type. */
+	char	   *tablename;				 /* foreign table name */
 	char	   *filename;				 /* Use the specified file as data source. */
 	char	   *dirname;				 /* Use all files under the specified directory as data source. */
 	char	   *format;					 /* Data format. */
 	char	   *schemaless;				 /* true : schemaless / false : normal table. */
 	char	   *key_columns;			 /* Key columns on schemaless table Multiple values can be set by separating with commas. */
 	char	   *key;					 /* true : use as key column. */
+
+	/* Specific options for influxdb_fdw */
 	char	   *influxdb_version;		 /* InfluxDB version */
 	char	   *token;					 /* InfluxDB V2 token. */
 	char	   *retention_policy;		 /* InfluxDB V2 retention policy*/
+
+	/*
+	 * Specific options for redmine_fdw, gitlab_fdw.
+	 * There are some options endpoint, user, password, ca_file are already mentioned above.
+	 */
+	char	   *timeout;				 /* Maximum time in seconds that allow the curl transfer operation to take */
+	char	   *proxy;					 /* Set proxy to use */
+	char	   *ssl_verifypeer;			 /* Determine whether Curl verify the authenticity of the peer's certificate or not */
+	char	   *ca_path;				 /* The directory path that holds multiple Certificate Authority certificate files to verify the peer with */
+	char	   *api_key;				 /* User’s API key which is a handy way to avoid putting a password */
+	char	   *access_token;			 /* token access to gitlab */
 
 	file_fdw_tables *file_tables;
 	struct nodes *next;

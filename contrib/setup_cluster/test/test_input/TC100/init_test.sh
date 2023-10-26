@@ -8,7 +8,7 @@ PG1_DB=setcluster2_db2
 CUR_PATH=$(pwd)
 cd $PGSPIDER_HOME
 cd ../contrib/influxdb_fdw
-source /opt/rh/devtoolset-7/enable
+source /opt/rh/devtoolset-11/enable
 make clean
 make clean CXX_CLIENT=1
 make CXX_CLIENT=1

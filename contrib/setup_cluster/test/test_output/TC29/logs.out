@@ -1,4 +1,4 @@
-File:install_main.c Function:parse_conf L:1064 Msg:Error: port parameter is invalid.
+File:install_main.c Function:parse_conf L:1213 Msg:Error: port parameter is invalid.
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

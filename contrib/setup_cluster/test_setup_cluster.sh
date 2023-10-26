@@ -8,6 +8,8 @@ GRIDDB_CLIENT=/home/jenkins/griddb-5.0/griddb
 TINYBRACE_HOME=/usr/local/tinybrace
 POSTGREST_BINARY_HOME=/home/jenkins/binary_Postgrest
 DYNAMODB_HOME=/home/jenkins/DynamoDB
+GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab/GitlabFDW
+REDMINE_HOME=/home/jenkins/pgspiderci/Server/Redmine
 
 MONGO_HOST="localhost"
 MONGO_PORT="27017"
@@ -64,6 +66,8 @@ export GRIDDB_CLIENT="${GRIDDB_CLIENT}"
 export TINYBRACE_HOME="${TINYBRACE_HOME}"
 export POSTGREST_BINARY_HOME="${POSTGREST_BINARY_HOME}"
 export DYNAMODB_HOME="${DYNAMODB_HOME}"
+export REDMINE_HOME="${REDMINE_HOME}"
+export GITLAB_HOME="${GITLAB_HOME}"
 
 export INIT_DATA_PATH="${INIT_DATA_PATH}" 
 export TEST_INPUT_PATH="${TEST_INPUT_PATH}" 
@@ -132,7 +136,7 @@ make clean && make > /dev/null 2>&1
 # scan test suite into TC_list
 cd $TEST_INPUT_PATH
 
-list_TC=$(find . -maxdepth 1 -type d -not -path '*/\.*' | sed 's/^\.\///g' | sort -n)
+list_TC=$(find . -maxdepth 1 -type d -not -path '*/\.*' | sed 's/^\.\///g' | sort -V)
 # echo $list_TC
 
 
@@ -144,7 +148,7 @@ mkdir results || true
 
 for i in ${list_TC[@]}
 do
-    if [[ ${i} == "." ]]; then
+    if [ ${i} == "." ]; then
         continue
     fi
 
@@ -181,10 +185,10 @@ do
     fi
 
     # Get data in parent node
-    echo "select * from tbl_postgre;" >> results/$i/results.out
-    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_postgre;" >> results/$i/results.out 2>&1
-    echo "select * from tmp_test_setcluster;" >> results/$i/results.out
-    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tmp_test_setcluster;" >> results/$i/results.out 2>&1
+    echo "select * from tbl_postgre order by c2, __spd_url;" >> results/$i/results.out
+    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_postgre order by c2, __spd_url;" >> results/$i/results.out 2>&1
+    echo "select * from tmp_test_setcluster order by c2, __spd_url;" >> results/$i/results.out
+    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tmp_test_setcluster order by c2, __spd_url;" >> results/$i/results.out 2>&1
 
     # tmp_test_setcluster2 is only created in TC79
     if [[ ${i} == "TC79" ]]; then
@@ -194,13 +198,15 @@ do
 
     echo "select * from tbl_grid;" >> results/$i/results.out
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_grid;" >> results/$i/results.out 2>&1
+
+    # influxdb uses UTC timezone by default, need to set the same timezoe on PGSpider to display the same result.
     echo "select * from tbl_influx;" >> results/$i/results.out
-    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_influx;" >> results/$i/results.out 2>&1
+    $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "SET TIMEZONE to 'UTC'; select * from tbl_influx;" >> results/$i/results.out 2>&1
 
     # show table of some test cases for influx v2
     if [ ${i} == "TC98" ] || [ ${i} == "TC99" ] || [ ${i} == "TC100" ] || [ ${i} == "TC101" ]; then
         echo "select * from tbl_influx_2;" >> results/$i/results.out
-        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_influx_2;" >> results/$i/results.out 2>&1
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "SET TIMEZONE to 'UTC'; select * from tbl_influx_2;" >> results/$i/results.out 2>&1
     fi
 
     echo "select * from tbl_mysql;" >> results/$i/results.out
@@ -234,6 +240,75 @@ do
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_jdbcgrid;" >> results/$i/results.out 2>&1
     echo "select * from tbl_postgrest;" >> results/$i/results.out
     $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from tbl_postgrest;" >> results/$i/results.out 2>&1
+
+    # test for redmine fdw
+    if [ ${i} == "TC102" ]; then
+        echo "select * from issues order by id, parent_id;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "SET TIMEZONE to 'UTC'; select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for gitlab fdw
+    if [ ${i} == "TC103" ] || [ ${i} == "TC104" ]; then
+        echo "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for objstorage_fdw
+
+    # non-schemaless
+    if [ ${i} == "TC105" ]; then
+        echo "select * from test_table1 order by 3, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table1 order by 3, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # schemaless
+    if [ ${i} == "TC106" ]; then
+        echo "select * from test_table1 order by v->>'One', __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table1 order by v->>'One', __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # mix of non-schemaless and schemaless - failed
+    if [ ${i} == "TC107" ]; then
+        echo "select * from test_table1;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table1;" >> results/$i/results.out 2>&1
+    fi
+
+    # mix of data format
+    if [ ${i} == "TC108" ]; then
+        echo "select * from test_table1 order by v->>'One', __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table1 order by v->>'One', __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # directory
+    if [ ${i} == "TC109" ]; then
+        echo "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # mixed nodes
+    if [ ${i} == "TC110" ]; then
+        # objstorage
+        echo "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+        # gitlab
+        echo "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out 2>&1
+        # redmine
+        echo "select * from issues order by id, parent_id;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for redmine fdw, failed case
+    if [ ${i} == "TC111" ]; then
+        echo "select * from issues order by id, parent_id;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for gitlab fdw, failed case
+    if [ ${i} == "TC112" ]; then
+        echo "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out 2>&1
+    fi
 
     # Check data in parent node
     cmp -s results/$i/results.out $TEST_OUTPUT_PATH/$i/results.out

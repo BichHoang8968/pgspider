@@ -1,19 +1,20 @@
-select * from tbl_postgre;
+select * from tbl_postgre order by c2, __spd_url;
 ERROR:  relation "tbl_postgre" does not exist
-LINE 1: select * from tbl_postgre;
+LINE 1: select * from tbl_postgre order by c2, __spd_url;
                       ^
-select * from tmp_test_setcluster;
+select * from tmp_test_setcluster order by c2, __spd_url;
 ERROR:  relation "tmp_test_setcluster" does not exist
-LINE 1: select * from tmp_test_setcluster;
+LINE 1: select * from tmp_test_setcluster order by c2, __spd_url;
                       ^
 select * from tbl_grid;
 ERROR:  relation "tbl_grid" does not exist
 LINE 1: select * from tbl_grid;
                       ^
 select * from tbl_influx;
+SET
 ERROR:  relation "tbl_influx" does not exist
-LINE 1: select * from tbl_influx;
-                      ^
+LINE 1: SET TIMEZONE to 'UTC'; select * from tbl_influx;
+                                             ^
 select * from tbl_mysql;
         c1        |   c2   |     c3      | __spd_url 
 ------------------+--------+-------------+-----------

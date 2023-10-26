@@ -273,6 +273,34 @@ import_schema(PGconn *conn, nodes * node_data)
 			sprintf(query, "IMPORT FOREIGN SCHEMA \"%s\" FROM SERVER %s INTO temp_schema;", node_data->dbname, node_data->nodename);
 		}
 	}
+	else if (strcasecmp(node_data->fdw, "objstorage_fdw") == 0)
+	{
+		/* tablename is required */
+		sprintf(query, "IMPORT FOREIGN SCHEMA sche FROM SERVER %s INTO temp_schema OPTIONS (tablename '%s'", node_data->nodename, node_data->tablename);
+
+		/* filename or dirname is required */
+		if (strlen(node_data->filename) > 0)
+			sprintf(query + strlen(query), ", filename '%s'",  node_data->filename);
+
+		if (strlen(node_data->dirname) > 0)
+			sprintf(query + strlen(query), ", dirname '%s'",  node_data->dirname);
+
+		if (strlen(node_data->format) > 0)
+			sprintf(query + strlen(query), ", format '%s'",  node_data->format);
+
+		/* schemaless default value is false */
+		if (strlen(node_data->schemaless) > 0)
+			sprintf(query + strlen(query), ", schemaless '%s'",  node_data->schemaless);
+		else
+			sprintf(query + strlen(query), ", schemaless '%s'",  "false");
+
+		/* add key_columns */
+		if (strlen(node_data->key_columns) > 0)
+			sprintf(query + strlen(query), ", key_columns '%s'",  node_data->key_columns);
+
+		/* Close query */
+		sprintf(query + strlen(query), ");");
+	}
 	else
 		sprintf(query, "IMPORT FOREIGN SCHEMA public FROM SERVER %s INTO temp_schema;", node_data->nodename);
 
@@ -495,6 +523,7 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 	char		query[QUERY_LEN] = "SELECT foreign_table_name FROM information_schema.foreign_tables WHERE foreign_table_schema='temp_schema'";
 	PGresult   *select_column_res = NULL;
 	PGresult   *select_column_res_tmp = NULL;
+	bool		is_gitlab_or_redmine = (strcasecmp(fdw, "gitlab_fdw") == 0) | (strcasecmp(fdw, "redmine_fdw") == 0);
 
 	/* get table name from temp schema */
 	res = PQexec(conn, query);
@@ -514,8 +543,62 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		char		alter_query[QUERY_LEN];
 		char		create_query[QUERY_LEN];
 		char		newtable[QUERY_LEN];
+		char		parenttable[TABLE_NAME_LEN];
 
-		sprintf(newtable, "%s__%s__0", PQgetvalue(res, i, 0), server_name);
+		if (is_gitlab_or_redmine)
+		{
+			/* Specify alter table name for gitlab_fdw and redmine_fdw.
+			 * Eg: issues_1 -> issues__redmine_srv__1
+			 */
+			char* table_name = PQgetvalue(res, i, 0);
+			int length = PQgetlength(res, i, 0);		/* length of table name */
+			int saved_idx = length;				/* index of the last underscore symbol */
+			int idx = length - 1;				/* index variable, initial value is index of last element */
+
+			memset(newtable, '\0', sizeof(newtable));
+			memset(parenttable, '\0', sizeof(parenttable));
+
+			/* Loop from end to begin, if find the first underscore symbol, save its index and break */
+			for (; idx >= 0; idx--)
+			{
+				if (table_name[idx] == '_')
+				{
+					saved_idx = idx;
+					break;
+				}
+			}
+
+			/* saved_idx == length means table name has no underscore symbol. Eg table name is "parent" */
+			if (saved_idx == length)
+			{
+				/* Alter table name. Eg: parent -> parent__db2__0 */
+				sprintf(newtable, "%s__%s__0", table_name, server_name);
+
+				/* Assign parent table = table name. Eg: parent -> parent */
+				strcpy(parenttable, table_name);
+			}
+			/* this case for having underscore symbols in table name */
+			else
+			{
+				char id[COLUMN_NAME_LEN];        /* ID number at the end of table name. Eg: _14 */
+
+				memset(id, '\0', sizeof(id));
+
+				/* Get parent table name. Eg: branches_14 -> just copy "branches" to newtable */
+				strncpy(parenttable, table_name, saved_idx);
+
+				/* Get id  Eg: branches_14 -> id = 14 */
+				strncpy(id, table_name + saved_idx + 1, length - saved_idx - 1);
+
+				/* Create new table */
+				sprintf(newtable, "%s__%s__%s", parenttable, server_name, id);
+			}
+		}
+		else
+		{
+			/* Default alter table name for FDWs */
+			sprintf(newtable, "%s__%s__0", PQgetvalue(res, i, 0), server_name);
+		}
 		sprintf(select_column_query, "SELECT c.oid,n.nspname,c.relname FROM pg_catalog.pg_class c LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE c.relname OPERATOR(pg_catalog.~) '^(%s)$' AND n.nspname OPERATOR(pg_catalog.~) '^(temp_schema)$' ORDER BY 2, 3;", PQgetvalue(res, i, 0));
 #ifdef PRINT_DEBUG
 		printf("select=%s \n", select_column_query);
@@ -544,7 +627,23 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		rc = query_execute(conn, alter_query);
 		if (rc != SETUP_OK)
 			break;
-		/* griddb fdw does not add table name option. we add here. */
+
+		/*
+		 * Redmine_fdw does not specify the option 'resource_name' for `projects` or `users` table.
+		 * We have to specify resource name for them.
+		*/
+		if (strcasecmp(fdw, "redmine_fdw") == 0)
+		{
+			if (strcasecmp(parenttable, "projects") == 0 || strcasecmp(parenttable, "users") == 0)
+			{
+				sprintf(alter_query, "ALTER FOREIGN TABLE \"%s\" OPTIONS (resource_name '%s');", newtable, parenttable);
+				rc = query_execute(conn, alter_query);
+				if (rc != SETUP_OK)
+					break;
+			}
+		}
+
+		/* griddb fdw does not add table name option, we add it here. */
 		if (strcasecmp(fdw, "griddb_fdw") == 0)
 		{
 			sprintf(alter_query, "ALTER FOREIGN TABLE \"%s\" OPTIONS (table_name '%s');", newtable, PQgetvalue(res, i, 0));
@@ -554,14 +653,24 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		}
 
 		/* Create parent table */
-		sprintf(create_query, "CREATE FOREIGN TABLE IF NOT EXISTS \"%s\"(", PQgetvalue(res, i, 0));
+		if (is_gitlab_or_redmine)
+		{
+			sprintf(create_query, "CREATE FOREIGN TABLE IF NOT EXISTS \"%s\"(", parenttable);
+		}
+		else
+		{
+			sprintf(create_query, "CREATE FOREIGN TABLE IF NOT EXISTS \"%s\"(", PQgetvalue(res, i, 0));
+		}
+
 		for (k = 0; k < PQntuples(select_column_res); k++)
 		{
 			if (strcmp(PQgetvalue(select_column_res, k, 0), "__spd_url") != 0)
 			{
 				if (k != 0)
 					strcat(create_query, ",");
+				strcat(create_query, "\"");
 				strcat(create_query, PQgetvalue(select_column_res, k, 0));
+				strcat(create_query, "\"");
 				strcat(create_query, " ");
 				strcat(create_query, PQgetvalue(select_column_res, k, 1));
 			}
@@ -807,6 +916,10 @@ verify_nodedata(nodes * node_data)
 	{
 		node_data->storage_type = malloc_nodedata(double_quote);
 	}
+	if (node_data->tablename == NULL)
+	{
+		node_data->tablename = malloc_nodedata(double_quote);
+	}
 	if (node_data->filename == NULL)
 	{
 		node_data->filename = malloc_nodedata(double_quote);
@@ -827,10 +940,6 @@ verify_nodedata(nodes * node_data)
 	{
 		node_data->key_columns = malloc_nodedata(double_quote);
 	}
-	if (node_data->key == NULL)
-	{
-		node_data->key = malloc_nodedata(double_quote);
-	}
 	if (node_data->influxdb_version == NULL)
 	{
 		node_data->influxdb_version = malloc_nodedata(double_quote);
@@ -842,6 +951,34 @@ verify_nodedata(nodes * node_data)
 	if (node_data->retention_policy == NULL)
 	{
 		node_data->retention_policy = malloc_nodedata(double_quote);
+	}
+
+	/* redmine_fdw*/
+	if (node_data->timeout == NULL)
+	{
+		node_data->timeout = malloc_nodedata(double_quote);
+	}
+	if (node_data->proxy == NULL)
+	{
+		node_data->proxy = malloc_nodedata(double_quote);
+	}
+	if (node_data->ssl_verifypeer == NULL)
+	{
+		node_data->ssl_verifypeer = malloc_nodedata(double_quote);
+	}
+	if (node_data->ca_path == NULL)
+	{
+		node_data->ca_path = malloc_nodedata(double_quote);
+	}
+	if (node_data->api_key == NULL)
+	{
+		node_data->api_key = malloc_nodedata(double_quote);
+	}
+
+	/* gitlab_fdw*/
+	if (node_data->access_token == NULL)
+	{
+		node_data->access_token = malloc_nodedata(double_quote);
 	}
 }
 
@@ -967,15 +1104,27 @@ free_nodedata(nodes * node)
 		free(node->crl_file);
 		free(node->weak_cert_validation);
 		free(node->storage_type);
+		free(node->tablename);
 		free(node->filename);
 		free(node->dirname);
 		free(node->format);
 		free(node->schemaless);
 		free(node->key_columns);
-		free(node->key);
 		free(node->token);
 		free(node->retention_policy);
 		free(node->influxdb_version);
+
+		/**
+		 * redmine_fdw and gitlab_fdw
+		 */
+		free(node->timeout);
+		free(node->proxy);
+		free(node->ssl_verifypeer);
+		free(node->ca_path);
+		/* redmine_fdw */
+		free(node->api_key);
+		/* gitlab_fdw */
+		free(node->access_token);
 
 		node = node->next;
 		free(pnext);
@@ -1151,8 +1300,12 @@ parse_conf(json_t * element, nodes * nodes_data)
 					nodes_data->crl_file = data;
 				else if (strcasecmp(key, "weak_cert_validation") == 0)
 					nodes_data->weak_cert_validation = data;
+
+				/* obj_storage_fdw*/
 				else if (strcasecmp(key, "storage_type") == 0)
 					nodes_data->storage_type = data;
+				else if (strcasecmp(key, "tablename") == 0)
+					nodes_data->tablename = data;
 				else if (strcasecmp(key, "filename") == 0)
 					nodes_data->filename = data;
 				else if (strcasecmp(key, "dirname") == 0)
@@ -1163,14 +1316,30 @@ parse_conf(json_t * element, nodes * nodes_data)
 					nodes_data->schemaless = data;
 				else if (strcasecmp(key, "key_columns") == 0)
 					nodes_data->key_columns = data;
-				else if (strcasecmp(key, "key") == 0)
-					nodes_data->key = data;
+
+				/* influxdb_fdw */
 				else if (strcasecmp(key, "influxdb_version") == 0)
 					nodes_data->influxdb_version = data;
 				else if (strcasecmp(key, "token") == 0)
 					nodes_data->token = data;
 				else if (strcasecmp(key, "retention_policy") == 0)
 					nodes_data->retention_policy = data;
+
+				/* redmine_fdw */
+				else if (strcasecmp(key, "timeout") == 0)
+					nodes_data->timeout = data;
+				else if (strcasecmp(key, "proxy") == 0)
+					nodes_data->proxy = data;
+				else if (strcasecmp(key, "ssl_verifypeer") == 0)
+					nodes_data->ssl_verifypeer = data;
+				else if (strcasecmp(key, "ca_path") == 0)
+					nodes_data->ca_path = data;
+				else if (strcasecmp(key, "api_key") == 0)
+					nodes_data->api_key = data;
+
+				/* gitlab_fdw */
+				else if (strcasecmp(key, "access_token") == 0)
+					nodes_data->access_token = data;
 				else
 				{
 					PRINT_ERROR("Error: %s is not fdw parameter. \n", key);

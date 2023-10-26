@@ -1,90 +1,91 @@
-select * from tbl_postgre;
+select * from tbl_postgre order by c2, __spd_url;
      c1      |    c2     |       c3       |   __spd_url    
 -------------+-----------+----------------+----------------
- Caichao     |     25452 | 54562563.21514 | /db2/
- two         |      1222 |    -2563.21514 | /db2/
- threse      |    242322 |         563.87 | /db2/
  simple      | -28391322 |        82563.8 | /db2/
- nothing     |    989839 |         8657.2 | /db2/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db2/
- four        |       124 |        463.244 | /db2/
- five        |      8675 |     -29863.212 | /db2/
- six         |      8685 |            563 | /db2/
- MalaysiaNY  |     54645 |    3.321241209 | /db2/
- Caichao     |     25452 | 54562563.21514 | /db4/db6/
- two         |      1222 |    -2563.21514 | /db4/db6/
- threse      |    242322 |         563.87 | /db4/db6/
- simple      | -28391322 |        82563.8 | /db4/db6/
- nothing     |    989839 |         8657.2 | /db4/db6/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db6/
- four        |       124 |        463.244 | /db4/db6/
- five        |      8675 |     -29863.212 | /db4/db6/
- Caichao     |     25452 | 54562563.21514 | /db4/db7/db9/
- two         |      1222 |    -2563.21514 | /db4/db7/db9/
- threse      |    242322 |         563.87 | /db4/db7/db9/
- simple      | -28391322 |        82563.8 | /db4/db7/db9/
- nothing     |    989839 |         8657.2 | /db4/db7/db9/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db9/
- four        |       124 |        463.244 | /db4/db7/db9/
- five        |      8675 |     -29863.212 | /db4/db7/db9/
- six         |      8685 |            563 | /db4/db7/db9/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db9/
- Caichao     |     25452 | 54562563.21514 | /db4/db7/db10/
- two         |      1222 |    -2563.21514 | /db4/db7/db10/
- six         |      8685 |            563 | /db4/db6/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db6/
- threse      |    242322 |         563.87 | /db4/db7/db10/
- simple      | -28391322 |        82563.8 | /db4/db7/db10/
- nothing     |    989839 |         8657.2 | /db4/db7/db10/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db10/
- four        |       124 |        463.244 | /db4/db7/db10/
- five        |      8675 |     -29863.212 | /db4/db7/db10/
- six         |      8685 |            563 | /db4/db7/db10/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db10/
- Caichao     |     25452 | 54562563.21514 | /db4/db7/db8/
- two         |      1222 |    -2563.21514 | /db4/db7/db8/
- threse      |    242322 |         563.87 | /db4/db7/db8/
- simple      | -28391322 |        82563.8 | /db4/db7/db8/
- nothing     |    989839 |         8657.2 | /db4/db7/db8/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db8/
- four        |       124 |        463.244 | /db4/db7/db8/
- five        |      8675 |     -29863.212 | /db4/db7/db8/
- six         |      8685 |            563 | /db4/db7/db8/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db8/
- Caichao     |     25452 | 54562563.21514 | /db4/db5/
- two         |      1222 |    -2563.21514 | /db4/db5/
- threse      |    242322 |         563.87 | /db4/db5/
- simple      | -28391322 |        82563.8 | /db4/db5/
- nothing     |    989839 |         8657.2 | /db4/db5/
- 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/
- four        |       124 |        463.244 | /db4/db5/
- five        |      8675 |     -29863.212 | /db4/db5/
- six         |      8685 |            563 | /db4/db5/
- MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/
- Caichao     |     25452 | 54562563.21514 | /db3/
- two         |      1222 |    -2563.21514 | /db3/
- threse      |    242322 |         563.87 | /db3/
  simple      | -28391322 |        82563.8 | /db3/
- nothing     |    989839 |         8657.2 | /db3/
+ simple      | -28391322 |        82563.8 | /db4/db5/
+ simple      | -28391322 |        82563.8 | /db4/db6/
+ simple      | -28391322 |        82563.8 | /db4/db7/db10/
+ simple      | -28391322 |        82563.8 | /db4/db7/db8/
+ simple      | -28391322 |        82563.8 | /db4/db7/db9/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db2/
  0YJ_gG7l000 |     -9892 |          332.8 | /db3/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db5/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db6/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db10/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db8/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db4/db7/db9/
+ four        |       124 |        463.244 | /db2/
  four        |       124 |        463.244 | /db3/
+ four        |       124 |        463.244 | /db4/db5/
+ four        |       124 |        463.244 | /db4/db6/
+ four        |       124 |        463.244 | /db4/db7/db10/
+ four        |       124 |        463.244 | /db4/db7/db8/
+ four        |       124 |        463.244 | /db4/db7/db9/
+ two         |      1222 |    -2563.21514 | /db2/
+ two         |      1222 |    -2563.21514 | /db3/
+ two         |      1222 |    -2563.21514 | /db4/db5/
+ two         |      1222 |    -2563.21514 | /db4/db6/
+ two         |      1222 |    -2563.21514 | /db4/db7/db10/
+ two         |      1222 |    -2563.21514 | /db4/db7/db8/
+ two         |      1222 |    -2563.21514 | /db4/db7/db9/
+ five        |      8675 |     -29863.212 | /db2/
  five        |      8675 |     -29863.212 | /db3/
+ five        |      8675 |     -29863.212 | /db4/db5/
+ five        |      8675 |     -29863.212 | /db4/db6/
+ five        |      8675 |     -29863.212 | /db4/db7/db10/
+ five        |      8675 |     -29863.212 | /db4/db7/db8/
+ five        |      8675 |     -29863.212 | /db4/db7/db9/
+ six         |      8685 |            563 | /db2/
  six         |      8685 |            563 | /db3/
+ six         |      8685 |            563 | /db4/db5/
+ six         |      8685 |            563 | /db4/db6/
+ six         |      8685 |            563 | /db4/db7/db10/
+ six         |      8685 |            563 | /db4/db7/db8/
+ six         |      8685 |            563 | /db4/db7/db9/
+ Caichao     |     25452 | 54562563.21514 | /db2/
+ Caichao     |     25452 | 54562563.21514 | /db3/
+ Caichao     |     25452 | 54562563.21514 | /db4/db5/
+ Caichao     |     25452 | 54562563.21514 | /db4/db6/
+ Caichao     |     25452 | 54562563.21514 | /db4/db7/db10/
+ Caichao     |     25452 | 54562563.21514 | /db4/db7/db8/
+ Caichao     |     25452 | 54562563.21514 | /db4/db7/db9/
+ MalaysiaNY  |     54645 |    3.321241209 | /db2/
  MalaysiaNY  |     54645 |    3.321241209 | /db3/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db5/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db6/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db10/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db8/
+ MalaysiaNY  |     54645 |    3.321241209 | /db4/db7/db9/
+ threse      |    242322 |         563.87 | /db2/
+ threse      |    242322 |         563.87 | /db3/
+ threse      |    242322 |         563.87 | /db4/db5/
+ threse      |    242322 |         563.87 | /db4/db6/
+ threse      |    242322 |         563.87 | /db4/db7/db10/
+ threse      |    242322 |         563.87 | /db4/db7/db8/
+ threse      |    242322 |         563.87 | /db4/db7/db9/
+ nothing     |    989839 |         8657.2 | /db2/
+ nothing     |    989839 |         8657.2 | /db3/
+ nothing     |    989839 |         8657.2 | /db4/db5/
+ nothing     |    989839 |         8657.2 | /db4/db6/
+ nothing     |    989839 |         8657.2 | /db4/db7/db10/
+ nothing     |    989839 |         8657.2 | /db4/db7/db8/
+ nothing     |    989839 |         8657.2 | /db4/db7/db9/
 (70 rows)
 
-select * from tmp_test_setcluster;
+select * from tmp_test_setcluster order by c2, __spd_url;
 ERROR:  relation "tmp_test_setcluster" does not exist
-LINE 1: select * from tmp_test_setcluster;
+LINE 1: select * from tmp_test_setcluster order by c2, __spd_url;
                       ^
 select * from tbl_grid;
 ERROR:  relation "tbl_grid" does not exist
 LINE 1: select * from tbl_grid;
                       ^
 select * from tbl_influx;
+SET
 ERROR:  relation "tbl_influx" does not exist
-LINE 1: select * from tbl_influx;
-                      ^
+LINE 1: SET TIMEZONE to 'UTC'; select * from tbl_influx;
+                                             ^
 select * from tbl_mysql;
 ERROR:  relation "tbl_mysql" does not exist
 LINE 1: select * from tbl_mysql;

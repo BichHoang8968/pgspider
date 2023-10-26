@@ -28,13 +28,14 @@ then
   mkdir -p /tmp/data_s3/setupcluster || true
   cp tbl_parquetminio.parquet /tmp/data_s3/setupcluster
 
+  minio_image='minio/minio:RELEASE.2021-04-22T15-44-28Z.hotfix.56647434e'
   if [ ! "$(docker ps -q -f name=^/${MINIO_CONTAINER}$)" ]; then
     if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${MINIO_CONTAINER}$)" ]; then
         # cleanup
         docker rm ${MINIO_CONTAINER} 
     fi
     # run minio container
-    docker run -d --name ${MINIO_CONTAINER} -it -p 9000:9000 -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" -v /tmp/data_s3:/data minio/minio server /data
+    docker run -d --name ${MINIO_CONTAINER} -it -p 8000:9000 -e "MINIO_ROOT_USER=minioadmin" -e "MINIO_ROOT_PASSWORD=minioadmin" -v /tmp/data_s3:/data ${minio_image} server /data
   fi
   sleep 15
 

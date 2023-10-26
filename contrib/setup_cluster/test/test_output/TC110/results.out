@@ -1,0 +1,265 @@
+select * from tbl_postgre order by c2, __spd_url;
+     c1      |    c2     |       c3       | __spd_url 
+-------------+-----------+----------------+-----------
+ simple      | -28391322 |        82563.8 | /db5/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db5/
+ four        |       124 |        463.244 | /db5/
+ two         |      1222 |    -2563.21514 | /db5/
+ five        |      8675 |     -29863.212 | /db5/
+ six         |      8685 |            563 | /db5/
+ Caichao     |     25452 | 54562563.21514 | /db5/
+ MalaysiaNY  |     54645 |    3.321241209 | /db5/
+ threse      |    242322 |         563.87 | /db5/
+ nothing     |    989839 |         8657.2 | /db5/
+(10 rows)
+
+select * from tmp_test_setcluster order by c2, __spd_url;
+        c1         |      c2      |      c3       | __spd_url 
+-------------------+--------------+---------------+-----------
+ กระทะfile2        | -33720385808 |   19212.12123 | /db4/
+ simplefile4       |    -21212312 |     5000.1651 | /db4/
+ ごきげんようfile8 |       -83781 |    9000.32184 | /db4/
+ ハンサムfile10    |          123 |   83123.12312 | /db4/
+ сковородаfile9    |         1213 |   -12000.9213 | /db4/
+ nothingfile5      |        12123 |    -6000.1894 | /db4/
+ 友達と会うfile3   |        21123 |    -4000.6153 | /db4/
+ 0YJ_gG7l000file7  |       122112 |    -8000.6871 | /db4/
+ oneonefile6       |     98972321 |     7000.1984 | /db4/
+ Cáichảofile1      | 922337203807 | 21292.1212312 | /db4/
+(10 rows)
+
+select * from tbl_grid;
+        c1         |     c2      |     c3     | __spd_url 
+-------------------+-------------+------------+-----------
+ Cáichảogrid1      | 19337203807 |  21292.121 | /db6/
+ กระทะgrid2        | -5720385808 |   19212.03 | /db6/
+ 友達と会うgrid3   |        5123 |    -4000.6 | /db6/
+ simplegrid4       |     -292312 |   5000.151 | /db6/
+ nothinggrid5      |        6123 |    -6000.4 | /db6/
+ oneonegrid6       |     8472321 |    7000.14 | /db6/
+ 0YJ_gG7l000grid7  |        3412 |   -8000.61 | /db6/
+ ごきげんようgrid8 |      -84781 |   95000.32 | /db6/
+ сковородаgrid9    |       13213 | -19500.922 | /db6/
+ ハンサムgrid10    |       12523 |  80123.125 | /db6/
+(10 rows)
+
+select * from tbl_influx;
+SET
+          time          | sid | sig1  |             sig2             |    sig3    | sig4 | __spd_url 
+------------------------+-----+-------+------------------------------+------------+------+-----------
+ 1970-01-01 00:01:39+00 | id2 |   370 | g029012                      |  109489057 | t    | /db3/
+ 1970-01-01 00:16:26+00 | id3 |  9260 | インターフェース設計検討資料 |        -24 | f    | /db3/
+ 1970-01-01 01:27:15+00 | id1 | 12120 | aoaowejf                     | 4098219035 | t    | /db3/
+ 1970-01-01 02:22:58+00 | id1 |  1250 | システムGUIソフトウエア      |     -10000 | f    | /db3/
+ 1970-01-01 03:27:11+00 | id4 |   480 | +!2-3-12030_!@#!)~_#@%)      | 9826357635 | f    | /db3/
+ 1970-01-01 12:05:46+00 | id3 |  -230 | C)@maEFJAe=3kake             |          0 | f    | /db3/
+ 1970-01-01 14:36:06+00 | id4 |  -340 | 装置開発機能仕               |    9384972 | t    | /db3/
+ 1970-01-07 01:54:05+00 | id2 |  2120 | BAEFOAWJ#AWEK                | 1023108589 | f    | /db3/
+(8 rows)
+
+select * from tbl_mysql;
+ERROR:  relation "tbl_mysql" does not exist
+LINE 1: select * from tbl_mysql;
+                      ^
+select * from tbl_sqlite;
+ERROR:  relation "tbl_sqlite" does not exist
+LINE 1: select * from tbl_sqlite;
+                      ^
+select * from tbl_tiny;
+         c1         |   c2   |    c3     | __spd_url 
+--------------------+--------+-----------+-----------
+ tiny1              |     85 |  3563.349 | /db7/
+ tiny2              |    576 | -553.3854 | /db7/
+ 友達と会う tiny3   |    322 |   75643.5 | /db7/
+ simple tiny4       |  -8682 |  423.1242 | /db7/
+ nothing tiny5      |     59 |       6.2 | /db7/
+ tiny6              |   -232 | 232.42423 | /db7/
+ ごきげんよう tiny7 | 945674 |     50.05 | /db7/
+ сковорода tiny8    |    445 |   -6763.5 | /db7/
+ ハンサム tiny9     |    355 |    14.205 | /db7/
+ MalaysiaNY tiny10  |    645 |    256733 | /db7/
+(10 rows)
+
+select * from tbl_parquetminio;
+     c1      |  c2   |     c3      | __spd_url 
+-------------+-------+-------------+-----------
+ Caichao     | 25452 | 54562563.21 | /db9/
+ two         |  8675 |      563.87 | /db9/
+ 0YJ_gG7l000 |   124 |           1 | /db9/
+ MalaysiaNY  |  4532 |       3.321 | /db9/
+ five        |     5 |      563.87 | /db9/
+(5 rows)
+
+select * from tbl_parquetlocal;
+ERROR:  relation "tbl_parquetlocal" does not exist
+LINE 1: select * from tbl_parquetlocal;
+                      ^
+select * from tbl_oracle;
+     c1      |    c2     |       c3       | __spd_url 
+-------------+-----------+----------------+-----------
+ Caichao     |     25452 | 54562563.21514 | /db8/
+ two         |      1222 |    -2563.21514 | /db8/
+ simple      | -28391322 |        82563.8 | /db8/
+ nothing     |    989839 |         8657.2 | /db8/
+ 0YJ_gG7l000 |     -9892 |          332.8 | /db8/
+(5 rows)
+
+select * from tbl_sqlumdash;
+          c1          |    c2    |     c3      | __spd_url 
+----------------------+----------+-------------+-----------
+ sqlite1              |    32352 |       563.9 | /db11/
+ sqlite2              |     9576 |  -57563.059 | /db11/
+ 友達と会う sqlite3   |    36322 |     433.835 | /db11/
+ simple sqlite4       |   -43522 |   3423.1242 | /db11/
+ nothing sqlite5      |     4759 |     92347.2 | /db11/
+ sqlite6              |   -34392 |      442.83 | /db11/
+ ごきげんよう sqlite7 | 34324124 | 534253.0995 | /db11/
+ сковорода sqlite8    |     7325 |   -17363.55 | /db11/
+ ハンサム sqlite9     |      325 |      984.24 | /db11/
+ MalaysiaNY sqlite10  |     9645 |     233.932 | /db11/
+(10 rows)
+
+select * from tbl_odbcmysql;
+ERROR:  relation "tbl_odbcmysql" does not exist
+LINE 1: select * from tbl_odbcmysql;
+                      ^
+select * from tbl_odbcpostgres;
+     c1      |    c2     |      c3       | __spd_url 
+-------------+-----------+---------------+-----------
+ Caichao     |     25452 | 5.4562564e+07 | /db10/
+ two         |      1222 |     -2563.215 | /db10/
+ threse      |    242322 |        563.87 | /db10/
+ simple      | -28391322 |       82563.8 | /db10/
+ nothing     |    989839 |        8657.2 | /db10/
+ 0YJ_gG7l000 |     -9892 |         332.8 | /db10/
+ four        |       124 |       463.244 | /db10/
+ five        |      8675 |    -29863.213 | /db10/
+ six         |      8685 |           563 | /db10/
+ MalaysiaNY  |     54645 |     3.3212411 | /db10/
+(10 rows)
+
+select * from tbl_dynamodb;
+ERROR:  relation "tbl_dynamodb" does not exist
+LINE 1: select * from tbl_dynamodb;
+                      ^
+select * from tbl_mongo;
+ERROR:  relation "tbl_mongo" does not exist
+LINE 1: select * from tbl_mongo;
+                      ^
+select * from tbl_jdbcmysql;
+ERROR:  relation "tbl_jdbcmysql" does not exist
+LINE 1: select * from tbl_jdbcmysql;
+                      ^
+select * from tbl_jdbcpostgres;
+ERROR:  relation "tbl_jdbcpostgres" does not exist
+LINE 1: select * from tbl_jdbcpostgres;
+                      ^
+select * from tbl_jdbcgrid;
+ERROR:  relation "tbl_jdbcgrid" does not exist
+LINE 1: select * from tbl_jdbcgrid;
+                      ^
+select * from tbl_postgrest;
+ERROR:  relation "tbl_postgrest" does not exist
+LINE 1: select * from tbl_postgrest;
+                      ^
+select * from test_table2 order by v, __spd_url;
+                                                                                   v                                                                                    | __spd_url 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-----------
+ {"Col1": "file0", "Col2": 1, "Col3": 0.100000, "Timestamp": 1597403471000}                                                                                             | /db2/
+ {"Col1": "file0", "Col2": 2, "Col3": 0.200000, "Timestamp": 1597407132000}                                                                                             | /db2/
+ {"Col1": "file1", "Col2": 1, "Col3": 0.100000, "timestamp": 1597497193000}                                                                                             | /db2/
+ {"Col1": "file1", "Col2": 2, "Col3": 0.200000, "timestamp": 1597500854000}                                                                                             | /db2/
+ {"Col1": "file1", "Col2": 3, "Col3": 0.300000, "timestamp": 1597504515000}                                                                                             | /db2/
+ {"Col1": "file111", "Col2": 1, "Col3": 0.100000, "Timestamp": 1597594576000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 1, "Col3": 0.100000, "Timestamp": 1597684637000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 1, "Col3": 0.100000, "Timestamp": 1598818820000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 2, "Col3": 0.200000, "Timestamp": 1597688298000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 2, "Col3": 0.200000, "Timestamp": 1597954820000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 3, "Col3": 0.300000, "Timestamp": 1597090820000}                                                                                           | /db2/
+ {"Col1": "file112", "Col2": 3, "Col3": 0.300000, "Timestamp": 1597691959000}                                                                                           | /db2/
+ {"Col1": "file21", "Col2": 1, "Col3": 0.100000, "Timestamp": 1596240002000}                                                                                            | /db2/
+ {"Col1": "file21", "Col2": 2, "Col3": 0.200000, "Timestamp": 1596240001000}                                                                                            | /db2/
+ {"Col1": "file22", "Col2": 1, "Col3": 0.100000, "Timestamp": 1596326401000}                                                                                            | /db2/
+ {"Col1": "file22", "Col2": 1, "Col3": 0.100000, "Timestamp": 1596412801000}                                                                                            | /db2/
+ {"Col1": "file22", "Col2": 2, "Col3": 0.200000, "Timestamp": 1596412802000}                                                                                            | /db2/
+ {"Col1": "file22", "Col2": 3, "Col3": 0.300000, "Timestamp": 1596326403000}                                                                                            | /db2/
+ {"Col1": "file22", "Col2": 4, "Col3": 0.400000, "Timestamp": 1596412804000}                                                                                            | /db2/
+ {"Col1": "file23", "Col2": 2, "Col3": 0.200000, "Timestamp": 1596240002000}                                                                                            | /db2/
+ {"One": 1, "Six": true, "Two": "{\"List\":[{\"Item\":1},{\"Item\":2},{\"Item\":3}]}", "Five": 17532, "Four": 1514764800000000, "Seven": 0.500000, "Three": "foo"}      | /db2/
+ {"One": 2, "Six": false, "Two": "{\"List\":[{\"Item\":null},{\"Item\":5},{\"Item\":6}]}", "Five": 17533, "Four": 1514851200000000, "Seven": null, "Three": "bar"}      | /db2/
+ {"One": 3, "Six": true, "Two": "{\"List\":[{\"Item\":7},{\"Item\":8},{\"Item\":9}]}", "Five": 17534, "Four": 1514937600000000, "Seven": 1.000000, "Three": "baz"}      | /db2/
+ {"One": 4, "Six": false, "Two": "{\"List\":[{\"Item\":10},{\"Item\":11},{\"Item\":12}]}", "Five": 17535, "Four": 1515024000000000, "Seven": 1.500000, "Three": "uno"}  | /db2/
+ {"One": 5, "Six": false, "Two": "{\"List\":[{\"Item\":13},{\"Item\":14},{\"Item\":15}]}", "Five": 17536, "Four": 1515110400000000, "Seven": null, "Three": "dos"}      | /db2/
+ {"One": 6, "Six": false, "Two": "{\"List\":[{\"Item\":16},{\"Item\":17},{\"Item\":18}]}", "Five": 17537, "Four": 1515196800000000, "Seven": 2.000000, "Three": "tres"} | /db2/
+(26 rows)
+
+select * from branches order by name, web_url, __spd_url;
+      name       | merged | protected | default | developers_can_push | developers_can_merge | can_push |                                 web_url                                 | __spd_url 
+-----------------+--------+-----------+---------+---------------------+----------------------+----------+-------------------------------------------------------------------------+-----------
+ branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_1              | /db12/
+ branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_1              | /db12/
+ branch_1_1      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_1 | /db12/
+ branch_1_2      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_2 | /db12/
+ branch_1_3      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_3 | /db12/
+ branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_2              | /db12/
+ branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_2              | /db12/
+ branch_2_2      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/branch_2_2 | /db12/
+ branch_2_3      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/branch_2_3 | /db12/
+ branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_3              | /db12/
+ branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_3              | /db12/
+ branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_4              | /db12/
+ branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_4              | /db12/
+ branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_5              | /db12/
+ branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_5              | /db12/
+ branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_6              | /db12/
+ branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_6              | /db12/
+ branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_abc            | /db12/
+ branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_abc            | /db12/
+ branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_def            | /db12/
+ branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_def            | /db12/
+ bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/bugfixing_1234        | /db12/
+ bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/bugfixing_1234        | /db12/
+ main            | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_8/-/tree/main                  | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_2/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_3/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_4/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_5/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_6/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_7/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/master     | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/master     | /db12/
+ rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db12/
+ rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db12/
+ start_branch    | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_9/-/tree/start_branch          | /db12/
+(37 rows)
+
+select * from issues;
+ id |             project              |        tracker         |      status       |  priority  |       author       |    assigned_to     | parent_id |       subject        |              description               | start_date |  due_date  | done_ratio | is_private | estimated_hours | total_estimated_hours | spent_hours | total_spent_hours |       created_on       |       updated_on       |       closed_on        |                                                                                                                                                       attachments                                                                                                                                                        |                 relations                  |                                                     children                                                      |                                          watchers                                           | __spd_url 
+----+----------------------------------+------------------------+-------------------+------------+--------------------+--------------------+-----------+----------------------+----------------------------------------+------------+------------+------------+------------+-----------------+-----------------------+-------------+-------------------+------------------------+------------------------+------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------+-------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------+-----------
+  9 | (1,"test redmine_fwd project 1") | (4,Task)               | (1,New)           | (2,Normal) | (6,"user3 Green")  | (6,"user3 Green")  |           | duplicate issue name | Issue_1_3 description                  | 2022-12-26 | 2023-02-12 |         90 | f          |            12.5 |                  12.5 |        16.5 |              16.5 | 2023-02-07 06:27:25+00 | 2023-02-07 06:27:25+00 |                        | {}                                                                                                                                                                                                                                                                                                                       | {"(1,9,4,duplicates,)"}                    |                                                                                                                   | {"(4,\"user1 Jones\")","(8,\"user5 Gomez\")","(5,\"user2 Nguyen\")","(7,\"user4 Rivera\")"} | /db13/
+  8 | (1,"test redmine_fwd project 1") | (13,Feature)           | (1,New)           | (2,Normal) | (4,"user1 Jones")  | (5,"user2 Nguyen") |         7 | ドキュメント         | ジョブ名の頭に該非判定票番号をつける   | 2023-05-01 | 2023-06-06 |         80 | f          |             8.5 |                   8.5 |           0 |                 0 | 2023-02-07 06:36:08+00 | 2023-02-07 06:38:30+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            |                                                                                                                   | {}                                                                                          | /db13/
+  7 | (1,"test redmine_fwd project 1") | (4,Task)               | (7,"On Hold")     | (2,Normal) | (6,"user3 Green")  | (7,"user4 Rivera") |         4 | issue_1_2_3          |                                        | 2023-05-01 | 2023-06-06 |         80 | f          |               7 |                  15.5 |           0 |                 0 | 2023-02-07 06:24:28+00 | 2023-02-07 06:44:04+00 |                        | {}                                                                                                                                                                                                                                                                                                                       | {"(2,3,7,precedes,20)"}                    | {"(8,\"(13,Feature)\",ドキュメント)"}                                                                             | {}                                                                                          | /db13/
+  6 | (1,"test redmine_fwd project 1") | (4,Task)               | (6,Rejected)      | (1,Low)    | (8,"user5 Gomez")  | (6,"user3 Green")  |         4 | リポジトリ           |                                        | 2022-12-12 | 2023-03-31 |         60 | f          |               6 |                     6 |           0 |                 0 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00 | {"(3,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/3/attach_1.txt,\"(8,\"\"user5 Gomez\"\")\",\"2023-02-07 04:50:17+00\")"}                                                                                                                                                             |                                            |                                                                                                                   | {}                                                                                          | /db13/
+  5 | (1,"test redmine_fwd project 1") | (1,Issue)              | (5,Closed)        | (3,High)   | (4,"user1 Jones")  | (4,"user1 Jones")  |         4 | issue_1_2_1          |                                        | 2022-12-12 | 2023-03-31 |         50 | f          |               5 |                     5 |           0 |                 0 | 2023-02-07 04:34:15+00 | 2023-02-07 06:43:40+00 | 2023-02-07 04:34:15+00 | {}                                                                                                                                                                                                                                                                                                                       |                                            |                                                                                                                   | {"(4,\"user1 Jones\")","(7,\"user4 Rivera\")"}                                              | /db13/
+  4 | (1,"test redmine_fwd project 1") | (13,Feature)           | (4,Feedback)      | (2,Normal) | (8,"user5 Gomez")  | (4,"user1 Jones")  |           | duplicate issue name | Issue_1_2 description                  | 2022-12-12 | 2023-06-06 |         93 | f          |            40.5 |                    67 |           0 |                 0 | 2023-02-07 04:52:37+00 | 2023-02-07 06:44:04+00 |                        | {}                                                                                                                                                                                                                                                                                                                       | {"(1,9,4,duplicates,)"}                    | {"(5,\"(1,Issue)\",issue_1_2_1)","(6,\"(4,Task)\",リポジトリ)","(7,\"(4,Task)\",issue_1_2_3)"}                    | {"(8,\"user5 Gomez\")","(7,\"user4 Rivera\")"}                                              | /db13/
+  3 | (1,"test redmine_fwd project 1") | (4,Task)               | (3,Done)          | (3,High)   | (5,"user2 Nguyen") | (7,"user4 Rivera") |         1 | issue_1_1_2          |                                        | 2022-12-12 | 2023-03-31 |         30 | f          |               3 |                     3 |           0 |                 0 | 2023-02-07 04:58:16+00 | 2023-02-07 04:58:16+00 |                        | {"(1,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/1/attach_1.txt,\"(6,\"\"user3 Green\"\")\",\"2023-02-07 06:24:08+00\")","(2,attach_1.jpg,0,image/jpeg,,https://127.0.0.1:3000/redmine/attachments/download/2/attach_1.jpg,\"(6,\"\"user3 Green\"\")\",\"2023-02-07 06:24:25+00\")"}  | {"(3,2,3,relates,)","(2,3,7,precedes,20)"} |                                                                                                                   | {}                                                                                          | /db13/
+  2 | (1,"test redmine_fwd project 1") | (4,Task)               | (2,"In Progress") | (1,Low)    | (8,"user5 Gomez")  | (5,"user2 Nguyen") |         1 | issue_1_1_1          |                                        | 2023-02-07 | 2023-03-31 |         20 | f          |               2 |                     2 |           0 |                 0 | 2023-02-07 04:50:30+00 | 2023-02-07 04:50:30+00 |                        | {}                                                                                                                                                                                                                                                                                                                       | {"(3,2,3,relates,)"}                       |                                                                                                                   | {"(6,\"user3 Green\")","(7,\"user4 Rivera\")","(5,\"user2 Nguyen\")"}                       | /db13/
+ 14 | (2,"test redmine_fwd project 2") | (8,"Integration Test") | (7,"On Hold")     | (2,Normal) | (9,"user6 Murphy") | (5,"user2 Nguyen") |        13 | Issue_2_1_3_1        | </now?>aefa3<<>AWE?                    | 2022-01-01 | 2022-12-30 |         40 | f          |             8.5 |                   8.5 |           8 |                 8 | 2023-02-07 04:02:18+00 | 2023-02-07 04:02:18+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            |                                                                                                                   | {"(4,\"user1 Jones\")","(7,\"user4 Rivera\")"}                                              | /db13/
+ 13 | (2,"test redmine_fwd project 2") | (4,Task)               | (1,New)           | (2,Normal) | (7,"user4 Rivera") | (5,"user2 Nguyen") |        10 | หล่อ Đẹp              | '~!@#$%^&*()_+(*$#@!{|{]\<>?:"/'?      | 2022-01-01 | 2022-12-30 |         40 | f          |            20.5 |                    29 |           0 |                 8 | 2023-02-07 03:53:34+00 | 2023-02-07 04:02:18+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(14,\"(8,\"\"Integration Test\"\")\",Issue_2_1_3_1)"}                                                           | {}                                                                                          | /db13/
+ 12 | (2,"test redmine_fwd project 2") | (5,"Detail Design")    | (1,New)           | (2,Normal) | (7,"user4 Rivera") | (8,"user5 Gomez")  |        10 | 友達と会う           | \r\nIssue 2_1_2.\r\n\r\n.              | 2022-01-01 | 2022-12-30 |         20 | f          |            12.5 |                  12.5 |           0 |                 0 | 2023-02-07 03:52:14+00 | 2023-02-07 04:44:06+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            |                                                                                                                   | {}                                                                                          | /db13/
+ 11 | (2,"test redmine_fwd project 2") | (4,Task)               | (1,New)           | (2,Normal) | (4,"user1 Jones")  | (8,"user5 Gomez")  |        10 | Issue_2_1_1          | ジョブ毎に次に対応する必要があります。 | 2022-12-26 | 2023-02-12 |         10 | f          |              20 |                    20 |           0 |                 0 | 2023-02-07 03:48:20+00 | 2023-02-07 03:48:20+00 |                        | {"(4,attach_1.PNG,0,image/png,,https://127.0.0.1:3000/redmine/attachments/download/4/attach_1.PNG,\"(4,\"\"user1 Jones\"\")\",\"2023-02-07 03:47:57+00\")","(5,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/5/attach_1.txt,\"(4,\"\"user1 Jones\"\")\",\"2023-02-07 03:47:57+00\")"}   |                                            |                                                                                                                   | {"(4,\"user1 Jones\")"}                                                                     | /db13/
+ 10 | (2,"test redmine_fwd project 2") | (6,Coding)             | (1,New)           | (2,Normal) | (4,"user1 Jones")  | (9,"user6 Murphy") |           | Issue_2_1            |                                        | 2022-01-01 | 2023-02-12 |         22 | f          |              16 |                  77.5 |           0 |                 8 | 2023-02-07 03:43:14+00 | 2023-02-07 04:02:18+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(11,\"(4,Task)\",Issue_2_1_1)","(12,\"(5,\"\"Detail Design\"\")\",友達と会う)","(13,\"(4,Task)\",\"หล่อ Đẹp\")"} | {}                                                                                          | /db13/
+ 17 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (6,"user3 Green")  | (9,"user6 Murphy") |        16 | Issue5_1_3           | 案件名、該非判定票の番号               | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    26 |           0 |                 0 | 2023-02-07 04:14:58+00 | 2023-02-07 04:48:27+00 |                        | {"(8,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/8/attach_1.txt,\"(6,\"\"user3 Green\"\")\",\"2023-02-07 04:14:49+00\")"}                                                                                                                                                             |                                            |                                                                                                                   | {}                                                                                          | /db13/
+ 16 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (4,"user1 Jones")  | (5,"user2 Nguyen") |        15 | Issue5_1_2           |                                        | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    52 |           0 |                 0 | 2023-02-07 04:07:23+00 | 2023-02-07 04:16:27+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(17,\"(4,Task)\",Issue5_1_3)"}                                                                                  | {"(7,\"user4 Rivera\")","(8,\"user5 Gomez\")"}                                              | /db13/
+ 15 | (5,"test redmine_fwd project 5") | (8,"Integration Test") | (3,Done)          | (2,Normal) | (7,"user4 Rivera") | (8,"user5 Gomez")  |           | Issue5_1             | Issue_5_1 description                  | 2011-11-11 | 2024-02-28 |        100 | f          |            12.5 |                  64.5 |           0 |                 0 | 2023-02-07 03:58:10+00 | 2023-02-07 04:14:58+00 |                        | {"(6,attach_1.PNG,0,image/png,,https://127.0.0.1:3000/redmine/attachments/download/6/attach_1.PNG,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")","(7,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/7/attach_1.txt,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")"} |                                            | {"(16,\"(4,Task)\",Issue5_1_2)"}                                                                                  | {"(4,\"user1 Jones\")","(10,\"user7 Cooper\")","(11,\"user8 Alan\")","(12,\"user9 Ward\")"} | /db13/
+ 17 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (6,"user3 Green")  | (9,"user6 Murphy") |        16 | Issue5_1_3           | 案件名、該非判定票の番号               | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    26 |           0 |                 0 | 2023-02-07 04:14:58+00 | 2023-02-07 04:48:27+00 |                        | {"(8,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/8/attach_1.txt,\"(6,\"\"user3 Green\"\")\",\"2023-02-07 04:14:49+00\")"}                                                                                                                                                             |                                            |                                                                                                                   | {}                                                                                          | /db13/
+ 16 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (4,"user1 Jones")  | (5,"user2 Nguyen") |        15 | Issue5_1_2           |                                        | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    52 |           0 |                 0 | 2023-02-07 04:07:23+00 | 2023-02-07 04:16:27+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(17,\"(4,Task)\",Issue5_1_3)"}                                                                                  | {"(7,\"user4 Rivera\")","(8,\"user5 Gomez\")"}                                              | /db13/
+ 15 | (5,"test redmine_fwd project 5") | (8,"Integration Test") | (3,Done)          | (2,Normal) | (7,"user4 Rivera") | (8,"user5 Gomez")  |           | Issue5_1             | Issue_5_1 description                  | 2011-11-11 | 2024-02-28 |        100 | f          |            12.5 |                  64.5 |           0 |                 0 | 2023-02-07 03:58:10+00 | 2023-02-07 04:14:58+00 |                        | {"(6,attach_1.PNG,0,image/png,,https://127.0.0.1:3000/redmine/attachments/download/6/attach_1.PNG,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")","(7,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/7/attach_1.txt,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")"} |                                            | {"(16,\"(4,Task)\",Issue5_1_2)"}                                                                                  | {"(4,\"user1 Jones\")","(10,\"user7 Cooper\")","(11,\"user8 Alan\")","(12,\"user9 Ward\")"} | /db13/
+  1 | (1,"test redmine_fwd project 1") | (1,Issue)              | (1,New)           | (3,High)   | (4,"user1 Jones")  | (7,"user4 Rivera") |           | issue_1_1            | \r\nIssue_1_1 description.\r\n\r\n.    | 2022-12-12 | 2023-03-31 |         26 | f          |               1 |                     6 |           0 |                 0 | 2023-02-07 04:30:40+00 | 2023-02-07 06:45:56+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(2,\"(4,Task)\",issue_1_1_1)","(3,\"(4,Task)\",issue_1_1_2)"}                                                   | {}                                                                                          | /db13/
+ 17 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (6,"user3 Green")  | (9,"user6 Murphy") |        16 | Issue5_1_3           | 案件名、該非判定票の番号               | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    26 |           0 |                 0 | 2023-02-07 04:14:58+00 | 2023-02-07 04:48:27+00 |                        | {"(8,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/8/attach_1.txt,\"(6,\"\"user3 Green\"\")\",\"2023-02-07 04:14:49+00\")"}                                                                                                                                                             |                                            |                                                                                                                   | {}                                                                                          | /db13/
+ 16 | (5,"test redmine_fwd project 5") | (4,Task)               | (2,"In Progress") | (2,Normal) | (4,"user1 Jones")  | (5,"user2 Nguyen") |        15 | Issue5_1_2           |                                        | 2011-11-11 | 2024-02-28 |        100 | f          |              26 |                    52 |           0 |                 0 | 2023-02-07 04:07:23+00 | 2023-02-07 04:16:27+00 |                        | {}                                                                                                                                                                                                                                                                                                                       |                                            | {"(17,\"(4,Task)\",Issue5_1_3)"}                                                                                  | {"(7,\"user4 Rivera\")","(8,\"user5 Gomez\")"}                                              | /db13/
+ 15 | (5,"test redmine_fwd project 5") | (8,"Integration Test") | (3,Done)          | (2,Normal) | (7,"user4 Rivera") | (8,"user5 Gomez")  |           | Issue5_1             | Issue_5_1 description                  | 2011-11-11 | 2024-02-28 |        100 | f          |            12.5 |                  64.5 |           0 |                 0 | 2023-02-07 03:58:10+00 | 2023-02-07 04:14:58+00 |                        | {"(6,attach_1.PNG,0,image/png,,https://127.0.0.1:3000/redmine/attachments/download/6/attach_1.PNG,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")","(7,attach_1.txt,0,text/plain,,https://127.0.0.1:3000/redmine/attachments/download/7/attach_1.txt,\"(7,\"\"user4 Rivera\"\")\",\"2023-02-07 03:57:26+00\")"} |                                            | {"(16,\"(4,Task)\",Issue5_1_2)"}                                                                                  | {"(4,\"user1 Jones\")","(10,\"user7 Cooper\")","(11,\"user8 Alan\")","(12,\"user9 Ward\")"} | /db13/
+(23 rows)
+
