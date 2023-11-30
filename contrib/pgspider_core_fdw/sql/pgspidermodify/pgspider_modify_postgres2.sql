@@ -251,12 +251,12 @@ ALTER FOREIGN TABLE tntbl4 OPTIONS (disable_transaction_feature_check 'true');
 --Testcase 69:
 UPDATE tntbl4 IN ('/postgres_svr/') SET c8 = 56563.1212;
 
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, c8, __spd_url;
 
 --Testcase 70:
 UPDATE tntbl4 IN ('/postgres_svr/', '/postgres_svr_2/') SET c8 = 22.2;
 
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, c8, __spd_url;
 --
 -- DELETE
 --

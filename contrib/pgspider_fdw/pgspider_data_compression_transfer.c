@@ -25,6 +25,7 @@
 #include "pgspider_data_compression_transfer.h"
 #include "utils/builtins.h"
 #include "utils/datetime.h"
+#include "utils/guc.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/syscache.h"

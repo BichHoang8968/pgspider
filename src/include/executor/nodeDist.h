@@ -31,7 +31,7 @@ typedef bool (*GetFunctionResultOne) (void*, AttInMetadata*,
 typedef void (*FinFunction) (void*);
 
 extern TupleTableSlot *agg_retrieve_distributed_func(AggState *aggstate);
-extern void *agg_explain_distributed_func(AggState *aggstate, ExplainState *es);
+extern void agg_explain_distributed_func(AggState *aggstate, ExplainState *es);
 extern bool is_distributed_function(PlanState *planstate);
 
 #endif							/* PD_STORED */

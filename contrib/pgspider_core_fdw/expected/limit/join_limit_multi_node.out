@@ -28,10 +28,10 @@ EXPLAIN VERBOSE SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING 
                Merge Cond: (t1.c4 = t2.c4)
                Filter: ((t1.__spd_url = t2.__spd_url) OR (t1.__spd_url <> ''::text))
                ->  Sort  (cost=859.49..876.55 rows=6826 width=68)
-                     Output: t1.c1, t1.c4, t1.__spd_url
+                     Output: t1.c1, t1.__spd_url, t1.c4
                      Sort Key: t1.c4
                      ->  Foreign Scan on public.tbl01 t1  (cost=200.00..424.78 rows=6826 width=68)
-                           Output: t1.c1, t1.c4, t1.__spd_url
+                           Output: t1.c1, t1.__spd_url, t1.c4
                            Node: postgres_svr_1 / Status: Alive
                              Limit push-down: no
                              Remote SQL: SELECT c1, c4 FROM public.tbl01
@@ -71,12 +71,12 @@ SELECT t1.c1, min(t2.c4) FROM tbl01 t1 FULL JOIN tbl01 t2 USING (c4) WHERE (t1._
 EXPLAIN VERBOSE SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl01 t2 USING (c1) WHERE t1.c5 < 0 GROUP BY t2.c1, t2.c4, t2.c5, t2.__spd_url LIMIT 5;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1369.89..1588.27 rows=5 width=116)
+ Limit  (cost=1359.83..1525.76 rows=5 width=116)
    Output: (min(t2.c1)), t2.c4, (max(t2.c5)), t2.__spd_url, t2.c1, t2.c5
-   ->  GroupAggregate  (cost=1369.89..10105.10 rows=200 width=116)
+   ->  GroupAggregate  (cost=1359.83..7996.81 rows=200 width=116)
          Output: min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url, t2.c1, t2.c5
          Group Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
-         ->  Incremental Sort  (cost=1369.89..8937.90 rows=77680 width=76)
+         ->  Incremental Sort  (cost=1359.83..6829.61 rows=77680 width=76)
                Output: t2.c4, t2.__spd_url, t2.c1, t2.c5
                Sort Key: t2.c1, t2.c4, t2.c5, t2.__spd_url
                Presorted Key: t2.c1
@@ -280,12 +280,12 @@ SELECT t1.c1, t1.c2, t1.c4, t1.c5 FROM tbl01 t1 LEFT JOIN tbl01 t2 USING(c4) WHE
 EXPLAIN VERBOSE SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOIN tbl01 AS ss1 ON t1.c4 >= ss1.c4 WHERE ss1.c5 > 0 GROUP BY t1.c1, t1.c2 ORDER BY t1.c1 LIMIT 10 OFFSET 0;
                                                     QUERY PLAN                                                    
 ------------------------------------------------------------------------------------------------------------------
- Limit  (cost=276187.78..3170863.18 rows=10 width=64)
+ Limit  (cost=195446.94..2275704.28 rows=10 width=64)
    Output: t1.c1, t1.c2
-   ->  Group  (cost=276187.78..58169695.89 rows=200 width=64)
+   ->  Group  (cost=195446.94..41800593.83 rows=200 width=64)
          Output: t1.c1, t1.c2
          Group Key: t1.c1, t1.c2
-         ->  Incremental Sort  (cost=276187.78..57285959.23 rows=176747332 width=64)
+         ->  Incremental Sort  (cost=195446.94..40916857.17 rows=176747332 width=64)
                Output: t1.c1, t1.c2
                Sort Key: t1.c1, t1.c2
                Presorted Key: t1.c1

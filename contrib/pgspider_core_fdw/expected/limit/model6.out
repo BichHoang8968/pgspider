@@ -847,12 +847,12 @@ SELECT count(*) FROM tbl01 WHERE __spd_url != 'aef3' GROUP BY c7 HAVING c7 != 'A
 EXPLAIN VERBOSE SELECT max(c5 + c6), max(c7), min(c8) FROM tbl01 WHERE __spd_url != NULL GROUP BY c8 HAVING c8 != 0 ORDER BY c8 DESC LIMIT 5;
                                                                  QUERY PLAN                                                                 
 --------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=305.40..305.40 rows=1 width=56)
+ Limit  (cost=305.39..305.40 rows=1 width=56)
    Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
-   ->  Sort  (cost=305.40..305.40 rows=1 width=56)
+   ->  Sort  (cost=305.39..305.40 rows=1 width=56)
          Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
          Sort Key: tbl01.c8 DESC
-         ->  Foreign Scan  (cost=200.00..305.39 rows=1 width=56)
+         ->  Foreign Scan  (cost=200.00..305.38 rows=1 width=56)
                Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), c8
                Filter: NULL::boolean
                Node: postgres_svr_1 / Status: Alive
@@ -1251,9 +1251,9 @@ SELECT c1 || c2, c7 || c3, c4-c6, c5*12 FROM tbl01 WHERE c3 != 'ABC' LIMIT 10 OF
 EXPLAIN VERBOSE SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3, c5, c6, c7, c8, c9, c10, c11 HAVING c3 <> 'AJEFO' LIMIT 5;
                                                                                  QUERY PLAN                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=335.84..475.26 rows=1 width=1594)
+ Limit  (cost=200.00..305.42 rows=1 width=1594)
    Output: (((c5 / '2'::double precision) + (c6)::double precision)), c7, ((((abs(c8))::double precision / c9) + (c10)::double precision)), c11, c3, c5, c6, c8, c9, c10
-   ->  Foreign Scan  (cost=335.84..475.26 rows=1 width=1594)
+   ->  Foreign Scan  (cost=200.00..305.42 rows=1 width=1594)
          Output: (((c5 / '2'::double precision) + (c6)::double precision)), c7, (((abs(c8))::double precision / c9) + (c10)::double precision), c11, c3, c5, c6, c8, c9, c10
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: yes
@@ -1282,9 +1282,9 @@ SELECT c5/2 + c6, c7, abs(c8)/c9+c10, c11 FROM tbl01 GROUP BY c3, c5, c6, c7, c8
 EXPLAIN VERBOSE SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 HAVING sum(c5) != c9 LIMIT 5;
                                                 QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
- Limit  (cost=302.39..414.52 rows=1 width=1660)
+ Limit  (cost=200.00..288.33 rows=1 width=1660)
    Output: (lower(c1)), c3, c5, (upper((c7)::text)), c9, c11, c1, c7
-   ->  Foreign Scan  (cost=302.39..414.52 rows=1 width=1660)
+   ->  Foreign Scan  (cost=200.00..288.33 rows=1 width=1660)
          Output: lower(c1), c3, c5, upper((c7)::text), c9, c11, c1, c7
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -1313,9 +1313,9 @@ SELECT lower(c1), c3, c5, upper(c7), c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7,
 EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING max(c4) > max(c8) LIMIT 10;
                                                                   QUERY PLAN                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.52..458.88 rows=1 width=1700)
+ Limit  (cost=200.00..288.36 rows=1 width=1700)
    Output: (upper((c1 || c2))), (lower(((c3)::text || (c7)::text))), ((((c4 / 100))::double precision - c5)), c1, c2, c3, c4, c5, c6, c7, c8
-   ->  Foreign Scan  (cost=336.52..458.88 rows=1 width=1700)
+   ->  Foreign Scan  (cost=200.00..288.36 rows=1 width=1700)
          Output: upper((c1 || c2)), lower(((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c1, c2, c3, c4, c5, c6, c7, c8
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -1346,9 +1346,9 @@ SELECT upper(c1 || c2), lower(c3 || c7), c4/100-c5 FROM tbl01 GROUP BY c1, c2, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8 HAVING min(c4) < min(c8) LIMIT 10;
                                                         QUERY PLAN                                                        
 --------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=319.46..436.70 rows=1 width=1664)
+ Limit  (cost=200.00..288.34 rows=1 width=1664)
    Output: c1, c2, (((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c3, c4, c5, c7, c8
-   ->  Foreign Scan  (cost=319.46..436.70 rows=1 width=1664)
+   ->  Foreign Scan  (cost=200.00..288.34 rows=1 width=1664)
          Output: c1, c2, (((c3)::text || (c7)::text)), ((((c4 / 100))::double precision - c5)), c3, c4, c5, c7, c8
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -1370,9 +1370,9 @@ psql:sql/limit/limit_orderby.sql:186: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4, c5, to_hex(c6), c9, c10 FROM tbl01 WHERE c4/c5 > c4/c9 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING c3 != '$%' LIMIT 5;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=245.28..459.38 rows=1 width=1178)
+ Limit  (cost=200.00..390.72 rows=1 width=1178)
    Output: ((c1 || c2)), c3, c4, c5, (to_hex(c6)), c9, c10, c1, c2, c6
-   ->  Foreign Scan  (cost=245.28..459.38 rows=1 width=1178)
+   ->  Foreign Scan  (cost=200.00..390.72 rows=1 width=1178)
          Output: ((c1 || c2)), c3, c4, c5, to_hex(c6), c9, c10, c1, c2, c6
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: yes
@@ -1406,9 +1406,9 @@ HINT:  No function matches the given name and argument types. You might need to 
 EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c4/100+c5 > c8 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING c4 != 0 LIMIT 15;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=245.28..467.75 rows=1 width=574)
+ Limit  (cost=200.00..390.75 rows=1 width=574)
    Output: ((((c4 / 2))::double precision + c5)), c6, c7, (((((c8 / 22))::double precision * c5) - c9)), c10, c11, c4, c5, c8, c9
-   ->  Foreign Scan  (cost=245.28..467.75 rows=1 width=574)
+   ->  Foreign Scan  (cost=200.00..390.75 rows=1 width=574)
          Output: ((((c4 / 2))::double precision + c5)), c6, c7, (((((c8 / 22))::double precision * c5) - c9)), c10, c11, c4, c5, c8, c9
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: yes
@@ -1437,9 +1437,9 @@ SELECT c4/2+c5, c6, c7, c8/22*c5-c9, c10, c11 FROM tbl01 WHERE c4/100+c5 > c8 GR
 EXPLAIN VERBOSE SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3 NOT IN ('/pgspider', '/postgres', '/svr')  GROUP BY c1, c3, c5, c7, c8, c9, c11 HAVING c8 BETWEEN -10000 AND 10000 LIMIT 15;
                                                                                                             QUERY PLAN                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=200.59..349.94 rows=1 width=1644)
+ Limit  (cost=200.00..348.07 rows=1 width=1644)
    Output: (lower((c1 || (c3)::text))), c5, c7, c9, ((c11 + '@ 1 hour'::interval)), c1, c3, c8, c11
-   ->  Foreign Scan  (cost=200.59..349.94 rows=1 width=1644)
+   ->  Foreign Scan  (cost=200.00..348.07 rows=1 width=1644)
          Output: lower((c1 || (c3)::text)), c5, c7, c9, ((c11 + '@ 1 hour'::interval)), c1, c3, c8, c11
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: yes
@@ -1472,12 +1472,12 @@ SELECT lower(c1 || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c3
 EXPLAIN VERBOSE SELECT c1 || c2, c3, c4 - 100, c5, c6, c9, c10 FROM tbl01 WHERE c4-c5 > c8-c9 GROUP BY 1, 2, 3, 4, 5, 6, 7 ORDER BY 1 ASC, 2 DESC, 3, 4, 5, 6, 7 LIMIT 5;
                                                                           QUERY PLAN                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=436.88..436.88 rows=1 width=1082)
+ Limit  (cost=373.66..373.67 rows=1 width=1082)
    Output: ((c1 || c2)), c3, ((c4 - 100)), c5, c6, c9, c10
-   ->  Sort  (cost=436.88..436.88 rows=0 width=1082)
+   ->  Sort  (cost=373.66..373.67 rows=0 width=1082)
          Output: ((c1 || c2)), c3, ((c4 - 100)), c5, c6, c9, c10
          Sort Key: ((tbl01.c1 || tbl01.c2)), tbl01.c3 DESC, ((tbl01.c4 - 100)), tbl01.c5, tbl01.c6, tbl01.c9, tbl01.c10
-         ->  Foreign Scan  (cost=239.83..436.87 rows=0 width=1082)
+         ->  Foreign Scan  (cost=200.00..373.65 rows=0 width=1082)
                Output: ((c1 || c2)), c3, ((c4 - 100)), c5, c6, c9, c10
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -1783,9 +1783,9 @@ SELECT sum(c5), max(c7), min(c8), count(c9/2-c5*2) FROM tbl01 WHERE c8 BETWEEN -
 EXPLAIN VERBOSE SELECT c1 || c2, min(c3), c4/c5+ c6, c7, ceil(c8) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' LIMIT 10 OFFSET 1;
                                                                             QUERY PLAN                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=457.18..577.83 rows=1 width=1708)
+ Limit  (cost=288.35..376.71 rows=1 width=1708)
    Output: ((c1 || c2)), (min(c3)), ((((c4)::double precision / c5) + (c6)::double precision)), c7, (ceil((c8)::double precision)), c1, c2, c3, c4, c5, c6, c8
-   ->  Foreign Scan  (cost=336.52..457.18 rows=1 width=1708)
+   ->  Foreign Scan  (cost=200.00..288.35 rows=1 width=1708)
          Output: ((c1 || c2)), (min(c3)), ((((c4)::double precision / c5) + (c6)::double precision)), c7, ceil((c8)::double precision), c1, c2, c3, c4, c5, c6, c8
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -1806,9 +1806,9 @@ psql:sql/limit/limit_orderby.sql:246: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 LIMIT 5 OFFSET 1;
                                                                                    QUERY PLAN                                                                                   
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=428.16..553.93 rows=1 width=78)
+ Limit  (cost=288.37..376.74 rows=1 width=78)
    Output: ((((c4)::double precision - c5) + ((((c8 / 2))::double precision * c9) / '23'::double precision))), (((c11)::text || 'time1'::text)), c10, c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=302.39..428.16 rows=1 width=78)
+   ->  Foreign Scan  (cost=200.00..288.37 rows=1 width=78)
          Output: ((((c4)::double precision - c5) + ((((c8 / 2))::double precision * c9) / '23'::double precision))), (((c11)::text || 'time1'::text)), c10, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -1837,9 +1837,9 @@ SELECT c4-c5 + c8/2*c9/23, c11 || 'time1', c10 FROM tbl01 GROUP BY c4, c5, c8, c
 EXPLAIN VERBOSE SELECT c11 + '1 hour'::interval, c1, c2, c3, c4/(c5+2), c8/(c9-12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) LIMIT 5 OFFSET NULL;
                                                                                                QUERY PLAN                                                                                               
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.52..457.18 rows=1 width=1148)
+ Limit  (cost=200.00..288.35 rows=1 width=1148)
    Output: ((c11 + '@ 1 hour'::interval)), c1, c2, c3, (((c4)::double precision / (c5 + '2'::double precision))), (((c8)::double precision / (c9 - '12'::double precision))), c4, c5, c8, c9, c11
-   ->  Foreign Scan  (cost=336.52..457.18 rows=1 width=1148)
+   ->  Foreign Scan  (cost=200.00..288.35 rows=1 width=1148)
          Output: ((c11 + '@ 1 hour'::interval)), c1, c2, c3, (((c4)::double precision / (c5 + '2'::double precision))), (((c8)::double precision / (c9 - '12'::double precision))), c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -2003,9 +2003,9 @@ SELECT upper(c1 || c2 || 'base64'), c5, round(c8/23+c9), c10 FROM tbl01 WHERE NO
 EXPLAIN VERBOSE SELECT c1 || c2, upper(c3), round(c4-c5+c6-c9-c10) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 HAVING sum(c4/c5) > c4 LIMIT 5;
                                                                                       QUERY PLAN                                                                                      
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.52..464.00 rows=1 width=1186)
+ Limit  (cost=200.00..288.38 rows=1 width=1186)
    Output: ((c1 || c2)), (upper((c3)::text)), (round((((((c4)::double precision - c5) + (c6)::double precision) - c9) - (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
-   ->  Foreign Scan  (cost=336.52..464.00 rows=1 width=1186)
+   ->  Foreign Scan  (cost=200.00..288.38 rows=1 width=1186)
          Output: ((c1 || c2)), upper((c3)::text), round((((((c4)::double precision - c5) + (c6)::double precision) - c9) - (c10)::double precision)), c1, c2, c3, c4, c5, c6, c9, c10
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -2027,9 +2027,9 @@ psql:sql/limit/limit_orderby.sql:276: ERROR:  PGSpider fail to iterate tuple fro
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c8, c9 HAVING count(c3) < c5 LIMIT 5;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.52..453.76 rows=1 width=1136)
+ Limit  (cost=200.00..288.34 rows=1 width=1136)
    Output: c1, c2, c3, (((c4)::double precision - c5)), (((c8)::double precision / (c9 + '12'::double precision))), c4, c5, c6, c8, c9
-   ->  Foreign Scan  (cost=336.52..453.76 rows=1 width=1136)
+   ->  Foreign Scan  (cost=200.00..288.34 rows=1 width=1136)
          Output: c1, c2, c3, (((c4)::double precision - c5)), (((c8)::double precision / (c9 + '12'::double precision))), c4, c5, c6, c8, c9
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -2058,9 +2058,9 @@ SELECT c1, c2, c3, c4-c5, c8/(c9+12) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6,
 EXPLAIN VERBOSE SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING max(c4) != 0 LIMIT 15;
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=336.52..455.47 rows=1 width=574)
+ Limit  (cost=200.00..288.35 rows=1 width=574)
    Output: ((((c4 / 2))::double precision + c5)), c6, c7, ((((c8)::double precision - c5) - c9)), c10, c11, c4, c5, c8, c9
-   ->  Foreign Scan  (cost=336.52..455.47 rows=1 width=574)
+   ->  Foreign Scan  (cost=200.00..288.35 rows=1 width=574)
          Output: ((((c4 / 2))::double precision + c5)), c6, c7, ((((c8)::double precision - c5) - c9)), c10, c11, c4, c5, c8, c9
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -2097,9 +2097,9 @@ SELECT c4/2+c5, c6, c7, c8-c5-c9, c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c
 EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c9 HAVING NOT min(c4) > (c5 + c9) LIMIT 15;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Limit  (cost=302.39..417.93 rows=1 width=1152)
+ Limit  (cost=200.00..288.34 rows=1 width=1152)
    Output: (length(((c1 || c2) || (c3)::text))), 1, 2, 'abc'::text, c1, c2, c3, c4, c5, c9
-   ->  Foreign Scan  (cost=302.39..417.93 rows=1 width=1152)
+   ->  Foreign Scan  (cost=200.00..288.34 rows=1 width=1152)
          Output: length(((c1 || c2) || (c3)::text)), 1, 2, 'abc'::text, c1, c2, c3, c4, c5, c9
          Node: postgres_svr_1 / Status: Alive
            Limit push-down: no
@@ -2416,21 +2416,24 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 LIMIT 15;
 
 --Testcase 151:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Limit  (cost=441.84..441.85 rows=1 width=8)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Limit  (cost=893.62..893.63 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Aggregate  (cost=441.84..441.85 rows=1 width=8)
+   ->  Aggregate  (cost=893.62..893.63 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=8)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=8)
                Output: c5
-               Node: postgres_svr_1 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT c5 FROM public.tbl01
-               Node: postgres_svr_2 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT c5 FROM public.tbl01
-(12 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=8)
+                     Output: c5
+                     Node: postgres_svr_1 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT c5 FROM public.tbl01
+                     Node: postgres_svr_2 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT c5 FROM public.tbl01
+(15 rows)
 
 --Testcase 152:
 SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
@@ -2485,21 +2488,24 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('~!@#', c4)), jsonb_agg(('_(*#', c5
 
 --Testcase 155:
 EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=475.98..475.99 rows=1 width=64)
-   Output: (string_agg((c3)::text, ' '::text ORDER BY ((c3)::text))), (string_agg((c7)::text, ','::text ORDER BY (c7)::text))
-   ->  Aggregate  (cost=475.98..475.99 rows=1 width=64)
-         Output: string_agg((c3)::text, ' '::text ORDER BY ((c3)::text)), string_agg((c7)::text, ','::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1540)
-               Output: c3, c7
-               Node: postgres_svr_1 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT c3, c7 FROM public.tbl01
-               Node: postgres_svr_2 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT c3, c7 FROM public.tbl01
-(12 rows)
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5502.25..5502.26 rows=1 width=64)
+   Output: (string_agg(((c3)::text), ' '::text ORDER BY ((c3)::text))), (string_agg((c7)::text, ','::text ORDER BY (c7)::text))
+   ->  Aggregate  (cost=5502.25..5502.26 rows=1 width=64)
+         Output: string_agg(((c3)::text), ' '::text ORDER BY ((c3)::text)), string_agg((c7)::text, ','::text ORDER BY (c7)::text)
+         ->  Sort  (cost=5433.99..5451.05 rows=6826 width=1540)
+               Output: c3, c7, ((c3)::text)
+               Sort Key: ((tbl01.c3)::text)
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1540)
+                     Output: c3, c7, c3
+                     Node: postgres_svr_1 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT c3, c7 FROM public.tbl01
+                     Node: postgres_svr_2 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT c3, c7 FROM public.tbl01
+(15 rows)
 
 --Testcase 156:
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
@@ -2673,12 +2679,12 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3, abs(c4-c5), abs(c8/23+c9), c11 FROM tbl01 G
    ->  GroupAggregate  (cost=4219.49..4414.18 rows=199 width=1172)
          Output: (c1 || c2), c3, abs(((c4)::double precision - c5)), abs((((c8 / 23))::double precision + c9)), c11, c1, c2, c4, c5, c8, c9
          Group Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-         Filter: (string_agg((tbl01.c3)::text, ' '::text ORDER BY ((tbl01.c3)::text)) <> 'a3W'::text)
+         Filter: (string_agg(((tbl01.c3)::text), ' '::text ORDER BY ((tbl01.c3)::text)) <> 'a3W'::text)
          ->  Sort  (cost=4219.49..4236.55 rows=6826 width=1124)
-               Output: c3, c11, c1, c2, c4, c5, c8, c9
-               Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
+               Output: c3, c11, c1, c2, c4, c5, c8, c9, ((c3)::text)
+               Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11, ((tbl01.c3)::text)
                ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1124)
-                     Output: c3, c11, c1, c2, c4, c5, c8, c9
+                     Output: c3, c11, c1, c2, c4, c5, c8, c9, c3
                      Node: postgres_svr_1 / Status: Alive
                        Limit push-down: no
                        Remote SQL: SELECT c1, c2, c3, c4, c5, c8, c9, c11 FROM public.tbl01
@@ -2762,12 +2768,12 @@ SELECT c1, c2, c3 || c7, c4/100-c5 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7 HA
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1, c2, c3, c4, c7, c8 ORDER BY 1 ASC, 2 DESC LIMIT 1 OFFSET 1;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Limit  (cost=417.94..417.94 rows=1 width=1688)
+ Limit  (cost=288.35..288.35 rows=1 width=1688)
    Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
-   ->  Sort  (cost=417.94..417.94 rows=0 width=1688)
+   ->  Sort  (cost=288.35..288.35 rows=0 width=1688)
          Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
          Sort Key: tbl01.c1, tbl01.c2 DESC
-         ->  Foreign Scan  (cost=302.39..417.93 rows=0 width=1688)
+         ->  Foreign Scan  (cost=200.00..288.34 rows=0 width=1688)
                Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), __spd_url, c3, c7, c8
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -2790,12 +2796,12 @@ psql:sql/limit/limit_orderby.sql:364: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c5, c8, c9, c10, c11 ORDER BY 1 DESC LIMIT 5 OFFSET 1;
                                                                               QUERY PLAN                                                                              
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=424.76..424.76 rows=1 width=118)
+ Limit  (cost=288.37..288.37 rows=1 width=118)
    Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
-   ->  Sort  (cost=424.76..424.76 rows=0 width=118)
+   ->  Sort  (cost=288.37..288.37 rows=0 width=118)
          Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
          Sort Key: (((tbl01.c4)::double precision - tbl01.c5)) DESC
-         ->  Foreign Scan  (cost=302.39..424.75 rows=0 width=118)
+         ->  Foreign Scan  (cost=200.00..288.36 rows=0 width=118)
                Output: (((c4)::double precision - c5)), ((((c8 / 23))::double precision + c9)), (((c11)::text || 'time4'::text)), c10, __spd_url, c4, c5, c8, c9, c11
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -2826,12 +2832,12 @@ SELECT c4-c5, c8/23+c9, c11 || 'time4', c10 FROM tbl01 GROUP BY __spd_url, c4, c
 EXPLAIN VERBOSE SELECT c4/(c5+c6), c7, c8/c5-c9, c10, c11 FROM tbl01 GROUP BY __spd_url, c4, c5, c6, c7, c8, c9, c10, c11 ORDER BY 1 ASC LIMIT 5 OFFSET 2;
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=457.19..457.19 rows=1 width=606)
+ Limit  (cost=288.36..288.37 rows=1 width=606)
    Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
-   ->  Sort  (cost=457.19..457.19 rows=0 width=606)
+   ->  Sort  (cost=288.36..288.37 rows=0 width=606)
          Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
          Sort Key: (((tbl01.c4)::double precision / (tbl01.c5 + (tbl01.c6)::double precision)))
-         ->  Foreign Scan  (cost=336.52..457.18 rows=0 width=606)
+         ->  Foreign Scan  (cost=200.00..288.35 rows=0 width=606)
                Output: (((c4)::double precision / (c5 + (c6)::double precision))), c7, ((((c8)::double precision / c5) - c9)), c10, c11, __spd_url, c4, c5, c6, c8, c9
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -2854,12 +2860,12 @@ psql:sql/limit/limit_orderby.sql:372: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, __spd_url, c9, c10 ORDER BY 1 LIMIT 5 OFFSET 3;
                                                       QUERY PLAN                                                      
 ----------------------------------------------------------------------------------------------------------------------
- Limit  (cost=445.25..445.25 rows=1 width=1146)
+ Limit  (cost=288.33..288.33 rows=1 width=1146)
    Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
-   ->  Sort  (cost=445.25..445.25 rows=0 width=1146)
+   ->  Sort  (cost=288.33..288.33 rows=0 width=1146)
          Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=336.52..445.24 rows=0 width=1146)
+         ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=1146)
                Output: c1, c2, c3, c4, c5, c6, c9, c10, __spd_url
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -2890,12 +2896,12 @@ SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_url, c4, c5, c7, c8, c9 ORDER BY 1 LIMIT 5 OFFSET 4;
                                                                               QUERY PLAN                                                                               
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=457.19..457.19 rows=1 width=1712)
+ Limit  (cost=288.36..288.37 rows=1 width=1712)
    Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
-   ->  Sort  (cost=457.19..457.19 rows=0 width=1712)
+   ->  Sort  (cost=288.36..288.37 rows=0 width=1712)
          Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=336.52..457.18 rows=0 width=1712)
+         ->  Foreign Scan  (cost=200.00..288.35 rows=0 width=1712)
                Output: c1, c2, (((c3)::text || (c7)::text)), (((c4)::double precision - c5)), ((((c8 / 2))::double precision + c9)), c3, __spd_url, c4, c5, c7, c8, c9
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -2918,12 +2924,12 @@ psql:sql/limit/limit_orderby.sql:380: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c4/2+c5 > c4/2-c8 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url ORDER BY 1 LIMIT 10 OFFSET 5;
                                                                                         QUERY PLAN                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=490.41..490.42 rows=1 width=1678)
+ Limit  (cost=407.78..407.79 rows=1 width=1678)
    Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
-   ->  Sort  (cost=490.41..490.42 rows=0 width=1678)
+   ->  Sort  (cost=407.78..407.79 rows=0 width=1678)
          Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
          Sort Key: tbl01.c1
-         ->  Foreign Scan  (cost=262.59..490.40 rows=0 width=1678)
+         ->  Foreign Scan  (cost=200.00..407.77 rows=0 width=1678)
                Output: c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, __spd_url
                Node: postgres_svr_1 / Status: Alive
                  Limit push-down: no
@@ -3014,26 +3020,29 @@ SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OF
 
 --Testcase 185:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
- Limit  (cost=356.55..356.56 rows=1 width=8)
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Limit  (cost=489.16..489.16 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Sort  (cost=356.55..356.56 rows=1 width=8)
+   ->  Sort  (cost=489.16..489.16 rows=1 width=8)
          Output: (count(DISTINCT c5))
          Sort Key: (count(DISTINCT tbl01.c5))
-         ->  Aggregate  (cost=356.53..356.54 rows=1 width=8)
+         ->  Aggregate  (cost=489.14..489.15 rows=1 width=8)
                Output: count(DISTINCT c5)
-               ->  Foreign Scan on public.tbl01  (cost=200.00..350.84 rows=2276 width=8)
+               ->  Sort  (cost=477.76..483.45 rows=2276 width=8)
                      Output: c5
-                     Node: postgres_svr_1 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT c5 FROM public.tbl01 WHERE ((c5 > 0::double precision))
-                     Node: postgres_svr_2 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT c5 FROM public.tbl01 WHERE ((c5 > 0::double precision))
-(17 rows)
+                     Sort Key: tbl01.c5
+                     ->  Foreign Scan on public.tbl01  (cost=200.00..350.84 rows=2276 width=8)
+                           Output: c5
+                           Node: postgres_svr_1 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT c5 FROM public.tbl01 WHERE ((c5 > 0::double precision))
+                           Node: postgres_svr_2 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT c5 FROM public.tbl01 WHERE ((c5 > 0::double precision))
+(20 rows)
 
 --Testcase 186:
 SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
@@ -3093,26 +3102,29 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), 
 
 --Testcase 189:
 EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
-                                                                          QUERY PLAN                                                                          
---------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=509.19..509.20 rows=1 width=64)
-   Output: (string_agg((c3)::text, '-'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
-   ->  Sort  (cost=509.19..509.20 rows=1 width=64)
-         Output: (string_agg((c3)::text, '-'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
-         Sort Key: (string_agg((tbl01.c3)::text, '-'::text ORDER BY ((tbl01.c3)::text))), (string_agg((tbl01.c7)::text, '_'::text ORDER BY (tbl01.c7)::text))
-         ->  Aggregate  (cost=509.18..509.19 rows=1 width=64)
-               Output: string_agg((c3)::text, '-'::text ORDER BY ((c3)::text)), string_agg((c7)::text, '_'::text ORDER BY (c7)::text)
-               ->  Foreign Scan on public.tbl01  (cost=200.00..458.23 rows=6792 width=1540)
-                     Output: c3, c7
-                     Node: postgres_svr_1 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT c3, c7, c8, c9 FROM public.tbl01 WHERE ((c8 <> c9))
-                     Node: postgres_svr_2 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT c3, c7, c8, c9 FROM public.tbl01 WHERE ((c8 <> c9))
-(17 rows)
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=5511.97..5511.98 rows=1 width=64)
+   Output: (string_agg(((c3)::text), '-'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
+   ->  Sort  (cost=5511.97..5511.98 rows=1 width=64)
+         Output: (string_agg(((c3)::text), '-'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
+         Sort Key: (string_agg(((tbl01.c3)::text), '-'::text ORDER BY ((tbl01.c3)::text))), (string_agg((tbl01.c7)::text, '_'::text ORDER BY (tbl01.c7)::text))
+         ->  Aggregate  (cost=5511.95..5511.96 rows=1 width=64)
+               Output: string_agg(((c3)::text), '-'::text ORDER BY ((c3)::text)), string_agg((c7)::text, '_'::text ORDER BY (c7)::text)
+               ->  Sort  (cost=5444.03..5461.01 rows=6792 width=1540)
+                     Output: c3, c7, ((c3)::text)
+                     Sort Key: ((tbl01.c3)::text)
+                     ->  Foreign Scan on public.tbl01  (cost=200.00..458.23 rows=6792 width=1540)
+                           Output: c3, c7, c3
+                           Node: postgres_svr_1 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT c3, c7, c8, c9 FROM public.tbl01 WHERE ((c8 <> c9))
+                           Node: postgres_svr_2 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT c3, c7, c8, c9 FROM public.tbl01 WHERE ((c8 <> c9))
+(20 rows)
 
 --Testcase 190:
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
@@ -3935,22 +3947,25 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
 
 --Testcase 237:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Sort  (cost=441.86..441.87 rows=1 width=8)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Sort  (cost=893.64..893.64 rows=1 width=8)
    Output: (count(DISTINCT c5))
    Sort Key: (count(DISTINCT tbl01.c5))
-   ->  Aggregate  (cost=441.84..441.85 rows=1 width=8)
+   ->  Aggregate  (cost=893.62..893.63 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=8)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=8)
                Output: c5
-               Node: postgres_svr_1 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT c5 FROM public.tbl01
-               Node: postgres_svr_2 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT c5 FROM public.tbl01
-(13 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=8)
+                     Output: c5
+                     Node: postgres_svr_1 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT c5 FROM public.tbl01
+                     Node: postgres_svr_2 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT c5 FROM public.tbl01
+(16 rows)
 
 --Testcase 238:
 SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
@@ -4006,22 +4021,25 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y'
 
 --Testcase 241:
 EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
-                                                                       QUERY PLAN                                                                        
----------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=476.00..476.00 rows=1 width=64)
-   Output: (string_agg((c3)::text, ':'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '>>'::text ORDER BY (c7)::text))
-   Sort Key: (string_agg((tbl01.c3)::text, ':'::text ORDER BY ((tbl01.c3)::text))), (string_agg((tbl01.c7)::text, '>>'::text ORDER BY (tbl01.c7)::text))
-   ->  Aggregate  (cost=475.98..475.99 rows=1 width=64)
-         Output: string_agg((c3)::text, ':'::text ORDER BY ((c3)::text)), string_agg((c7)::text, '>>'::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1540)
-               Output: c3, c7
-               Node: postgres_svr_1 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT c3, c7 FROM public.tbl01
-               Node: postgres_svr_2 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT c3, c7 FROM public.tbl01
-(13 rows)
+                                                                        QUERY PLAN                                                                         
+-----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=5502.27..5502.28 rows=1 width=64)
+   Output: (string_agg(((c3)::text), ':'::text ORDER BY ((c3)::text))), (string_agg((c7)::text, '>>'::text ORDER BY (c7)::text))
+   Sort Key: (string_agg(((tbl01.c3)::text), ':'::text ORDER BY ((tbl01.c3)::text))), (string_agg((tbl01.c7)::text, '>>'::text ORDER BY (tbl01.c7)::text))
+   ->  Aggregate  (cost=5502.25..5502.26 rows=1 width=64)
+         Output: string_agg(((c3)::text), ':'::text ORDER BY ((c3)::text)), string_agg((c7)::text, '>>'::text ORDER BY (c7)::text)
+         ->  Sort  (cost=5433.99..5451.05 rows=6826 width=1540)
+               Output: c3, c7, ((c3)::text)
+               Sort Key: ((tbl01.c3)::text)
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=1540)
+                     Output: c3, c7, c3
+                     Node: postgres_svr_1 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT c3, c7 FROM public.tbl01
+                     Node: postgres_svr_2 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT c3, c7 FROM public.tbl01
+(16 rows)
 
 --Testcase 242:
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
@@ -4061,10 +4079,10 @@ SELECT string_agg(c3, c7) FROM tbl01 ORDER BY 1 DESC;
 EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY c1, c2, c3, c4, c7, c8 HAVING count(c3) > 0 ORDER BY c1, c2, c3, c4, c7, c8;
                                                  QUERY PLAN                                                 
 ------------------------------------------------------------------------------------------------------------
- Sort  (cost=417.94..417.94 rows=1 width=1656)
+ Sort  (cost=288.35..288.35 rows=1 width=1656)
    Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3, c7, c8
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c7, tbl01.c8
-   ->  Foreign Scan  (cost=302.39..417.93 rows=1 width=1656)
+   ->  Foreign Scan  (cost=200.00..288.34 rows=1 width=1656)
          Output: c1, c2, ((((c3)::text || '123'::text) || (c7)::text)), c4, ((c8 / 1000)), c3, c7, c8
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4085,10 +4103,10 @@ psql:sql/limit/limit_orderby.sql:526: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c4-c5, c8/(c9-23), c11 || 'time3', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING sum(c5/c4) != 0 ORDER BY c4, c5, c8, c9, c10, c11;
                                                                                QUERY PLAN                                                                                
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=424.76..424.76 rows=1 width=86)
+ Sort  (cost=288.37..288.37 rows=1 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / (c9 - '23'::double precision))), (((c11)::text || 'time3'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=302.39..424.75 rows=1 width=86)
+   ->  Foreign Scan  (cost=200.00..288.36 rows=1 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / (c9 - '23'::double precision))), (((c11)::text || 'time3'::text)), c10, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4110,10 +4128,10 @@ psql:sql/limit/limit_orderby.sql:530: ERROR:  PGSpider fail to iterate tuple fro
 EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), c4-c5, round(c8/c9) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9 HAVING max(c4/c5) > 10 ORDER BY c1, c2, c3, c4, c5, c8, c9;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=441.82..441.83 rows=1 width=1164)
+ Sort  (cost=288.37..288.37 rows=1 width=1164)
    Output: c1, (lower((c2 || (c3)::text))), (((c4)::double precision - c5)), (round(((c8)::double precision / c9))), c2, c3, c4, c5, c8, c9
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9
-   ->  Foreign Scan  (cost=319.46..441.81 rows=1 width=1164)
+   ->  Foreign Scan  (cost=200.00..288.36 rows=1 width=1164)
          Output: c1, lower((c2 || (c3)::text)), (((c4)::double precision - c5)), round(((c8)::double precision / c9)), c2, c3, c4, c5, c8, c9
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4135,10 +4153,10 @@ psql:sql/limit/limit_orderby.sql:534: ERROR:  PGSpider fail to iterate tuple fro
 EXPLAIN VERBOSE SELECT abs(c4/c5+c6), upper(c7), c8/23+c5-c9/3+c10, c11 FROM tbl01 GROUP BY c4, c5, c6, c7, c8, c9, c10, c11 HAVING min(c4) < 0 ORDER BY c4, c5, c6, c7, c8, c9, c10, c11;
                                                                                                                QUERY PLAN                                                                                                                
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=467.41..467.42 rows=1 width=606)
+ Sort  (cost=288.39..288.40 rows=1 width=606)
    Output: (abs((((c4)::double precision / c5) + (c6)::double precision))), (upper((c7)::text)), ((((((c8 / 23))::double precision + c5) - (c9 / '3'::double precision)) + (c10)::double precision)), c11, c4, c5, c6, c7, c8, c9, c10
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=336.52..467.40 rows=1 width=606)
+   ->  Foreign Scan  (cost=200.00..288.38 rows=1 width=606)
          Output: abs((((c4)::double precision / c5) + (c6)::double precision)), upper((c7)::text), ((((((c8 / 23))::double precision + c5) - (c9 / '3'::double precision)) + (c10)::double precision)), c11, c4, c5, c6, c7, c8, c9, c10
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4159,10 +4177,10 @@ psql:sql/limit/limit_orderby.sql:538: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT c1 || c2, c3 || c7, c4/2+c8-c5/32+c9, c11 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 HAVING min(c4) < min (c8) ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
                                                                                    QUERY PLAN                                                                                    
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=477.66..477.66 rows=1 width=1712)
+ Sort  (cost=288.37..288.38 rows=1 width=1712)
    Output: ((c1 || c2)), (((c3)::text || (c7)::text)), ((((((c4 / 2) + c8))::double precision - (c5 / '32'::double precision)) + c9)), c11, c1, c2, c3, c4, c5, c7, c8, c9
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=353.59..477.65 rows=1 width=1712)
+   ->  Foreign Scan  (cost=200.00..288.36 rows=1 width=1712)
          Output: ((c1 || c2)), (((c3)::text || (c7)::text)), ((((((c4 / 2) + c8))::double precision - (c5 / '32'::double precision)) + c9)), c11, c1, c2, c3, c4, c5, c7, c8, c9
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4183,10 +4201,10 @@ psql:sql/limit/limit_orderby.sql:542: ERROR:  syntax error at or near ")"
 EXPLAIN VERBOSE SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HAVING max(c4) - max(c5) > 0 ORDER BY c1, c2, c3;
                                           QUERY PLAN                                          
 ----------------------------------------------------------------------------------------------
- Sort  (cost=359.92..359.93 rows=1 width=1128)
+ Sort  (cost=288.33..288.33 rows=1 width=1128)
    Output: c1, c2, c3, 1, 2, 'abc'::text
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3
-   ->  Foreign Scan  (cost=251.19..359.91 rows=1 width=1128)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=1128)
          Output: c1, c2, c3, 1, 2, 'abc'::text
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4225,10 +4243,10 @@ SELECT c1, c2, c3, 1, 2, 'abc' FROM tbl01 GROUP BY c1, c2, c3 HAVING max(c4) - m
 EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 ORDER BY c4, c5, c8, c9, c10, c11;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=423.06..423.06 rows=0 width=86)
+ Sort  (cost=288.36..288.37 rows=0 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timex'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c10, tbl01.c11
-   ->  Foreign Scan  (cost=302.39..423.05 rows=0 width=86)
+   ->  Foreign Scan  (cost=200.00..288.35 rows=0 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timex'::text)), c10, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4266,10 +4284,10 @@ SELECT c4-c5, c8/c9, c11 || 'timex', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10
 EXPLAIN VERBOSE SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c9, c10 ORDER BY c1, c2, c3, c4, c5, c6, c9, c10;
                                                                                          QUERY PLAN                                                                                          
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=462.30..462.31 rows=0 width=1158)
+ Sort  (cost=288.38..288.38 rows=0 width=1158)
    Output: (((c1 || c2) || (c3)::text)), ((c4 - 100)), ((((c5 / '112'::double precision) * (c6)::double precision) - (c9 / (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c9, tbl01.c10
-   ->  Foreign Scan  (cost=336.52..462.29 rows=0 width=1158)
+   ->  Foreign Scan  (cost=200.00..288.37 rows=0 width=1158)
          Output: (((c1 || c2) || (c3)::text)), ((c4 - 100)), ((((c5 / '112'::double precision) * (c6)::double precision) - (c9 / (c10)::double precision))), c1, c2, c3, c4, c5, c6, c9, c10
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4290,10 +4308,10 @@ psql:sql/limit/limit_orderby.sql:555: ERROR:  division by zero
 EXPLAIN VERBOSE SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23)) FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c7, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c7, c8, c9, c11;
                                                                                                     QUERY PLAN                                                                                                    
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=484.48..484.49 rows=0 width=1712)
+ Sort  (cost=288.39..288.40 rows=0 width=1712)
    Output: (upper((c1 || c2))), (lower(((c3)::text || (c7)::text))), (abs(((((c4 / 2))::double precision + c5) + ((c8)::double precision / (c9 - '23'::double precision))))), c1, c2, c3, c4, c5, c7, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c7, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=353.59..484.47 rows=0 width=1712)
+   ->  Foreign Scan  (cost=200.00..288.38 rows=0 width=1712)
          Output: upper((c1 || c2)), lower(((c3)::text || (c7)::text)), abs(((((c4 / 2))::double precision + c5) + ((c8)::double precision / (c9 - '23'::double precision)))), c1, c2, c3, c4, c5, c7, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4337,10 +4355,10 @@ SELECT upper(c1 || c2), lower(c3 || c7), abs(c4/2+c5 + c8/(c9-23)) FROM tbl01 GR
 EXPLAIN VERBOSE SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
                                                                                              QUERY PLAN                                                                                             
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=464.00..464.01 rows=0 width=1152)
+ Sort  (cost=288.38..288.39 rows=0 width=1152)
    Output: (length(((c1 || c2) || (c3)::text))), (floor(((c4)::double precision - c5))), ((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c1, c2, c3, c4, c5, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=336.52..464.00 rows=0 width=1152)
+   ->  Foreign Scan  (cost=200.00..288.38 rows=0 width=1152)
          Output: length(((c1 || c2) || (c3)::text)), floor(((c4)::double precision - c5)), ((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c1, c2, c3, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4384,10 +4402,10 @@ SELECT length(c1 || c2 || c3), floor(c4-c5), c8/3+c9, c11 + '23 hours'::interval
 EXPLAIN VERBOSE SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 ORDER BY c1, c3, c5, c7, c9, c11;
                                             QUERY PLAN                                            
 --------------------------------------------------------------------------------------------------
- Sort  (cost=411.12..411.12 rows=0 width=1596)
+ Sort  (cost=288.33..288.33 rows=0 width=1596)
    Output: c1, c3, c5, c7, c9, c11
    Sort Key: tbl01.c1, tbl01.c3, tbl01.c5, tbl01.c7, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=302.39..411.11 rows=0 width=1596)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=1596)
          Output: c1, c3, c5, c7, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4432,10 +4450,10 @@ SELECT c1, c3, c5, c7, c9, c11 FROM tbl01 GROUP BY c1, c3, c5, c7, c9, c11 ORDER
 EXPLAIN VERBOSE SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, c7, c8 HAVING min(c3) != 'wef' ORDER BY c1, c2, c3, c4, c5, c6, c7, c8;
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=445.25..445.25 rows=1 width=1628)
+ Sort  (cost=288.33..288.33 rows=1 width=1628)
    Output: c3, c5, c1, c8, c7, c2, c4, c6
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c6, tbl01.c7, tbl01.c8
-   ->  Foreign Scan  (cost=336.52..445.24 rows=1 width=1628)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=1628)
          Output: c3, c5, c1, c8, c7, c2, c4, c6
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4479,21 +4497,21 @@ SELECT c3, c5, c1, c8, c7, c2, c4, c6 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6
 EXPLAIN VERBOSE SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10, c11 HAVING max(c4) > 0 ORDER BY c4, c5, c8, c9, c11;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=423.06..423.06 rows=1 width=86)
+ Sort  (cost=288.36..288.37 rows=1 width=86)
    Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timez'::text)), c10, c4, c5, c8, c9, c11
    Sort Key: tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=302.39..423.05 rows=1 width=86)
+   ->  Foreign Scan  (cost=200.00..288.35 rows=1 width=86)
          Output: (((c4)::double precision - c5)), (((c8)::double precision / c9)), (((c11)::text || 'timez'::text)), c10, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.tbl01)
-           Remote SQL: SELECT c4, c5, c8, c9, c11, c10, max(c4) FROM public.tbl01 GROUP BY 1, 2, 3, 4, 5, 6
+           Remote SQL: SELECT c4, c5, c8, c9, c11, c10, max(c4) FROM public.tbl01 GROUP BY 1, 2, 3, 4, 6, 5
          Node: postgres_svr_2 / Status: Alive
            Sort push-down: no
            Agg push-down: yes
            Relations: Aggregate on (public.tbl01)
-           Remote SQL: SELECT c4, c5, c8, c9, c11, c10, max(c4) FROM public.tbl01 GROUP BY 1, 2, 3, 4, 5, 6
+           Remote SQL: SELECT c4, c5, c8, c9, c11, c10, max(c4) FROM public.tbl01 GROUP BY 1, 2, 3, 4, 6, 5
 (15 rows)
 
 --Testcase 270:
@@ -4515,10 +4533,10 @@ SELECT c4-c5, c8/c9, c11 || 'timez', c10 FROM tbl01 GROUP BY c4, c5, c8, c9, c10
 EXPLAIN VERBOSE SELECT c1, lower(c2 || c3), abs(c4-c5), abs(c8/3+c9), c11 + '23 hours'::interval FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c8, c9, c11 HAVING sum(c5) != min(c4) ORDER BY c1, c2, c3, c4, c5, c8, c9, c11;
                                                                                          QUERY PLAN                                                                                         
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=464.00..464.01 rows=1 width=1180)
+ Sort  (cost=288.38..288.39 rows=1 width=1180)
    Output: c1, (lower((c2 || (c3)::text))), (abs(((c4)::double precision - c5))), (abs((((c8 / 3))::double precision + c9))), ((c11 + '@ 23 hours'::interval)), c2, c3, c4, c5, c8, c9, c11
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.c5, tbl01.c8, tbl01.c9, tbl01.c11
-   ->  Foreign Scan  (cost=336.52..464.00 rows=1 width=1180)
+   ->  Foreign Scan  (cost=200.00..288.38 rows=1 width=1180)
          Output: c1, lower((c2 || (c3)::text)), abs(((c4)::double precision - c5)), abs((((c8 / 3))::double precision + c9)), ((c11 + '@ 23 hours'::interval)), c2, c3, c4, c5, c8, c9, c11
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4844,10 +4862,10 @@ SELECT length(c1 || c2), lower(c3), abs(c5/12+c8/3-c9+c10) FROM tbl01 WHERE NOT 
 EXPLAIN VERBOSE SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0 ORDER BY 1;
                                               QUERY PLAN                                               
 -------------------------------------------------------------------------------------------------------
- Sort  (cost=317.33..317.34 rows=1 width=28)
+ Sort  (cost=288.33..288.33 rows=1 width=28)
    Output: (count(*)), (count(c1)), (count(c3)), c4
    Sort Key: (count(*))
-   ->  Foreign Scan  (cost=217.06..317.32 rows=1 width=28)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=28)
          Output: (count(*)), (count(c1)), (count(c3)), c4
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4881,10 +4899,10 @@ SELECT count(*), count(c1), count(c3) FROM tbl01 GROUP BY c4 HAVING min(c4) != 0
 EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP BY c3 HAVING max(c3) IS NOT NULL ORDER BY c3;
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=317.33..317.34 rows=1 width=1100)
+ Sort  (cost=288.33..288.33 rows=1 width=1100)
    Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5)), c3
    Sort Key: tbl01.c3
-   ->  Foreign Scan  (cost=217.06..317.32 rows=1 width=1100)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=1100)
          Output: (min((c1 || c2))), (max(c3)), (min(c4)), (sum(c5)), c3
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4905,10 +4923,10 @@ psql:sql/limit/limit_orderby.sql:623: ERROR:  syntax error at end of input
 EXPLAIN VERBOSE SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY c3, c7 HAVING max(c7) != max(c3) ORDER BY c3, c7;
                                                                   QUERY PLAN                                                                   
 -----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=342.86..342.87 rows=1 width=1604)
+ Sort  (cost=288.33..288.33 rows=1 width=1604)
    Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), (min((c9 - (c10)::double precision))), (max(c11)), c3, c7
    Sort Key: tbl01.c3, tbl01.c7
-   ->  Foreign Scan  (cost=234.13..342.85 rows=1 width=1604)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=1604)
          Output: (max((c5 + (c6)::double precision))), (max((c7)::text)), (min(c8)), (min((c9 - (c10)::double precision))), (max(c11)), c3, c7
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4947,10 +4965,10 @@ SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY
 EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP BY c4, c8 HAVING min(c4) < min(c8) ORDER BY c4, c8;
                                                              QUERY PLAN                                                              
 -------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=342.86..342.87 rows=1 width=68)
+ Sort  (cost=288.33..288.33 rows=1 width=68)
    Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10)), c4, c8
    Sort Key: tbl01.c4, tbl01.c8
-   ->  Foreign Scan  (cost=234.13..342.85 rows=1 width=68)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=68)
          Output: (min((c7)::text)), (max(c8)), (sum(((c8)::double precision - c9))), (count(c10)), c4, c8
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -4982,10 +5000,10 @@ SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 GROUP BY c4, c8 HAVIN
 EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING count(c3) > 0 ORDER BY c3;
                                                                   QUERY PLAN                                                                  
 ----------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=317.33..317.34 rows=1 width=1080)
+ Sort  (cost=288.33..288.33 rows=1 width=1080)
    Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - c5))), c3
    Sort Key: tbl01.c3
-   ->  Foreign Scan  (cost=217.06..317.32 rows=1 width=1080)
+   ->  Foreign Scan  (cost=200.00..288.32 rows=1 width=1080)
          Output: (sum(c5)), (max((c7)::text)), (min(c8)), (count(((c9 / '2'::double precision) - c5))), c3
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -5025,10 +5043,10 @@ SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING c
 EXPLAIN VERBOSE SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT NULL GROUP BY c7 HAVING c7 != '' ORDER BY c7;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Sort  (cost=334.23..334.24 rows=1 width=588)
+ Sort  (cost=305.39..305.40 rows=1 width=588)
    Output: '~!@#$%^&*()_+=-,./[]\\'::text, 332, 'wefakef'::text, 21332, c7
    Sort Key: tbl01.c7
-   ->  Foreign Scan  (cost=216.90..334.22 rows=1 width=588)
+   ->  Foreign Scan  (cost=200.00..305.38 rows=1 width=588)
          Output: '~!@#$%^&*()_+=-,./[]\\'::text, 332, 'wefakef'::text, 21332, c7
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -5060,10 +5078,10 @@ SELECT '~!@#$%^&*()_+=-,./[]\\',332, 'wefakef', 21332 FROM tbl01 WHERE c3 IS NOT
 EXPLAIN VERBOSE SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, __spd_url HAVING c4 BETWEEN -11000 AND 10000 ORDER BY c1, c2, c3, c4, __spd_url;
                                                                    QUERY PLAN                                                                   
 ------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=339.95..339.95 rows=1 width=1124)
+ Sort  (cost=339.52..339.53 rows=1 width=1124)
    Output: c1, c2, c3, __spd_url, c4
    Sort Key: tbl01.c1, tbl01.c2, tbl01.c3, tbl01.c4, tbl01.__spd_url
-   ->  Foreign Scan  (cost=200.12..339.94 rows=1 width=1124)
+   ->  Foreign Scan  (cost=200.00..339.51 rows=1 width=1124)
          Output: c1, c2, c3, __spd_url, c4
          Node: postgres_svr_1 / Status: Alive
            Sort push-down: no
@@ -5167,16 +5185,16 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('c3_x',c3)), jsonb_agg(('c3_y',c3))
 
 --Testcase 307:
 EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER BY c7), c1, c2 FROM tbl01 WHERE c9 >= c8 GROUP BY c1, c2, c8, c9 HAVING c9 >= 0 ORDER BY c1,c2;
-                                                                QUERY PLAN                                                                
-------------------------------------------------------------------------------------------------------------------------------------------
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
  GroupAggregate  (cost=390.87..409.03 rows=200 width=144)
-   Output: string_agg((c3)::text, ' '::text ORDER BY ((c3)::text)), string_agg((c7)::text, ' '::text ORDER BY (c7)::text), c1, c2, c8, c9
+   Output: string_agg(((c3)::text), ' '::text ORDER BY ((c3)::text)), string_agg((c7)::text, ' '::text ORDER BY (c7)::text), c1, c2, c8, c9
    Group Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
    ->  Sort  (cost=390.87..392.77 rows=758 width=1620)
-         Output: c1, c2, c8, c9, c3, c7
-         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
+         Output: c1, c2, c8, c9, c3, c7, ((c3)::text)
+         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9, ((tbl01.c3)::text)
          ->  Foreign Scan on public.tbl01  (cost=200.00..354.62 rows=758 width=1620)
-               Output: c1, c2, c8, c9, c3, c7
+               Output: c1, c2, c8, c9, c3, c7, c3
                Node: postgres_svr_1 / Status: Alive
                  Sort push-down: no
                  Remote SQL: SELECT c1, c2, c3, c7, c8, c9 FROM public.tbl01 WHERE ((c9 >= c8)) AND ((c9 >= 0::double precision))

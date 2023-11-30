@@ -501,6 +501,7 @@ Limitation with modification and transaction:
 - Sometimes, PGSpider cannot read modified data in a transaction.
 - It is recommended to execute a modify query(INSERT/UPDATE/DELETE) in auto-commit mode. If not, a warning "Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data." is shown.
 - RETURNING, WITH CHECK OPTION and ON CONFLICT are not supported with Modification.
+- COPY and modify (INSERT/UPDATE/DELETE) foreign partition are not supported.
 
 ## Contributing
 Opening issues and pull requests are welcome.

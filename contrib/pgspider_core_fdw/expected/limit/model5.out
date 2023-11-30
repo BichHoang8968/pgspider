@@ -2337,21 +2337,24 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 LIMIT 15;
 
 --Testcase 151:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Limit  (cost=441.84..441.85 rows=1 width=8)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Limit  (cost=893.62..893.63 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Aggregate  (cost=441.84..441.85 rows=1 width=8)
+   ->  Aggregate  (cost=893.62..893.63 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=4)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=4)
                Output: c5
-               Node: griddb_svr_1 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-               Node: griddb_svr_2 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-(12 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=4)
+                     Output: c5
+                     Node: griddb_svr_1 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+                     Node: griddb_svr_2 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+(15 rows)
 
 --Testcase 152:
 SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
@@ -2408,19 +2411,22 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('~!@#', c4)), jsonb_agg(('_(*#', c5
 EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                           QUERY PLAN                                          
 ----------------------------------------------------------------------------------------------
- Limit  (cost=458.91..458.92 rows=1 width=64)
+ Limit  (cost=910.69..910.70 rows=1 width=64)
    Output: (string_agg(c3, ' '::text ORDER BY c3)), (string_agg(c7, ','::text ORDER BY c7))
-   ->  Aggregate  (cost=458.91..458.92 rows=1 width=64)
+   ->  Aggregate  (cost=910.69..910.70 rows=1 width=64)
          Output: string_agg(c3, ' '::text ORDER BY c3), string_agg(c7, ','::text ORDER BY c7)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=64)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=64)
                Output: c3, c7
-               Node: griddb_svr_1 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-               Node: griddb_svr_2 / Status: Alive
-                 Limit push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-(12 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=64)
+                     Output: c3, c7
+                     Node: griddb_svr_1 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+                     Node: griddb_svr_2 / Status: Alive
+                       Limit push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+(15 rows)
 
 --Testcase 156:
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
@@ -2893,26 +2899,29 @@ SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OF
 
 --Testcase 185:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
- Limit  (cost=356.55..356.56 rows=1 width=8)
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Limit  (cost=489.16..489.16 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Sort  (cost=356.55..356.56 rows=1 width=8)
+   ->  Sort  (cost=489.16..489.16 rows=1 width=8)
          Output: (count(DISTINCT c5))
          Sort Key: (count(DISTINCT tbl01.c5))
-         ->  Aggregate  (cost=356.53..356.54 rows=1 width=8)
+         ->  Aggregate  (cost=489.14..489.15 rows=1 width=8)
                Output: count(DISTINCT c5)
-               ->  Foreign Scan on public.tbl01  (cost=200.00..350.84 rows=2276 width=4)
+               ->  Sort  (cost=477.76..483.45 rows=2276 width=4)
                      Output: c5
-                     Node: griddb_svr_1 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT  *  FROM tbl01 WHERE ((c5 > 0))
-                     Node: griddb_svr_2 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT  *  FROM tbl01 WHERE ((c5 > 0))
-(17 rows)
+                     Sort Key: tbl01.c5
+                     ->  Foreign Scan on public.tbl01  (cost=200.00..350.84 rows=2276 width=4)
+                           Output: c5
+                           Node: griddb_svr_1 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT  *  FROM tbl01 WHERE ((c5 > 0))
+                           Node: griddb_svr_2 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT  *  FROM tbl01 WHERE ((c5 > 0))
+(20 rows)
 
 --Testcase 186:
 SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
@@ -2974,25 +2983,28 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), 
 EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=492.89..492.90 rows=1 width=64)
+ Limit  (cost=942.17..942.18 rows=1 width=64)
    Output: (string_agg(c3, '-'::text ORDER BY c3)), (string_agg(c7, '_'::text ORDER BY c7))
-   ->  Sort  (cost=492.89..492.90 rows=1 width=64)
+   ->  Sort  (cost=942.17..942.18 rows=1 width=64)
          Output: (string_agg(c3, '-'::text ORDER BY c3)), (string_agg(c7, '_'::text ORDER BY c7))
          Sort Key: (string_agg(tbl01.c3, '-'::text ORDER BY tbl01.c3)), (string_agg(tbl01.c7, '_'::text ORDER BY tbl01.c7))
-         ->  Aggregate  (cost=492.87..492.88 rows=1 width=64)
+         ->  Aggregate  (cost=942.15..942.16 rows=1 width=64)
                Output: string_agg(c3, '-'::text ORDER BY c3), string_agg(c7, '_'::text ORDER BY c7)
-               ->  Foreign Scan on public.tbl01  (cost=200.00..458.91 rows=6792 width=64)
+               ->  Sort  (cost=891.21..908.19 rows=6792 width=64)
                      Output: c3, c7
-                     Filter: ((tbl01.c8)::double precision <> tbl01.c9)
-                     Node: griddb_svr_1 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT  *  FROM tbl01
-                     Node: griddb_svr_2 / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Remote SQL: SELECT  *  FROM tbl01
-(18 rows)
+                     Sort Key: tbl01.c3
+                     ->  Foreign Scan on public.tbl01  (cost=200.00..458.91 rows=6792 width=64)
+                           Output: c3, c7
+                           Filter: ((tbl01.c8)::double precision <> tbl01.c9)
+                           Node: griddb_svr_1 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT  *  FROM tbl01
+                           Node: griddb_svr_2 / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT  *  FROM tbl01
+(21 rows)
 
 --Testcase 190:
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
@@ -3760,22 +3772,25 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
 
 --Testcase 237:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Sort  (cost=441.86..441.87 rows=1 width=8)
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Sort  (cost=893.64..893.64 rows=1 width=8)
    Output: (count(DISTINCT c5))
    Sort Key: (count(DISTINCT tbl01.c5))
-   ->  Aggregate  (cost=441.84..441.85 rows=1 width=8)
+   ->  Aggregate  (cost=893.62..893.63 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=4)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=4)
                Output: c5
-               Node: griddb_svr_1 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-               Node: griddb_svr_2 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-(13 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=4)
+                     Output: c5
+                     Node: griddb_svr_1 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+                     Node: griddb_svr_2 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+(16 rows)
 
 --Testcase 238:
 SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
@@ -3833,20 +3848,23 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y'
 EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Sort  (cost=458.93..458.94 rows=1 width=64)
+ Sort  (cost=910.71..910.71 rows=1 width=64)
    Output: (string_agg(c3, ':'::text ORDER BY c3)), (string_agg(c7, '>>'::text ORDER BY c7))
    Sort Key: (string_agg(tbl01.c3, ':'::text ORDER BY tbl01.c3)), (string_agg(tbl01.c7, '>>'::text ORDER BY tbl01.c7))
-   ->  Aggregate  (cost=458.91..458.92 rows=1 width=64)
+   ->  Aggregate  (cost=910.69..910.70 rows=1 width=64)
          Output: string_agg(c3, ':'::text ORDER BY c3), string_agg(c7, '>>'::text ORDER BY c7)
-         ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=64)
+         ->  Sort  (cost=859.49..876.55 rows=6826 width=64)
                Output: c3, c7
-               Node: griddb_svr_1 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-               Node: griddb_svr_2 / Status: Alive
-                 Sort push-down: no
-                 Remote SQL: SELECT  *  FROM tbl01
-(13 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=200.00..424.78 rows=6826 width=64)
+                     Output: c3, c7
+                     Node: griddb_svr_1 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+                     Node: griddb_svr_2 / Status: Alive
+                       Sort push-down: no
+                       Remote SQL: SELECT  *  FROM tbl01
+(16 rows)
 
 --Testcase 242:
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
@@ -4931,7 +4949,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER
    Group Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
    ->  Sort  (cost=421.19..423.09 rows=758 width=144)
          Output: c1, c2, c8, c9, c3, c7
-         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
+         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9, tbl01.c3
          ->  Foreign Scan on public.tbl01  (cost=200.00..384.94 rows=758 width=144)
                Output: c1, c2, c8, c9, c3, c7
                Filter: (tbl01.c9 >= (tbl01.c8)::double precision)

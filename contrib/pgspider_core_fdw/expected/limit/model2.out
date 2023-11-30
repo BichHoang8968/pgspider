@@ -2311,16 +2311,19 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('~!@#', c4)), jsonb_agg(('_(*#', c5
 EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=3430.07..3430.08 rows=1 width=64)
+ Limit  (cost=3638.89..3638.90 rows=1 width=64)
    Output: (string_agg((c3)::text, ' '::text ORDER BY (c3)::text)), (string_agg((c7)::text, ','::text ORDER BY (c7)::text))
-   ->  Aggregate  (cost=3430.07..3430.08 rows=1 width=64)
+   ->  Aggregate  (cost=3638.89..3638.90 rows=1 width=64)
          Output: string_agg((c3)::text, ' '::text ORDER BY (c3)::text), string_agg((c7)::text, ','::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=10.00..3413.00 rows=3413 width=1032)
+         ->  Sort  (cost=3613.29..3621.82 rows=3413 width=1032)
                Output: c3, c7
-               Node: influx_svr / Status: Alive
-                 Limit push-down: no
-                 InfluxDB query: SELECT "c3", "c7" FROM "tbl01"
-(9 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=10.00..3413.00 rows=3413 width=1032)
+                     Output: c3, c7
+                     Node: influx_svr / Status: Alive
+                       Limit push-down: no
+                       InfluxDB query: SELECT "c3", "c7" FROM "tbl01"
+(12 rows)
 
 --Testcase 156:
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
@@ -2853,21 +2856,24 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), 
 EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                                          QUERY PLAN                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=3413.01..3413.01 rows=1 width=64)
+ Limit  (cost=3620.66..3620.67 rows=1 width=64)
    Output: (string_agg((c3)::text, '-'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
-   ->  Sort  (cost=3413.01..3413.01 rows=1 width=64)
+   ->  Sort  (cost=3620.66..3620.67 rows=1 width=64)
          Output: (string_agg((c3)::text, '-'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
          Sort Key: (string_agg((tbl01.c3)::text, '-'::text ORDER BY (tbl01.c3)::text)), (string_agg((tbl01.c7)::text, '_'::text ORDER BY (tbl01.c7)::text))
-         ->  Aggregate  (cost=3412.99..3413.00 rows=1 width=64)
+         ->  Aggregate  (cost=3620.64..3620.65 rows=1 width=64)
                Output: string_agg((c3)::text, '-'::text ORDER BY (c3)::text), string_agg((c7)::text, '_'::text ORDER BY (c7)::text)
-               ->  Foreign Scan on public.tbl01  (cost=10.00..3396.00 rows=3396 width=1032)
+               ->  Sort  (cost=3595.17..3603.66 rows=3396 width=1032)
                      Output: c3, c7
-                     Filter: ((tbl01.c8)::double precision <> tbl01.c9)
-                     Node: influx_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       InfluxDB query: SELECT "c3", "c7", "c8", "c9" FROM "tbl01"
-(14 rows)
+                     Sort Key: tbl01.c3
+                     ->  Foreign Scan on public.tbl01  (cost=10.00..3396.00 rows=3396 width=1032)
+                           Output: c3, c7
+                           Filter: ((tbl01.c8)::double precision <> tbl01.c9)
+                           Node: influx_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             InfluxDB query: SELECT "c3", "c7", "c8", "c9" FROM "tbl01"
+(17 rows)
 
 --Testcase 190:
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
@@ -3685,17 +3691,20 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y'
 EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=3430.09..3430.10 rows=1 width=64)
+ Sort  (cost=3638.91..3638.92 rows=1 width=64)
    Output: (string_agg((c3)::text, ':'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '>>'::text ORDER BY (c7)::text))
    Sort Key: (string_agg((tbl01.c3)::text, ':'::text ORDER BY (tbl01.c3)::text)), (string_agg((tbl01.c7)::text, '>>'::text ORDER BY (tbl01.c7)::text))
-   ->  Aggregate  (cost=3430.07..3430.08 rows=1 width=64)
+   ->  Aggregate  (cost=3638.89..3638.90 rows=1 width=64)
          Output: string_agg((c3)::text, ':'::text ORDER BY (c3)::text), string_agg((c7)::text, '>>'::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=10.00..3413.00 rows=3413 width=1032)
+         ->  Sort  (cost=3613.29..3621.82 rows=3413 width=1032)
                Output: c3, c7
-               Node: influx_svr / Status: Alive
-                 Sort push-down: no
-                 InfluxDB query: SELECT "c3", "c7" FROM "tbl01"
-(10 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=10.00..3413.00 rows=3413 width=1032)
+                     Output: c3, c7
+                     Node: influx_svr / Status: Alive
+                       Sort push-down: no
+                       InfluxDB query: SELECT "c3", "c7" FROM "tbl01"
+(13 rows)
 
 --Testcase 242:
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
@@ -4808,7 +4817,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER
    Group Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
    ->  Sort  (cost=395.23..396.18 rows=379 width=1296)
          Output: c1, c2, c8, c9, c3, c7
-         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
+         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9, tbl01.c3
          ->  Foreign Scan on public.tbl01  (cost=10.00..379.00 rows=379 width=1296)
                Output: c1, c2, c8, c9, c3, c7
                Filter: (tbl01.c9 >= (tbl01.c8)::double precision)

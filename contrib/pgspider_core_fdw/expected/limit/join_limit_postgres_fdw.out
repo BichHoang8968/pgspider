@@ -279,12 +279,12 @@ SELECT avg(J2_TBL.i) + 91, min(J2_TBL.k) FROM J1_TBL RIGHT JOIN J2_TBL USING (i)
 EXPLAIN VERBOSE SELECT t1.i, min(j), t3.t FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i LEFT JOIN J3_TBL t3 ON t3.i = 1 WHERE t1.__spd_url != '' GROUP BY t1.i, t1.j, t1.t, t3.t LIMIT 5;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Limit  (cost=1469.39..1679.22 rows=5 width=76)
+ Limit  (cost=1295.77..1449.67 rows=5 width=76)
    Output: t1.i, (min(t1.j)), t3.t, t1.j, t1.t
-   ->  GroupAggregate  (cost=1469.39..135758.69 rows=3200 width=76)
+   ->  GroupAggregate  (cost=1295.77..99796.41 rows=3200 width=76)
          Output: t1.i, min(t1.j), t3.t, t1.j, t1.t
          Group Key: t1.i, t1.j, t1.t, t3.t
-         ->  Incremental Sort  (cost=1469.39..123350.05 rows=990131 width=72)
+         ->  Incremental Sort  (cost=1295.77..87387.78 rows=990131 width=72)
                Output: t1.i, t3.t, t1.j, t1.t
                Sort Key: t1.i, t1.j, t1.t, t3.t
                Presorted Key: t1.i
@@ -1148,30 +1148,34 @@ SELECT t1.j + 1, max(t1.i), min(t1.t) FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.
 
 --Testcase 33:
 EXPLAIN VERBOSE SELECT count(J1_TBL.i) + 2, max(k), min(t) FROM J1_TBL FULL JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL.__spd_url) GROUP BY J1_TBL.i ORDER BY J1_TBL.i;
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
- Sort  (cost=817.95..818.45 rows=200 width=48)
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Sort  (cost=2308.64..2309.14 rows=200 width=48)
    Output: ((count(j1_tbl.i) + 2)), (max(j2_tbl.k)), (min(j1_tbl.t)), j1_tbl.i
    Sort Key: j1_tbl.i
-   ->  HashAggregate  (cost=807.80..810.30 rows=200 width=48)
+   ->  HashAggregate  (cost=2298.50..2301.00 rows=200 width=48)
          Output: (count(j1_tbl.i) + 2), max(j2_tbl.k), min(j1_tbl.t), j1_tbl.i
          Group Key: j1_tbl.i
-         ->  Hash Full Join  (cost=100.01..225.37 rows=58243 width=40)
+         ->  Merge Full Join  (cost=825.36..1716.07 rows=58243 width=40)
                Output: j1_tbl.i, j2_tbl.k, j1_tbl.t
-               Hash Cond: (j2_tbl.__spd_url = j1_tbl.__spd_url)
-               ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=36)
-                     Output: j2_tbl.k, j2_tbl.__spd_url
-                     Node: postgres_svr / Status: Alive
-                       Sort push-down: no
-                       Remote SQL: SELECT k FROM public.j2_tbl
-               ->  Hash  (cost=0.00..0.00 rows=1 width=68)
+               Merge Cond: (j1_tbl.__spd_url = j2_tbl.__spd_url)
+               ->  Sort  (cost=412.68..421.21 rows=3413 width=68)
                      Output: j1_tbl.i, j1_tbl.t, j1_tbl.__spd_url
-                     ->  Foreign Scan on public.j1_tbl  (cost=0.00..0.00 rows=1 width=68)
+                     Sort Key: j1_tbl.__spd_url
+                     ->  Foreign Scan on public.j1_tbl  (cost=100.00..212.39 rows=3413 width=68)
                            Output: j1_tbl.i, j1_tbl.t, j1_tbl.__spd_url
                            Node: postgres_svr / Status: Alive
-                             Sort push-down: yes
-                             Remote SQL: SELECT i, t FROM public.j1_tbl ORDER BY i ASC NULLS LAST
-(21 rows)
+                             Sort push-down: no
+                             Remote SQL: SELECT i, t FROM public.j1_tbl
+               ->  Sort  (cost=412.68..421.21 rows=3413 width=36)
+                     Output: j2_tbl.k, j2_tbl.__spd_url
+                     Sort Key: j2_tbl.__spd_url
+                     ->  Foreign Scan on public.j2_tbl  (cost=100.00..212.39 rows=3413 width=36)
+                           Output: j2_tbl.k, j2_tbl.__spd_url
+                           Node: postgres_svr / Status: Alive
+                             Sort push-down: no
+                             Remote SQL: SELECT k FROM public.j2_tbl
+(25 rows)
 
 --Testcase 34:
 SELECT count(J1_TBL.i) + 2, max(k), min(t) FROM J1_TBL FULL JOIN J2_TBL ON (J1_TBL.__spd_url = J2_TBL.__spd_url) GROUP BY J1_TBL.i ORDER BY J1_TBL.i;
@@ -2342,31 +2346,16 @@ SELECT * FROM J1_TBL CROSS JOIN J2_TBL ORDER BY J1_TBL.i OFFSET 1;
 
 --Testcase 55:
 EXPLAIN VERBOSE SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e) FULL JOIN J2_TBL x2(xx1,xx2) ON (x1.a = xx1) ORDER BY x1.a, x1.b OFFSET 1;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=264207.97..266692.76 rows=993916 width=152)
+                                                   QUERY PLAN                                                   
+----------------------------------------------------------------------------------------------------------------
+ Limit  (cost=265540.45..268025.24 rows=993916 width=152)
    Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
-   ->  Sort  (cost=264207.97..266692.76 rows=993917 width=152)
+   ->  Sort  (cost=265540.45..268025.24 rows=993917 width=152)
          Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
          Sort Key: t1.i, t1.j
-         ->  Merge Full Join  (cost=512.68..15722.09 rows=993917 width=152)
+         ->  Merge Full Join  (cost=1238.04..17054.57 rows=993917 width=152)
                Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url, x2.xx1, x2.xx2, x2.__spd_url
-               Merge Cond: (t1.i = x2.xx1)
-               ->  Nested Loop Left Join  (cost=100.00..255.05 rows=58243 width=112)
-                     Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
-                     Join Filter: (t1.i = t2.i)
-                     ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..0.00 rows=1 width=72)
-                           Output: t1.i, t1.j, t1.t, t1.__spd_url
-                           Node: postgres_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: yes
-                             Remote SQL: SELECT i, j, t FROM public.j1_tbl ORDER BY i ASC NULLS LAST, j ASC NULLS LAST
-                     ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
-                           Output: t2.i, t2.k, t2.__spd_url
-                           Node: postgres_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: no
-                             Remote SQL: SELECT i, k FROM public.j2_tbl
+               Merge Cond: (x2.xx1 = t1.i)
                ->  Sort  (cost=412.68..421.21 rows=3413 width=40)
                      Output: x2.xx1, x2.xx2, x2.__spd_url
                      Sort Key: x2.xx1
@@ -2376,7 +2365,30 @@ EXPLAIN VERBOSE SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x
                              Limit push-down: no
                              Sort push-down: no
                              Remote SQL: SELECT i, k FROM public.j2_tbl
-(32 rows)
+               ->  Materialize  (cost=825.36..1861.68 rows=58243 width=112)
+                     Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
+                     ->  Merge Left Join  (cost=825.36..1716.07 rows=58243 width=112)
+                           Output: t1.i, t1.j, t1.t, t1.__spd_url, t2.i, t2.k, t2.__spd_url
+                           Merge Cond: (t1.i = t2.i)
+                           ->  Sort  (cost=412.68..421.21 rows=3413 width=72)
+                                 Output: t1.i, t1.j, t1.t, t1.__spd_url
+                                 Sort Key: t1.i
+                                 ->  Foreign Scan on public.j1_tbl t1  (cost=100.00..212.39 rows=3413 width=72)
+                                       Output: t1.i, t1.j, t1.t, t1.__spd_url
+                                       Node: postgres_svr / Status: Alive
+                                         Limit push-down: no
+                                         Sort push-down: no
+                                         Remote SQL: SELECT i, j, t FROM public.j1_tbl
+                           ->  Sort  (cost=412.68..421.21 rows=3413 width=40)
+                                 Output: t2.i, t2.k, t2.__spd_url
+                                 Sort Key: t2.i
+                                 ->  Foreign Scan on public.j2_tbl t2  (cost=100.00..212.39 rows=3413 width=40)
+                                       Output: t2.i, t2.k, t2.__spd_url
+                                       Node: postgres_svr / Status: Alive
+                                         Limit push-down: no
+                                         Sort push-down: no
+                                         Remote SQL: SELECT i, k FROM public.j2_tbl
+(40 rows)
 
 --Testcase 56:
 SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e) FULL JOIN J2_TBL x2(xx1,xx2) ON (x1.a = xx1) ORDER BY x1.a, x1.b OFFSET 1;
@@ -2720,12 +2732,12 @@ SELECT x.i, x.j, x.t FROM J1_TBL x LEFT JOIN LATERAL (SELECT i, k FROM J2_TBL WH
 EXPLAIN VERBOSE SELECT *, count (J1_TBL.i) FROM J1_TBL LEFT JOIN J2_TBL ON (J1_TBL.i = J2_TBL.i) WHERE J1_TBL.i IS NOT NULL GROUP BY J1_TBL.i, J1_TBL.j, J1_TBL.t, J1_TBL.__spd_url, J2_TBL.i, J2_TBL.k, J2_TBL.__spd_url LIMIT 5;
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
- Limit  (cost=847.37..848.25 rows=5 width=120)
+ Limit  (cost=840.18..840.87 rows=5 width=120)
    Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url, (count(j1_tbl.i))
-   ->  GroupAggregate  (cost=847.37..7879.21 rows=40000 width=120)
+   ->  GroupAggregate  (cost=840.18..6367.56 rows=40000 width=120)
          Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url, count(j1_tbl.i)
          Group Key: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
-         ->  Incremental Sort  (cost=847.37..6320.15 rows=57953 width=112)
+         ->  Incremental Sort  (cost=840.18..4808.50 rows=57953 width=112)
                Output: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
                Sort Key: j1_tbl.i, j1_tbl.j, j1_tbl.t, j1_tbl.__spd_url, j2_tbl.i, j2_tbl.k, j2_tbl.__spd_url
                Presorted Key: j1_tbl.i
@@ -2914,17 +2926,17 @@ SELECT max(ss1), min(ss2), ii, tt, kk FROM (J1_TBL CROSS JOIN J2_TBL) AS tx (ii,
 EXPLAIN VERBOSE SELECT max(t1.i + t2.i), t1.__spd_url, t2.__spd_url FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t1.i = t2.i WHERE EXISTS (SELECT t3.i, t FROM J3_TBL t3 CROSS JOIN J2_TBL t4) AND t2.k < 1 GROUP BY t1.i, t2.i, t1.__spd_url, t2.__spd_url LIMIT 5;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
- Limit  (cost=652.59..653.13 rows=5 width=76)
+ Limit  (cost=650.56..650.97 rows=5 width=76)
    Output: (max((t1.i + t2.i))), t1.__spd_url, t2.__spd_url, t1.i, t2.i
    InitPlan 1 (returns $0)
      ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=0)
            Node: postgres_svr / Status: Alive
              Relations: (public.j3_tbl t3) INNER JOIN (public.j2_tbl t4)
              Remote SQL: SELECT NULL FROM (public.j3_tbl r1 INNER JOIN public.j2_tbl r2 ON (TRUE))
-   ->  GroupAggregate  (cost=652.59..2746.08 rows=19420 width=76)
+   ->  GroupAggregate  (cost=650.56..2267.55 rows=19420 width=76)
          Output: max((t1.i + t2.i)), t1.__spd_url, t2.__spd_url, t1.i, t2.i
-         Group Key: t1.i, t2.i, t1.__spd_url, t2.__spd_url
-         ->  Incremental Sort  (cost=652.59..2260.58 rows=19420 width=72)
+         Group Key: t1.i, t1.__spd_url, t2.__spd_url
+         ->  Incremental Sort  (cost=650.56..1830.60 rows=19420 width=72)
                Output: t1.__spd_url, t2.__spd_url, t1.i, t2.i
                Sort Key: t1.i, t1.__spd_url, t2.__spd_url
                Presorted Key: t1.i
@@ -2967,9 +2979,9 @@ SELECT max(t1.i + t2.i), t1.__spd_url, t2.__spd_url FROM J1_TBL t1 INNER JOIN J2
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(i) GROUP BY t1.i, t1.j, t1.t HAVING max(t1.i) NOT IN (1, 2, 3) LIMIT 5 OFFSET 0;
                                                                      QUERY PLAN                                                                     
 ----------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=87464.27..116684.18 rows=1 width=40)
+ Limit  (cost=100.00..29309.71 rows=1 width=40)
    Output: t1.i, t1.j, t1.t
-   ->  Foreign Scan  (cost=87464.27..116684.18 rows=1 width=40)
+   ->  Foreign Scan  (cost=100.00..29309.71 rows=1 width=40)
          Output: t1.i, t1.j, t1.t
          Filter: ((max(t1.i)) <> ALL ('{1,2,3}'::integer[]))
          Node: postgres_svr / Status: Alive
@@ -3031,13 +3043,13 @@ SELECT t1.i FROM j1_tbl t1 FULL JOIN (SELECT i, k FROM j2_tbl) t2 ON (t1.i = t2.
 EXPLAIN VERBOSE SELECT t1.a, t1.b, t1.c, t2.a, t2.b FROM J1_TBL t1 (a, b, c, d) LEFT JOIN J2_TBL t2 (a, b, d) USING (a) GROUP BY t1.a, t1.b, t1.c, t2.a, t2.b, t1.d HAVING max(t1.d) <> '/example' LIMIT 5 OFFSET 1;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Limit  (cost=849.14..850.03 rows=5 width=80)
+ Limit  (cost=841.87..842.56 rows=5 width=80)
    Output: t1.a, t1.b, t1.c, t2.a, t2.b, t1.d
-   ->  GroupAggregate  (cost=848.97..7871.49 rows=39800 width=80)
+   ->  GroupAggregate  (cost=841.73..6351.23 rows=39800 width=80)
          Output: t1.a, t1.b, t1.c, t2.a, t2.b, t1.d
          Group Key: t1.a, t1.b, t1.c, t2.a, t2.b, t1.d
          Filter: (max(t1.d) <> '/example'::text)
-         ->  Incremental Sort  (cost=848.97..6352.24 rows=58243 width=80)
+         ->  Incremental Sort  (cost=841.73..4831.97 rows=58243 width=80)
                Output: t1.a, t1.b, t1.c, t2.a, t2.b, t1.d
                Sort Key: t1.a, t1.b, t1.c, t2.a, t2.b, t1.d
                Presorted Key: t1.a
@@ -3077,9 +3089,9 @@ SELECT t1.a, t1.b, t1.c, t2.a, t2.b FROM J1_TBL t1 (a, b, c, d) LEFT JOIN J2_TBL
 EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i = t2.i RIGHT JOIN J3_TBL AS t3 INNER JOIN J1_TBL AS t4 ON t4.i = t3.i ON t1.i = t3.i GROUP BY t1.i, t2.i, t3.i, t4.i HAVING count(t1.i) > 1 LIMIT 5 OFFSET 0;
                                                                                                                             QUERY PLAN                                                                                                                             
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=1356891597577.61..1696214157659.95 rows=1 width=16)
+ Limit  (cost=100.00..339322320182.37 rows=1 width=16)
    Output: t1.i, t2.i, t3.i, t4.i
-   ->  Foreign Scan  (cost=1356891597577.61..1696214157659.95 rows=1 width=16)
+   ->  Foreign Scan  (cost=100.00..339322320182.37 rows=1 width=16)
          Output: t1.i, t2.i, t3.i, t4.i
          Filter: ((count(t1.i)) > 1)
          Node: postgres_svr / Status: Alive
@@ -3102,7 +3114,7 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT J1_TBL.i, j, k FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i, j, k HAVING max(J1_TBL.t) > '$' ORDER BY J1_TBL.i, j, k;
                                                                                                 QUERY PLAN                                                                                                
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..94005.25 rows=0 width=12)
+ Foreign Scan  (cost=100.00..192.70 rows=0 width=12)
    Output: j1_tbl.i, j1_tbl.j, j2_tbl.k
    Filter: ((max(j1_tbl.t)) > '$'::text)
    Node: postgres_svr / Status: Alive
@@ -3304,7 +3316,7 @@ EXPLAIN VERBOSE SELECT count(DISTINCT i), string_agg(t, '~!@#' ORDER BY t) FROM 
          Group Key: (COALESCE(j1_tbl.i, j2_tbl.i))
          ->  Sort  (cost=0.01..0.02 rows=0 width=44)
                Output: (COALESCE(j1_tbl.i, j2_tbl.i)), j1_tbl.i, j2_tbl.i, j1_tbl.t
-               Sort Key: (COALESCE(j1_tbl.i, j2_tbl.i))
+               Sort Key: (COALESCE(j1_tbl.i, j2_tbl.i)), j1_tbl.t
                ->  Foreign Scan  (cost=0.00..0.00 rows=0 width=44)
                      Output: COALESCE(j1_tbl.i, j2_tbl.i), j1_tbl.i, j2_tbl.i, j1_tbl.t
                      Node: postgres_svr / Status: Alive
@@ -3323,8 +3335,8 @@ SELECT count(DISTINCT i), string_agg(t, '~!@#' ORDER BY t) FROM J1_TBL FULL JOIN
 
 --Testcase 101:
 EXPLAIN VERBOSE SELECT string_agg(t, ' ' ORDER BY t) FROM J1_TBL LEFT JOIN J2_TBL USING (i) GROUP BY i ORDER BY i LIMIT 2;
-                                                                     QUERY PLAN                                                                     
-----------------------------------------------------------------------------------------------------------------------------------------------------
+                                                                               QUERY PLAN                                                                                
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..0.01 rows=1 width=36)
    Output: (string_agg(j1_tbl.t, ' '::text ORDER BY j1_tbl.t)), j1_tbl.i
    ->  GroupAggregate  (cost=0.00..0.01 rows=1 width=36)
@@ -3336,7 +3348,7 @@ EXPLAIN VERBOSE SELECT string_agg(t, ' ' ORDER BY t) FROM J1_TBL LEFT JOIN J2_TB
                  Limit push-down: no
                  Sort push-down: yes
                  Relations: (public.j1_tbl) LEFT JOIN (public.j2_tbl)
-                 Remote SQL: SELECT r1.i, r1.t FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r2 ON (((r1.i = r2.i)))) ORDER BY r1.i ASC NULLS LAST
+                 Remote SQL: SELECT r1.i, r1.t FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r2 ON (((r1.i = r2.i)))) ORDER BY r1.i ASC NULLS LAST, r1.t ASC NULLS LAST
 (12 rows)
 
 --Testcase 102:
@@ -4301,16 +4313,16 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT max(t1.i + t1.j), t1.t, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(i) GROUP BY t1.i, t1.j, t1.t, t2.i, t2.k, t1.__spd_url ORDER BY t1.__spd_url LIMIT 5;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Limit  (cost=3945.31..3945.33 rows=5 width=84)
+ Limit  (cost=3799.71..3799.72 rows=5 width=84)
    Output: (max((t1.i + t1.j))), t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
-   ->  Sort  (cost=3945.31..4045.31 rows=40000 width=84)
+   ->  Sort  (cost=3799.71..3899.71 rows=40000 width=84)
          Output: (max((t1.i + t1.j))), t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
          Sort Key: t1.__spd_url
-         ->  HashAggregate  (cost=2880.93..3280.93 rows=40000 width=84)
+         ->  HashAggregate  (cost=2735.32..3135.32 rows=40000 width=84)
                Output: max((t1.i + t1.j)), t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
-               Group Key: t1.__spd_url, t1.i, t1.j, t1.t, t2.i, t2.k
+               Group Key: t1.__spd_url, t1.i, t1.j, t1.t, t2.k
                ->  Merge Join  (cost=825.36..1716.07 rows=58243 width=80)
-                     Output: t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
+                     Output: t1.t, t2.k, t1.__spd_url, t1.i, t1.j, t2.i
                      Merge Cond: (t1.i = t2.i)
                      ->  Sort  (cost=412.68..421.21 rows=3413 width=72)
                            Output: t1.i, t1.j, t1.t, t1.__spd_url
@@ -4677,7 +4689,7 @@ EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
      Relations: (((public.j1_tbl t1) LEFT JOIN (public.j2_tbl t2)) INNER JOIN (public.j3_tbl t3)) INNER JOIN (public.j1_tbl t4)
-     Remote SQL: SELECT r1.i, r2.i, r4.i, r5.i FROM (((public.j1_tbl r1 LEFT JOIN public.j2_tbl r2 ON (((r1.i = r2.i)))) INNER JOIN public.j3_tbl r4 ON (((r1.i = r4.i)) AND ((r1.i IS NOT NULL)))) INNER JOIN public.j1_tbl r5 ON (((r1.i = r5.i)))) LIMIT 5::bigint
+     Remote SQL: SELECT r1.i, r2.i, r4.i, r5.i FROM (((public.j1_tbl r1 LEFT JOIN public.j2_tbl r2 ON (((r1.i = r2.i)))) INNER JOIN public.j3_tbl r4 ON (((r1.i = r4.i)) AND ((r1.i IS NOT NULL)))) INNER JOIN public.j1_tbl r5 ON (((r4.i = r5.i)))) LIMIT 5::bigint
 (6 rows)
 
 --Testcase 158:
@@ -5487,14 +5499,14 @@ SELECT x1.a, x1.b, x1.c, x1.e, xx1 FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i 
 EXPLAIN VERBOSE SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d1 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, b1.k, b1.i ORDER BY t1.i, b1.i OFFSET 1;
                                                                                                   QUERY PLAN                                                                                                  
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=122410.25..156626.69 rows=0 width=16)
+ Foreign Scan  (cost=30770.18..30770.20 rows=0 width=16)
    Output: t1.i, t1.j, t2.k, t2.i
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
      Sort push-down: yes
      Agg push-down: yes
      Relations: Aggregate on ((public.j1_tbl t1) LEFT JOIN (public.j2_tbl t2))
-     Remote SQL: SELECT r1.i, r1.j, r4.k, r4.i FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r4 ON (((r1.i = r4.i)))) GROUP BY 1, 4, 2, 3 ORDER BY r1.i ASC NULLS LAST, r4.i ASC NULLS LAST OFFSET 1::bigint
+     Remote SQL: SELECT r1.i, r1.j, r4.k, r4.i FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r4 ON (((r1.i = r4.i)))) GROUP BY 1, 2, 3, 4 ORDER BY r1.i ASC NULLS LAST, r4.i ASC NULLS LAST OFFSET 1::bigint
 (8 rows)
 
 --Testcase 212:
@@ -5518,14 +5530,14 @@ SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FROM J2_TBL t2) b1 ON t1.i = b1.i GROUP BY t1.i, t1.j, t1.t, b1.i ORDER BY t1.i, b1.i OFFSET 1;
                                                                                                   QUERY PLAN                                                                                                  
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=122410.43..155160.22 rows=0 width=44)
+ Foreign Scan  (cost=30770.18..30770.20 rows=0 width=44)
    Output: t1.i, t1.j, t1.t, t2.i
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
      Sort push-down: yes
      Agg push-down: yes
      Relations: Aggregate on ((public.j2_tbl t2) LEFT JOIN (public.j1_tbl t1))
-     Remote SQL: SELECT r1.i, r1.j, r1.t, r4.i FROM (public.j2_tbl r4 LEFT JOIN public.j1_tbl r1 ON (((r1.i = r4.i)))) GROUP BY 1, 4, 2, 3 ORDER BY r1.i ASC NULLS LAST, r4.i ASC NULLS LAST OFFSET 1::bigint
+     Remote SQL: SELECT r1.i, r1.j, r1.t, r4.i FROM (public.j2_tbl r4 LEFT JOIN public.j1_tbl r1 ON (((r1.i = r4.i)))) GROUP BY 1, 2, 3, 4 ORDER BY r1.i ASC NULLS LAST, r4.i ASC NULLS LAST OFFSET 1::bigint
 (8 rows)
 
 --Testcase 214:
@@ -5543,7 +5555,7 @@ SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FRO
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 GROUP BY t1.i, t1.j, t2.i, t2.k ORDER BY t1.i OFFSET 1;
                                                                                       QUERY PLAN                                                                                       
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=709.27..1139.95 rows=0 width=16)
+ Foreign Scan  (cost=353.95..353.97 rows=0 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5573,7 +5585,7 @@ SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 GR
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i GROUP BY t1.i, t1.j, t2.i, t2.k ORDER BY t1.i, t1.j, t2.i, t2.k OFFSET 1;
                                                                                                                        QUERY PLAN                                                                                                                       
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=122410.25..156626.69 rows=0 width=16)
+ Foreign Scan  (cost=30770.18..30770.20 rows=0 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5605,7 +5617,7 @@ SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i 
 EXPLAIN VERBOSE SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y, z) GROUP BY t1.i, t1.j, t2.x, t1.t ORDER BY t1.i OFFSET 2;
                                                                                                        QUERY PLAN                                                                                                       
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=122410.01..125119.78 rows=0 width=84)
+ Foreign Scan  (cost=192.69..192.71 rows=0 width=84)
    Output: ((t1.i / 2)), ((t1.j - 1)), ((t1.t || '***'::text)), t1.i, t1.j, t2.x, t1.t
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5690,7 +5702,7 @@ SELECT t1.i/2, t1.j - 1, t1.t || '***' FROM J1_TBL t1 CROSS JOIN J2_TBL t2(x, y,
 EXPLAIN VERBOSE SELECT t1.i, count(k), '12x ' || t  FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t LIMIT 5 OFFSET 0;
                                                                                            QUERY PLAN                                                                                            
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=87029.11..87031.29 rows=0 width=80)
+ Foreign Scan  (cost=100.00..29173.19 rows=0 width=80)
    Output: t1.i, (count(t2.k)), (('12x '::text || t1.t)), t2.k, t1.t
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5714,7 +5726,7 @@ SELECT t1.i, count(k), '12x ' || t  FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i 
 EXPLAIN VERBOSE SELECT count(J1_TBL.i), avg(k), min(t) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY k, t LIMIT 5 OFFSET 0;
                                                                                     QUERY PLAN                                                                                     
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..58343.00 rows=0 width=108)
+ Foreign Scan  (cost=100.00..188.29 rows=0 width=108)
    Output: (count(j1_tbl.i)), (avg(j2_tbl.k)), (min(j1_tbl.t)), j2_tbl.k, j1_tbl.t
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5738,7 +5750,7 @@ SELECT count(J1_TBL.i), avg(k), min(t) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY k,
 EXPLAIN VERBOSE SELECT max(t1.a), min(t1.b), t2.d FROM J1_TBL t1(a, b, c, f) FULL JOIN J2_TBL t2(d, e, f) ON t1.a = t2.d GROUP BY t1.a, t1.b, t2.d LIMIT 5 OFFSET 5;
                                                                                        QUERY PLAN                                                                                        
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=87466.46..87468.64 rows=0 width=20)
+ Foreign Scan  (cost=29309.69..58519.40 rows=0 width=20)
    Output: (max(t1.a)), (min(t1.b)), t2.d, t1.a, t1.b
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5762,7 +5774,7 @@ SELECT max(t1.a), min(t1.b), t2.d FROM J1_TBL t1(a, b, c, f) FULL JOIN J2_TBL t2
 EXPLAIN VERBOSE SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t LIMIT 5 OFFSET 0;
                                                                                                             QUERY PLAN                                                                                                            
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=298174344.98..298174345.14 rows=0 width=76)
+ Foreign Scan  (cost=100.00..29353.84 rows=0 width=76)
    Output: t1.i, (max(t2.k)), (min(t3.t)), t2.k, t3.t
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5787,7 +5799,7 @@ SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3
 EXPLAIN VERBOSE SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z WHERE a.j = ss.z GROUP BY a.i, a.j, ss.z ORDER BY a.i ASC, a.j DESC, ss.z LIMIT 5 OFFSET 1;
                                                                                                      QUERY PLAN                                                                                                      
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=580.82..696.59 rows=0 width=12)
+ Foreign Scan  (cost=506.25..912.53 rows=0 width=12)
    Output: a.i, a.j, y.i
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5807,7 +5819,7 @@ SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON 
 EXPLAIN VERBOSE SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NOT NULL) WHERE f1.t IS NULL GROUP BY f1.i, f1.j, f2.i ORDER BY 1 DESC LIMIT 5 OFFSET 1;
                                                                                                                     QUERY PLAN                                                                                                                    
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91376.02..91378.29 rows=0 width=12)
+ Foreign Scan  (cost=30617.87..61135.76 rows=0 width=12)
    Output: f1.i, f1.j, f2.i
    Node: postgres_svr / Status: Alive
      Limit push-down: yes
@@ -5830,11 +5842,11 @@ SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND 
 EXPLAIN VERBOSE SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 ON j2_tbl.i = j3.i GROUP BY j3.i, j2_tbl.i, k  ORDER BY j3.i;
                                                QUERY PLAN                                               
 --------------------------------------------------------------------------------------------------------
- Group  (cost=108.53..158.80 rows=17 width=12)
+ Group  (cost=100.00..144.26 rows=17 width=12)
    Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
-   Group Key: j1_tbl.i, j2_tbl.i, j2_tbl.k
-   ->  Nested Loop  (cost=108.53..158.68 rows=17 width=12)
-         Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
+   Group Key: j1_tbl.i, j2_tbl.k
+   ->  Nested Loop  (cost=100.00..144.17 rows=17 width=12)
+         Output: j2_tbl.k, j1_tbl.i, j2_tbl.i
          Inner Unique: true
          Join Filter: (j2_tbl.i = j1_tbl.i)
          ->  Foreign Scan on public.j2_tbl  (cost=0.00..0.00 rows=1 width=8)
@@ -5842,7 +5854,7 @@ EXPLAIN VERBOSE SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl 
                Node: postgres_svr / Status: Alive
                  Sort push-down: yes
                  Remote SQL: SELECT i, k FROM public.j2_tbl ORDER BY i ASC NULLS LAST, k ASC NULLS LAST
-         ->  Foreign Scan  (cost=108.53..158.66 rows=0 width=4)
+         ->  Foreign Scan  (cost=100.00..144.16 rows=0 width=4)
                Output: j1_tbl.i
                Node: postgres_svr / Status: Alive
                  Agg push-down: yes
@@ -5866,7 +5878,7 @@ SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 O
 EXPLAIN VERBOSE SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.i = t2.i) GROUP BY t1.j ORDER BY t1.j;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=30677.49..61353.76 rows=0 width=4)
+ Foreign Scan  (cost=100.00..30770.20 rows=0 width=4)
    Output: t1.j
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -5894,7 +5906,7 @@ SELECT t1.j FROM j1_tbl t1 LEFT JOIN j2_tbl t2 ON (t1.i = t2.i) GROUP BY t1.j OR
 EXPLAIN VERBOSE SELECT t1.i FROM j1_tbl t1 FULL JOIN (SELECT i, k FROM j2_tbl) t2 ON (t1.i = t2.i) GROUP BY t1.i ORDER BY 1;
                                                                  QUERY PLAN                                                                  
 ---------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=30677.49..61353.76 rows=0 width=4)
+ Foreign Scan  (cost=100.00..30770.20 rows=0 width=4)
    Output: t1.i
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -5923,13 +5935,13 @@ SELECT t1.i FROM j1_tbl t1 FULL JOIN (SELECT i, k FROM j2_tbl) t2 ON (t1.i = t2.
 EXPLAIN VERBOSE SELECT j1.i, j1.j, j2.k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 GROUP BY j1.i, j1.j, j2.k ORDER BY j2.k;
                                                                      QUERY PLAN                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..94005.25 rows=0 width=12)
+ Foreign Scan  (cost=100.00..192.70 rows=0 width=12)
    Output: j1.i, j1.j, j2.k
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
      Relations: Aggregate on ((public.j1_tbl j1) INNER JOIN (public.j2_tbl j2))
-     Remote SQL: SELECT r1.i, r1.j, r2.k FROM (public.j1_tbl r1 INNER JOIN public.j2_tbl r2 ON (TRUE)) GROUP BY 3, 1, 2 ORDER BY r2.k ASC NULLS LAST
+     Remote SQL: SELECT r1.i, r1.j, r2.k FROM (public.j1_tbl r1 INNER JOIN public.j2_tbl r2 ON (TRUE)) GROUP BY 1, 2, 3 ORDER BY r2.k ASC NULLS LAST
 (7 rows)
 
 --Testcase 240:
@@ -6019,13 +6031,13 @@ SELECT j1.i, j1.j, j2.k  FROM J1_TBL j1 CROSS JOIN J2_TBL j2 GROUP BY j1.i, j1.j
 EXPLAIN VERBOSE SELECT J2_TBL.k, J1_TBL.t FROM J1_TBL RIGHT JOIN J2_TBL ON (J1_TBL.i <= J2_TBL.k) GROUP BY J1_TBL.i, J2_TBL.k, J1_TBL.t ORDER BY J2_TBL.k;
                                                                            QUERY PLAN                                                                           
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..124582.75 rows=0 width=40)
+ Foreign Scan  (cost=100.00..30770.20 rows=0 width=40)
    Output: j2_tbl.k, j1_tbl.t, j1_tbl.i
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
      Relations: Aggregate on ((public.j2_tbl) LEFT JOIN (public.j1_tbl))
-     Remote SQL: SELECT r2.k, r1.t, r1.i FROM (public.j2_tbl r2 LEFT JOIN public.j1_tbl r1 ON (((r1.i <= r2.k)))) GROUP BY 1, 3, 2 ORDER BY r2.k ASC NULLS LAST
+     Remote SQL: SELECT r2.k, r1.t, r1.i FROM (public.j2_tbl r2 LEFT JOIN public.j1_tbl r1 ON (((r1.i <= r2.k)))) GROUP BY 3, 1, 2 ORDER BY r2.k ASC NULLS LAST
 (7 rows)
 
 --Testcase 242:
@@ -6051,7 +6063,7 @@ SELECT J2_TBL.k, J1_TBL.t FROM J1_TBL RIGHT JOIN J2_TBL ON (J1_TBL.i <= J2_TBL.k
 EXPLAIN VERBOSE SELECT t1.i, j, t3.t FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i LEFT JOIN J3_TBL t3 ON t3.i = 1 GROUP BY t1.i, t1.j, t1.t, t3.t ORDER BY t1.i, t1.j, t1.t, t3.t;
                                                                                                                                       QUERY PLAN                                                                                                                                      
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=2079369.57..2630078.83 rows=0 width=72)
+ Foreign Scan  (cost=100.00..550642.88 rows=0 width=72)
    Output: t1.i, t1.j, t3.t, t1.t
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6083,7 +6095,7 @@ SELECT t1.i, j, t3.t FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i LEFT JOIN
 EXPLAIN VERBOSE SELECT count(t1.i) - 1, k, t FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GROUP BY t1.i, k, t ORDER BY 1, 2, 3;
                                                                                                                QUERY PLAN                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=124530.37..126064.87 rows=0 width=48)
+ Foreign Scan  (cost=29173.18..29173.21 rows=0 width=48)
    Output: ((count(t1.i) - 1)), t2.k, t1.t, t1.i
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6157,7 +6169,7 @@ SELECT count(t1.i) - 1, k, t FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.i != 0 GR
 EXPLAIN VERBOSE SELECT sum(x.i+x.j), avg(k) FROM J1_TBL x CROSS JOIN J2_TBL y GROUP BY k, t ORDER BY k, t;
                                                                                            QUERY PLAN                                                                                           
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=61254.99..62567.66 rows=0 width=76)
+ Foreign Scan  (cost=100.00..192.70 rows=0 width=76)
    Output: (sum((x.i + x.j))), (avg(y.k)), y.k, x.t
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6246,7 +6258,7 @@ SELECT sum(x.i+x.j), avg(k) FROM J1_TBL x CROSS JOIN J2_TBL y GROUP BY k, t ORDE
 EXPLAIN VERBOSE SELECT max(t1.a) + max(t2.d) + 1, t1.b, t2.e FROM J1_TBL t1(a, b, c, f) FULL JOIN J2_TBL t2(d, e, f) ON t1.a = t2.d GROUP BY t1.a, t1.b, t2.e ORDER BY t1.a, t1.b, t2.e;
                                                                                                                QUERY PLAN                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=91832.48..124940.80 rows=0 width=16)
+ Foreign Scan  (cost=100.00..30770.20 rows=0 width=16)
    Output: (((max(t1.a) + max(t2.d)) + 1)), t1.b, t2.e, t1.a
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6278,13 +6290,13 @@ SELECT max(t1.a) + max(t2.d) + 1, t1.b, t2.e FROM J1_TBL t1(a, b, c, f) FULL JOI
 EXPLAIN VERBOSE SELECT min(a.j), ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z GROUP BY a.j, ss.z ORDER BY ss.z;
                                                                            QUERY PLAN                                                                            
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=61254.99..93145.15 rows=0 width=12)
+ Foreign Scan  (cost=100.00..30770.20 rows=0 width=12)
    Output: (min(a.j)), y.i, a.j
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
      Agg push-down: yes
      Relations: Aggregate on ((public.j1_tbl a) LEFT JOIN (public.j2_tbl y))
-     Remote SQL: SELECT min(r1.j), r4.i, r1.j FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r4 ON (((r1.i = r4.i)))) GROUP BY 2, 3 ORDER BY r4.i ASC NULLS LAST
+     Remote SQL: SELECT min(r1.j), r4.i, r1.j FROM (public.j1_tbl r1 LEFT JOIN public.j2_tbl r4 ON (((r1.i = r4.i)))) GROUP BY 3, 2 ORDER BY r4.i ASC NULLS LAST
 (7 rows)
 
 --Testcase 252:
@@ -6308,7 +6320,7 @@ SELECT min(a.j), ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON 
 EXPLAIN VERBOSE SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND f1.j IS NULL) GROUP BY f1.i, f1.j, f2.i ORDER BY f1.i;
                                                                                              QUERY PLAN                                                                                              
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=556.92..914.52 rows=0 width=13)
+ Foreign Scan  (cost=100.00..345.01 rows=0 width=13)
    Output: f1.i, ((min(f1.j) > 0)), f1.j, f2.i
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6333,7 +6345,7 @@ SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f
 EXPLAIN VERBOSE SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t ORDER BY 1, 2, 3;
                                                                                                                             QUERY PLAN                                                                                                                            
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=299857111.53..300037111.53 rows=0 width=72)
+ Foreign Scan  (cost=29353.83..29353.86 rows=0 width=72)
    Output: t1.i, t2.k, (max(t3.t)), t3.t
    Node: postgres_svr / Status: Alive
      Sort push-down: yes
@@ -6890,7 +6902,7 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i;
                                                              QUERY PLAN                                                             
 ------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..87558.53 rows=1 width=16)
+ Foreign Scan  (cost=100.00..29309.71 rows=1 width=16)
    Output: (count(*)), a.i, b.i
    Node: postgres_svr / Status: Alive
      Agg push-down: yes
@@ -6913,7 +6925,7 @@ SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i
 EXPLAIN VERBOSE SELECT count(J1_TBL.i) AS x, J1_TBL.j AS y FROM J1_TBL LEFT JOIN J2_TBL ON J1_TBL.i=J2_TBL.i GROUP BY J1_TBL.j, J1_TBL.i;
                                                               QUERY PLAN                                                              
 --------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..87562.76 rows=1 width=16)
+ Foreign Scan  (cost=100.00..29309.71 rows=1 width=16)
    Output: (count(j1_tbl.i)), j1_tbl.j, j1_tbl.i
    Node: postgres_svr / Status: Alive
      Agg push-down: yes
@@ -6942,7 +6954,7 @@ SELECT count(J1_TBL.i) AS x, J1_TBL.j AS y FROM J1_TBL LEFT JOIN J2_TBL ON J1_TB
 EXPLAIN VERBOSE SELECT sum(J1_TBL.i), avg(J1_TBL.j) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TBL.i;
                                                          QUERY PLAN                                                         
 ----------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=29221.42..29315.68 rows=1 width=44)
+ Foreign Scan  (cost=100.00..188.29 rows=1 width=44)
    Output: (sum(j1_tbl.i)), (avg(j1_tbl.j)), j1_tbl.i
    Node: postgres_svr / Status: Alive
      Agg push-down: yes
@@ -6970,7 +6982,7 @@ SELECT sum(J1_TBL.i), avg(J1_TBL.j) FROM J1_TBL CROSS JOIN J2_TBL GROUP BY J1_TB
 EXPLAIN VERBOSE SELECT max(J1_TBL.t || '111'), min(J2_TBL.i) FROM J1_TBL RIGHT JOIN J2_TBL USING (i) GROUP BY J1_TBL.i, J2_TBL.i;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..88752.53 rows=1 width=44)
+ Foreign Scan  (cost=100.00..29309.71 rows=1 width=44)
    Output: (max((j1_tbl.t || '111'::text))), (min(j2_tbl.i)), j1_tbl.i, j2_tbl.i
    Node: postgres_svr / Status: Alive
      Agg push-down: yes
@@ -6994,7 +7006,7 @@ SELECT max(J1_TBL.t || '111'), min(J2_TBL.i) FROM J1_TBL RIGHT JOIN J2_TBL USING
 EXPLAIN VERBOSE SELECT t1.i, min(t1.j), max(t2.i), sum(t2.k) FROM J1_TBL t1 FULL JOIN J2_TBL t2 ON t1.i = t2.i GROUP BY t1.i, t1.t;
                                                                         QUERY PLAN                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=58342.85..87562.76 rows=1 width=52)
+ Foreign Scan  (cost=100.00..29309.71 rows=1 width=52)
    Output: t1.i, (min(t1.j)), (max(t2.i)), (sum(t2.k)), t1.t
    Node: postgres_svr / Status: Alive
      Agg push-down: yes
@@ -7024,7 +7036,7 @@ SELECT t1.i, min(t1.j), max(t2.i), sum(t2.k) FROM J1_TBL t1 FULL JOIN J2_TBL t2 
 EXPLAIN VERBOSE SELECT sum(t1.i + t2.i), avg(t1.i - t2.i) FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t1.i = t2.i CROSS JOIN J2_TBL t3 GROUP BY t1.i, t2.i;
                                                                                                 QUERY PLAN                                                                                                
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Foreign Scan  (cost=198782929.99..198812189.80 rows=1 width=48)
+ Foreign Scan  (cost=100.00..29353.84 rows=1 width=48)
    Output: (sum((t1.i + t2.i))), (avg((t1.i - t2.i))), t1.i, t2.i
    Node: postgres_svr / Status: Alive
      Agg push-down: yes

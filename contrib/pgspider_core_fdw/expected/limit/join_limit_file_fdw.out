@@ -3073,7 +3073,7 @@ SELECT max(ss1), min(ss2), ii, tt, kk FROM (J1_TBL CROSS JOIN J2_TBL) AS tx (ii,
 EXPLAIN VERBOSE SELECT max(t1.i + t2.i), t1.__spd_url, t2.__spd_url FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t1.i = t2.i WHERE EXISTS (SELECT t3.i, t FROM J3_TBL t3 CROSS JOIN J2_TBL t4) AND t2.k < 1 GROUP BY t1.i, t2.i, t1.__spd_url, t2.__spd_url LIMIT 5;
                                             QUERY PLAN                                             
 ---------------------------------------------------------------------------------------------------
- Limit  (cost=3.39..3.42 rows=1 width=76)
+ Limit  (cost=3.39..3.41 rows=1 width=76)
    Output: (max((t1.i + t2.i))), t1.__spd_url, t2.__spd_url, t1.i, t2.i
    InitPlan 1 (returns $0)
      ->  Nested Loop  (cost=0.00..2.46 rows=4 width=0)
@@ -3088,7 +3088,7 @@ EXPLAIN VERBOSE SELECT max(t1.i + t2.i), t1.__spd_url, t2.__spd_url FROM J1_TBL 
                          Foreign File Size: 48 b
    ->  GroupAggregate  (cost=2.77..2.80 rows=1 width=76)
          Output: max((t1.i + t2.i)), t1.__spd_url, t2.__spd_url, t1.i, t2.i
-         Group Key: t1.i, t2.i, t1.__spd_url, t2.__spd_url
+         Group Key: t1.i, t1.__spd_url, t2.__spd_url
          ->  Sort  (cost=2.77..2.78 rows=1 width=72)
                Output: t1.__spd_url, t2.__spd_url, t1.i, t2.i
                Sort Key: t1.i, t1.__spd_url, t2.__spd_url
@@ -3250,7 +3250,7 @@ EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL
    Output: t1.i, t2.i, t3.i, t4.i
    ->  GroupAggregate  (cost=5.55..5.58 rows=1 width=16)
          Output: t1.i, t2.i, t3.i, t4.i
-         Group Key: t1.i, t2.i, t3.i, t4.i
+         Group Key: t1.i, t2.i, t3.i
          Filter: (count(t1.i) > 1)
          ->  Sort  (cost=5.55..5.56 rows=1 width=16)
                Output: t1.i, t2.i, t3.i, t4.i
@@ -3516,7 +3516,7 @@ EXPLAIN VERBOSE SELECT count(DISTINCT i), string_agg(t, '~!@#' ORDER BY t) FROM 
          Group Key: (COALESCE(j1_tbl.i, j2_tbl.i))
          ->  Sort  (cost=2.81..2.82 rows=5 width=44)
                Output: (COALESCE(j1_tbl.i, j2_tbl.i)), j1_tbl.i, j2_tbl.i, j1_tbl.t
-               Sort Key: (COALESCE(j1_tbl.i, j2_tbl.i))
+               Sort Key: (COALESCE(j1_tbl.i, j2_tbl.i)), j1_tbl.t
                ->  Hash Full Join  (cost=1.22..2.75 rows=5 width=44)
                      Output: COALESCE(j1_tbl.i, j2_tbl.i), j1_tbl.i, j2_tbl.i, j1_tbl.t
                      Hash Cond: (j1_tbl.i = j2_tbl.i)
@@ -3547,19 +3547,19 @@ SELECT count(DISTINCT i), string_agg(t, '~!@#' ORDER BY t) FROM J1_TBL FULL JOIN
 
 --Testcase 101:
 EXPLAIN VERBOSE SELECT string_agg(t, ' ' ORDER BY t) FROM J1_TBL LEFT JOIN J2_TBL USING (i) GROUP BY i ORDER BY i LIMIT 2;
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
- Limit  (cost=2.77..2.82 rows=2 width=36)
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
+ Limit  (cost=2.81..2.85 rows=2 width=36)
    Output: (string_agg(j1_tbl.t, ' '::text ORDER BY j1_tbl.t)), j1_tbl.i
-   ->  GroupAggregate  (cost=2.77..2.90 rows=5 width=36)
+   ->  GroupAggregate  (cost=2.81..2.91 rows=5 width=36)
          Output: string_agg(j1_tbl.t, ' '::text ORDER BY j1_tbl.t), j1_tbl.i
          Group Key: j1_tbl.i
-         ->  Merge Left Join  (cost=2.77..2.81 rows=5 width=36)
+         ->  Sort  (cost=2.81..2.82 rows=5 width=36)
                Output: j1_tbl.i, j1_tbl.t
-               Merge Cond: (j1_tbl.i = j2_tbl.i)
-               ->  Sort  (cost=1.56..1.57 rows=5 width=36)
-                     Output: j1_tbl.t, j1_tbl.i
-                     Sort Key: j1_tbl.i
+               Sort Key: j1_tbl.i, j1_tbl.t
+               ->  Hash Left Join  (cost=1.22..2.75 rows=5 width=36)
+                     Output: j1_tbl.i, j1_tbl.t
+                     Hash Cond: (j1_tbl.i = j2_tbl.i)
                      ->  Foreign Scan on public.j1_tbl  (cost=0.00..1.50 rows=5 width=36)
                            Output: j1_tbl.t, j1_tbl.i
                            Node: file_svr / Status: Alive
@@ -3567,17 +3567,16 @@ EXPLAIN VERBOSE SELECT string_agg(t, ' ' ORDER BY t) FROM J1_TBL LEFT JOIN J2_TB
                              Sort push-down: no
                              Foreign File: /tmp/file_join_limit_1.csv
                              Foreign File Size: 122 b
-               ->  Sort  (cost=1.21..1.21 rows=2 width=4)
-                     Output: j2_tbl.i
-                     Sort Key: j2_tbl.i
-                     ->  Foreign Scan on public.j2_tbl  (cost=0.00..1.20 rows=2 width=4)
+                     ->  Hash  (cost=1.20..1.20 rows=2 width=4)
                            Output: j2_tbl.i
-                           Node: file_svr / Status: Alive
-                             Limit push-down: no
-                             Sort push-down: no
-                             Foreign File: /tmp/file_join_limit_2.csv
-                             Foreign File Size: 48 b
-(28 rows)
+                           ->  Foreign Scan on public.j2_tbl  (cost=0.00..1.20 rows=2 width=4)
+                                 Output: j2_tbl.i
+                                 Node: file_svr / Status: Alive
+                                   Limit push-down: no
+                                   Sort push-down: no
+                                   Foreign File: /tmp/file_join_limit_2.csv
+                                   Foreign File Size: 48 b
+(27 rows)
 
 --Testcase 102:
 SELECT string_agg(t, ' ' ORDER BY t) FROM J1_TBL LEFT JOIN J2_TBL USING (i) GROUP BY i ORDER BY i LIMIT 2;
@@ -4563,7 +4562,7 @@ EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL
          Sort Key: t1.__spd_url
          ->  Nested Loop  (cost=1.22..5.54 rows=1 width=48)
                Output: t1.i, t2.i, t3.i, t4.i, t1.__spd_url
-               Join Filter: (t1.i = t4.i)
+               Join Filter: (t3.i = t4.i)
                ->  Nested Loop Left Join  (cost=1.22..3.98 rows=1 width=44)
                      Output: t1.i, t1.__spd_url, t2.i, t3.i
                      Join Filter: (t1.i = t2.i)
@@ -4626,12 +4625,12 @@ EXPLAIN VERBOSE SELECT max(t1.i + t1.j), t1.t, t2.i, t2.k FROM J1_TBL t1 INNER J
    Output: (max((t1.i + t1.j))), t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
    ->  GroupAggregate  (cost=2.76..2.80 rows=1 width=84)
          Output: max((t1.i + t1.j)), t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
-         Group Key: t1.__spd_url, t1.i, t1.j, t1.t, t2.i, t2.k
+         Group Key: t1.__spd_url, t1.i, t1.j, t1.t, t2.k
          ->  Sort  (cost=2.76..2.77 rows=1 width=80)
-               Output: t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
-               Sort Key: t1.__spd_url, t2.i, t1.j, t1.t, t2.k
+               Output: t1.t, t2.k, t1.__spd_url, t1.i, t1.j, t2.i
+               Sort Key: t1.__spd_url, t1.i, t1.j, t1.t, t2.k
                ->  Hash Join  (cost=1.22..2.75 rows=1 width=80)
-                     Output: t1.t, t2.i, t2.k, t1.__spd_url, t1.i, t1.j
+                     Output: t1.t, t2.k, t1.__spd_url, t1.i, t1.j, t2.i
                      Hash Cond: (t1.i = t2.i)
                      ->  Foreign Scan on public.j1_tbl t1  (cost=0.00..1.50 rows=5 width=72)
                            Output: t1.i, t1.j, t1.t, t1.__spd_url
@@ -5070,7 +5069,7 @@ EXPLAIN VERBOSE SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL
    Output: t1.i, t2.i, t3.i, t4.i
    ->  Nested Loop  (cost=1.22..5.54 rows=1 width=16)
          Output: t1.i, t2.i, t3.i, t4.i
-         Join Filter: (t1.i = t4.i)
+         Join Filter: (t3.i = t4.i)
          ->  Nested Loop Left Join  (cost=1.22..3.98 rows=1 width=12)
                Output: t1.i, t2.i, t3.i
                Join Filter: (t1.i = t2.i)
@@ -5318,11 +5317,12 @@ SELECT i, k, t FROM J1_TBL FULL JOIN J2_TBL USING (i) WHERE i >= 0 ORDER BY i, k
 EXPLAIN VERBOSE SELECT i, t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (i >= 1) ORDER BY i, t OFFSET 1;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
- Limit  (cost=2.76..2.76 rows=1 width=36)
+ Limit  (cost=2.79..2.84 rows=1 width=36)
    Output: j1_tbl.i, j1_tbl.t
-   ->  Sort  (cost=2.76..2.76 rows=2 width=36)
+   ->  Incremental Sort  (cost=2.74..2.84 rows=2 width=36)
          Output: j1_tbl.i, j1_tbl.t
          Sort Key: j1_tbl.i, j1_tbl.t
+         Presorted Key: j1_tbl.i
          ->  Merge Left Join  (cost=2.72..2.75 rows=2 width=36)
                Output: j1_tbl.i, j1_tbl.t
                Merge Cond: (j1_tbl.i = j2_tbl.i)
@@ -5347,7 +5347,7 @@ EXPLAIN VERBOSE SELECT i, t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (i >= 1
                              Sort push-down: no
                              Foreign File: /tmp/file_join_limit_2.csv
                              Foreign File Size: 48 b
-(29 rows)
+(30 rows)
 
 --Testcase 166:
 SELECT i, t FROM J1_TBL LEFT JOIN J2_TBL USING (i) WHERE (i >= 1) ORDER BY i, t OFFSET 1;
@@ -6395,11 +6395,11 @@ SELECT t1.i, t1.j, t1.t FROM J1_TBL t1 RIGHT JOIN (SELECT i, null::int AS d2 FRO
 EXPLAIN VERBOSE SELECT t1.i, t1.j, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 ON t2.k = 2 GROUP BY t1.i, t1.j, t2.i, t2.k ORDER BY t1.i OFFSET 1;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
- Limit  (cost=2.82..2.87 rows=4 width=16)
+ Limit  (cost=2.82..2.86 rows=4 width=16)
    Output: t1.i, t1.j, t2.i, t2.k
-   ->  Group  (cost=2.81..2.87 rows=5 width=16)
+   ->  Group  (cost=2.81..2.86 rows=5 width=16)
          Output: t1.i, t1.j, t2.i, t2.k
-         Group Key: t1.i, t1.j, t2.i, t2.k
+         Group Key: t1.i, t1.j, t2.i
          ->  Sort  (cost=2.81..2.82 rows=5 width=16)
                Output: t1.i, t1.j, t2.i, t2.k
                Sort Key: t1.i, t1.j, t2.i
@@ -6763,11 +6763,11 @@ SELECT t1.i, max(k), min(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3
 EXPLAIN VERBOSE SELECT a.i, a.j, ss.z FROM J1_TBL a LEFT JOIN (SELECT i FROM J2_TBL y) ss(z) ON a.i = ss.z WHERE a.j = ss.z GROUP BY a.i, a.j, ss.z ORDER BY a.i ASC, a.j DESC, ss.z LIMIT 5 OFFSET 1;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- Limit  (cost=2.75..2.76 rows=1 width=12)
+ Limit  (cost=2.74..2.75 rows=1 width=12)
    Output: a.i, a.j, y.i
-   ->  Group  (cost=2.73..2.75 rows=1 width=12)
+   ->  Group  (cost=2.73..2.74 rows=1 width=12)
          Output: a.i, a.j, y.i
-         Group Key: a.i, a.j, y.i
+         Group Key: a.i
          ->  Sort  (cost=2.73..2.74 rows=1 width=12)
                Output: a.i, a.j, y.i
                Sort Key: a.i
@@ -6845,14 +6845,14 @@ SELECT f1.i, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f1.i = f2.i AND 
 EXPLAIN VERBOSE SELECT j2_tbl.i, k FROM j2_tbl INNER JOIN (SELECT i FROM j1_tbl GROUP BY i) j3 ON j2_tbl.i = j3.i GROUP BY j3.i, j2_tbl.i, k  ORDER BY j3.i;
                                           QUERY PLAN                                           
 -----------------------------------------------------------------------------------------------
- Group  (cost=2.89..2.90 rows=1 width=12)
+ Sort  (cost=2.85..2.86 rows=1 width=12)
    Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
-   Group Key: j1_tbl.i, j2_tbl.i, j2_tbl.k
-   ->  Sort  (cost=2.89..2.89 rows=1 width=12)
+   Sort Key: j2_tbl.i
+   ->  HashAggregate  (cost=2.83..2.84 rows=1 width=12)
          Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
-         Sort Key: j2_tbl.i, j2_tbl.k
-         ->  Merge Join  (cost=2.77..2.88 rows=1 width=12)
-               Output: j2_tbl.i, j2_tbl.k, j1_tbl.i
+         Group Key: j1_tbl.i, j2_tbl.k
+         ->  Merge Join  (cost=2.77..2.83 rows=1 width=12)
+               Output: j2_tbl.k, j1_tbl.i, j2_tbl.i
                Merge Cond: (j1_tbl.i = j2_tbl.i)
                ->  Group  (cost=1.56..1.58 rows=5 width=4)
                      Output: j1_tbl.i
@@ -7529,9 +7529,10 @@ SELECT f1.i, min(f1.j) > 0, f1.j, f2.i FROM J1_TBL f1 RIGHT JOIN J2_TBL f2 ON (f
 EXPLAIN VERBOSE SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t ORDER BY 1, 2, 3;
                                                QUERY PLAN                                                
 ---------------------------------------------------------------------------------------------------------
- Sort  (cost=4.04..4.04 rows=2 width=72)
+ Incremental Sort  (cost=4.02..4.12 rows=2 width=72)
    Output: t1.i, t2.k, (max(t3.t)), t3.t
    Sort Key: t1.i, t2.k, (max(t3.t))
+   Presorted Key: t1.i, t2.k
    ->  GroupAggregate  (cost=3.98..4.03 rows=2 width=72)
          Output: t1.i, t2.k, max(t3.t), t3.t
          Group Key: t1.i, t2.k, t3.t
@@ -7563,7 +7564,7 @@ EXPLAIN VERBOSE SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 IN
                              Sort push-down: no
                              Foreign File: /tmp/file_join_limit_2.csv
                              Foreign File Size: 48 b
-(34 rows)
+(35 rows)
 
 --Testcase 256:
 SELECT t1.i, k, max(t3.t) FROM J1_TBL t1 CROSS JOIN J2_TBL t2 INNER JOIN J3_TBL t3 USING(t) GROUP BY t1.i, k, t3.t ORDER BY 1, 2, 3;
@@ -8309,9 +8310,9 @@ SELECT t1.i, t2.i, t3.i, t4.i FROM J1_TBL AS t1 LEFT JOIN J2_TBL AS t2 ON t1.i =
 EXPLAIN VERBOSE SELECT count(*) FROM J1_TBL a INNER JOIN J2_TBL b ON a.i = b.i GROUP BY a.i, b.i;
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
- GroupAggregate  (cost=2.76..2.79 rows=1 width=16)
+ GroupAggregate  (cost=2.76..2.78 rows=1 width=16)
    Output: count(*), a.i, b.i
-   Group Key: a.i, b.i
+   Group Key: a.i
    ->  Sort  (cost=2.76..2.77 rows=1 width=8)
          Output: a.i, b.i
          Sort Key: a.i
@@ -8508,7 +8509,7 @@ EXPLAIN VERBOSE SELECT sum(t1.i + t2.i), avg(t1.i - t2.i) FROM J1_TBL t1 INNER J
 --------------------------------------------------------------------------------------------------
  GroupAggregate  (cost=3.98..4.04 rows=2 width=48)
    Output: sum((t1.i + t2.i)), avg((t1.i - t2.i)), t1.i, t2.i
-   Group Key: t1.i, t2.i
+   Group Key: t1.i
    ->  Sort  (cost=3.98..3.99 rows=2 width=8)
          Output: t1.i, t2.i
          Sort Key: t1.i
