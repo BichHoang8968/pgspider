@@ -853,14 +853,14 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl3
  c4        | bigint           |           |          |         | plain    | 
  __spd_url | text             |           |          |         | extended | 
 View definition:
- SELECT tntbl3._id,
-    tntbl3.c1,
-    tntbl3.c2,
-    tntbl3.c3,
-    tntbl3.c4,
-    tntbl3.__spd_url
+ SELECT _id,
+    c1,
+    c2,
+    c3,
+    c4,
+    __spd_url
    FROM tntbl3
-  WHERE tntbl3.c2 < tntbl3.c3;
+  WHERE c2 < c3;
 Options: check_option=cascaded
 
 --Testcase 114:

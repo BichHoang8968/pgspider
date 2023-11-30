@@ -478,16 +478,12 @@ agg_retrieve_distributed_func(AggState *aggstate)
  * Support Exaplain query for distributed function. This function is an
  * entry point from explain.c to operate Explain for distributed function.
  */
-void *
+void
 agg_explain_distributed_func(AggState *aggstate, ExplainState *es)
 {
 	AggStatePerAgg peragg = aggstate->peragg;
-	dist_func_state *func_state = NULL;
 	Oid			tableoid;
 	List	   *args;
-	Oid			serveroid;
-	ForeignServer *server;
-	ForeignDataWrapper *fdw;
 	char	   *fdwlib_name = NULL;
 	ExplainFunc pgExplainFunc;
 

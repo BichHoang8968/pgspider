@@ -3224,7 +3224,7 @@ INSERT INTO tntbl3 IN ('/dynamodb_svr/', '/mysql_svr/', '/griddb_svr/') VALUES (
 --Testcase 365:
 INSERT INTO tntbl3 (SELECT * FROM tntbl3 ORDER BY 1, 2, 3);
 ERROR:  Error occurred on a child table "tntbl3__dynamodb_svr__0".
-DETAIL:  dynamodb_fdw: failed to execute remote SQL: Duplicate primary key exists in table 
+DETAIL:  dynamodb_fdw: failed to execute remote SQL: Unable to parse ExceptionName: com.amazonaws.dynamodb.v20120810#DuplicateItem Message: Duplicate primary key exists in table 
    sql=INSERT INTO tntbl3 VALUE {'_id' : ?, 'c1' : ?, 'c2' : ?, 'c3' : ?, 'c4' : ?};
 --Testcase 366:
 SELECT c1, c2, c3, c4, __spd_url FROM tntbl3 ORDER BY 1, 2, 3, 4, 5;
@@ -3308,18 +3308,18 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl1
  c9        | character varying(255)      |           |          |         | extended | 
  __spd_url | text                        |           |          |         | extended | 
 View definition:
- SELECT tntbl1.c1,
-    tntbl1.c2,
-    tntbl1.c3,
-    tntbl1.c4,
-    tntbl1.c5,
-    tntbl1.c6,
-    tntbl1.c7,
-    tntbl1.c8,
-    tntbl1.c9,
-    tntbl1.__spd_url
+ SELECT c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    __spd_url
    FROM tntbl1
-  WHERE tntbl1.c1 < tntbl1.c2;
+  WHERE c1 < c2;
 Options: check_option=cascaded
 
 --Testcase 382:
@@ -3433,15 +3433,15 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl2
  c5        | bigint           |           |          |         | plain    | 
  __spd_url | text             |           |          |         | extended | 
 View definition:
- SELECT tntbl2._id,
-    tntbl2.c1,
-    tntbl2.c2,
-    tntbl2.c3,
-    tntbl2.c4,
-    tntbl2.c5,
-    tntbl2.__spd_url
+ SELECT _id,
+    c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    __spd_url
    FROM tntbl2
-  WHERE tntbl2.c1 < tntbl2.c5;
+  WHERE c1 < c5;
 Options: check_option=cascaded
 
 --Testcase 404:
@@ -3594,14 +3594,14 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl3
  c4        | bigint           |           |          |         | plain    | 
  __spd_url | text             |           |          |         | extended | 
 View definition:
- SELECT tntbl3._id,
-    tntbl3.c1,
-    tntbl3.c2,
-    tntbl3.c3,
-    tntbl3.c4,
-    tntbl3.__spd_url
+ SELECT _id,
+    c1,
+    c2,
+    c3,
+    c4,
+    __spd_url
    FROM tntbl3
-  WHERE tntbl3.c2 < tntbl3.c3;
+  WHERE c2 < c3;
 Options: check_option=cascaded
 
 --Testcase 426:
@@ -3721,29 +3721,29 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl4
  c20       | interval                    |           |          |         | plain    | 
  __spd_url | text                        |           |          |         | extended | 
 View definition:
- SELECT tntbl4.c1,
-    tntbl4.c2,
-    tntbl4.c3,
-    tntbl4.c4,
-    tntbl4.c5,
-    tntbl4.c6,
-    tntbl4.c7,
-    tntbl4.c8,
-    tntbl4.c9,
-    tntbl4.c10,
-    tntbl4.c11,
-    tntbl4.c12,
-    tntbl4.c13,
-    tntbl4.c14,
-    tntbl4.c15,
-    tntbl4.c16,
-    tntbl4.c17,
-    tntbl4.c18,
-    tntbl4.c19,
-    tntbl4.c20,
-    tntbl4.__spd_url
+ SELECT c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    c10,
+    c11,
+    c12,
+    c13,
+    c14,
+    c15,
+    c16,
+    c17,
+    c18,
+    c19,
+    c20,
+    __spd_url
    FROM tntbl4
-  WHERE tntbl4.c1 < tntbl4.c5;
+  WHERE c1 < c5;
 Options: check_option=cascaded
 
 --Testcase 448:

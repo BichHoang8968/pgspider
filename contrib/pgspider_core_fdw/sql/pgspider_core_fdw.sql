@@ -1748,7 +1748,7 @@ SET parallel_tuple_cost=0;
 --Testcase 735:
 SET max_parallel_workers_per_gather=4;
 --Testcase 736:
-SET force_parallel_mode=ON;
+SET debug_parallel_query=ON;
 SET enable_hashjoin=false;
 SET enable_nestloop=true;
 SET enable_mergejoin= false;

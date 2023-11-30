@@ -9,20 +9,20 @@ def DCT_DOCKER_PATH = '/home/jenkins/Docker/Server/GCP'
 def GITLAB_DOCKER_PATH = '/home/jenkins/Docker/Server/Gitlab'
 
 def BRANCH_PGSPIDER = env.BRANCH_NAME
-def BRANCH_TINYBRACE_FDW = 'master'
-def BRANCH_MYSQL_FDW = 'master'
-def BRANCH_SQLITE_FDW = 'master'
-def BRANCH_GRIDDB_FDW = 'master'
-def BRANCH_INFLUXDB_FDW = 'master'
-def BRANCH_PARQUET_S3_FDW = 'master'
-def BRANCH_MONGO_FDW = 'master'
-def BRANCH_DYNAMODB_FDW = 'master'
-def BRANCH_ORACLE_FDW = 'master'
-def BRANCH_ODBC_FDW = 'master'
-def BRANCH_JDBC_FDW = 'master'
-def BRANCH_REDMINE_FDW = 'master'
-def BRANCH_GITLAB_FDW = 'main'
-def BRANCH_PGSPIDER_COMPRESSION = 'add_S3_datasource_with_parquet_file'
+def BRANCH_TINYBRACE_FDW = 'port16.0'
+def BRANCH_MYSQL_FDW = 'port16.0'
+def BRANCH_SQLITE_FDW = 'port16.0'
+def BRANCH_GRIDDB_FDW = 'port16.0'
+def BRANCH_INFLUXDB_FDW = 'port16.0'
+def BRANCH_PARQUET_S3_FDW = 'port16.0'
+def BRANCH_MONGO_FDW = 'port16.0'
+def BRANCH_DYNAMODB_FDW = 'port16.0'
+def BRANCH_ORACLE_FDW = 'port16.0'
+def BRANCH_ODBC_FDW = 'port16.0'
+def BRANCH_JDBC_FDW = 'port16.0'
+def BRANCH_REDMINE_FDW = 'port16.0'
+def BRANCH_PGSPIDER_COMPRESSION = 'main'
+def BRANCH_GITLAB_FDW = 'port16.0'
 
 pipeline {
     agent {
@@ -452,6 +452,7 @@ pipeline {
                     sh """
                         cd ${PGSPIDER_DOCKER_PATH}
                         docker-compose down
+                        sleep 10
                         cd ${DCT_DOCKER_PATH}
                         docker-compose up -d
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_data_compress ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW}" pgspider'
@@ -482,7 +483,7 @@ pipeline {
                         docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh" postgres'
                         docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
                         docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_compression.sh ${BRANCH_PGSPIDER}'
-                        
+
                         docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} ${BRANCH_TINYBRACE_FDW} ${BRANCH_MYSQL_FDW} ${BRANCH_SQLITE_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_PARQUET_S3_FDW}" pgspider'
                         docker exec pgspiderserver_multi2_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh" pgspider'
                         docker exec gcpserver_for_compression_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_compression.sh ${BRANCH_PGSPIDER_COMPRESSION}" pgspider'
@@ -514,6 +515,7 @@ pipeline {
                     sh """
                         cd ${DCT_DOCKER_PATH}
                         docker-compose down
+                        sleep 10
                         cd ${GITLAB_DOCKER_PATH}
                         docker compose up --wait
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_gitlab ${BRANCH_GITLAB_FDW}" pgspider'
@@ -555,7 +557,8 @@ pipeline {
                 }
             }
         }
-        /*stage('Start_containers_Enhance_Test') {
+
+/*        stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
                     sh """
@@ -675,7 +678,9 @@ pipeline {
                 cd ${DCT_DOCKER_PATH}
                 docker-compose down
                 cd ${GITLAB_DOCKER_PATH}
-                docker-compose down
+                docker compose down
+                #cd ${ENHANCE_TEST_DOCKER_PATH}
+                #docker-compose down
             """
         }
     }

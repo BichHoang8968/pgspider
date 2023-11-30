@@ -868,18 +868,18 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl1
  c9        | character varying(50)       |           |          |         | extended | 
  __spd_url | text                        |           |          |         | extended | 
 View definition:
- SELECT tntbl1.c1,
-    tntbl1.c2,
-    tntbl1.c3,
-    tntbl1.c4,
-    tntbl1.c5,
-    tntbl1.c6,
-    tntbl1.c7,
-    tntbl1.c8,
-    tntbl1.c9,
-    tntbl1.__spd_url
+ SELECT c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    __spd_url
    FROM tntbl1
-  WHERE tntbl1.c1 < tntbl1.c2;
+  WHERE c1 < c2;
 Options: check_option=cascaded
 
 --Testcase 94:

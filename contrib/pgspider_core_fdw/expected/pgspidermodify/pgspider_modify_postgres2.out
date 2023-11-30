@@ -673,7 +673,7 @@ ALTER FOREIGN TABLE tntbl4 OPTIONS (disable_transaction_feature_check 'true');
 --
 --Testcase 69:
 UPDATE tntbl4 IN ('/postgres_svr/') SET c8 = 56563.1212;
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, c8, __spd_url;
  c1  |              c2               | c3 | c4  |  c5   | c6 |      c7       |     c8     | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      |    __spd_url     
 -----+-------------------------------+----+-----+-------+----+---------------+------------+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------+------------------
   -1 |                               |    |     |  4000 |    |               |            |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       |                                              | /postgres_svr_2/
@@ -706,7 +706,7 @@ SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
 
 --Testcase 70:
 UPDATE tntbl4 IN ('/postgres_svr/', '/postgres_svr_2/') SET c8 = 22.2;
-SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, __spd_url;
+SELECT * FROM tntbl4 ORDER BY c1, c2, c3, c4, c5, c8, __spd_url;
  c1  |              c2               | c3 | c4  |  c5   | c6 |      c7       |  c8  | c9  |         c10         |          c11           |    c12     |                 c13                 |                                   c14                                   |                 c15                  |   c16   |         c17          |    c18     |  c19  |                     c20                      |    __spd_url     
 -----+-------------------------------+----+-----+-------+----+---------------+------+-----+---------------------+------------------------+------------+-------------------------------------+-------------------------------------------------------------------------+--------------------------------------+---------+----------------------+------------+-------+----------------------------------------------+------------------
   -1 |                               |    |     |  4000 |    |               | 22.2 |     |                     |                        |            |                                     |                                                                         |                                      |         |                      |            |       |                                              | /postgres_svr_2/
@@ -960,30 +960,30 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl4
  c20       | interval                    |           |          |         | plain    | 
  __spd_url | text                        |           |          |         | extended | 
 View definition:
- SELECT tntbl4.c1,
-    tntbl4.c2,
-    tntbl4.c3,
-    tntbl4.c4,
-    tntbl4.c5,
-    tntbl4.c6,
-    tntbl4.c7,
-    tntbl4.c8,
-    tntbl4.c9,
-    tntbl4.c10,
-    tntbl4.c11,
-    tntbl4.c12,
-    tntbl4.c13,
-    tntbl4.c14,
-    tntbl4.c15,
-    tntbl4.c16,
-    tntbl4.c17,
-    tntbl4.c18,
-    tntbl4.c19,
-    tntbl4.c20,
-    tntbl4.__spd_url
+ SELECT c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    c6,
+    c7,
+    c8,
+    c9,
+    c10,
+    c11,
+    c12,
+    c13,
+    c14,
+    c15,
+    c16,
+    c17,
+    c18,
+    c19,
+    c20,
+    __spd_url
    FROM tntbl4
-  WHERE tntbl4.c1 < tntbl4.c5
-  ORDER BY tntbl4.c1;
+  WHERE c1 < c5
+  ORDER BY c1;
 Options: check_option=cascaded
 
 --Testcase 90:

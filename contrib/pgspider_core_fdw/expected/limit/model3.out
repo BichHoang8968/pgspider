@@ -2309,19 +2309,22 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 LIMIT 15;
 
 --Testcase 151:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
- Limit  (cost=11.87..11.88 rows=1 width=8)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Limit  (cost=15.70..15.71 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Aggregate  (cost=11.87..11.88 rows=1 width=8)
+   ->  Aggregate  (cost=15.70..15.71 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=8)
+         ->  Sort  (cost=15.17..15.43 rows=106 width=8)
                Output: c5
-               Node: file_svr / Status: Alive
-                 Limit push-down: no
-                 Foreign File: /tmp/file_fdw_single.csv
-                 Foreign File Size: 2533 b
-(10 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=8)
+                     Output: c5
+                     Node: file_svr / Status: Alive
+                       Limit push-down: no
+                       Foreign File: /tmp/file_fdw_single.csv
+                       Foreign File Size: 2533 b
+(13 rows)
 
 --Testcase 152:
 SELECT count(DISTINCT c5) FROM tbl01 LIMIT 5;
@@ -2375,17 +2378,20 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('~!@#', c4)), jsonb_agg(('_(*#', c5
 EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                                           QUERY PLAN                                                          
 ------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=12.14..12.15 rows=1 width=64)
+ Limit  (cost=15.97..15.98 rows=1 width=64)
    Output: (string_agg((c3)::text, ' '::text ORDER BY (c3)::text)), (string_agg((c7)::text, ','::text ORDER BY (c7)::text))
-   ->  Aggregate  (cost=12.14..12.15 rows=1 width=64)
+   ->  Aggregate  (cost=15.97..15.98 rows=1 width=64)
          Output: string_agg((c3)::text, ' '::text ORDER BY (c3)::text), string_agg((c7)::text, ','::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=1032)
+         ->  Sort  (cost=15.17..15.43 rows=106 width=1032)
                Output: c3, c7
-               Node: file_svr / Status: Alive
-                 Limit push-down: no
-                 Foreign File: /tmp/file_fdw_single.csv
-                 Foreign File Size: 2533 b
-(10 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=1032)
+                     Output: c3, c7
+                     Node: file_svr / Status: Alive
+                       Limit push-down: no
+                       Foreign File: /tmp/file_fdw_single.csv
+                       Foreign File Size: 2533 b
+(13 rows)
 
 --Testcase 156:
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
@@ -2865,24 +2871,27 @@ SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OF
 
 --Testcase 185:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
- Limit  (cost=11.71..11.71 rows=1 width=8)
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Limit  (cost=12.69..12.70 rows=1 width=8)
    Output: (count(DISTINCT c5))
-   ->  Sort  (cost=11.71..11.71 rows=1 width=8)
+   ->  Sort  (cost=12.69..12.70 rows=1 width=8)
          Output: (count(DISTINCT c5))
          Sort Key: (count(DISTINCT tbl01.c5))
-         ->  Aggregate  (cost=11.69..11.70 rows=1 width=8)
+         ->  Aggregate  (cost=12.67..12.68 rows=1 width=8)
                Output: count(DISTINCT c5)
-               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=35 width=8)
+               ->  Sort  (cost=12.50..12.59 rows=35 width=8)
                      Output: c5
-                     Filter: (tbl01.c5 > '0'::double precision)
-                     Node: file_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Foreign File: /tmp/file_fdw_single.csv
-                       Foreign File Size: 2533 b
-(15 rows)
+                     Sort Key: tbl01.c5
+                     ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=35 width=8)
+                           Output: c5
+                           Filter: (tbl01.c5 > '0'::double precision)
+                           Node: file_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Foreign File: /tmp/file_fdw_single.csv
+                             Foreign File Size: 2533 b
+(18 rows)
 
 --Testcase 186:
 SELECT count(DISTINCT c5) FROM tbl01 WHERE c5 > 0 ORDER BY 1 LIMIT 1 OFFSET 0;
@@ -2941,22 +2950,25 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('xx', c4)), jsonb_agg(('yy', c5)), 
 EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                                          QUERY PLAN                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=12.15..12.16 rows=1 width=64)
+ Limit  (cost=15.94..15.94 rows=1 width=64)
    Output: (string_agg((c3)::text, '-'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
-   ->  Sort  (cost=12.15..12.16 rows=1 width=64)
+   ->  Sort  (cost=15.94..15.94 rows=1 width=64)
          Output: (string_agg((c3)::text, '-'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '_'::text ORDER BY (c7)::text))
          Sort Key: (string_agg((tbl01.c3)::text, '-'::text ORDER BY (tbl01.c3)::text)), (string_agg((tbl01.c7)::text, '_'::text ORDER BY (tbl01.c7)::text))
-         ->  Aggregate  (cost=12.13..12.14 rows=1 width=64)
+         ->  Aggregate  (cost=15.92..15.93 rows=1 width=64)
                Output: string_agg((c3)::text, '-'::text ORDER BY (c3)::text), string_agg((c7)::text, '_'::text ORDER BY (c7)::text)
-               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=105 width=1032)
+               ->  Sort  (cost=15.12..15.39 rows=105 width=1032)
                      Output: c3, c7
-                     Filter: ((tbl01.c8)::double precision <> tbl01.c9)
-                     Node: file_svr / Status: Alive
-                       Limit push-down: no
-                       Sort push-down: no
-                       Foreign File: /tmp/file_fdw_single.csv
-                       Foreign File Size: 2533 b
-(15 rows)
+                     Sort Key: tbl01.c3
+                     ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=105 width=1032)
+                           Output: c3, c7
+                           Filter: ((tbl01.c8)::double precision <> tbl01.c9)
+                           Node: file_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Foreign File: /tmp/file_fdw_single.csv
+                             Foreign File Size: 2533 b
+(18 rows)
 
 --Testcase 190:
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
@@ -3703,20 +3715,23 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 ORDER BY 1, 2, 3 ;
 
 --Testcase 237:
 EXPLAIN VERBOSE SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
-                                  QUERY PLAN                                   
--------------------------------------------------------------------------------
- Sort  (cost=11.89..11.89 rows=1 width=8)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Sort  (cost=15.72..15.72 rows=1 width=8)
    Output: (count(DISTINCT c5))
    Sort Key: (count(DISTINCT tbl01.c5))
-   ->  Aggregate  (cost=11.87..11.88 rows=1 width=8)
+   ->  Aggregate  (cost=15.70..15.71 rows=1 width=8)
          Output: count(DISTINCT c5)
-         ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=8)
+         ->  Sort  (cost=15.17..15.43 rows=106 width=8)
                Output: c5
-               Node: file_svr / Status: Alive
-                 Sort push-down: no
-                 Foreign File: /tmp/file_fdw_single.csv
-                 Foreign File Size: 2533 b
-(11 rows)
+               Sort Key: tbl01.c5
+               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=8)
+                     Output: c5
+                     Node: file_svr / Status: Alive
+                       Sort push-down: no
+                       Foreign File: /tmp/file_fdw_single.csv
+                       Foreign File Size: 2533 b
+(14 rows)
 
 --Testcase 238:
 SELECT count(DISTINCT c5) FROM tbl01 ORDER BY 1;
@@ -3771,18 +3786,21 @@ SELECT array_agg(c3 || ' ' || c7), json_agg(('json_x', c3)), jsonb_agg(('json_y'
 EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                                       QUERY PLAN                                                                       
 -------------------------------------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=12.16..12.16 rows=1 width=64)
+ Sort  (cost=15.99..15.99 rows=1 width=64)
    Output: (string_agg((c3)::text, ':'::text ORDER BY (c3)::text)), (string_agg((c7)::text, '>>'::text ORDER BY (c7)::text))
    Sort Key: (string_agg((tbl01.c3)::text, ':'::text ORDER BY (tbl01.c3)::text)), (string_agg((tbl01.c7)::text, '>>'::text ORDER BY (tbl01.c7)::text))
-   ->  Aggregate  (cost=12.14..12.15 rows=1 width=64)
+   ->  Aggregate  (cost=15.97..15.98 rows=1 width=64)
          Output: string_agg((c3)::text, ':'::text ORDER BY (c3)::text), string_agg((c7)::text, '>>'::text ORDER BY (c7)::text)
-         ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=1032)
+         ->  Sort  (cost=15.17..15.43 rows=106 width=1032)
                Output: c3, c7
-               Node: file_svr / Status: Alive
-                 Sort push-down: no
-                 Foreign File: /tmp/file_fdw_single.csv
-                 Foreign File Size: 2533 b
-(11 rows)
+               Sort Key: tbl01.c3
+               ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=106 width=1032)
+                     Output: c3, c7
+                     Node: file_svr / Status: Alive
+                       Sort push-down: no
+                       Foreign File: /tmp/file_fdw_single.csv
+                       Foreign File Size: 2533 b
+(14 rows)
 
 --Testcase 242:
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
@@ -4918,7 +4936,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ' ' ORDER
    Group Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
    ->  Sort  (cost=11.82..11.85 rows=12 width=1296)
          Output: c1, c2, c8, c9, c3, c7
-         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9
+         Sort Key: tbl01.c1, tbl01.c2, tbl01.c8, tbl01.c9, tbl01.c3
          ->  Foreign Scan on public.tbl01  (cost=0.00..11.60 rows=12 width=1296)
                Output: c1, c2, c8, c9, c3, c7
                Filter: ((tbl01.c9 >= (tbl01.c8)::double precision) AND (tbl01.c9 >= '0'::double precision))

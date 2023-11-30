@@ -17,6 +17,7 @@
 #include "foreign/foreign.h"
 #include "lib/stringinfo.h"
 #include "nodes/pathnodes.h"
+#include "utils/guc.h"
 #include "utils/relcache.h"
 #include "utils/resowner.h"
 #include "catalog/pg_operator.h"
@@ -406,13 +407,13 @@ extern bool throwCandidateError;
 
 #ifdef PD_STORED
 /* in pgspider_core_remotefunc.c */
-void spdExecuteFunction(Oid funcoid, Oid tableoid, List *args,
+PGDLLEXPORT void spdExecuteFunction(Oid funcoid, Oid tableoid, List *args,
 					    bool async, void **private);
-void spdExplainFunction(Oid funcoid, Oid tableoid,
+PGDLLEXPORT void spdExplainFunction(Oid funcoid, Oid tableoid,
 						List *args, bool async, void *private);
-bool spdGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
+PGDLLEXPORT bool spdGetFunctionResultOne(void *private, AttInMetadata *attinmeta,
 							 Datum *values, bool *nulls);
-void spdFinalizeFunction(void *private);
+PGDLLEXPORT void spdFinalizeFunction(void *private);
 
 #endif
 

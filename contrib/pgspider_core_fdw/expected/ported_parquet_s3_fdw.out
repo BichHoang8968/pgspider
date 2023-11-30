@@ -361,6 +361,7 @@ CREATE FOREIGN TABLE test1__parquet_s3_svr__3 (
 SERVER parquet_s3_svr
 OPTIONS (filename 's3://parquets3/ported_2.parquet', some_option '123');
 ERROR:  parquet_s3_fdw: invalid option "some_option"
+HINT:  parquet_s3_fdw: There are no valid options in this context.
 -- type mismatch
 --Testcase 36:
 CREATE FOREIGN TABLE test1__parquet_s3_svr__4 (one INT8[], two INT8, three TEXT)

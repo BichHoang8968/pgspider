@@ -773,15 +773,15 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl2
  c5        | bigint           |           |          |         | plain    | 
  __spd_url | text             |           |          |         | extended | 
 View definition:
- SELECT tntbl2._id,
-    tntbl2.c1,
-    tntbl2.c2,
-    tntbl2.c3,
-    tntbl2.c4,
-    tntbl2.c5,
-    tntbl2.__spd_url
+ SELECT _id,
+    c1,
+    c2,
+    c3,
+    c4,
+    c5,
+    __spd_url
    FROM tntbl2
-  WHERE tntbl2.c1 < tntbl2.c5;
+  WHERE c1 < c5;
 Options: check_option=cascaded
 
 --Testcase 89:
@@ -1291,7 +1291,7 @@ HINT:  Perhaps you meant to reference the table alias "t".
 UPDATE tntbl3 SET _id = repeat('x', 25) WHERE c1 = 11;
 ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
 DETAIL:  Executing ODBC query
-[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Duplicate entry 'xxxxxxxxxxxxxxxxxxxxxxxxx' for key 'tntbl3.PRIMARY'
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.33]Duplicate entry 'xxxxxxxxxxxxxxxxxxxxxxxxx' for key 'tntbl3.PRIMARY'
 --Testcase 153:
 SELECT c1, c2, _id FROM tntbl3;
  c1 | c2 |            _id             
@@ -1455,12 +1455,12 @@ ERROR:  option "disable_transaction_feature_check" provided more than once
 INSERT INTO tntbl3 (_id, c1, c2, c3, c4) VALUES (DEFAULT, DEFAULT, DEFAULT, DEFAULT, DEFAULT);
 ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
 DETAIL:  Executing ODBC query
-[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Column '_id' cannot be null
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.33]Column '_id' cannot be null
 --Testcase 169:
 INSERT INTO tntbl3 (_id, c2, c3) VALUES ('_3', 3.0, DEFAULT);
 ERROR:  Error occurred on a child table "tntbl3__odbc_mysql_svr__0".
 DETAIL:  Executing ODBC query
-[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.31]Duplicate entry '_3' for key 'tntbl3.PRIMARY'
+[MySQL][ODBC 8.0(w) Driver][mysqld-8.0.33]Duplicate entry '_3' for key 'tntbl3.PRIMARY'
 --Testcase 170:
 INSERT INTO tntbl3 VALUES(repeat('x', 10), 20, 4.0, 40.0, 5000);
 --Testcase 171:
@@ -1683,14 +1683,14 @@ CREATE VIEW rw_view AS SELECT * FROM tntbl3
  c4        | bigint           |           |          |         | plain    | 
  __spd_url | text             |           |          |         | extended | 
 View definition:
- SELECT tntbl3._id,
-    tntbl3.c1,
-    tntbl3.c2,
-    tntbl3.c3,
-    tntbl3.c4,
-    tntbl3.__spd_url
+ SELECT _id,
+    c1,
+    c2,
+    c3,
+    c4,
+    __spd_url
    FROM tntbl3
-  WHERE tntbl3.c2 < tntbl3.c3;
+  WHERE c2 < c3;
 Options: check_option=cascaded
 
 --Testcase 205:
