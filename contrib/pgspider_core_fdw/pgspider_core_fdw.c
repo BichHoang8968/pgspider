@@ -159,7 +159,7 @@ PG_MODULE_MAGIC;
 	}
 
 /* Code version is updated at new release. */
-#define CODE_VERSION   30000
+#define CODE_VERSION   40000
 
 /*
  * Same as COMPARE_SCALAR_FIELD of equalfuncs.c
