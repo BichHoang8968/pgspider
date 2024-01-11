@@ -50,14 +50,14 @@ SELECT * FROM filetbl;
 SELECT * FROM public.pgspider_core_fdw_version();
  pgspider_core_fdw_version 
 ---------------------------
-                     30000
+                     40000
 (1 row)
 
 --Testcase 297:
 SELECT pgspider_core_fdw_version();
  pgspider_core_fdw_version 
 ---------------------------
-                     30000
+                     40000
 (1 row)
 
 --Testcase 196:
