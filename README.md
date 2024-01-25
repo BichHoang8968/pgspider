@@ -34,6 +34,20 @@ Usage of PGSpider is the same as PostgreSQL except its program name is `pgspider
     Data will be compressed, transmitted to Cloud Function, and then transfered to data source.  
     This feature helps PGSpider control and reduce the size of transferred data between PGSpider and destination data source, lead to reduce the usage fee on cloud service
 
+* Parallel distributed stored function feature  
+    It is a new mechanism to improve a performance of SF (StoredFunction).  
+    Data is calculated (aggregated) first on each child node(datasource), then PGSpider receives its results and calculates a final result.  
+    Only PostgreSQL compatible datasource as a child node is supported.  
+    Seen from user, PD_Stored is one of aggregate function.
+    This function consists of child function and parent function internally. 
+     - Child function: It is an aggregate function or a normal function executed on child node.
+     - Parent function: It is an aggregate function executed on PGSpider.
+
+    Internal process in PGSpider after User executes a query using PD_Stored:
+     - PGSpider requests child nodes to execute child function. Each child node executes child function to aggregates its own data
+     - PGSpider executes parent function to aggregates records with the results of child function
+
+
 ## How to build PGSpider
 
 Clone PGSpider source code.
@@ -397,13 +411,13 @@ A pgspider_fdw server is required to act as a relay server to transmit data to c
 It is required to provide`endpoint` and `relay` options to active this feature.  
 
 #### Current supported datasources:  
-- **PostgreSQL**  
-- **MySQL**  
-- **Oracle**  
-- **GridDB**  
-- **PGSpider**  
-- **InfluxDB (only support migrating to InfluxDB v2.0)**
-- **ObjStorage (only support migrating to AmazonS3 and parquet file)**
+- PostgreSQL  
+- MySQL  
+- Oracle  
+- GridDB  
+- PGSpider  
+- InfluxDB (only support migrating to InfluxDB v2.0)
+- ObjStorage (only support migrating to AmazonS3 and parquet file)
 #### Options supported:  
 - **relay** as *string*, required 
       Specifies foreign server of PGSpider FDW which is used to support Data Compression Transfer Feature.  
@@ -488,6 +502,41 @@ Examples:
           objstorage_with_region OPTION (dirname 'bucket', format 'parquet');
   ```
 
+#### Parallel distributed stored function feature
+- **Creation of PD_Stored function**
+  - The query syntax:
+    <pre>
+    CREATE DISTRIBUTED_FUNC distributed_func_name ( [ argmode1 ] [ argname1 ] argtype1, [, ...] )
+    PARENT parent_func_name ( [ [ argmode2 ] [ argname2 ] argtype2, [, ...] ] )
+    CHILD child_func_name ( [ [ argmode3 ] [ argname3 ] argtype3, [, ...] ] )
+    </pre>
+  - Parameters:
+    - distributed_func_name: PD_Stored function name
+    - parent_func_name: Parent function name
+      This function must be created by CREATE AGGREGATE basically. Specially, a function created by CREATE FUNCTION without argument is also acceptable (called async mode).
+      In case of an aggregate function, only INITCOND, SFUNC and FINALFUNC are used when aggregating records of child function.
+      In case of normal function without argument, its function is executed only once in parallel.
+    - child_func_name: Child function name (the one created by CREATE FUNCTION or CREATE AGGREGATE)
+      This function is created and executed on tables on child nodes. During execution of PD_Stored function, arguments of PD_Stored function is passed to child function. PGSpider determines target child tables by multi-tenant table used in the query. For example:
+
+      User query:
+      ```sql
+      SELECT distributed_func_name (arg1, arg2, ...) FROM "multi-tenant table";
+      ```
+      Child function execution:
+      ```sql
+      SELECT child_func_name (arg1, arg2, ...) FROM "child table";
+      ```
+    - argmode1, argname1, argtype1: Argument information of PD_Stored function
+    - argmode2, argname2, argtype2: Argument information of parent function
+    - argmode3, argname3, argtype3 (optional): Argument information of child function. It must be same as argmode1,argname1,argtype1.
+
+- **Execution**
+
+    Same as aggregate function  
+    But we expect to use it with simple query like "SELECT func(column1, ...) FROM table". If you want to execute a complex calculation, we recommend calculate it in function.
+
+
 ## Note
 When a query to foreign tables fails, you can find why it fails by seeing a query executed in PGSpider with `EXPLAIN (VERBOSE)`.  
 PGSpider has a table option: `disable_transaction_feature_check`:  
@@ -502,6 +551,9 @@ Limitation with modification and transaction:
 - It is recommended to execute a modify query(INSERT/UPDATE/DELETE) in auto-commit mode. If not, a warning "Modification query is executing in non-autocommit mode. PGSpider might get inconsistent data." is shown.
 - RETURNING, WITH CHECK OPTION and ON CONFLICT are not supported with Modification.
 - COPY and modify (INSERT/UPDATE/DELETE) foreign partition are not supported.
+
+Limitation with parallel distributed stored function feature:
+- Currently, it is a minimum implementation. We confirmed it can work with a simple query like above example.
 
 ## Contributing
 Opening issues and pull requests are welcome.
