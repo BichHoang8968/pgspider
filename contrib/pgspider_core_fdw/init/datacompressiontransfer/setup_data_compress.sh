@@ -172,6 +172,13 @@ then
 fi
 
 cd $CURR_PATH
+source scl_source enable devtoolset-11
+g++ -LDFLAGS=-rdynamic \
+    -laws-cpp-sdk-core -laws-cpp-sdk-s3 -lboost_iostreams \
+    init_storage.cpp -o init_storage
+./init_storage
+rm init_storage
+
 # Influxdb/oracle startup might be slow, need retention awhile before executing command.
 # Retention time depends on each machine, this value should be max of {influxdb startup time, oracle startup time}.
 #

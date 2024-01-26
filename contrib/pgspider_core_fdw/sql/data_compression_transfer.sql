@@ -1,6 +1,7 @@
 -- ===================================================================
 -- create FDW objects
 -- ===================================================================
+--Testcase 837:
 SET DATESTYLE TO ISO;
 --Testcase 1:
 CREATE EXTENSION pgspider_core_fdw;
@@ -17,6 +18,7 @@ CREATE EXTENSION griddb_fdw;
 --Testcase 690:
 CREATE EXTENSION influxdb_fdw;
 
+--Testcase 838:
 CREATE EXTENSION objstorage_fdw;
 
 --Testcase 7:
@@ -51,10 +53,13 @@ INSERT INTO test_options VALUES (1000, 'test_option1', B'10101010', E'\\xa7a8a9a
 INSERT INTO test_options VALUES (2000, 'test_option2', B'10101010', E'\\xa7a8a9aaabacadaeaf', false, 'b', '2021-11-21', 20000, -107, 212.2, 100, 'varchar10', 'bpchar10', 2, '2021-11-11 00:00:00', '2021-11-11 00:00:01+00', '2004-10-19 10:23:54','2004-10-19 10:23:54+02', ARRAY[true, false], ARRAY['a', 'b'], ARRAY['a',''], ARRAY[1000,2000], ARRAY[100,200], ARRAY[1,2], ARRAY['textbl2','text2'], ARRAY[1.0,2.0], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_2'], ARRAY[10000,20000], ARRAY['2001-01-01'::date,'2001-01-02'::date], ARRAY['2001-01-01 00:00:00'::time,'2001-01-02 00:00:00'::time], ARRAY['2001-01-01 00:00:01+00'::timetz,'2001-01-02 00:00:01+00'::timetz], ARRAY['2004-10-19 10:23:54'::timestamp,'2004-10-20 10:23:54'::timestamp], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz]);
 
 -- Migrate fail, proxy not exist
+--Testcase 839:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
+--Testcase 840:
 ALTER SERVER cloud_test OPTIONS (DROP proxy);
 -- Succeed migrate
+--Testcase 841:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
 --Testcase 15:
@@ -64,31 +69,43 @@ DROP DATASOURCE TABLE test_tbl;
 --Testcase 17:
 DROP FOREIGN TABLE test_tbl;
 
+--Testcase 842:
 ALTER SERVER cloud_test OPTIONS (ADD proxy 'no');
 -- Wrong relay, migrate fail
+--Testcase 843:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloudtest');
 
 -- Wrong endpoint, migrate fail
+--Testcase 844:
 ALTER SERVER cloud_test OPTIONS (SET endpoint 'http://localhost:3000');
+--Testcase 845:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
+--Testcase 846:
 ALTER SERVER cloud_test OPTIONS (SET endpoint 'http://localhost:8080');
 
 -- Wrong socket_port, migrate fail
+--Testcase 847:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '-1', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
+--Testcase 848:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '65536', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
 -- Wrong function_timeout, migrate fail
+--Testcase 849:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '-1') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
 -- Force use UserID, serverID; the value is duplicated inserted, migrate fail
+--Testcase 850:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test', userID 'user_id');
+--Testcase 851:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test', serverID 'server_id');
 
 -- Migrate repeat on same targets, migrate fail over due to datasource exist
+--Testcase 852:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test'), postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
 -- Migrate repeat on same targets, migrate succeed with different table name
+--Testcase 853:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test1_tbl', relay 'cloud_test'), postgres_svr_test OPTIONS (table_name 'test2_tbl', relay 'cloud_test');
 --Testcase 18:
 SELECT * FROM test_tbl ORDER BY c1;
@@ -113,22 +130,32 @@ CREATE table test_bytea_array (c20 bytea[]);
 --Testcase 27:
 INSERT INTO test_bytea_array VALUES (ARRAY[E'\\1132165131651316153'::bytea, E'\\x151354865131651321'::bytea]);
 -- Migrate fail, bytea array not support
+--Testcase 854:
 MIGRATE TABLE test_bytea_array TO test_bytea OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_bytea', relay 'cloud_test');
 --Testcase 28:
 DROP TABLE test_bytea_array;
 
 -- Wrong target server
+--Testcase 855:
 ALTER SERVER postgres_svr_test OPTIONS (SET port '12345');
+--Testcase 856:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
+--Testcase 857:
 ALTER SERVER postgres_svr_test OPTIONS (SET port '5432', SET dbname 'dbnotexist');
+--Testcase 858:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
+--Testcase 859:
 ALTER SERVER postgres_svr_test OPTIONS (SET dbname 'test1', SET host 'invalid_host');
+--Testcase 860:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
+--Testcase 861:
 ALTER SERVER postgres_svr_test OPTIONS (SET host '127.0.0.1');
+--Testcase 862:
 ALTER USER MAPPING FOR public SERVER postgres_svr_test OPTIONS (SET user 'user', SET password 'pass');
+--Testcase 863:
 MIGRATE TABLE test_options TO test_tbl OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres_svr_test OPTIONS (table_name 'test_tbl', relay 'cloud_test');
 
 --Testcase 29:
@@ -147,6 +174,7 @@ SELECT * FROM test_options ORDER BY time;
 
 --Testcase 828:
 -- Migrate influxdb fail, missing org option
+--Testcase 864:
 MIGRATE TABLE test_options TO tbl_influxdb OPTIONS (socket_port '4814', function_timeout '800') SERVER influxdb_svr_test OPTIONS (table 'test_options', relay 'cloud_test', tags 'tag1, tag2');
 
 -- Test tags option and time column, migrate succeed
@@ -297,6 +325,7 @@ CREATE USER MAPPING FOR public SERVER postgres3 OPTIONS (user 'postgres', passwo
 
 -- * migrate sigle target server and single relay server
 -- MIGRATE NONE
+--Testcase 865:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 --Testcase 70:
 \d
@@ -320,6 +349,7 @@ DROP DATASOURCE TABLE ft_test;
 DROP FOREIGN TABLE ft_test;
 
 -- MIGRATE TO
+--Testcase 866:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 --Testcase 76:
 \d
@@ -335,6 +365,7 @@ DROP DATASOURCE TABLE ft2;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 867:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER postgres1 OPTIONS (table_name 'T 2', relay 'cloud1');
 --Testcase 81:
 \d
@@ -359,6 +390,7 @@ CREATE foreign table ft1 (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "
 
 -- * migrate multi target server and single relay server
 -- MIGRATE NONE
+--Testcase 868:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud1'),
@@ -417,6 +449,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 869:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud1'),
@@ -449,6 +482,7 @@ DROP FOREIGN TABLE ft2__postgres3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 870:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud1'),
@@ -490,6 +524,7 @@ CREATE foreign table ft1 (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "
 
 -- * migrate multi target server and multi relay server
 -- MIGRATE NONE
+--Testcase 871:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud2'),
@@ -548,6 +583,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 872:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud2'),
@@ -580,6 +616,7 @@ DROP FOREIGN TABLE ft2__postgres3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 873:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'T 2', relay 'cloud1'),
         postgres2 OPTIONS (table_name 'T 2', relay 'cloud2'),
@@ -690,6 +727,7 @@ CREATE USER MAPPING FOR public SERVER pgspider3 OPTIONS (user 'postgres', passwo
 
 -- * migrate sigle target server and single relay server
 -- MIGRATE NONE
+--Testcase 874:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 'T 2', relay 'cloud1');
 --Testcase 200:
 \d
@@ -711,6 +749,7 @@ SELECT * FROM ft_test ORDER BY c1 LIMIT 10;
 DROP FOREIGN TABLE ft_test;
 
 -- MIGRATE TO
+--Testcase 875:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 't1', relay 'cloud1');
 --Testcase 205:
 \d
@@ -724,6 +763,7 @@ SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 876:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER pgspider1 OPTIONS (table_name 't2', relay 'cloud1');
 --Testcase 209:
 \d
@@ -746,6 +786,7 @@ CREATE foreign table ft1 (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "
 
 -- * migrate multi target server and single relay server
 -- MIGRATE NONE
+--Testcase 877:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't3', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't4', relay 'cloud1'),
@@ -798,6 +839,7 @@ SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 878:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't6', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't7', relay 'cloud1'),
@@ -824,6 +866,7 @@ DROP FOREIGN TABLE ft2__pgspider3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 879:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't10', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't11', relay 'cloud1'),
@@ -858,6 +901,7 @@ CREATE foreign table ft1 (c1 bigint, c2 text, c3 bit(8), c4 bytea, c5 bool, c6 "
 
 -- * migrate multi target server and multi relay server
 -- MIGRATE NONE
+--Testcase 880:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't13', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't14', relay 'cloud2'),
@@ -909,6 +953,7 @@ SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 881:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't16', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't17', relay 'cloud2'),
@@ -935,6 +980,7 @@ DROP FOREIGN TABLE ft2__pgspider3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 882:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         pgspider1 OPTIONS (table_name 't19', relay 'cloud1'),
         pgspider2 OPTIONS (table_name 't20', relay 'cloud2'),
@@ -1038,6 +1084,7 @@ CREATE USER MAPPING FOR public SERVER mysql3 OPTIONS (username 'root', password 
 
 -- * migrate sigle target server and single relay server
 -- MIGRATE NONE
+--Testcase 883:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 --Testcase 309:
 \d
@@ -1059,6 +1106,7 @@ DROP DATASOURCE TABLE ft_test;
 DROP FOREIGN TABLE ft_test;
 
 -- MIGRATE TO
+--Testcase 884:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 --Testcase 315:
 \d
@@ -1074,6 +1122,7 @@ DROP DATASOURCE TABLE ft2;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 885:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1');
 --Testcase 320:
 \d
@@ -1097,6 +1146,7 @@ CREATE foreign table ft1 ( c1 bigint, c2 int, c3 smallint, c4 float4,
 
 -- * migrate multi target server and single relay server
 -- MIGRATE NONE
+--Testcase 886:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud1'),
@@ -1152,6 +1202,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 887:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud1'),
@@ -1184,6 +1235,7 @@ DROP FOREIGN TABLE ft2__mysql3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 888:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud1'),
@@ -1224,6 +1276,7 @@ CREATE foreign table ft1 ( c1 bigint, c2 int, c3 smallint, c4 float4,
 
 -- * migrate multi target server and multi relay server
 -- MIGRATE NONE
+--Testcase 889:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud2'),
@@ -1279,6 +1332,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 890:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud2'),
@@ -1311,6 +1365,7 @@ DROP FOREIGN TABLE ft2__mysql3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 891:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         mysql1 OPTIONS (dbname 'test1', table_name 'T 2', relay 'cloud1'),
         mysql2 OPTIONS (dbname 'test2', table_name 'T 2', relay 'cloud2'),
@@ -1389,6 +1444,7 @@ CREATE USER MAPPING FOR public SERVER griddb3 OPTIONS (username 'admin', passwor
 
 -- * migrate sigle target server and single relay server
 -- MIGRATE NONE
+--Testcase 892:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER griddb1 OPTIONS (table_name 'T2', relay 'cloud1');
 --Testcase 419:
 \d
@@ -1400,8 +1456,11 @@ CREATE foreign table ft_test (c1 bigint, c2 int, c3 smallint,
 )SERVER griddb1 OPTIONS (table_name 'T2');
 
 -- Check data for first 10 records and number of records
+--Testcase 893:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 894:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 895:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 421:
 SELECT count(*) FROM ft_test;
@@ -1411,18 +1470,25 @@ SELECT * FROM ft_test ORDER BY c1 LIMIT 10;
 DROP DATASOURCE TABLE ft_test;
 --Testcase 424:
 DROP FOREIGN TABLE ft_test;
+--Testcase 896:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 897:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 898:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 -- MIGRATE TO
+--Testcase 899:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER griddb1 OPTIONS (table_name 'T2', relay 'cloud1');
 --Testcase 425:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 900:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 901:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 902:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 426:
 SELECT count(*) FROM ft2;
@@ -1432,18 +1498,25 @@ SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 DROP DATASOURCE TABLE ft2;
 --Testcase 429:
 DROP FOREIGN TABLE ft2;
+--Testcase 903:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 904:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 905:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 -- MIGRATE REPLACE
+--Testcase 906:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER griddb1 OPTIONS (table_name 'T2', relay 'cloud1');
 --Testcase 430:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 907:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 908:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 909:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 431:
 SELECT count(*) FROM ft1;
@@ -1453,8 +1526,11 @@ SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 DROP DATASOURCE TABLE ft1;
 --Testcase 434:
 DROP FOREIGN TABLE ft1;
+--Testcase 910:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 911:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 912:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 -- create again src table
@@ -1465,6 +1541,7 @@ CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint,
 
 -- * migrate multi target server and single relay server
 -- MIGRATE NONE
+--Testcase 913:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud1'),
@@ -1489,14 +1566,23 @@ CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint,
 )SERVER griddb3 OPTIONS (table_name 't3');
 
 -- Check data for first 10 records and number of records
+--Testcase 914:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 915:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 916:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 917:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 918:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 919:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 920:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 921:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 922:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 440:
 SELECT count(*) FROM ft_test1;
@@ -1524,17 +1610,27 @@ SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
 DROP DATASOURCE TABLE ft_test3;
 --Testcase 451:
 DROP FOREIGN TABLE ft_test3;
+--Testcase 923:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 924:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 925:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 926:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 927:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 928:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 929:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 930:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 931:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 -- MIGRATE TO
+--Testcase 932:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud1'),
@@ -1543,14 +1639,23 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 933:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 934:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 935:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 936:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 937:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 938:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 939:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 940:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 941:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 453:
 SELECT count(*) FROM ft2;
@@ -1576,17 +1681,27 @@ DROP FOREIGN TABLE ft2__griddb2__0;
 DROP FOREIGN TABLE ft2__griddb3__0;
 --Testcase 463:
 DROP FOREIGN TABLE ft2;
+--Testcase 942:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 943:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 944:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 945:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 946:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 947:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 948:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 949:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 950:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 -- MIGRATE REPLACE
+--Testcase 951:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud1'),
@@ -1595,14 +1710,23 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 952:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 953:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 954:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 955:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 956:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 957:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 958:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 959:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 960:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 465:
 SELECT count(*) FROM ft1;
@@ -1628,14 +1752,23 @@ DROP FOREIGN TABLE ft1__griddb2__0;
 DROP FOREIGN TABLE ft1__griddb3__0;
 --Testcase 475:
 DROP FOREIGN TABLE ft1;
+--Testcase 961:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 962:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 963:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 964:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 965:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 966:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 967:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 968:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 969:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 -- create again src table
@@ -1646,6 +1779,7 @@ CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint,
 
 -- * migrate multi target server and multi relay server
 -- MIGRATE NONE
+--Testcase 970:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud2'),
@@ -1670,14 +1804,23 @@ CREATE foreign table ft_test3 (c1 bigint, c2 int, c3 smallint,
 )SERVER griddb3 OPTIONS (table_name 't3');
 
 -- Check data for first 10 records and number of records
+--Testcase 971:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 972:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 973:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 974:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 975:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 976:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 977:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 978:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 979:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 481:
 SELECT count(*) FROM ft_test1;
@@ -1705,17 +1848,27 @@ SELECT * FROM ft_test3 ORDER BY c1 LIMIT 10;
 DROP DATASOURCE TABLE ft_test3;
 --Testcase 492:
 DROP FOREIGN TABLE ft_test3;
+--Testcase 980:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 981:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 982:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 983:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 984:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 985:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 986:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 987:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 988:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 -- MIGRATE TO
+--Testcase 989:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud2'),
@@ -1724,14 +1877,23 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 990:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 991:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 992:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 993:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 994:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 995:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 996:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 997:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 998:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 494:
 SELECT count(*) FROM ft2;
@@ -1757,17 +1919,27 @@ DROP FOREIGN TABLE ft2__griddb2__0;
 DROP FOREIGN TABLE ft2__griddb3__0;
 --Testcase 504:
 DROP FOREIGN TABLE ft2;
+--Testcase 999:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 1000:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 1001:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 1002:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 1003:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 1004:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 1005:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 1006:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 1007:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 -- MIGRATE REPLACE
+--Testcase 1008:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         griddb1 OPTIONS (table_name 't1', relay 'cloud1'),
         griddb2 OPTIONS (table_name 't2', relay 'cloud2'),
@@ -1776,14 +1948,23 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1009:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 1010:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 1011:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
+--Testcase 1012:
 ALTER SERVER griddb2 OPTIONS (drop host);
+--Testcase 1013:
 ALTER SERVER griddb2 OPTIONS (drop port);
+--Testcase 1014:
 ALTER SERVER griddb2 OPTIONS (add notification_member '127.0.0.1:10003');
+--Testcase 1015:
 ALTER SERVER griddb3 OPTIONS (drop host);
+--Testcase 1016:
 ALTER SERVER griddb3 OPTIONS (drop port);
+--Testcase 1017:
 ALTER SERVER griddb3 OPTIONS (add notification_member '127.0.0.1:10004');
 --Testcase 506:
 SELECT count(*) FROM ft1;
@@ -1809,14 +1990,23 @@ DROP FOREIGN TABLE ft1__griddb2__0;
 DROP FOREIGN TABLE ft1__griddb3__0;
 --Testcase 516:
 DROP FOREIGN TABLE ft1;
+--Testcase 1018:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 1019:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 1020:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
+--Testcase 1021:
 ALTER SERVER griddb2 OPTIONS (drop notification_member);
+--Testcase 1022:
 ALTER SERVER griddb2 OPTIONS (add host '127.0.0.1');
+--Testcase 1023:
 ALTER SERVER griddb2 OPTIONS (add port '20003');
+--Testcase 1024:
 ALTER SERVER griddb3 OPTIONS (drop notification_member);
+--Testcase 1025:
 ALTER SERVER griddb3 OPTIONS (add host '127.0.0.1');
+--Testcase 1026:
 ALTER SERVER griddb3 OPTIONS (add port '20004');
 
 --Testcase 517:
@@ -1871,6 +2061,7 @@ CREATE USER MAPPING FOR public SERVER oracle3 OPTIONS (user 'test3', password 't
 
 -- * migrate sigle target server and single relay server
 -- MIGRATE NONE
+--Testcase 1027:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 --Testcase 529:
 \d
@@ -1892,6 +2083,7 @@ DROP DATASOURCE TABLE ft_test;
 DROP FOREIGN TABLE ft_test;
 
 -- MIGRATE TO
+--Testcase 1028:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 --Testcase 535:
 \d
@@ -1907,6 +2099,7 @@ DROP DATASOURCE TABLE ft2;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 1029:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER oracle1 OPTIONS (table 'T2', relay 'cloud1');
 --Testcase 540:
 \d
@@ -1930,6 +2123,7 @@ CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8,
 
 -- * migrate multi target server and single relay server
 -- MIGRATE NONE
+--Testcase 1030:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud1'),
@@ -1985,6 +2179,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 1031:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud1'),
@@ -2017,6 +2212,7 @@ DROP FOREIGN TABLE ft2__oracle3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 1032:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud1'),
@@ -2057,6 +2253,7 @@ CREATE foreign table ft1 (c1 bigint, c2 int, c3 smallint, c4 float4, c5 float8,
 
 -- * migrate multi target server and multi relay server
 -- MIGRATE NONE
+--Testcase 1033:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud2'),
@@ -2112,6 +2309,7 @@ DROP DATASOURCE TABLE ft_test3;
 DROP FOREIGN TABLE ft_test3;
 
 -- MIGRATE TO
+--Testcase 1034:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud2'),
@@ -2144,6 +2342,7 @@ DROP FOREIGN TABLE ft2__oracle3__0;
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE REPLACE
+--Testcase 1035:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         oracle1 OPTIONS (table 'T2', relay 'cloud1'),
         oracle2 OPTIONS (table 'T2', relay 'cloud2'),
@@ -2560,6 +2759,7 @@ SELECT count(*) FROM ft1;
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
 -- MIGRATE NONE
+--Testcase 1036:
 MIGRATE TABLE ft1 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'multi', relay 'cloud1'),
         pgspider1 OPTIONS (table_name 'multi1', relay 'cloud1'),
@@ -2597,8 +2797,11 @@ CREATE foreign table ft_test6 (c1 bigint, c2 int, c3 smallint,
 )SERVER influx1 OPTIONS (table 'multi');
 
 -- Check data for first 10 records and number of records
+--Testcase 1037:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 1038:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 1039:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 639:
 SELECT count(*) FROM ft_test1;
@@ -2647,11 +2850,15 @@ DROP FOREIGN TABLE ft_test4;
 DROP FOREIGN TABLE ft_test5;
 --Testcase 812:
 DROP FOREIGN TABLE ft_test6;
+--Testcase 1040:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 1041:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 1042:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 -- MIGRATE TO
+--Testcase 1043:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'multi', relay 'cloud1'),
         pgspider1 OPTIONS (table_name 'multi2', relay 'cloud1'),
@@ -2663,8 +2870,11 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SE
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1044:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 1045:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 1046:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 659:
 SELECT count(*) FROM ft2;
@@ -2704,11 +2914,15 @@ DROP FOREIGN TABLE ft2__oracle1__0;
 DROP FOREIGN TABLE ft2__influx1__0;
 --Testcase 674:
 DROP FOREIGN TABLE ft2;
+--Testcase 1047:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 1048:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 1049:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 -- MIGRATE REPLACE
+--Testcase 1050:
 MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') SERVER
         postgres1 OPTIONS (table_name 'multi', relay 'cloud1'),
         pgspider1 OPTIONS (table_name 'multi3', relay 'cloud1'),
@@ -2720,8 +2934,11 @@ MIGRATE TABLE ft1 REPLACE OPTIONS (socket_port '4814', function_timeout '800') S
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1051:
 ALTER SERVER griddb1 OPTIONS (drop host);
+--Testcase 1052:
 ALTER SERVER griddb1 OPTIONS (drop port);
+--Testcase 1053:
 ALTER SERVER griddb1 OPTIONS (add notification_member '127.0.0.1:10002');
 --Testcase 676:
 SELECT count(*) FROM ft1;
@@ -2736,23 +2953,37 @@ SELECT * FROM ft1__griddb1__0 ORDER BY c1 LIMIT 10;
 --Testcase 681:
 SELECT * FROM ft1__oracle1__0 ORDER BY c1 LIMIT 10;
 
+--Testcase 1054:
 DROP DATASOURCE TABLE ft1__postgres1__0;
+--Testcase 1055:
 DROP DATASOURCE TABLE ft1__mysql1__0;
+--Testcase 1056:
 DROP DATASOURCE TABLE ft1__griddb1__0;
+--Testcase 1057:
 DROP DATASOURCE TABLE ft1__oracle1__0;
+--Testcase 1058:
 DROP DATASOURCE TABLE ft1__influx1__0;
 
+--Testcase 1059:
 DROP FOREIGN TABLE ft1__postgres1__0;
+--Testcase 1060:
 DROP FOREIGN TABLE ft1__pgspider1__0;
+--Testcase 1061:
 DROP FOREIGN TABLE ft1__mysql1__0;
+--Testcase 1062:
 DROP FOREIGN TABLE ft1__griddb1__0;
+--Testcase 1063:
 DROP FOREIGN TABLE ft1__oracle1__0;
+--Testcase 1064:
 DROP FOREIGN TABLE ft1__influx1__0;
 
 --Testcase 682:
 DROP FOREIGN TABLE ft1;
+--Testcase 1065:
 ALTER SERVER griddb1 OPTIONS (drop notification_member);
+--Testcase 1066:
 ALTER SERVER griddb1 OPTIONS (add host '127.0.0.1');
+--Testcase 1067:
 ALTER SERVER griddb1 OPTIONS (add port '20002');
 
 --Testcase 683:
@@ -2836,380 +3067,535 @@ DROP TABLE t1;
 -- TO OBJSTORAGE_FDW: S3 Server + Parquet File
 -- ===================================================================
 
+--Testcase 1068:
 CREATE FOREIGN TABLE ft1 (c1 bigint, c2 text, c3 bytea, c4 bool, c5 "char", c6 date, c7 numeric, c8 float8,
     c9 float4, c10 int, c11 varchar(10), c12 char(10), c13 smallint, c14 timestamptz
 ) SERVER loopback OPTIONS (table_name 't1');
 
+--Testcase 1069:
 CREATE DATASOURCE TABLE ft1;
 
+--Testcase 1070:
 INSERT INTO t1 VALUES (1000, 'textbl_objs3', E'\\xa7a8a9aaabacadaeaf', true, 'a', '2001-01-01', 10000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 1, '2004-10-19 10:23:54+02');
+--Testcase 1071:
 INSERT INTO t1 VALUES (2000, 'text2', E'\\xa7a8a9aaabacadaeaf', true, 'b', '2002-01-01', 20000, 1E-107, 1E-37, 100, 'varchar10', 'bpchar10', 2, '2004-10-19 10:23:54+02');
+--Testcase 1072:
 INSERT INTO t1 VALUES (3000, 'text3', E'\\xa7a8a9aaabacadaeaf', false, 'c', '2003-01-01', 30000, 21122.213, 100.0, 200, 'char array', 'bpchar[]', 3, '2005-10-19 10:23:54+02');
+--Testcase 1073:
 INSERT INTO t1 VALUES (4000, 'text4', E'\\xa7a8a9aaabacadaeaf', false, 'd', '2004-01-01', 40000, 6565.10, 200.0, 300, 'char array', 'bpchar 1', 4, '2003-10-19 10:23:54+02');
+--Testcase 1074:
 INSERT INTO t1 VALUES (5000, 'text5', E'\\xa7a8a9aaabacadaeaf', true, 'e', '2005-01-01', 50000, 599.010, 300.0, 400, 'char array', 'bpchar 2', 5, '2003-10-19 10:23:54+02');
+--Testcase 1075:
 INSERT INTO t1 VALUES (6000, 'text6', E'\\xa7a8a9aaabacadaeaf', false, 'f', '2006-01-01', 60000, 4645.0, -400.0, 500, 'char array', 'bpchar 3', -1, '2004-10-19 10:23:54+02');
+--Testcase 1076:
 INSERT INTO t1 VALUES (7000, 'text7', E'\\xa7a8a9aaabacadaeaf', true, 'g', '2007-01-01', 70000, -435.10, 500.0, -600, 'char array', 'bpchar 4', -2, '2005-10-19 10:23:54+02');
+--Testcase 1077:
 INSERT INTO t1 VALUES (8000, 'text8', E'\\xa7a8a9aaabacadaeaf', false, 'h', '2008-01-01', 80000, -4578.10, 600.0, 700, 'char array', 'bpchar 5', -3, '2006-10-19 10:23:54+02');
+--Testcase 1078:
 INSERT INTO t1 VALUES (9000, 'text9', E'\\xa7a8a9aaabacadaeaf', true, 'i', '2009-01-01', 90000, 97878.10, 700.0, 800, 'char array', 'bpchar 6', -4, '2003-10-19 09:00:30+02');
+--Testcase 1079:
 INSERT INTO t1 VALUES (10000, 'textbl_objs31', E'\\xa7a8a9aaabacadaeaf', false, 'j', '2010-01-01', 10000, 454.10, 800.0, -900, 'char array', 'bpchar 7', 0, '2008-10-19 09:00:30+02');
 
 do $$
 begin
   for r in 1..10 loop
+--Testcase 1080:
     INSERT INTO t1 SELECT * FROM t1;
   end loop;
 end;
 $$;
 
+--Testcase 1081:
 SELECT count(*) FROM ft1;
+--Testcase 1082:
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
 
+--Testcase 1083:
 CREATE SERVER objstorageS3_1 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9000', storage_type 's3');
+--Testcase 1084:
 CREATE SERVER objstorageS3_2 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9001', storage_type 's3');
+--Testcase 1085:
 CREATE SERVER objstorageS3_3 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (endpoint 'http://127.0.0.1:9002', storage_type 's3');
 
+--Testcase 1086:
 CREATE USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (user 'minioadmin', password 'minioadmin');
+--Testcase 1087:
 CREATE USER MAPPING FOR public SERVER objstorageS3_2 OPTIONS (user 'minioadmin', password 'minioadmin');
+--Testcase 1088:
 CREATE USER MAPPING FOR public SERVER objstorageS3_3 OPTIONS (user 'minioadmin', password 'minioadmin');
 
 -- Abnormal test case
 -- Both region and endpoint are not specified. Throw exception: either "region" or "endpoint" is required.
+--Testcase 1089:
 ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
-
-MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
-        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
-
-ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
 
 -- Both region and endpoint are specified. This case is handled in objstorage_fdw.
 -- So we do not add test case for it here.
 
 -- region is invalid. Expectation is error.
-ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint);
-ALTER SERVER objstorageS3_1 OPTIONS (ADD region 'invalid_region');
-
+--Testcase 1090:
+ALTER SERVER objstorageS3_1 OPTIONS (DROP endpoint, ADD region 'invalid_region');
+--Testcase 1091:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
-
-ALTER SERVER objstorageS3_1 OPTIONS (DROP region);
-ALTER SERVER objstorageS3_1 OPTIONS (ADD endpoint 'http://127.0.0.1:9000');
+--Testcase 1092:
+ALTER SERVER objstorageS3_1 OPTIONS (DROP region, ADD endpoint 'http://127.0.0.1:9000');
 
 -- endpoint is invalid. Expectation is error.
+--Testcase 1093:
 ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9999');
 
+--Testcase 1094:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1095:
 ALTER SERVER objstorageS3_1 OPTIONS (SET endpoint 'http://127.0.0.1:9000');
 
 -- storage_type is not specified. Throw exception: "storage_type" is required.
+--Testcase 1096:
 ALTER SERVER objstorageS3_1 OPTIONS (DROP storage_type);
-
-MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
-        SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
-
-ALTER SERVER objstorageS3_1 OPTIONS (ADD storage_type 's3');
 
 -- storage_type is invalid. Expectation is error. This case is handled in objstorage_fdw.
 -- So we do not add test case for it here.
 
 -- user is not specified. Throw exception: "user" is required.
+--Testcase 1097:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP user);
 
+--Testcase 1098:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1099:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD user 'minioadmin');
 
 -- user is invalid. Expectation is error.
+--Testcase 1100:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'invalid_user');
 
+--Testcase 1101:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1102:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET user 'minioadmin');
 
 -- password is not specified. Throw exception: "password" is required.
+--Testcase 1103:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (DROP password);
 
+--Testcase 1104:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1105:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (ADD password 'minioadmin');
 
 -- password is invalid. Expectation is error.
+--Testcase 1106:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'invalid_password');
 
+--Testcase 1107:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1108:
 ALTER USER MAPPING FOR public SERVER objstorageS3_1 OPTIONS (SET password 'minioadmin');
 
 -- Both filename and dirname are not specified. Throw exception: either "filename" or "dirname" is required.
+--Testcase 1109:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', format 'parquet');
 
 -- Both filename and dirname are specified. Throw exception: both "filename" and "dirname" cannot set at the same time.
+--Testcase 1110:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', dirname 'bucket', format 'parquet');
 
 -- filename is invalid. Expectation is error.
+--Testcase 1111:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'invalid_filename', format 'parquet');
 
 -- dirname is invalid. Expectation is error.
+--Testcase 1112:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'invalid_filename', format 'parquet');
 
 -- format is not specified. Throw exception: "format" is required.
+--Testcase 1113:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet');
 
 -- format is invalid. Exception is error.
+--Testcase 1114:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'invalid_format');
 
 -- some datatypes that are not supported.
 -- bit data type. Expectation is error.
+--Testcase 1115:
 CREATE FOREIGN TABLE ft_bit (
         c1 bit(4)
 ) SERVER loopback OPTIONS (table_name 'tbl_bit');
 
+--Testcase 1116:
 CREATE DATASOURCE TABLE ft_bit;
+--Testcase 1117:
 INSERT INTO ft_bit VALUES (B'1010'), (B'1000'), (B'1111');
 
+--Testcase 1118:
 MIGRATE TABLE ft_bit TO ft_bit2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/bit.parquet', format 'parquet');
 
+--Testcase 1119:
 DROP DATASOURCE TABLE ft_bit;
+--Testcase 1120:
 DROP FOREIGN TABLE ft_bit;
 
 -- time with time zone. Expectation is error.
+--Testcase 1121:
 CREATE FOREIGN TABLE ft_timetz (
         c1 timetz
 ) SERVER loopback OPTIONS (table_name 'tbl_timetz');
 
+--Testcase 1122:
 CREATE DATASOURCE TABLE ft_timetz;
+--Testcase 1123:
 INSERT INTO ft_timetz VALUES ('15:00:00 +02:00'), ('16:00:00 +03:00'), ('17:00:00 +04:00');
 
+--Testcase 1124:
 MIGRATE TABLE ft_timetz TO ft_timetz2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timetz.parquet', format 'parquet');
 
+--Testcase 1125:
 DROP DATASOURCE TABLE ft_timetz;
+--Testcase 1126:
 DROP FOREIGN TABLE ft_timetz;
 
 -- Some data that cannot verify by foreign table of objstorage_fdw
 -- time data type
+--Testcase 1127:
 CREATE FOREIGN TABLE ft_time (
         c1 time
 ) SERVER loopback OPTIONS (table_name 'tbl_time');
 
+--Testcase 1128:
 CREATE DATASOURCE TABLE ft_time;
+--Testcase 1129:
 INSERT INTO ft_time VALUES ('2001-01-01 00:00:00'::time), ('2001-01-02 00:00:00'::time), ('2001-01-03 00:00:00'::time);
 
+--Testcase 1130:
 MIGRATE TABLE ft_time TO ft_time2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/time.parquet', format 'parquet');
 
+--Testcase 1131:
 SELECT count(*) FROM ft_time2;
 -- objstorage_fdw does not support select time data type
+--Testcase 1132:
 SELECT * FROM ft_time2;
 
+--Testcase 1133:
 DROP DATASOURCE TABLE ft_time2;
+--Testcase 1134:
 DROP FOREIGN TABLE ft_time2;
+--Testcase 1135:
 DROP DATASOURCE TABLE ft_time;
+--Testcase 1136:
 DROP FOREIGN TABLE ft_time;
 
 -- timestamp data type
+--Testcase 1137:
 CREATE FOREIGN TABLE ft_timestamp (
         c1 timestamp
 ) SERVER loopback OPTIONS (table_name 'tbl_timestamp');
 
+--Testcase 1138:
 CREATE DATASOURCE TABLE ft_timestamp;
+--Testcase 1139:
 INSERT INTO ft_timestamp VALUES ('2004-10-19 10:23:54'::timestamp), ('2004-10-20 10:23:54'::timestamp), ('2004-10-21 10:23:54'::timestamp);
 
+--Testcase 1140:
 MIGRATE TABLE ft_timestamp TO ft_timestamp2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/timestamp.parquet', format 'parquet');
 
+--Testcase 1141:
 SELECT count(*) FROM ft_timestamp2;
 -- objstorage_fdw does not support convert bigint to time
+--Testcase 1142:
 SELECT * FROM ft_timestamp2 LIMIT 10;
 
+--Testcase 1143:
 DROP DATASOURCE TABLE ft_timestamp2;
+--Testcase 1144:
 DROP FOREIGN TABLE ft_timestamp2;
+--Testcase 1145:
 DROP DATASOURCE TABLE ft_timestamp;
+--Testcase 1146:
 DROP FOREIGN TABLE ft_timestamp;
 
 -- array data types
+--Testcase 1147:
 CREATE FOREIGN TABLE ft1_arr (c1 bool[], c2 "char"[], c3 char[], c4 bigint[], c5 int[], c6 smallint[],
     c7 text[], c8 float4[], c9 float8[], c10 varchar[], c11 numeric[], c12 date[], c13 timestamptz[]
 ) SERVER loopback OPTIONS (table_name 't1_arr');
 
+--Testcase 1148:
 CREATE DATASOURCE TABLE ft1_arr;
 
+--Testcase 1149:
 INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b'], ARRAY['a',''], ARRAY[1000,2000], ARRAY[100,200], ARRAY[1,2], ARRAY['textbl_postgres','text2'], ARRAY[1.0,2.0], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres'], ARRAY[10000,20000], ARRAY['2001-01-01'::date,'2001-01-02'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz]);
+--Testcase 1150:
 INSERT INTO t1_arr VALUES (ARRAY[true, false], ARRAY['a', 'b', 'c'], ARRAY['a','', null], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','text3'], ARRAY[1.0,2.0,null], ARRAY[1000.0,2000.0], ARRAY['var1','textbl_postgres','vartextbl_postgres'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date,'2001-01-04'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1151:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, true, null], ARRAY['a', 'b', 'c', null], ARRAY['a','','x'], ARRAY[1000,null,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2',null], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2001-01-01'::date,'2001-01-02'::date,'2001-01-03'::date], ARRAY['2004-10-19 10:23:54+02'::timestamptz,'2004-10-20 10:23:54+02'::timestamptz,'2004-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1152:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,-2000,3000], ARRAY[100,-200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,50000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1153:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr',null], ARRAY[1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1154:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, true, false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[1,2,3,4,5,6,7,8,9,10], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000,40000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1155:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true,false], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300,400], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 10:23:54+02'::timestamptz,'2005-10-20 10:23:54+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1156:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,-200,300], ARRAY[1,2,-3,4,-5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,-20000,30000,null], ARRAY['2002-01-01'::date,'2001-01-02'::date,null,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1157:
 INSERT INTO t1_arr VALUES (ARRAY[false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[1000,2000,3000], ARRAY[100,200,300,400,500], ARRAY[1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[-1.0,-2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
+--Testcase 1158:
 INSERT INTO t1_arr VALUES (ARRAY[true, false, false, true, true], ARRAY['a', 'b', 'c', 'd'], ARRAY['a','c','','x'], ARRAY[-1000,2000,3000], ARRAY[100,200,300], ARRAY[-1,2,3,4,5], ARRAY['textbl_postgres','text2','textarr'], ARRAY[1.0,2.0,3.0], ARRAY[1000.0,2000.0,3000.0], ARRAY['vararr','textarr','vartextarray'], ARRAY[10000,20000,30000], ARRAY['2002-01-01'::date,'2001-01-02'::date,'2002-01-03'::date], ARRAY['2005-10-19 09:00:30+02'::timestamptz,'2005-10-20 09:00:30+02'::timestamptz,'2005-10-21 10:00:00+02'::timestamptz]);
 
 do $$
 begin
   for r in 1..10 loop
+--Testcase 1159:
     INSERT INTO t1_arr SELECT * FROM t1_arr;
   end loop;
 end;
 $$;
 
+--Testcase 1160:
 SELECT count(*) FROM ft1_arr;
+--Testcase 1161:
 SELECT * FROM ft1_arr ORDER BY c1 LIMIT 10;
 
+--Testcase 1162:
 MIGRATE TABLE ft1_arr TO ft2_arr OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
+--Testcase 1163:
 SELECT count(*) FROM ft2_arr;
 -- objstorage_fdw does not support select array data types
+--Testcase 1164:
 SELECT * FROM ft2_arr ORDER BY c1 LIMIT 10;
 
 -- Check number of record
+--Testcase 1165:
 SELECT count(*) FROM ft2_arr;
 
+--Testcase 1166:
 DROP DATASOURCE TABLE ft2_arr;
+--Testcase 1167:
 DROP FOREIGN TABLE ft2_arr;
+--Testcase 1168:
 DROP DATASOURCE TABLE ft1_arr;
+--Testcase 1169:
 DROP FOREIGN TABLE ft1_arr;
 
 -- MIGRATE single target server and single relay server (with file name is specified)
+--Testcase 1170:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet');
 
 -- Check data for first 10 records and number of records
+--Testcase 1171:
 SELECT count(*) FROM ft2;
+--Testcase 1172:
 SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 
+--Testcase 1173:
 DROP DATASOURCE TABLE ft2;
+--Testcase 1174:
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE multi target server and single relay server (with file name is specified)
+--Testcase 1175:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
         objstorageS3_2 OPTIONS (relay 'cloud1', filename 'bucket/dir/file2.parquet', format 'parquet'),
         objstorageS3_3 OPTIONS (relay 'cloud1', filename 'bucket/dir2/file3.parquet', format 'parquet');
+--Testcase 1176:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1177:
 SELECT count(*) FROM ft2;
 
+--Testcase 1178:
 SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+--Testcase 1179:
 SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+--Testcase 1180:
 SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
 
+--Testcase 1181:
 DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+--Testcase 1182:
 DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+--Testcase 1183:
 DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1184:
 DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+--Testcase 1185:
 DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+--Testcase 1186:
 DROP FOREIGN TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1187:
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE multi target server and multi relay server (with file name is specified)
+--Testcase 1188:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         objstorageS3_1 OPTIONS (relay 'cloud1', filename 'bucket/dir/file1.parquet', format 'parquet'),
         objstorageS3_2 OPTIONS (relay 'cloud2', filename 'bucket/dir/file2.parquet', format 'parquet'),
         objstorageS3_3 OPTIONS (relay 'cloud3', filename 'bucket/dir2/file3.parquet', format 'parquet');
+--Testcase 1189:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1190:
 SELECT count(*) FROM ft2;
 
+--Testcase 1191:
 SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+--Testcase 1192:
 SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+--Testcase 1193:
 SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
 
+--Testcase 1194:
 DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+--Testcase 1195:
 DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+--Testcase 1196:
 DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1197:
 DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+--Testcase 1198:
 DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+--Testcase 1199:
 DROP FOREIGN TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1200:
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE single target server and single relay server (with dirname is specified)
+--Testcase 1201:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
 
 -- Check data for first 10 records and number of records
+--Testcase 1202:
 SELECT count(*) FROM ft2;
+--Testcase 1203:
 SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 
+--Testcase 1204:
 DROP DATASOURCE TABLE ft2;
+--Testcase 1205:
 DROP FOREIGN TABLE ft2;
 
 -- dirname contain key's prefix
 -- bucket is 'bucket', prefix of key is 'dir1/dir2'
+--Testcase 1206:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') 
         SERVER objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket/dir1/dir2', format 'parquet');
 
+--Testcase 1207:
 SELECT count(*) FROM ft2;
+--Testcase 1208:
 SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
 
+--Testcase 1209:
 DROP DATASOURCE TABLE ft2;
+--Testcase 1210:
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE multi target server and single relay server (with dirname is specified)
+--Testcase 1211:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
         objstorageS3_2 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
         objstorageS3_3 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet');
+--Testcase 1212:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1213:
 SELECT count(*) FROM ft2;
 
+--Testcase 1214:
 SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+--Testcase 1215:
 SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+--Testcase 1216:
 SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
 
+--Testcase 1217:
 DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+--Testcase 1218:
 DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+--Testcase 1219:
 DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1220:
 DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+--Testcase 1221:
 DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+--Testcase 1222:
 DROP FOREIGN TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1223:
 DROP FOREIGN TABLE ft2;
 
 -- MIGRATE multi target server and multi relay server (with dirname is specified)
+--Testcase 1224:
 MIGRATE TABLE ft1 TO ft2 OPTIONS (socket_port '4814', function_timeout '800') SERVER
         objstorageS3_1 OPTIONS (relay 'cloud1', dirname 'bucket', format 'parquet'),
         objstorageS3_2 OPTIONS (relay 'cloud2', dirname 'bucket', format 'parquet'),
         objstorageS3_3 OPTIONS (relay 'cloud3', dirname 'bucket', format 'parquet');
+--Testcase 1225:
 \d
 
 -- Check data for first 10 records and number of records
+--Testcase 1226:
 SELECT count(*) FROM ft2;
 
+--Testcase 1227:
 SELECT * FROM ft2__objstorageS3_1__0 ORDER BY c1 LIMIT 10;
+--Testcase 1228:
 SELECT * FROM ft2__objstorageS3_2__0 ORDER BY c1 LIMIT 10;
+--Testcase 1229:
 SELECT * FROM ft2__objstorageS3_3__0 ORDER BY c1 LIMIT 10;
 
+--Testcase 1230:
 DROP DATASOURCE TABLE ft2__objstorageS3_1__0;
+--Testcase 1231:
 DROP DATASOURCE TABLE ft2__objstorageS3_2__0;
+--Testcase 1232:
 DROP DATASOURCE TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1233:
 DROP FOREIGN TABLE ft2__objstorageS3_1__0;
+--Testcase 1234:
 DROP FOREIGN TABLE ft2__objstorageS3_2__0;
+--Testcase 1235:
 DROP FOREIGN TABLE ft2__objstorageS3_3__0;
 
+--Testcase 1236:
 DROP FOREIGN TABLE ft2;
 
 -- Clean
@@ -3223,6 +3609,7 @@ DROP EXTENSION oracle_fdw CASCADE;
 DROP EXTENSION griddb_fdw CASCADE;
 --Testcase 698:
 DROP EXTENSION influxdb_fdw CASCADE;
+--Testcase 1237:
 DROP EXTENSION objstorage_fdw CASCADE;
 --Testcase 699:
 DROP EXTENSION pgspider_fdw CASCADE;
