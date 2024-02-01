@@ -30,8 +30,8 @@ project_build_rpm:
     IMAGE_TAG: "pgspider_create_rpm"
     DOCKERFILE: "Dockerfile_rpm"
   before_script:
-    - export http_proxy=http://proxy.toshiba.co.jp:8080 && export https_proxy=http://proxy.toshiba.co.jp:8080
-    - export no_proxy=127.0.0.1,localhost,docker
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY,docker
     - apk add curl
     # handle if the previous pipeline error
     - docker rmi $IMAGE_TAG || true
@@ -66,8 +66,8 @@ project_build_rpm:
 project_publish_rpm:
   stage: publish_rpm
   before_script:
-    - export http_proxy=http://proxy.toshiba.co.jp:8080 && export https_proxy=http://proxy.toshiba.co.jp:8080
-    - export no_proxy=127.0.0.1,localhost,docker
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY,docker
     - apt-get update -qq && apt-get install -y -qq curl
   variables:
     curl_command: "curl --header \"PRIVATE-TOKEN: $ACCESS_TOKEN\" --insecure --upload-file"
@@ -119,8 +119,8 @@ project_publish_image:
     IMAGE_NAME: "pgspider"
     IMAGE_TAG: "$CI_PIPELINE_ID"
   before_script:
-    - export http_proxy=http://proxy.toshiba.co.jp:8080 && export https_proxy=http://proxy.toshiba.co.jp:8080
-    - export no_proxy=127.0.0.1,localhost,docker
+    - export http_proxy=$PROXY && export https_proxy=$PROXY
+    - export no_proxy=$NO_PROXY,docker
     - docker rmi $CI_REGISTRY/$PGSPIDER_REPO/$IMAGE_NAME:$IMAGE_TAG || true
     - echo "y" | docker system prune
   script:
