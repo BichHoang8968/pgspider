@@ -10,16 +10,12 @@ default:
 # Global variable (can configure outside in gitlab web)
 variables:
   PROXY: "http://proxy.toshiba.co.jp:8080"
-  NO_PROXY: "127.0.0.1,tccloud2.toshiba.co.jp,localhost"
+  NO_PROXY: "127.0.0.1,tccloud2.toshiba.co.jp,localhost,docker"
   ACCESS_TOKEN: "J-CyStgYPMWeTFSY_Ubs"
-  PGSPIDER_REPO: "db/pgspider"
-  PGSPIDER_PROJECT_ID: "16"
   RPM_ARTIFACT_DIR: "fdw_rpm"
-  DEBIAN_ARTIFACT_DIR: "fdw_debian"
   PGSPIDER_RELEASE_VERSION: "4.0.0"
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
   RPM_DISTRIBUTION_TYPE: "rhel8"
-  DEBIAN_DISTRIBUTION_TYPE: ""
 
 project_build_rpm:
   stage: build_rpm
@@ -31,7 +27,7 @@ project_build_rpm:
     DOCKERFILE: "Dockerfile_rpm"
   before_script:
     - export http_proxy=$PROXY && export https_proxy=$PROXY
-    - export no_proxy=$NO_PROXY,docker
+    - export no_proxy=$NO_PROXY
     - apk add curl
     # handle if the previous pipeline error
     - docker rmi $IMAGE_TAG || true
@@ -45,7 +41,7 @@ project_build_rpm:
                   --build-arg no_proxy=$NO_PROXY
                   --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION
                   --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION
-                  --build-arg RPM_DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
+                  --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
                   -f $DOCKERFILE .
     # get rpm file from docker image
     - mkdir -p $RPM_ARTIFACT_DIR
@@ -71,7 +67,7 @@ project_publish_rpm:
     - apt-get update -qq && apt-get install -y -qq curl
   variables:
     curl_command: "curl --header \"PRIVATE-TOKEN: $ACCESS_TOKEN\" --insecure --upload-file"
-    package_uri: "https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/$PGSPIDER_PROJECT_ID/packages/generic/rpm_$RPM_DISTRIBUTION_TYPE/$PGSPIDER_BASE_POSTGRESQL_VERSION"
+    package_uri: "https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/$CI_PROJECT_ID/packages/generic/rpm_$RPM_DISTRIBUTION_TYPE/$PGSPIDER_BASE_POSTGRESQL_VERSION"
   script:
     - echo "Publishing ....."
     # pgspider
@@ -121,20 +117,20 @@ project_publish_image:
   before_script:
     - export http_proxy=$PROXY && export https_proxy=$PROXY
     - export no_proxy=$NO_PROXY,docker
-    - docker rmi $CI_REGISTRY/$PGSPIDER_REPO/$IMAGE_NAME:$IMAGE_TAG || true
+    - docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG || true
     - echo "y" | docker system prune
   script:
     - echo $CI_REGISTRY_PASSWORD | docker login --username $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
     - if [ $PGSPIDER_RPM_ID ]; then PGSPIDER_RPM_ID_POSTFIX="-$PGSPIDER_RPM_ID"; else PGSPIDER_RPM_ID_POSTFIX="-$CI_PIPELINE_ID"; fi
-    - docker build -t $CI_REGISTRY/$PGSPIDER_REPO/$IMAGE_NAME:$IMAGE_TAG
+    - docker build -t $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
                   --build-arg proxy=$PROXY
                   --build-arg no_proxy=$NO_PROXY
                   --build-arg ACCESS_TOKEN=$ACCESS_TOKEN
-                  --build-arg RPM_DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
+                  --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
                   --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION
                   --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION
                   --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} .
-    - docker push $CI_REGISTRY/$PGSPIDER_REPO/$IMAGE_NAME:$IMAGE_TAG
-    - docker rmi $CI_REGISTRY/$PGSPIDER_REPO/$IMAGE_NAME:$IMAGE_TAG
+    - docker push $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
+    - docker rmi $CI_REGISTRY_IMAGE/$IMAGE_NAME:$IMAGE_TAG
   rules:
     - if: '$CI_PIPELINE_SOURCE == "web"'

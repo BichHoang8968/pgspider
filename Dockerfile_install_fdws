@@ -8,326 +8,117 @@ ARG PG_INS=/usr/pgsql-16
 
 ARG proxy
 ARG no_proxy
-ARG dnf_proxy="proxy=${proxy}"
 
-ARG PGSPIDER_RPM_URL
+ARG SQLITE_URL_PACKAGE
+ARG SQLITE_ACCESS_TOKEN
 
-ARG SQLITE_FDW_PACKAGE_NAME
 ARG SQLITE_FDW_URL_PACKAGE
 ARG SQLITE_FDW_ACCESS_TOKEN
 
-ARG TINYBRACE_FDW_PACKAGE_NAME
-ARG TINYBRACE_FDW_URL_PACKAGE
-ARG TINYBRACE_FDW_ACCESS_TOKEN
-
-ARG SQLUMDASH_FDW_PACKAGE_NAME
-ARG SQLUMDASH_FDW_URL_PACKAGE
-ARG SQLUMDASH_FDW_ACCESS_TOKEN
-
-ARG MYSQL_FDW_PACKAGE_NAME
-ARG MYSQL_FDW_URL_PACKAGE
-ARG MYSQL_FDW_ACCESS_TOKEN
-
-ARG INFLUXDB_CXX_PACKAGE_NAME
 ARG INFLUXDB_CXX_URL_PACKAGE
 ARG INFLUXDB_CXX_ACCESS_TOKEN
 
-ARG INFLUXDB_FDW_PACKAGE_NAME
 ARG INFLUXDB_FDW_URL_PACKAGE
 ARG INFLUXDB_FDW_ACCESS_TOKEN
 
-ARG GRIDDB_FDW_PACKAGE_NAME
-ARG GRIDDB_FDW_URL_PACKAGE
-ARG GRIDDB_FDW_ACCESS_TOKEN
-
-ARG AWS_S3_CPP_PACKAGE_NAME
 ARG AWS_S3_CPP_URL_PACKAGE
 ARG AWS_S3_CPP_ACCESS_TOKEN
 
-ARG ARROW_PACKAGE_NAME
 ARG ARROW_URL_PACKAGE
 ARG ARROW_ACCESS_TOKEN
 
-ARG PARQUET_S3_FDW_PACKAGE_NAME
 ARG PARQUET_S3_FDW_URL_PACKAGE
 ARG PARQUET_S3_FDW_ACCESS_TOKEN
 
-ARG DYNAMODB_FDW_PACKAGE_NAME
-ARG DYNAMODB_FDW_URL_PACKAGE
-ARG DYNAMODB_FDW_ACCESS_TOKEN
-
-ARG MONGO_FDW_PACKAGE_NAME
-ARG MONGO_FDW_URL_PACKAGE
-ARG MONGO_FDW_ACCESS_TOKEN
-
-ARG ODBC_FDW_PACKAGE_NAME
-ARG ODBC_FDW_URL_PACKAGE
-ARG ODBC_FDW_ACCESS_TOKEN
-
-ARG JDBC_FDW_PACKAGE_NAME
-ARG JDBC_FDW_URL_PACKAGE
-ARG JDBC_FDW_ACCESS_TOKEN
-
-ARG POSTGREST_FDW_PACKAGE_NAME
-ARG POSTGREST_FDW_URL_PACKAGE
-ARG POSTGREST_FDW_ACCESS_TOKEN
-
-ARG OBJSTORAGE_FDW_PACKAGE_NAME
-ARG OBJSTORAGE_FDW_URL_PACKAGE
-ARG OBJSTORAGE_FDW_ACCESS_TOKEN
-
-ARG PGSPIDER_EXT_PACKAGE_NAME
-ARG PGSPIDER_EXT_URL_PACKAGE
-ARG PGSPIDER_EXT_ACCESS_TOKEN
-
-ARG GITLAB_FDW_PACKAGE_NAME
-ARG GITLAB_FDW_URL_PACKAGE
-ARG GITLAB_FDW_ACCESS_TOKEN
-
-ARG REDMINE_FDW_PACKAGE_NAME
-ARG REDMINE_FDW_URL_PACKAGE
-ARG REDMINE_FDW_ACCESS_TOKEN
-
 ENV http_proxy ${proxy}
 ENV https_proxy ${proxy}
-
 ENV no_proxy ${no_proxy}
 
-# dnf config
-RUN echo $dnf_proxy >> /etc/dnf/dnf.conf
-RUN export http_proxy=${proxy} && export https_proxy=${proxy}
-
 # Download require FDWs
-# sqlite_fdw
-RUN if [[ -n ${SQLITE_FDW_PACKAGE_NAME} && -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
+# sqlite_fdw require sqlite 3.42.0
+RUN if [[ -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
         if [[ -z ${SQLITE_FDW_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${SQLITE_FDW_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${SQLITE_FDW_ACCESS_TOKEN}" ${SQLITE_FDW_URL_PACKAGE} -o /root/${SQLITE_FDW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${SQLITE_FDW_ACCESS_TOKEN}" ${SQLITE_FDW_URL_PACKAGE} -o /root/sqlite_fdw.rpm --insecure ; \
         fi \
     fi
-# tinybrace_fdw
-RUN if [[ -n ${TINYBRACE_FDW_PACKAGE_NAME} && -n ${TINYBRACE_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${TINYBRACE_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${TINYBRACE_FDW_URL_PACKAGE} --no-check-certificate ; \
+# sqlite
+RUN if [[ -n ${SQLITE_URL_PACKAGE} ]]; then \
+        if [[ -z ${SQLITE_ACCESS_TOKEN} ]]; then \
+            wget -P /root/ ${SQLITE_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${TINYBRACE_FDW_ACCESS_TOKEN}" ${TINYBRACE_FDW_URL_PACKAGE} -o /root/${TINYBRACE_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# sqlumdash_fdw
-RUN if [[ -n ${SQLUMDASH_FDW_PACKAGE_NAME} && -n ${SQLUMDASH_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${SQLUMDASH_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${SQLUMDASH_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${SQLUMDASH_FDW_ACCESS_TOKEN}" ${SQLUMDASH_FDW_URL_PACKAGE} -o /root/${SQLUMDASH_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# mysql_fdw
-RUN if [[ -n ${MYSQL_FDW_PACKAGE_NAME} && -n ${MYSQL_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${MYSQL_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${MYSQL_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${MYSQL_FDW_ACCESS_TOKEN}" ${MYSQL_FDW_URL_PACKAGE} -o /root/${MYSQL_FDW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${SQLITE_ACCESS_TOKEN}" ${SQLITE_URL_PACKAGE} -o /root/sqlite.rpm --insecure ; \
         fi \
     fi
 # influxdb_fdw require influxdb-cxx
-RUN if [[ -n ${INFLUXDB_FDW_PACKAGE_NAME} && -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
+RUN if [[ -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
         if [[ -z ${INFLUXDB_FDW_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${INFLUXDB_FDW_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${INFLUXDB_FDW_ACCESS_TOKEN}" ${INFLUXDB_FDW_URL_PACKAGE} -o /root/${INFLUXDB_FDW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${INFLUXDB_FDW_ACCESS_TOKEN}" ${INFLUXDB_FDW_URL_PACKAGE} -o /root/influxdb_fdw.rpm --insecure ; \
         fi \
     fi
 ## influxdb-cxx
-RUN if [[ -n ${INFLUXDB_CXX_PACKAGE_NAME} && -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
+RUN if [[ -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
         if [[ -z ${INFLUXDB_CXX_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${INFLUXDB_CXX_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${INFLUXDB_CXX_ACCESS_TOKEN}" ${INFLUXDB_CXX_URL_PACKAGE} -o /root/${INFLUXDB_CXX_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# griddb_fdw
-RUN if [[ -n ${GRIDDB_FDW_PACKAGE_NAME} && -n ${GRIDDB_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${GRIDDB_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${GRIDDB_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${GRIDDB_FDW_ACCESS_TOKEN}" ${GRIDDB_FDW_URL_PACKAGE} -o /root/${GRIDDB_FDW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${INFLUXDB_CXX_ACCESS_TOKEN}" ${INFLUXDB_CXX_URL_PACKAGE} -o /root/influxdb_cxx.rpm --insecure ; \
         fi \
     fi
 # parquet_s3_fdw require aws-s3-cpp && arrow
-RUN if [[ -n ${PARQUET_S3_FDW_PACKAGE_NAME} && -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
+RUN if [[ -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
         if [[ -z ${PARQUET_S3_FDW_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${PARQUET_S3_FDW_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${PARQUET_S3_FDW_ACCESS_TOKEN}" ${PARQUET_S3_FDW_URL_PACKAGE} -o /root/${PARQUET_S3_FDW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${PARQUET_S3_FDW_ACCESS_TOKEN}" ${PARQUET_S3_FDW_URL_PACKAGE} -o /root/parquet_s3_fdw.rpm --insecure ; \
         fi \
     fi
 ## aws-s3-cpp
-RUN if [[ -n ${AWS_S3_CPP_PACKAGE_NAME} && -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
+RUN if [[ -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
         if [[ -z ${AWS_S3_CPP_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${AWS_S3_CPP_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${AWS_S3_CPP_ACCESS_TOKEN}" ${AWS_S3_CPP_URL_PACKAGE} -o /root/${AWS_S3_CPP_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${AWS_S3_CPP_ACCESS_TOKEN}" ${AWS_S3_CPP_URL_PACKAGE} -o /root/aws_s3_cpp.rpm --insecure ; \
         fi \
     fi
 # arrow
-RUN if [[ -n ${ARROW_PACKAGE_NAME} && -n ${ARROW_URL_PACKAGE} ]]; then \
+RUN if [[ -n ${ARROW_URL_PACKAGE} ]]; then \
         if [[ -z ${ARROW_ACCESS_TOKEN} ]]; then \
             wget -P /root/ ${ARROW_URL_PACKAGE} --no-check-certificate ; \
         else \
-            curl --header "PRIVATE-TOKEN: ${ARROW_ACCESS_TOKEN}" ${ARROW_URL_PACKAGE} -o /root/${ARROW_PACKAGE_NAME} --insecure ; \
+            curl --header "PRIVATE-TOKEN: ${ARROW_ACCESS_TOKEN}" ${ARROW_URL_PACKAGE} -o /root/arrow.rpm --insecure ; \
         fi \
     fi
-# dynamodb_fdw also require aws-s3-cpp && arrow
-RUN if [[ -n ${DYNAMODB_FDW_PACKAGE_NAME} && -n ${DYNAMODB_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${DYNAMODB_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${DYNAMODB_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${DYNAMODB_FDW_ACCESS_TOKEN}" ${DYNAMODB_FDW_URL_PACKAGE} -o /root/${DYNAMODB_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# mongo_fdw
-RUN if [[ -n ${MONGO_FDW_PACKAGE_NAME} && -n ${MONGO_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${MONGO_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${MONGO_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${MONGO_FDW_ACCESS_TOKEN}" ${MONGO_FDW_URL_PACKAGE} -o /root/${MONGO_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# odbc_fdw
-RUN if [[ -n ${ODBC_FDW_PACKAGE_NAME} && -n ${ODBC_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${ODBC_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${ODBC_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${ODBC_FDW_ACCESS_TOKEN}" ${ODBC_FDW_URL_PACKAGE} -o /root/${ODBC_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# jdbc_fdw
-RUN if [[ -n ${JDBC_FDW_PACKAGE_NAME} && -n ${JDBC_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${JDBC_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${JDBC_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${JDBC_FDW_ACCESS_TOKEN}" ${JDBC_FDW_URL_PACKAGE} -o /root/${JDBC_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# postgrest_fdw
-RUN if [[ -n ${POSTGREST_FDW_PACKAGE_NAME} && -n ${POSTGREST_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${POSTGREST_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${POSTGREST_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${POSTGREST_FDW_ACCESS_TOKEN}" ${POSTGREST_FDW_URL_PACKAGE} -o /root/${POSTGREST_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# objstorage_fdw
-RUN if [[ -n ${OBJSTORAGE_FDW_PACKAGE_NAME} && -n ${OBJSTORAGE_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${OBJSTORAGE_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${OBJSTORAGE_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${OBJSTORAGE_FDW_ACCESS_TOKEN}" ${OBJSTORAGE_FDW_URL_PACKAGE} -o /root/${OBJSTORAGE_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# pgspider_ext
-RUN if [[ -n ${PGSPIDER_EXT_PACKAGE_NAME} && -n ${PGSPIDER_EXT_URL_PACKAGE} ]]; then \
-        if [[ -z ${PGSPIDER_EXT_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${PGSPIDER_EXT_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${PGSPIDER_EXT_ACCESS_TOKEN}" ${PGSPIDER_EXT_URL_PACKAGE} -o /root/${PGSPIDER_EXT_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# gitlab_fdw
-RUN if [[ -n ${GITLAB_FDW_PACKAGE_NAME} && -n ${GITLAB_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${GITLAB_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${GITLAB_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${GITLAB_FDW_ACCESS_TOKEN}" ${GITLAB_FDW_URL_PACKAGE} -o /root/${GITLAB_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-# redmine_fdw
-RUN if [[ -n ${REDMINE_FDW_PACKAGE_NAME} && -n ${REDMINE_FDW_URL_PACKAGE} ]]; then \
-        if [[ -z ${REDMINE_FDW_ACCESS_TOKEN} ]]; then \
-            wget -P /root/ ${REDMINE_FDW_URL_PACKAGE} --no-check-certificate ; \
-        else \
-            curl --header "PRIVATE-TOKEN: ${REDMINE_FDW_ACCESS_TOKEN}" ${REDMINE_FDW_URL_PACKAGE} -o /root/${REDMINE_FDW_PACKAGE_NAME} --insecure ; \
-        fi \
-    fi
-
 
 # Install FDWs
 # sqlite_fdw
-RUN if [[ -n ${SQLITE_FDW_PACKAGE_NAME} && -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${SQLITE_FDW_PACKAGE_NAME} ; \
+## to install influxdb_fdw, you need install sqlite first 
+RUN if [[ -n ${SQLITE_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/sqlite.rpm ; \
     fi
-# tinybrace_fdw
-RUN if [[ -n ${TINYBRACE_FDW_PACKAGE_NAME} && -n ${TINYBRACE_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${TINYBRACE_FDW_PACKAGE_NAME} ; \
-    fi
-# sqlumdash_fdw
-RUN if [[ -n ${SQLUMDASH_FDW_PACKAGE_NAME} && -n ${SQLUMDASH_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${SQLUMDASH_FDW_PACKAGE_NAME} ; \
-    fi
-# mysql_fdw
-RUN if [[ -n ${MYSQL_FDW_PACKAGE_NAME} && -n ${MYSQL_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${MYSQL_FDW_PACKAGE_NAME} ; \
+RUN if [[ -n ${SQLITE_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/sqlite_fdw.rpm ; \
     fi
 # influxdb_fdw
 ## to install influxdb_fdw, you need install influxdb-cxx first 
-RUN if [[ -n ${INFLUXDB_CXX_PACKAGE_NAME} && -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${INFLUXDB_CXX_PACKAGE_NAME} ; \
+RUN if [[ -n ${INFLUXDB_CXX_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/influxdb_cxx.rpm ; \
     fi
-RUN if [[ -n ${INFLUXDB_FDW_PACKAGE_NAME} && -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${INFLUXDB_FDW_PACKAGE_NAME} ; \
-    fi
-# griddb_fdw
-RUN if [[ -n ${GRIDDB_FDW_PACKAGE_NAME} && -n ${GRIDDB_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${GRIDDB_FDW_PACKAGE_NAME} ; \
+RUN if [[ -n ${INFLUXDB_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/influxdb_fdw.rpm ; \
     fi
 # parquet_s3_fdw
 ## to install parquet_s3_fdw, you need install aws-s3-cpp && arrow first
-RUN if [[ -n ${ARROW_PACKAGE_NAME} && -n ${ARROW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${ARROW_PACKAGE_NAME} ; \
+RUN if [[ -n ${ARROW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/arrow.rpm ; \
     fi
-RUN if [[ -n ${AWS_S3_CPP_PACKAGE_NAME} && -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${AWS_S3_CPP_PACKAGE_NAME} ; \
+RUN if [[ -n ${AWS_S3_CPP_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/aws_s3_cpp.rpm ; \
     fi
-RUN if [[ -n ${PARQUET_S3_FDW_PACKAGE_NAME} && -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${PARQUET_S3_FDW_PACKAGE_NAME} ; \
-    fi
-# dynamodb_fdw
-# dynamodb_fdw also require install aws-s3-cpp && arrow first 
-RUN if [[ -n ${DYNAMODB_FDW_PACKAGE_NAME} && -n ${DYNAMODB_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${DYNAMODB_FDW_PACKAGE_NAME} ; \
-    fi
-# mongo_fdw
-RUN if [[ -n ${MONGO_FDW_PACKAGE_NAME} && -n ${MONGO_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${MONGO_FDW_PACKAGE_NAME} ; \
-    fi
-# odbc_fdw
-RUN if [[ -n ${ODBC_FDW_PACKAGE_NAME} && -n ${ODBC_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${ODBC_FDW_PACKAGE_NAME} ; \
-    fi
-# jdbc_fdw
-RUN if [[ -n ${JDBC_FDW_PACKAGE_NAME} && -n ${JDBC_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${JDBC_FDW_PACKAGE_NAME} ; \
-    fi
-# postgrest_fdw
-RUN if [[ -n ${POSTGREST_FDW_PACKAGE_NAME} && -n ${POSTGREST_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${POSTGREST_FDW_PACKAGE_NAME} ; \
-    fi
-# objstorage_fdw
-RUN if [[ -n ${OBJSTORAGE_FDW_PACKAGE_NAME} && -n ${OBJSTORAGE_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${OBJSTORAGE_FDW_PACKAGE_NAME} ; \
-    fi
-# pgspider_ext
-RUN if [[ -n ${PGSPIDER_EXT_PACKAGE_NAME} && -n ${PGSPIDER_EXT_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${PGSPIDER_EXT_PACKAGE_NAME} ; \
-    fi
-# gitlab_fdw
-RUN if [[ -n ${GITLAB_FDW_PACKAGE_NAME} && -n ${GITLAB_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${GITLAB_FDW_PACKAGE_NAME} ; \
-    fi
-# redmine_fdw
-RUN if [[ -n ${REDMINE_FDW_PACKAGE_NAME} && -n ${REDMINE_FDW_URL_PACKAGE} ]]; then \
-        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/${REDMINE_FDW_PACKAGE_NAME} ; \
+RUN if [[ -n ${PARQUET_S3_FDW_URL_PACKAGE} ]]; then \
+        dnf -y localinstall --setopt=skip_missing_names_on_install=False --disablerepo="*" /root/parquet_s3_fdw.rpm ; \
     fi
 
 # unset proxy to avoid personal information security

@@ -1,51 +1,8 @@
 #!/bin/sh
 
-IMAGE_TAG=pgspider_create_rpm
-DOCKERFILE=Dockerfile_rpm
-RPM_ARTIFACT_DIR=PGSpider_rpm
-
-PGSPIDER_BASE_POSTGRESQL_VERSION=16
-PGSPIDER_RELEASE_VERSION=4.0.0
-RPM_DISTRIBUTION_TYPE="rhel8"
-
-OWNER_GITHUB=pgspider
-PGSPIDER_PROJECT_GITHUB=pgspider
+source ./env_rpm_optimize_image.conf
 
 set -eE
-
-# User need to specified proxy and no_proxy as environment variable before executing
-#   Example:
-#       export proxy=http://username:password@proxy:port
-#       export no_proxy=127.0.0.1,localhost
-if [[ -z "${proxy}" ]]; then
-  echo "proxy environment variable not set"
-  exit 1
-fi
-
-if [[ -z "${no_proxy}" ]]; then
-  echo "no_proxy environment variable not set"
-  exit 1
-fi
-
-# Choose location to push PGSpider RPM binaries
-read -p "Location to push PGSpider RPM binaries: " location
-if [[ $location != [gG][iI][tT][hH][uU][bB] && $location != [gG][iI][tT][lL][aA][bB] ]]; then
-    echo "Please choose: [GITHUB], [GITLAB]"
-    exit 1
-fi
-
-# Input necessary information
-#   For Github API require RELEASE_ID. Example:
-#        Public projects: https://github.com/public-username/public-repo.git
-#           "public-username" is OWNER
-#           "public-repo" is REPO
-#           Release ID is system value. You can get it by command: curl https://api.github.com/repos/OWNER/REPO/releases/latest
-read -p "Access Token: " ACCESS_TOKEN
-if [[ $location == [gG][iI][tT][hH][uU][bB] ]]; then
-    read -p "PGSpider Release ID: " PGSPIDER_RELEASE_ID
-else
-    read -p "PGSpider PROJECT ID: " PGSPIDER_PROJECT_ID
-fi
 
 # download postgres documentation
 if [[ ! -f postgresql-16-A4.pdf ]]; then
@@ -53,13 +10,13 @@ if [[ ! -f postgresql-16-A4.pdf ]]; then
 fi
 
 # Create Docker image for creating RPM file of PGSpider.
-docker build -t $IMAGE_TAG \
+docker build -t $IMAGE_NAME_RPM \
         --build-arg proxy=${proxy} \
         --build-arg no_proxy=${no_proxy} \
         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${PGSPIDER_BASE_POSTGRESQL_VERSION} \
         --build-arg PGSPIDER_RELEASE_VERSION=${PGSPIDER_RELEASE_VERSION} \
-        --build-arg RPM_DISTRIBUTION_TYPE=${RPM_DISTRIBUTION_TYPE} \
-        -f $DOCKERFILE .
+        --build-arg DISTRIBUTION_TYPE=${RPM_DISTRIBUTION_TYPE} \
+        -f $DOCKERFILE_RPM .
 
 # Get RPM file from container image.
 rm -rf $RPM_ARTIFACT_DIR || true
@@ -67,11 +24,11 @@ mkdir -p $RPM_ARTIFACT_DIR
 docker run --rm -v $(pwd)/$RPM_ARTIFACT_DIR:/tmp \
                 -u "$(id -u $USER):$(id -g $USER)" \
                 -e LOCAL_UID=$(id -u $USER) \
-                -e LOCAL_GID=$(id -g $USER) $IMAGE_TAG /bin/sh \
+                -e LOCAL_GID=$(id -g $USER) $IMAGE_NAME_RPM /bin/sh \
                 -c "cp /home/user1/rpmbuild/RPMS/x86_64/pgspider16*.rpm /tmp/"
 rm -f $RPM_ARTIFACT_DIR/*-debuginfo-*.rpm
 
-# Push rpm binary to registry
+# # Push rpm binary to registry
 if [[ $location == [gG][iI][tT][lL][aA][bB] ]];
 then
     curl_command="curl --header \"PRIVATE-TOKEN: ${ACCESS_TOKEN}\" --insecure --upload-file"
@@ -157,4 +114,4 @@ else
 fi
 
 # Clean
-docker rmi $IMAGE_TAG
+docker rmi $IMAGE_NAME_RPM
