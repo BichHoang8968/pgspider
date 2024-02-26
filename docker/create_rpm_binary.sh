@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source ./env_rpm_optimize_image.conf
+source docker/env_rpm_optimize_image.conf
 
 set -eE
 
@@ -16,7 +16,7 @@ docker build -t $IMAGE_NAME_RPM \
         --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=${PGSPIDER_BASE_POSTGRESQL_VERSION} \
         --build-arg PGSPIDER_RELEASE_VERSION=${PGSPIDER_RELEASE_VERSION} \
         --build-arg DISTRIBUTION_TYPE=${RPM_DISTRIBUTION_TYPE} \
-        -f $DOCKERFILE_RPM .
+        -f docker/$DOCKERFILE_RPM .
 
 # Get RPM file from container image.
 rm -rf $RPM_ARTIFACT_DIR || true

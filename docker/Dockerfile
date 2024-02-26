@@ -99,7 +99,7 @@ RUN mkdir -p "$PGSDATA" && chown -R pgspider:pgspider "$PGSDATA" && chmod 1777 "
 EXPOSE 4813
 
 # setup entrypoint
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY docker/docker-entrypoint.sh /usr/local/bin/
 RUN chmod a+x /usr/local/bin/*.sh
 
 # unset proxy to avoid personal information security
