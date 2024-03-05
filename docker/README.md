@@ -126,13 +126,39 @@ The PGSpider rpm packages are created [above](#creating-pgspider-rpm-packages) w
 	chmod +x docker/create_pgspider_image.sh
 	./docker/create_pgspider_image.sh
 	```
-4. Confirmation after finishing executing the script
-	- For `gitlab` location, PGSpider image is stored on the Container Registry of its repository
-		```sh
-		Menu TaskBar -> Deploy -> Container Registry
-		```
-	- For `github` location, PGSpider image is stored on the Packages registry on its repository
+4. Confirmation after finishing executing the script  
+PGSpider image is stored on the Container Registry of its repository
+	```sh
+	Menu TaskBar -> Deploy -> Container Registry
+	```
 
+Creating optimized PGSpider image with FDWs
+=====================================
+1. File used here
+	- docker/env_rpm_optimize_image.conf
+	- docker/Dockerfile_install_fdws
+	- docker/create_pgspider_with_fdw_image.sh
+2. Configure `docker/env_rpm_optimize_image.conf` file
+	- Configure proxy: Same [Configure of Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
+	- Configure PGSpider base image and FDWs packages
+		```sh
+		BASEIMAGE= 							# Name of PGSpider image. Example: swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724
+		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry
+		SQLITE_FDW_ACCESS_TOKEN=			# Access token to authentication on sqlite_fdw's package registry
+		...
+		# Same for other FDWs
+		```
+3. Build execution
+	```sh
+	chmod +x docker/create_pgspider_with_fdw_image.sh
+	./docker/create_pgspider_with_fdw_image.sh
+	```
+4. Confirmation after finishing executing the script  
+The optimized PGSpider image is created with the name `optimized_pgspider`
+	```sh
+	$ docker images
+	REPOSITORY                 TAG                IMAGE ID          CREATED                optimized_pgspider         latest             a1ae1446e5f7      14 hours ago 
+	```
 Usage of PGSpider image
 =====================================
 1. Pull PGSpider image from the Registry (Unnecessary if already available)

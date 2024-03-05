@@ -1,6 +1,6 @@
 #!/bin/sh
 
-source ./env_rpm_optimize_image.conf
+source docker/env_rpm_optimize_image.conf
 set -eE
 
 if [[ ${PGSPIDER_RPM_ID} ]]; then

@@ -30,13 +30,13 @@
                  -e LOCAL_UID=$(id -u $USER) \
                  -e LOCAL_GID=$(id -g $USER) $IMAGE_NAME_RPM /bin/sh \
 -                -c "cp /home/user1/rpmbuild/RPMS/x86_64/pgspider16*.rpm /tmp/"
-+                -c "/root/rpmbuild/RPMS/x86_64/postgresql16*.rpm /tmp/"
++                -c "cp /root/rpmbuild/RPMS/x86_64/postgresql16*.rpm /tmp/"
  rm -f $RPM_ARTIFACT_DIR/*-debuginfo-*.rpm
  
  # # Push rpm binary to registry
 --- docker/Dockerfile_rpm.old	2024-02-07 18:12:31.617368008 +0700
 +++ docker/Dockerfile_rpm	2024-02-07 17:38:56.093225672 +0700
-@@ -35,18 +35,11 @@
+@@ -35,22 +35,11 @@
  RUN echo "user1:user1" | chpasswd
  RUN echo "user1 ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
  
@@ -52,14 +52,26 @@
 -            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf  \
 -            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/PGSpider_rpm          \
 -            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/centos-gpg-keys-8-3.el8.noarch.rpm
+-
+-# Change permission
+-RUN chown user1:user1 -R /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
+-RUN chmod +x /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/configure
 +# Transfer files for postgres
 +WORKDIR /home/user1
 +COPY ./rpm/* /home/user1
 +COPY ./postgresql-16.0.tar.bz2 /home/user1
 +COPY ./postgresql-16-A4.pdf /home/user1
  
- # Change permission
- RUN chown user1:user1 -R /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
+ # Add paths.
+ RUN echo /usr/pgsql-16/lib > /etc/ld.so.conf.d/pgspider.conf
+@@ -62,7 +51,6 @@ ENV PATH $PATH:/usr/pgsql-16/bin
+ ########## Start RPM building ##########
+ USER user1
+ WORKDIR /home/user1
+-RUN tar cvjf pgspider-${PGSPIDER_RELEASE_VERSION}.tar.bz2 pgspider-${PGSPIDER_RELEASE_VERSION}
+ 
+ # Build RPM file.
+ WORKDIR /home/user1
 --- rpm/PGSpider.spec.old	2024-02-07 18:13:01.304370104 +0700
 +++ rpm/PGSpider.spec	2024-02-07 17:52:45.241284226 +0700
 @@ -5,7 +5,6 @@
