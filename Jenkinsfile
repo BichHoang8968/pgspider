@@ -7,8 +7,9 @@ def PGSPIDER_DOCKER_PATH = '/home/jenkins/Docker/Server/PGSpider'
 def ENHANCE_TEST_DOCKER_PATH = '/home/jenkins/Docker'
 def DCT_DOCKER_PATH = '/home/jenkins/Docker/Server/GCP'
 def GITLAB_DOCKER_PATH = '/home/jenkins/Docker/Server/Gitlab'
+def OBJSTORAGE_MIGRATE_PATH = '/home/jenkins/Docker/Server/Objstorage/PGSMigrate'
 
-def BRANCH_PGSPIDER = env.BRANCH_NAME
+def BRANCH_PGSPIDER = 'Fix_propagate_userid_to_child_foreign_table'
 def BRANCH_TINYBRACE_FDW = 'master'
 def BRANCH_MYSQL_FDW = 'master'
 def BRANCH_SQLITE_FDW = 'port16.0'
@@ -23,6 +24,7 @@ def BRANCH_JDBC_FDW = 'master'
 def BRANCH_REDMINE_FDW = 'master'
 def BRANCH_PGSPIDER_COMPRESSION = 'main'
 def BRANCH_GITLAB_FDW = 'main'
+def BRANCH_OBJSTORAGE_FDW = 'dev_main'
 
 pipeline {
     agent {
@@ -62,7 +64,7 @@ pipeline {
                         rm -rf /tmp/data_s3_2/* || true
                         mkdir -p /tmp/data_s3_1/data/source && mkdir -p /tmp/data_s3_1/data/dest && mkdir -p /tmp/data_s3_2/data/source && mkdir -p /tmp/data_s3_2/data/dest
                         cd ${PGSPIDER_DOCKER_PATH}
-                        docker-compose up -d
+                        docker compose up -d
                     """
                 }
             }
@@ -175,6 +177,7 @@ pipeline {
                         docker exec tinybraceserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
                         docker exec -w /usr/local/tinybrace tinybraceserver_multi_existed_test /bin/bash -c 'bin/tbserver &'
                         docker exec redmine_server_for_existed_test /bin/bash -c 'bundle exec rails runner -e production /home/test/create_redmine_data.rb'
+                        docker exec redmine_server_for_existed_test /bin/bash -c 'bundle exec rails runner -e production /home/test/create_customfields_data.rb'
                         docker exec redmine_mysql_db /bin/bash -c '/home/test/update_date_time_fields.sh'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_core" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_make_check.out
@@ -451,11 +454,15 @@ pipeline {
                 catchError() {
                     sh """
                         cd ${PGSPIDER_DOCKER_PATH}
-                        docker-compose down
+                        docker compose down
                         sleep 10
+                        rm -rf /tmp/minio1_compression/bucket/* && rm -rf /tmp/minio2_compression/bucket/* && rm -rf /tmp/minio3_compression/bucket/* || true
+                        mkdir -p /tmp/minio1_compression/bucket/ && mkdir -p /tmp/minio2_compression/bucket/ && mkdir -p /tmp/minio3_compression/bucket/ || true
                         cd ${DCT_DOCKER_PATH}
-                        docker-compose up -d
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh ${BRANCH_PGSPIDER} --build_data_compress ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW}" pgspider'
+                        docker compose up -d
+                        sleep 10
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/initialize_pgspider_compression_test.sh ${BRANCH_PGSPIDER} --build_data_compress ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW} ${BRANCH_OBJSTORAGE_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_data_compression_test.sh --init_data_compression" pgspider'
                     """
                 }
             }
@@ -490,7 +497,7 @@ pipeline {
                         docker exec -d -w /tmp/pgspider_compression/FunctionGCP gcpserver_for_compression_existed_test /bin/bash -c 'su -c " source ~/.bashrc && mvn function:run" pgspider'
 
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c '/home/test/influxdb_cxx_client_build.sh'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_data_compression" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_data_compression_test.sh --test_data_compression" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_data_compression_make_check.out
                     """
                 }
@@ -514,7 +521,7 @@ pipeline {
                 catchError() {
                     sh """
                         cd ${DCT_DOCKER_PATH}
-                        docker-compose down
+                        docker compose down
                         sleep 10
                         cd ${GITLAB_DOCKER_PATH}
                         docker compose up --wait
@@ -557,13 +564,62 @@ pipeline {
                 }
             }
         }
-
-/*        stage('Start_containers_Enhance_Test') {
+        stage('prepare_for_pgspider_objstorage_migrate') {
+            steps {
+                catchError() {
+                    sh """
+                        cd ${DCT_DOCKER_PATH}
+                        docker compose down
+                        sleep 10
+                        cd ${GITLAB_DOCKER_PATH}
+                        docker compose down
+                        sleep 10
+                        cd ${OBJSTORAGE_MIGRATE_PATH}
+                        docker compose up -d
+                    """
+                }
+            }
+            post {
+                failure {
+                    echo '** BUILD FAILED !!! NEXT STAGE WILL BE SKIPPED **'
+                    emailext subject: '[CI PGSpider] Prepare for Test Objstorage migrate FAILED ' + BRANCH_NAME, body: BUILD_INFO + '${BUILD_LOG, maxLines=200, escapeHtml=false}', to: "${MAIL_TO}", attachLog: false
+                    updateGitlabCommitStatus name: 'Build', state: 'failed'
+                }
+                success {
+                    updateGitlabCommitStatus name: 'Build', state: 'success'
+                }
+            }
+        }
+        stage('pgspider_objstorage_migrate') {
+            steps {
+                catchError() {
+                    sh """
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/init_pgspider_migrate_objstorage.sh ${BRANCH_PGSPIDER} ${BRANCH_OBJSTORAGE_FDW}" pgspider'
+                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_migrate_test.sh" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_objstorage_migrate_make_check.out
+                    """
+                }
+                script {
+                    status = sh(returnStatus: true, script: "grep -q 'All [0-9]* tests passed' 'pgspider_objstorage_migrate_make_check.out'")
+                    if (status != 0) {
+                        unstable(message: "Set UNSTABLE result")
+                        emailext subject: '[CI PGSpider] pgspider_objstorage_migrate Test FAILED on ' + BRANCH_NAME, body: BUILD_INFO + '${FILE,path="pgspider_objstorage_migrate_make_check.out"}', to: "${MAIL_TO}", attachLog: false
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/regression.diffs pgspider_objstorage_migrate.diffs'
+                        sh 'docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/results results_pgspider_objstorage_migrate'
+                        sh 'cat pgspider_objstorage_migrate.diffs || true'
+                        updateGitlabCommitStatus name: 'pgspider_objstorage_migrate', state: 'failed'
+                    } else {
+                        updateGitlabCommitStatus name: 'pgspider_objstorage_migrate', state: 'success'
+                    }
+                }
+            }
+        }
+        /*stage('Start_containers_Enhance_Test') {
             steps {
                 catchError() {
                     sh """
                         cd ${ENHANCE_TEST_DOCKER_PATH}
-                        docker-compose up -d
+                        docker compose up -d
                     """
                 }
             }
@@ -635,8 +691,8 @@ pipeline {
                     }
                 }
             }
-        }*/
-        /*stage('run_enhance_test_on_local_machine') {
+        }
+        stage('run_enhance_test_on_local_machine') {
             steps {
                 catchError() {
                     sh """
@@ -674,13 +730,15 @@ pipeline {
         always {
             sh """
                 cd ${PGSPIDER_DOCKER_PATH}
-                docker-compose down
+                docker compose down
                 cd ${DCT_DOCKER_PATH}
-                docker-compose down
+                docker compose down
                 cd ${GITLAB_DOCKER_PATH}
                 docker compose down
                 #cd ${ENHANCE_TEST_DOCKER_PATH}
-                #docker-compose down
+                #docker compose down
+                cd ${OBJSTORAGE_MIGRATE_PATH}
+                docker compose down
             """
         }
     }

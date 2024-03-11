@@ -4190,6 +4190,15 @@ spd_CreateChildRoot(PlannerInfo *root, Index relid, Oid tableOid, Oid oid_server
 			/* Create RTEPermissionInfo */
 			child_perminfo = addRTEPermissionInfo(&rteperminfos, child_rte);
 			child_perminfo->requiredPerms = ACL_SELECT;
+
+			/* If parent RangeTblEntry has a RTEPermissionInfo, inherit checkAsUser from it */
+			if (rte->perminfoindex != 0 &&
+				rte->perminfoindex <= list_length(root->parse->rteperminfos))
+			{
+				RTEPermissionInfo *parent_perminfo = getRTEPermissionInfo(root->parse->rteperminfos, rte);
+
+				child_perminfo->checkAsUser = parent_perminfo->checkAsUser;
+			}
 		}
 
 		rtable = lappend(rtable, child_rte);

@@ -19,6 +19,8 @@ CREATE EXTENSION sqlite_fdw;
 CREATE EXTENSION tinybrace_fdw;
 --Testcase 191:
 CREATE EXTENSION mysql_fdw;
+--Testcase 812:
+CREATE EXTENSION oracle_fdw;
 --Testcase 192:
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
 --Testcase 193:
@@ -7369,8 +7371,11 @@ SET parallel_tuple_cost=0;
 SET max_parallel_workers_per_gather=4;
 --Testcase 736:
 SET debug_parallel_query=ON;
+--Testcase 750:
 SET enable_hashjoin=false;
+--Testcase 751:
 SET enable_nestloop=true;
+--Testcase 752:
 SET enable_mergejoin= false;
 --Testcase 737:
 CREATE TABLE newusermap(dtype text, id text , name text, location text, parentid text, updatetime timestamp DEFAULT now());
@@ -7440,9 +7445,862 @@ SELECT min(cast (id as integer)) FROM newusermap;
    1
 (1 row)
 
+-- ====================================================================
+-- Test if pgspider_core_fdw propagates correct userid to child foreign tables.
+-- ====================================================================
+--Testcase 753:
+Set pgspider_core_fdw.throw_error_ifdead to true;
+--Testcase 754:
+CREATE ROLE regress_view_owner_another;
+GRANT SELECT ON test2 TO regress_view_owner_another;
+-- Drop file_fdw child foreign table because it is similar to sqlite_fdw (does not use
+-- user mapping).
+--Testcase 814:
+DROP FOREIGN TABlE test2__file_svr__0;
+-- GetUserMapping automatically searches for user mapping of public if not found
+-- specific user. Therefore, remove all user mapping of child foreign tables for public
+-- to make sure that we test correct user.
+--Testcase 755:
+DROP USER MAPPING FOR public server mysql_svr;
+--Testcase 756:
+DROP USER MAPPING FOR public SERVER post_svr;
+--Testcase 757:
+DROP USER MAPPING FOR public SERVER tiny_svr;
+-- Create user mapping for current user, so that current user can query as normal.
+--Testcase 758:
+CREATE USER MAPPING FOR CURRENT_USER server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 759:
+CREATE USER MAPPING FOR CURRENT_USER SERVER post_svr OPTIONS (user 'postgres',password 'postgres');
+--Testcase 760:
+CREATE USER MAPPING FOR CURRENT_USER SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+-- Create child foreign table of oracle_fdw
+--Testcase 820:
+CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver '', isolation_level 'read_committed', nchar 'true');
+--Testcase 821:
+CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 822:
+CREATE FOREIGN TABLE test2__oracle_svr__0 (i int OPTIONS (key 'yes') NOT NULL) SERVER oracle_svr OPTIONS (table 'TEST2');
+DO
+$$BEGIN
+--Testcase 5:
+   SELECT oracle_execute('oracle_svr', 'DROP TABLE TEST2 PURGE');
+EXCEPTION
+   WHEN OTHERS THEN
+      NULL;
+END;$$;
+--Testcase 823:
+SELECT oracle_execute('oracle_svr', E'CREATE TABLE TEST2 (i int PRIMARY KEY) SEGMENT CREATION IMMEDIATE');
+ oracle_execute 
+----------------
+ 
+(1 row)
+
+--Testcase 824:
+SELECT oracle_execute('oracle_svr', 'INSERT INTO TEST2 VALUES (150)');
+ oracle_execute 
+----------------
+ 
+(1 row)
+
+--Testcase 825:
+SELECT oracle_execute('oracle_svr', 'INSERT INTO TEST2 VALUES (250)');
+ oracle_execute 
+----------------
+ 
+(1 row)
+
+--Testcase 826:
+SELECT * FROM test2__oracle_svr__0;
+  i  
+-----
+ 150
+ 250
+(2 rows)
+
+-- Set use_remote_estimate to true to force postgres_fdw and mysql_fdw use userid at GetForeignRelsize
+-- file_fdw and sqlite_fdw does not use userid, tinybrace_fdw always uses userid at GetForeignRelSize,
+-- so unnecessary to set for them.
+--Testcase 761:
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (ADD use_remote_estimate 'true');
+--Testcase 762:
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (ADD use_remote_estimate 'true');
+-- Firstly, use current user to query. Expect success.
+--Testcase 763:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Limit
+   Output: i, __spd_url
+   ->  Sort
+         Output: i, __spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Foreign Scan on public.test2
+               Output: i, __spd_url
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote query: SELECT `i` FROM `test`.`test2`
+               Node: oracle_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                 Oracle plan: SELECT STATEMENT
+                 Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+               Node: post_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote SQL: SELECT i FROM public.test2
+               Node: sqlite_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 SQLite query: SELECT `i` FROM main."test2"
+               Node: tiny_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 TinyBrace query: SELECT `i` FROM "test2"
+                 TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(30 rows)
+
+--Testcase 764:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+ i  |  __spd_url   
+----+--------------
+  1 | /mysql_svr/
+  2 | /post_svr/
+  3 | /sqlite_svr/
+  4 | /tiny_svr/
+  5 | /mysql_svr/
+  6 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+(10 rows)
+
+-- Switch to regress_view_owner_another and query. Expect error because user mapping of mysql_svr for
+-- regress_view_owner_another is not created.
+--Testcase 765:
+SET ROLE regress_view_owner_another;
+--Testcase 766:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+--Testcase 767:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Create user mapping of mysql_svr for regress_view_owner_another and try again. However, user mappings of
+-- other child server are not created, so error still occurs. It is required to create user mapping for
+-- all necessary child server to be able to query successfully.
+--Testcase 768:
+RESET ROLE;
+--Testcase 769:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 770:
+SET ROLE regress_view_owner_another;
+--Testcase 771:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[1] failed.
+ERROR:  PGSpider can not execute query from child node : oracle_svr
+--Testcase 772:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[1] failed.
+ERROR:  PGSpider can not execute query from child node : oracle_svr
+-- Now, we create user mapping of all child servers for regress_view_owner_another.
+--Testcase 773:
+RESET ROLE;
+--Testcase 827:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 774:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 775:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+-- Confirm that regress_view_owner_another does not have SELECT privilege on child foreign tables
+--Testcase 776:
+SET ROLE regress_view_owner_another;
+--Testcase 778:
+SELECT * FROM test2__mysql_svr__0;
+ERROR:  permission denied for foreign table test2__mysql_svr__0
+--Testcase 779:
+SELECT * FROM test2__post_svr__0;
+ERROR:  permission denied for foreign table test2__post_svr__0
+--Testcase 780:
+SELECT * FROM test2__sqlite_svr__0;
+ERROR:  permission denied for foreign table test2__sqlite_svr__0
+--Testcase 781:
+SELECT * FROM test2__tiny_svr__0;
+ERROR:  permission denied for foreign table test2__tiny_svr__0
+--Testcase 829:
+SELECT * FROM test2__oracle_svr__0;
+ERROR:  permission denied for foreign table test2__oracle_svr__0
+-- Even though regress_view_owner_another does not have SELECT privilege on child foreign tables,
+-- it still has the SELECT privilege on parent multi-tenant table. Therefore, when querying through
+-- multi-tenant table, it can get data from child foreign tables.
+-- Now, all user mappings are created, so query success.
+--Testcase 782:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Limit
+   Output: i, __spd_url
+   ->  Sort
+         Output: i, __spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Foreign Scan on public.test2
+               Output: i, __spd_url
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote query: SELECT `i` FROM `test`.`test2`
+               Node: oracle_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                 Oracle plan: SELECT STATEMENT
+                 Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+               Node: post_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote SQL: SELECT i FROM public.test2
+               Node: sqlite_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 SQLite query: SELECT `i` FROM main."test2"
+               Node: tiny_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 TinyBrace query: SELECT `i` FROM "test2"
+                 TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(30 rows)
+
+--Testcase 783:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+ i  |  __spd_url   
+----+--------------
+  1 | /mysql_svr/
+  2 | /post_svr/
+  3 | /sqlite_svr/
+  4 | /tiny_svr/
+  5 | /mysql_svr/
+  6 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+(10 rows)
+
+--Testcase 784:
+RESET ROLE;
+-- When querying to a normal view (security definer view), view owner is used to query
+-- (not current user). Verify if pgspider_core_fdw can propagate correctly when querying
+-- to that view.
+--Testcase 785:
+CREATE VIEW view1 AS SELECT * FROM test2;
+--Testcase 786:
+ALTER VIEW view1 OWNER TO regress_view_owner_another;
+--Testcase 787:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+--Testcase 788:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 789:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 831:
+DROP USER MAPPING FOR regress_view_owner_another SERVER oracle_svr;
+-- Select from view, view owner regress_view_owner_another is used and propagated
+-- to child tables, so error occurs because user mapping for regress_view_owner_another
+-- is not created.
+--Testcase 790:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+--Testcase 805:
+SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Likewise, but with the query under an UNION ALL
+--Testcase 791:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+--Testcase 806:
+SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Mixing querying to view and foreign table, regress_view_owner_another is used for view1,
+-- and current user is used for test2. Same error occurs.
+--Testcase 792:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+--Testcase 807:
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- The error does not occur when we mix foreign tables only, because it uses current user to query.
+--Testcase 793:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM test2 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: t1.i, t2.i
+   ->  Sort
+         Output: t1.i, t2.i
+         Sort Key: t1.i, t2.i
+         ->  Nested Loop Left Join
+               Output: t1.i, t2.i
+               Join Filter: (t1.i = t2.i)
+               ->  Foreign Scan on public.test2 t1
+                     Output: t1.i
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote query: SELECT `i` FROM `test`.`test2`
+                     Node: oracle_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                       Oracle plan: SELECT STATEMENT
+                       Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                     Node: post_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote SQL: SELECT i FROM public.test2
+                     Node: sqlite_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       SQLite query: SELECT `i` FROM main."test2"
+                     Node: tiny_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       TinyBrace query: SELECT `i` FROM "test2"
+                       TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+               ->  Materialize
+                     Output: t2.i
+                     ->  Foreign Scan on public.test2 t2
+                           Output: t2.i
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote query: SELECT `i` FROM `test`.`test2`
+                           Node: oracle_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                             Oracle plan: SELECT STATEMENT
+                             Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                           Node: post_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT i FROM public.test2
+                           Node: sqlite_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             SQLite query: SELECT `i` FROM main."test2"
+                           Node: tiny_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             TinyBrace query: SELECT `i` FROM "test2"
+                             TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(60 rows)
+
+--Testcase 808:
+SELECT t1.i, t2.i FROM test2 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+ i  | i  
+----+----
+ 11 | 11
+ 12 | 12
+ 13 | 13
+ 14 | 14
+ 15 | 15
+ 16 | 16
+ 17 | 17
+ 18 | 18
+ 19 | 19
+ 20 | 20
+(10 rows)
+
+-- Now, create user mappings for child tables and try again. Expect success.
+--Testcase 794:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 795:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 796:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+--Testcase 833:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 797:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+                                         QUERY PLAN                                          
+---------------------------------------------------------------------------------------------
+ Limit
+   Output: test2.i, test2.__spd_url
+   ->  Sort
+         Output: test2.i, test2.__spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Foreign Scan on public.test2
+               Output: test2.i, test2.__spd_url
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote query: SELECT `i` FROM `test`.`test2`
+               Node: oracle_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                 Oracle plan: SELECT STATEMENT
+                 Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+               Node: post_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote SQL: SELECT i FROM public.test2
+               Node: sqlite_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 SQLite query: SELECT `i` FROM main."test2"
+               Node: tiny_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 TinyBrace query: SELECT `i` FROM "test2"
+                 TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(30 rows)
+
+--Testcase 809:
+SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+ i  |  __spd_url   
+----+--------------
+  1 | /mysql_svr/
+  2 | /post_svr/
+  3 | /sqlite_svr/
+  4 | /tiny_svr/
+  5 | /mysql_svr/
+  6 | /post_svr/
+  7 | /sqlite_svr/
+  8 | /tiny_svr/
+  9 | /mysql_svr/
+ 10 | /post_svr/
+(10 rows)
+
+--Testcase 798:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Limit
+   Output: test2.i, test2.__spd_url
+   ->  Sort
+         Output: test2.i, test2.__spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Append
+               ->  Foreign Scan on public.test2
+                     Output: test2.i, test2.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote query: SELECT `i` FROM `test`.`test2`
+                     Node: oracle_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                       Oracle plan: SELECT STATEMENT
+                       Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                     Node: post_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote SQL: SELECT i FROM public.test2
+                     Node: sqlite_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       SQLite query: SELECT `i` FROM main."test2"
+                     Node: tiny_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       TinyBrace query: SELECT `i` FROM "test2"
+                       TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+               ->  Foreign Scan on public.test2 test2_1
+                     Output: test2_1.i, test2_1.__spd_url
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote query: SELECT `i` FROM `test`.`test2`
+                     Node: oracle_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                       Oracle plan: SELECT STATEMENT
+                       Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                     Node: post_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote SQL: SELECT i FROM public.test2
+                     Node: sqlite_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       SQLite query: SELECT `i` FROM main."test2"
+                     Node: tiny_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       TinyBrace query: SELECT `i` FROM "test2"
+                       TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(56 rows)
+
+--Testcase 810:
+SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+ i |  __spd_url   
+---+--------------
+ 1 | /mysql_svr/
+ 1 | /mysql_svr/
+ 2 | /post_svr/
+ 2 | /post_svr/
+ 3 | /sqlite_svr/
+ 3 | /sqlite_svr/
+ 4 | /tiny_svr/
+ 4 | /tiny_svr/
+ 5 | /mysql_svr/
+ 5 | /mysql_svr/
+(10 rows)
+
+--Testcase 799:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+                                               QUERY PLAN                                                
+---------------------------------------------------------------------------------------------------------
+ Limit
+   Output: test2.i, t2.i
+   ->  Sort
+         Output: test2.i, t2.i
+         Sort Key: test2.i, t2.i
+         ->  Nested Loop Left Join
+               Output: test2.i, t2.i
+               Join Filter: (test2.i = t2.i)
+               ->  Foreign Scan on public.test2
+                     Output: test2.i
+                     Node: mysql_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote query: SELECT `i` FROM `test`.`test2`
+                     Node: oracle_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                       Oracle plan: SELECT STATEMENT
+                       Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                     Node: post_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       Remote SQL: SELECT i FROM public.test2
+                     Node: sqlite_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       SQLite query: SELECT `i` FROM main."test2"
+                     Node: tiny_svr / Status: Alive
+                       Limit push-down: no
+                       Sort push-down: no
+                       TinyBrace query: SELECT `i` FROM "test2"
+                       TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+               ->  Materialize
+                     Output: t2.i
+                     ->  Foreign Scan on public.test2 t2
+                           Output: t2.i
+                           Node: mysql_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote query: SELECT `i` FROM `test`.`test2`
+                           Node: oracle_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Oracle query: SELECT /*7532f5d819aed5bdc05e2b9c537efd59*/ "I" FROM  "TEST2"
+                             Oracle plan: SELECT STATEMENT
+                             Oracle plan:   INDEX FAST FULL SCAN SYS_C008543
+                           Node: post_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             Remote SQL: SELECT i FROM public.test2
+                           Node: sqlite_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             SQLite query: SELECT `i` FROM main."test2"
+                           Node: tiny_svr / Status: Alive
+                             Limit push-down: no
+                             Sort push-down: no
+                             TinyBrace query: SELECT `i` FROM "test2"
+                             TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(60 rows)
+
+--Testcase 811:
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+ i  | i  
+----+----
+ 11 | 11
+ 12 | 12
+ 13 | 13
+ 14 | 14
+ 15 | 15
+ 16 | 16
+ 17 | 17
+ 18 | 18
+ 19 | 19
+ 20 | 20
+(10 rows)
+
+-- Verify some other clauses: INSERT, UPDATE, DELETE, ORDER BY, LIMIT, aggregate function
+-- Push down LIMIT to oracle_fdw is difficult because of cost, so remove it to make sure that we can push down
+-- to all child foreign tables
+--Testcase 870:
+DROP FOREIGN TABLE test2__oracle_svr__0;
+-- Drop user mappings for regress_view_owner_another
+--Testcase 837:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 838:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 841:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+-- Push down ORDER BY, LIMIT, expect error because user mapping is missing
+--Testcase 842:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 1;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Push down aggregate function, expect error because user mapping is missing
+--Testcase 843:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM view1;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Modification, expect error because user mapping is missing
+GRANT INSERT ON test2 TO regress_view_owner_another;
+GRANT UPDATE ON test2 TO regress_view_owner_another;
+GRANT DELETE ON test2 TO regress_view_owner_another;
+--Testcase 844:
+INSERT INTO view1 VALUES (1000), (2000);
+ERROR:  Error occurred on a child table "test2__mysql_svr__0".
+DETAIL:  user mapping not found for "regress_view_owner_another"
+--Testcase 845:
+UPDATE view1 SET i = i + 1;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+--Testcase 846:
+DELETE FROM view1 WHERE i > 1000;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : mysql_svr
+-- Recreate user mappings and try again, expect success
+--Testcase 847:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 850:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 851:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+-- Push down ORDER BY, LIMIT
+--Testcase 852:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 1;
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Limit
+   Output: test2.i, test2.__spd_url
+   ->  Sort
+         Output: test2.i, test2.__spd_url
+         Sort Key: test2.i
+         ->  Foreign Scan on public.test2
+               Output: test2.i, test2.__spd_url
+               Node: mysql_svr / Status: Alive
+                 Limit push-down: yes
+                 Sort push-down: yes
+                 Remote query: SELECT `i` FROM `test`.`test2` ORDER BY `i` IS NULL ASC, `i` ASC LIMIT 1
+               Node: post_svr / Status: Alive
+                 Limit push-down: yes
+                 Sort push-down: yes
+                 Remote SQL: SELECT i FROM public.test2 ORDER BY i ASC NULLS LAST LIMIT 1::bigint
+               Node: sqlite_svr / Status: Alive
+                 Limit push-down: yes
+                 Sort push-down: yes
+                 SQLite query: SELECT `i` FROM main."test2" ORDER BY `i` ASC NULLS LAST LIMIT 1
+               Node: tiny_svr / Status: Alive
+                 Limit push-down: yes
+                 Sort push-down: yes
+                 TinyBrace query: SELECT `i` FROM "test2" ORDER BY `i` IS NULL ASC, `i` ASC LIMIT 1
+                 TinyBrace plan: SCAN TABLE test2 (~1000000 rows)
+(24 rows)
+
+-- Push down aggregate function
+--Testcase 853:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM view1;
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Foreign Scan
+   Output: (count(*))
+   Node: mysql_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (test.test2__mysql_svr__0)
+     Remote query: SELECT count(*) FROM `test`.`test2`
+   Node: post_svr / Status: Alive
+     Agg push-down: yes
+     Relations: Aggregate on (public.test2)
+     Remote SQL: SELECT count(*) FROM public.test2
+   Node: sqlite_svr / Status: Alive
+     Agg push-down: yes
+     SQLite query: SELECT count(*) FROM main."test2"
+   Node: tiny_svr / Status: Alive
+     Agg push-down: yes
+     TinyBrace query: SELECT count(*) FROM "test2"
+     TinyBrace plan: SCAN TABLE test2 USING COVERING INDEX sqlite_autoindex_test2_1(~1000000 rows)
+(17 rows)
+
+-- Modification
+--Testcase 854:
+INSERT INTO view1 VALUES (1000), (2000);
+INFO:  Batch Insert for postgres_fdw, batch size = 2
+INFO:  Batch Insert for mysql_fdw, batch size = 5
+--Testcase 855:
+UPDATE view1 SET i = i + 1;
+--Testcase 856:
+DELETE FROM view1 WHERE i > 1000;
+-- Verify JOIN and OFFSET push down
+-- JOIN and OFFSET can only push down to child tables in case of single node, so remove all child nodes except postgres_fdw
+--Testcase 857:
+DROP FOREIGN TABLE test2__mysql_svr__0;
+--Testcase 859:
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+--Testcase 860:
+DROP FOREIGN TABLE test2__tiny_svr__0;
+-- Drop user mapping for regress_view_owner_another
+--Testcase 861:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+-- Push down JOIN, expect error because user mapping is missing
+--Testcase 862:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1.i, t2.i FROM view1 t1 JOIN view1 t2 ON (t1.i = t2.i);
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : post_svr
+--Testcase 863:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10 OFFSET 1;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : post_svr
+--Testcase 864:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 OFFSET 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : post_svr
+-- Recreate user mapping and try again, expect success
+--Testcase 865:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 866:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1.i, t2.i FROM view1 t1 JOIN view1 t2 ON (t1.i = t2.i);
+                                                QUERY PLAN                                                
+----------------------------------------------------------------------------------------------------------
+ Foreign Scan
+   Output: test2.i, test2_1.i
+   Node: post_svr / Status: Alive
+     Relations: (public.test2) INNER JOIN (public.test2 test2_1)
+     Remote SQL: SELECT r4.i, r5.i FROM (public.test2 r4 INNER JOIN public.test2 r5 ON (((r4.i = r5.i))))
+(5 rows)
+
+--Testcase 867:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10;
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Foreign Scan on public.test2
+   Output: test2.i, test2.__spd_url
+   Node: post_svr / Status: Alive
+     Limit push-down: yes
+     Sort push-down: yes
+     Remote SQL: SELECT i FROM public.test2 ORDER BY i ASC NULLS LAST LIMIT 10::bigint
+(6 rows)
+
+--Testcase 868:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10 OFFSET 1;
+                                               QUERY PLAN                                               
+--------------------------------------------------------------------------------------------------------
+ Foreign Scan on public.test2
+   Output: test2.i, test2.__spd_url
+   Node: post_svr / Status: Alive
+     Limit push-down: yes
+     Sort push-down: yes
+     Remote SQL: SELECT i FROM public.test2 ORDER BY i ASC NULLS LAST LIMIT 10::bigint OFFSET 1::bigint
+(6 rows)
+
+--Testcase 869:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 OFFSET 10;
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Foreign Scan on public.test2
+   Output: test2.i, test2.__spd_url
+   Node: post_svr / Status: Alive
+     Limit push-down: yes
+     Remote SQL: SELECT i FROM public.test2 OFFSET 10::bigint
+(5 rows)
+
+-- Verify Security Invoker View
+--Testcase 871:
+CREATE VIEW view2 WITH (security_invoker = true) AS SELECT * FROM test2;
+--Testcase 872:
+ALTER VIEW view2 OWNER TO regress_view_owner_another;
+-- Select from view, because security_invoker is true, current user is used to query.
+-- Expect success.
+--Testcase 873:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Limit
+   Output: test2.i, test2.__spd_url
+   ->  Sort
+         Output: test2.i, test2.__spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Foreign Scan on public.test2
+               Output: test2.i, test2.__spd_url
+               Node: post_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote SQL: SELECT i FROM public.test2
+(11 rows)
+
+-- Drop user mapping for regress_view_owner_another, it does not affect to the query,
+-- because current user is used. View owner is not used.
+--Testcase 874:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 875:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Limit
+   Output: test2.i, test2.__spd_url
+   ->  Sort
+         Output: test2.i, test2.__spd_url
+         Sort Key: test2.i, test2.__spd_url
+         ->  Foreign Scan on public.test2
+               Output: test2.i, test2.__spd_url
+               Node: post_svr / Status: Alive
+                 Limit push-down: no
+                 Sort push-down: no
+                 Remote SQL: SELECT i FROM public.test2
+(11 rows)
+
+-- Try to drop user mapping of current user, expect error.
+--Testcase 876:
+DROP USER MAPPING FOR CURRENT_USER SERVER post_svr;
+--Testcase 877:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+WARNING:  GetForeignRelSize of child[0] failed.
+ERROR:  PGSpider can not execute query from child node : post_svr
+-- Restore user mapping
+--Testcase 878:
+CREATE USER MAPPING for CURRENT_USER SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
 --Testcase 747:
 DELETE FROM test2;
-WARNING:  file_fdw will be skipped because it does not support modification
+-- Clean up
+--Testcase 800:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+--Testcase 802:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 758:
+DROP USER MAPPING FOR CURRENT_USER server mysql_svr;
+--Testcase 759:
+DROP USER MAPPING FOR CURRENT_USER SERVER post_svr;
+--Testcase 760:
+DROP USER MAPPING FOR CURRENT_USER SERVER tiny_svr;
+--Testcase 803:
+DROP OWNED BY regress_view_owner_another;
+--Testcase 804:
+DROP ROLE regress_view_owner_another;
 --Testcase 748:
 DROP FOREIGN TABLE test2 CASCADE;
 --Testcase 749:
@@ -7471,9 +8329,8 @@ DROP EXTENSION pgspider_core_fdw CASCADE;
 --Clean
 --Testcase 270:
 DROP EXTENSION postgres_fdw CASCADE;
-NOTICE:  drop cascades to 20 other objects
+NOTICE:  drop cascades to 19 other objects
 DETAIL:  drop cascades to server post_svr
-drop cascades to user mapping for public on server post_svr
 drop cascades to foreign table test1__post_svr__0
 drop cascades to foreign table test1_1__post_svr__0
 drop cascades to foreign table t1__post_svr__0
@@ -7494,37 +8351,36 @@ drop cascades to user mapping for public on server post_svr3
 drop cascades to foreign table t2__post_svr3__0
 --Testcase 271:
 DROP EXTENSION file_fdw CASCADE;
-NOTICE:  drop cascades to 5 other objects
+NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server file_svr
 drop cascades to foreign table filetbl__file_svr__0
 drop cascades to foreign table test1__file_svr__0
 drop cascades to foreign table test1__file_svr__1
-drop cascades to foreign table test2__file_svr__0
 --Testcase 272:
 DROP EXTENSION sqlite_fdw CASCADE;
-NOTICE:  drop cascades to 4 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to server sqlite_svr
 drop cascades to foreign table test1__sqlite_svr__0
 drop cascades to foreign table test1_1__sqlite_svr__0
-drop cascades to foreign table test2__sqlite_svr__0
 --Testcase 273:
 DROP EXTENSION tinybrace_fdw CASCADE;
-NOTICE:  drop cascades to 5 other objects
+NOTICE:  drop cascades to 3 other objects
 DETAIL:  drop cascades to server tiny_svr
-drop cascades to user mapping for public on server tiny_svr
 drop cascades to foreign table test1__tiny_svr__0
 drop cascades to foreign table test1_1__tiny_svr__0
-drop cascades to foreign table test2__tiny_svr__0
 --Testcase 274:
 DROP EXTENSION mysql_fdw CASCADE;
-NOTICE:  drop cascades to 10 other objects
+NOTICE:  drop cascades to 8 other objects
 DETAIL:  drop cascades to server mysql_svr
-drop cascades to user mapping for public on server mysql_svr
 drop cascades to foreign table test1__mysql_svr__0
 drop cascades to foreign table test1_1__mysql_svr__0
 drop cascades to foreign table mysqlt__mysql_svr__0
 drop cascades to foreign table mysqlt__mysql_svr__1
 drop cascades to foreign table mysqlt__mysql_svqr__2
-drop cascades to foreign table test2__mysql_svr__0
 drop cascades to server mysql_svr2
 drop cascades to user mapping for public on server mysql_svr2
+--Testcase 880:
+DROP EXTENSION oracle_fdw CASCADE;
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to server oracle_svr
+drop cascades to user mapping for vagrant on server oracle_svr
