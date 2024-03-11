@@ -19,6 +19,8 @@ CREATE EXTENSION sqlite_fdw;
 CREATE EXTENSION tinybrace_fdw;
 --Testcase 191:
 CREATE EXTENSION mysql_fdw;
+--Testcase 812:
+CREATE EXTENSION oracle_fdw;
 
 --Testcase 192:
 CREATE SERVER file_svr FOREIGN DATA WRAPPER file_fdw;
@@ -1749,8 +1751,11 @@ SET parallel_tuple_cost=0;
 SET max_parallel_workers_per_gather=4;
 --Testcase 736:
 SET debug_parallel_query=ON;
+--Testcase 750:
 SET enable_hashjoin=false;
+--Testcase 751:
 SET enable_nestloop=true;
+--Testcase 752:
 SET enable_mergejoin= false;
 --Testcase 737:
 CREATE TABLE newusermap(dtype text, id text , name text, location text, parentid text, updatetime timestamp DEFAULT now());
@@ -1775,8 +1780,312 @@ SELECT min(cast (id as integer)) FROM newusermap;
 --Testcase 746:
 SELECT min(cast (id as integer)) FROM newusermap;
 
+-- ====================================================================
+-- Test if pgspider_core_fdw propagates correct userid to child foreign tables.
+-- ====================================================================
+--Testcase 753:
+Set pgspider_core_fdw.throw_error_ifdead to true;
+--Testcase 754:
+CREATE ROLE regress_view_owner_another;
+GRANT SELECT ON test2 TO regress_view_owner_another;
+-- Drop file_fdw child foreign table because it is similar to sqlite_fdw (does not use
+-- user mapping).
+--Testcase 814:
+DROP FOREIGN TABlE test2__file_svr__0;
+-- GetUserMapping automatically searches for user mapping of public if not found
+-- specific user. Therefore, remove all user mapping of child foreign tables for public
+-- to make sure that we test correct user.
+--Testcase 755:
+DROP USER MAPPING FOR public server mysql_svr;
+--Testcase 756:
+DROP USER MAPPING FOR public SERVER post_svr;
+--Testcase 757:
+DROP USER MAPPING FOR public SERVER tiny_svr;
+-- Create user mapping for current user, so that current user can query as normal.
+--Testcase 758:
+CREATE USER MAPPING FOR CURRENT_USER server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 759:
+CREATE USER MAPPING FOR CURRENT_USER SERVER post_svr OPTIONS (user 'postgres',password 'postgres');
+--Testcase 760:
+CREATE USER MAPPING FOR CURRENT_USER SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+
+-- Create child foreign table of oracle_fdw
+--Testcase 820:
+CREATE SERVER oracle_svr FOREIGN DATA WRAPPER oracle_fdw OPTIONS (dbserver '', isolation_level 'read_committed', nchar 'true');
+--Testcase 821:
+CREATE USER MAPPING FOR CURRENT_USER SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 822:
+CREATE FOREIGN TABLE test2__oracle_svr__0 (i int OPTIONS (key 'yes') NOT NULL) SERVER oracle_svr OPTIONS (table 'TEST2');
+DO
+$$BEGIN
+--Testcase 5:
+   SELECT oracle_execute('oracle_svr', 'DROP TABLE TEST2 PURGE');
+EXCEPTION
+   WHEN OTHERS THEN
+      NULL;
+END;$$;
+--Testcase 823:
+SELECT oracle_execute('oracle_svr', E'CREATE TABLE TEST2 (i int PRIMARY KEY) SEGMENT CREATION IMMEDIATE');
+--Testcase 824:
+SELECT oracle_execute('oracle_svr', 'INSERT INTO TEST2 VALUES (150)');
+--Testcase 825:
+SELECT oracle_execute('oracle_svr', 'INSERT INTO TEST2 VALUES (250)');
+--Testcase 826:
+SELECT * FROM test2__oracle_svr__0;
+-- Set use_remote_estimate to true to force postgres_fdw and mysql_fdw use userid at GetForeignRelsize
+-- file_fdw and sqlite_fdw does not use userid, tinybrace_fdw always uses userid at GetForeignRelSize,
+-- so unnecessary to set for them.
+--Testcase 761:
+ALTER FOREIGN TABLE test2__post_svr__0 OPTIONS (ADD use_remote_estimate 'true');
+--Testcase 762:
+ALTER FOREIGN TABLE test2__mysql_svr__0 OPTIONS (ADD use_remote_estimate 'true');
+-- Firstly, use current user to query. Expect success.
+--Testcase 763:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 764:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+-- Switch to regress_view_owner_another and query. Expect error because user mapping of mysql_svr for
+-- regress_view_owner_another is not created.
+--Testcase 765:
+SET ROLE regress_view_owner_another;
+--Testcase 766:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 767:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+-- Create user mapping of mysql_svr for regress_view_owner_another and try again. However, user mappings of
+-- other child server are not created, so error still occurs. It is required to create user mapping for
+-- all necessary child server to be able to query successfully.
+--Testcase 768:
+RESET ROLE;
+--Testcase 769:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 770:
+SET ROLE regress_view_owner_another;
+--Testcase 771:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 772:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+-- Now, we create user mapping of all child servers for regress_view_owner_another.
+--Testcase 773:
+RESET ROLE;
+--Testcase 827:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 774:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 775:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+-- Confirm that regress_view_owner_another does not have SELECT privilege on child foreign tables
+--Testcase 776:
+SET ROLE regress_view_owner_another;
+--Testcase 778:
+SELECT * FROM test2__mysql_svr__0;
+--Testcase 779:
+SELECT * FROM test2__post_svr__0;
+--Testcase 780:
+SELECT * FROM test2__sqlite_svr__0;
+--Testcase 781:
+SELECT * FROM test2__tiny_svr__0;
+--Testcase 829:
+SELECT * FROM test2__oracle_svr__0;
+-- Even though regress_view_owner_another does not have SELECT privilege on child foreign tables,
+-- it still has the SELECT privilege on parent multi-tenant table. Therefore, when querying through
+-- multi-tenant table, it can get data from child foreign tables.
+-- Now, all user mappings are created, so query success.
+--Testcase 782:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 783:
+SELECT * FROM test2 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 784:
+RESET ROLE;
+
+-- When querying to a normal view (security definer view), view owner is used to query
+-- (not current user). Verify if pgspider_core_fdw can propagate correctly when querying
+-- to that view.
+--Testcase 785:
+CREATE VIEW view1 AS SELECT * FROM test2;
+--Testcase 786:
+ALTER VIEW view1 OWNER TO regress_view_owner_another;
+--Testcase 787:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+--Testcase 788:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 789:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 831:
+DROP USER MAPPING FOR regress_view_owner_another SERVER oracle_svr;
+-- Select from view, view owner regress_view_owner_another is used and propagated
+-- to child tables, so error occurs because user mapping for regress_view_owner_another
+-- is not created.
+--Testcase 790:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 805:
+SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+-- Likewise, but with the query under an UNION ALL
+--Testcase 791:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+--Testcase 806:
+SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+-- Mixing querying to view and foreign table, regress_view_owner_another is used for view1,
+-- and current user is used for test2. Same error occurs.
+--Testcase 792:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+--Testcase 807:
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+-- The error does not occur when we mix foreign tables only, because it uses current user to query.
+--Testcase 793:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM test2 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+--Testcase 808:
+SELECT t1.i, t2.i FROM test2 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+-- Now, create user mappings for child tables and try again. Expect success.
+--Testcase 794:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 795:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 796:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+--Testcase 833:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER oracle_svr OPTIONS (user 'test', password 'test');
+--Testcase 797:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 809:
+SELECT * FROM view1 ORDER BY i, __spd_url LIMIT 10;
+--Testcase 798:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+--Testcase 810:
+SELECT * FROM (SELECT * FROM view1 UNION ALL SELECT * FROM view1) ORDER BY i, __spd_url LIMIT 10;
+--Testcase 799:
+EXPLAIN (VERBOSE, COSTS OFF)
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+--Testcase 811:
+SELECT t1.i, t2.i FROM view1 t1 LEFT JOIN test2 t2 ON (t1.i = t2.i) ORDER BY t1.i, t2.i OFFSET 10 LIMIT 10;
+
+-- Verify some other clauses: INSERT, UPDATE, DELETE, ORDER BY, LIMIT, aggregate function
+-- Push down LIMIT to oracle_fdw is difficult because of cost, so remove it to make sure that we can push down
+-- to all child foreign tables
+--Testcase 870:
+DROP FOREIGN TABLE test2__oracle_svr__0;
+-- Drop user mappings for regress_view_owner_another
+--Testcase 837:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 838:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 841:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+-- Push down ORDER BY, LIMIT, expect error because user mapping is missing
+--Testcase 842:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 1;
+-- Push down aggregate function, expect error because user mapping is missing
+--Testcase 843:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM view1;
+-- Modification, expect error because user mapping is missing
+GRANT INSERT ON test2 TO regress_view_owner_another;
+GRANT UPDATE ON test2 TO regress_view_owner_another;
+GRANT DELETE ON test2 TO regress_view_owner_another;
+--Testcase 844:
+INSERT INTO view1 VALUES (1000), (2000);
+--Testcase 845:
+UPDATE view1 SET i = i + 1;
+--Testcase 846:
+DELETE FROM view1 WHERE i > 1000;
+-- Recreate user mappings and try again, expect success
+--Testcase 847:
+CREATE USER MAPPING for regress_view_owner_another server mysql_svr OPTIONS (username 'root',password 'Mysql_1234');
+--Testcase 850:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 851:
+CREATE USER MAPPING FOR regress_view_owner_another SERVER tiny_svr OPTIONS (username 'user',password 'testuser');
+-- Push down ORDER BY, LIMIT
+--Testcase 852:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 1;
+-- Push down aggregate function
+--Testcase 853:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT count(*) FROM view1;
+-- Modification
+--Testcase 854:
+INSERT INTO view1 VALUES (1000), (2000);
+--Testcase 855:
+UPDATE view1 SET i = i + 1;
+--Testcase 856:
+DELETE FROM view1 WHERE i > 1000;
+
+-- Verify JOIN and OFFSET push down
+-- JOIN and OFFSET can only push down to child tables in case of single node, so remove all child nodes except postgres_fdw
+--Testcase 857:
+DROP FOREIGN TABLE test2__mysql_svr__0;
+--Testcase 859:
+DROP FOREIGN TABLE test2__sqlite_svr__0;
+--Testcase 860:
+DROP FOREIGN TABLE test2__tiny_svr__0;
+-- Drop user mapping for regress_view_owner_another
+--Testcase 861:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+-- Push down JOIN, expect error because user mapping is missing
+--Testcase 862:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1.i, t2.i FROM view1 t1 JOIN view1 t2 ON (t1.i = t2.i);
+--Testcase 863:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10 OFFSET 1;
+--Testcase 864:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 OFFSET 10;
+-- Recreate user mapping and try again, expect success
+--Testcase 865:
+CREATE USER MAPPING for regress_view_owner_another SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+--Testcase 866:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT t1.i, t2.i FROM view1 t1 JOIN view1 t2 ON (t1.i = t2.i);
+--Testcase 867:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10;
+--Testcase 868:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 ORDER BY i LIMIT 10 OFFSET 1;
+--Testcase 869:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view1 OFFSET 10;
+
+-- Verify Security Invoker View
+--Testcase 871:
+CREATE VIEW view2 WITH (security_invoker = true) AS SELECT * FROM test2;
+--Testcase 872:
+ALTER VIEW view2 OWNER TO regress_view_owner_another;
+-- Select from view, because security_invoker is true, current user is used to query.
+-- Expect success.
+--Testcase 873:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+-- Drop user mapping for regress_view_owner_another, it does not affect to the query,
+-- because current user is used. View owner is not used.
+--Testcase 874:
+DROP USER MAPPING FOR regress_view_owner_another SERVER post_svr;
+--Testcase 875:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+-- Try to drop user mapping of current user, expect error.
+--Testcase 876:
+DROP USER MAPPING FOR CURRENT_USER SERVER post_svr;
+--Testcase 877:
+EXPLAIN (VERBOSE, COSTS OFF) SELECT * FROM view2 ORDER BY i, __spd_url LIMIT 10;
+-- Restore user mapping
+--Testcase 878:
+CREATE USER MAPPING for CURRENT_USER SERVER post_svr OPTIONS (user 'postgres',password 'postgres', password_required 'false');
+
 --Testcase 747:
 DELETE FROM test2;
+
+-- Clean up
+--Testcase 800:
+DROP USER MAPPING FOR regress_view_owner_another server mysql_svr;
+--Testcase 802:
+DROP USER MAPPING FOR regress_view_owner_another SERVER tiny_svr;
+--Testcase 758:
+DROP USER MAPPING FOR CURRENT_USER server mysql_svr;
+--Testcase 759:
+DROP USER MAPPING FOR CURRENT_USER SERVER post_svr;
+--Testcase 760:
+DROP USER MAPPING FOR CURRENT_USER SERVER tiny_svr;
+--Testcase 803:
+DROP OWNED BY regress_view_owner_another;
+--Testcase 804:
+DROP ROLE regress_view_owner_another;
 
 --Testcase 748:
 DROP FOREIGN TABLE test2 CASCADE;
@@ -1809,3 +2118,5 @@ DROP EXTENSION sqlite_fdw CASCADE;
 DROP EXTENSION tinybrace_fdw CASCADE;
 --Testcase 274:
 DROP EXTENSION mysql_fdw CASCADE;
+--Testcase 880:
+DROP EXTENSION oracle_fdw CASCADE;

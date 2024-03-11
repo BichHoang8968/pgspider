@@ -545,6 +545,18 @@ PGSpider has a table option: `disable_transaction_feature_check`:
 - When disable_transaction_feature_check is true:  
   The modification can be proceeded without checking.
 
+### Userid propagation from multi-tenant table to child tables
+- When a query is executed, firstly, PGSpider core decides which userid is used to query. Next, multi-tenant table will propagate that userid to all child tables. The child tables inherit that userid and use it to query to remote table. This specification is applied for all supported actions on multi-table, including SELECT, INSERT, UPDATE, DELETE. The following table summaries some common cases about this propagation.
+
+| Access target of query | Example | Userid on multi-tenant table | Userid on child foreign table | Remark |
+|---|---|---|---|---|
+|Multi-tenant table|SELECT * FROM ft1;|Current user|Current user|N/A|
+|Child foreign table|SELECT * FROM ft1__post__0;|Current user|Current user| Querying directly to a child foreign table will not run through multi-tenant table |
+|Security Invoker View which contains multi-tenant table|CREATE VIEW v4 with (security_invoker=true) AS SELECT * FROM ft1;<br />SELECT * FROM v1;|Current user|Current user|N/A|
+|Security Definer View which contains multi-tenant table|CREATE VIEW v4 AS SELECT * FROM ft1;<br />SELECT * FROM v1;|View Owner|View Owner|Definer View is the default view of Postgres|
+
+- When executing a query on multi-tenant table, access permission is checked on the parent multi-tenant table only, and the access permission of child tables are not checked. It means a user who only has access permission on multi-tenant table and does not have access permission on child tables is still able to get or modify data of child tables. This behavior follows the specification of Postgres for inheritance and partition tables (See [`Inheritance`][2] for more details).
+
 ## Limitation
 Limitation with modification and transaction:
 - Sometimes, PGSpider cannot read modified data in a transaction.
@@ -566,3 +578,4 @@ Permission to use, copy, modify, and distribute this software and its documentat
 See the [`LICENSE`][1] file for full details.
 
 [1]: LICENSE
+[2]: https://www.postgresql.org/docs/current/ddl-inherit.html
