@@ -909,13 +909,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 113:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -1062,13 +1062,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 134:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -2165,13 +2165,13 @@ psql:sql/migrate/objstorage/objstorage_fdw_migrate.sql:1544: ERROR:  objstorage_
 -- New 'new_pgspider_core_svr' is created
 --Testcase 273:
 \des+
-                                                                                     List of foreign servers
-       Name        |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
--------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr          | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- pgspider_core_srv | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr        | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                    List of foreign servers
+       Name        |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr          | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ pgspider_core_srv | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr        | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -2321,14 +2321,14 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 296:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_srv     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_srv     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (5 rows)
 
 -- foreign table of source server is kept
@@ -3506,13 +3506,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 113:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -3659,13 +3659,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 134:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -4762,13 +4762,13 @@ psql:sql/migrate/objstorage/objstorage_fdw_migrate.sql:1544: ERROR:  objstorage_
 -- New 'new_pgspider_core_svr' is created
 --Testcase 273:
 \des+
-                                                                                     List of foreign servers
-       Name        |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
--------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr          | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- pgspider_core_srv | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr        | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                    List of foreign servers
+       Name        |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr          | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ pgspider_core_srv | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr        | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -4918,14 +4918,14 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 296:
 \des+
-                                                                                       List of foreign servers
-         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                  FDW options                                  | Description 
------------------------+--------------------+----------------------+-------------------+------+---------+-------------------------------------------------------------------------------+-------------
- dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true') | 
- new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_srv     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                               | 
- source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true') | 
+                                                                                                      List of foreign servers
+         Name          |       Owner        | Foreign-data wrapper | Access privileges | Type | Version |                                                FDW options                                                 | Description 
+-----------------------+--------------------+----------------------+-------------------+------+---------+------------------------------------------------------------------------------------------------------------+-------------
+ dest_svr              | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4453', suppress_retry 'true', project_id 'objstorage_fdw') | 
+ new_pgspider_core_svr | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_srv     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ pgspider_core_svr     | objstorage_fdw_ddl | pgspider_core_fdw    |                   |      |         |                                                                                                            | 
+ source_svr            | objstorage_fdw_ddl | objstorage_fdw       |                   |      |         | (storage_type 'gcs', endpoint 'http://127.0.0.1:4443', suppress_retry 'true', project_id 'objstorage_fdw') | 
 (5 rows)
 
 -- foreign table of source server is kept
@@ -5142,7 +5142,7 @@ LINE 1: SELECT * FROM ft2 ORDER BY c1 LIMIT 10;
                       ^
 --Testcase 325:
 SELECT * FROM existed_ft1 ORDER BY c1 LIMIT 10;
-psql:sql/migrate/objstorage/objstorage_fdw_migrate.sql:1793: ERROR:  objstorage_fdw: ObjStorageHandleNextTuple - Permanent error GetObjectMetadata: Not Found
+psql:sql/migrate/objstorage/objstorage_fdw_migrate.sql:1793: ERROR:  objstorage_fdw: ObjStorageHandleNextTuple - Permanent error, with a last message of Not Found
 -- list all foreign tables
 --Testcase 326:
 \det+
