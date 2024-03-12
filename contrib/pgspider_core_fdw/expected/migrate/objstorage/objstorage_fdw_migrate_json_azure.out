@@ -5190,7 +5190,7 @@ SELECT * FROM existed_ft1 ORDER BY c1 LIMIT 10;
 --Testcase 322:
 MIGRATE TABLE ft1 TO ft2 SERVER dest_svr OPTIONS (:dest_foreigntable_opt); -- failed
 psql:sql/migrate/objstorage/objstorage_fdw_migrate.sql:1787: ERROR:  Error occurred on a child table "ft2__dest_svr__0".
-DETAIL:  cache lookup failed for type 0
+DETAIL:  objstorage_fdw: ObjstorageHandleInsert - Column 'c5' does not exist.
 --Testcase 323:
 SELECT * FROM ft1 ORDER BY c1 LIMIT 10;
  c1 | c2 |  c3   | c4 |           c5           |        c6         | c7 | c8  
