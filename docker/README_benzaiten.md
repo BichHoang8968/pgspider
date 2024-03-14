@@ -64,10 +64,10 @@ Creating PGSpider rpm packages
 		```sh
 		location=gitlab 					# Fill in <gitlab> or <github>. In this project, please use <gitlab>
 		ACCESS_TOKEN=						# Fill in the Access Token for authentication purposes to publish rpm packages to Package Registry
-		PGSPIDER_PROJECT_ID=16				# Fill in the ID of the PGSpider project.
-		PGSPIDER_BASE_POSTGRESQL_VERSION=16 # Base Postgres version of PGSpider
-		PGSPIDER_RELEASE_VERSION=4.0.0		# Version of PGSpider rpm package
-		RPM_DISTRIBUTION_TYPE="rhel8"		# Distribution version of RedHat that the PGSpider rpm packages supports.
+		PGSPIDER_PROJECT_ID=				# Fill in the ID of the PGSpider project.
+		PGSPIDER_BASE_POSTGRESQL_VERSION= 	# Base Postgres version of PGSpider. Example: 16
+		PGSPIDER_RELEASE_VERSION=			# Version of PGSpider rpm package
+		RPM_DISTRIBUTION_TYPE="rhel8"		# Distribution version of RedHat that the PGSpider rpm packages supports. The default value is "rhel8"
 		```
 3. Build execution
 	```sh
