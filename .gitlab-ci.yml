@@ -15,7 +15,6 @@ variables:
   RPM_ARTIFACT_DIR: "fdw_rpm"
   PGSPIDER_RELEASE_VERSION: "4.0.0"
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"
-  PGSPIDER_PROJECT_ID: "16"
   RPM_DISTRIBUTION_TYPE: "rhel8"
 
 project_build_rpm:
@@ -130,7 +129,7 @@ project_publish_image:
                   --build-arg DISTRIBUTION_TYPE=$RPM_DISTRIBUTION_TYPE
                   --build-arg PGSPIDER_BASE_POSTGRESQL_VERSION=$PGSPIDER_BASE_POSTGRESQL_VERSION
                   --build-arg PGSPIDER_RELEASE_VERSION=$PGSPIDER_RELEASE_VERSION
-                  --build-arg PGSPIDER_RPM_URL="https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/$PGSPIDER_PROJECT_ID/packages/generic/rpm_$RPM_DISTRIBUTION_TYPE/$PGSPIDER_BASE_POSTGRESQL_VERSION"
+                  --build-arg PGSPIDER_RPM_URL="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/rpm_$RPM_DISTRIBUTION_TYPE/$PGSPIDER_BASE_POSTGRESQL_VERSION"
                   --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} 
                   -f docker/Dockerfile .
     # push image with CI_PIPELINE_ID tag

@@ -112,7 +112,7 @@ The PGSpider rpm packages are created [above](#creating-pgspider-rpm-packages) w
 		location=gitlab 					# Fill in <gitlab> or <github>. In this project, please use <gitlab>
 		ACCESS_TOKEN=						# Fill in the Access Token for authentication purposes to get PGSpider rpm packages from the Package Registry.
 		PGSPIDER_PROJECT_ID=				# Fill in the ID of PGSpider project.
-		ENDPOINT_TO_REPO=					# Fill in endpoint to project API. In this project please use <https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects>
+		API_V4_URL=							# Fill in API v4 URL of this repo. In this project please use <https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4>
 		```
 	- Configure version of rpm packages: Same [Configure of Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
 	- Configure PGSpider docker image
