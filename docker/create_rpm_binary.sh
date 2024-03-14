@@ -5,8 +5,8 @@ source docker/env_rpm_optimize_image.conf
 set -eE
 
 # download postgres documentation
-if [[ ! -f postgresql-16-A4.pdf ]]; then
-    wget https://www.postgresql.org/files/documentation/pdf/16/postgresql-16-A4.pdf
+if [[ ! -f postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf ]]; then
+    wget https://www.postgresql.org/files/documentation/pdf/${PGSPIDER_BASE_POSTGRESQL_VERSION}/postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf
 fi
 
 # Create Docker image for creating RPM file of PGSpider.

@@ -3,7 +3,6 @@ FROM rockylinux:8.8
 ARG PGSPIDER_BASE_POSTGRESQL_VERSION
 ARG PGSPIDER_RELEASE_VERSION
 ARG DISTRIBUTION_TYPE
-ARG PG_INS=/usr/pgsql-16
 
 ARG ACCESS_TOKEN
 ARG PGSPIDER_RPM_URL=https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/16/packages/generic/rpm_${DISTRIBUTION_TYPE}/${PGSPIDER_BASE_POSTGRESQL_VERSION}
@@ -20,6 +19,7 @@ LABEL name="PGSpider" \
 ENV http_proxy ${proxy}
 ENV https_proxy ${proxy}
 ENV no_proxy ${no_proxy}
+ENV PGSPIDER_BASE_POSTGRESQL_VERSION ${PGSPIDER_BASE_POSTGRESQL_VERSION}
 
 # Add postgres repository for pgdg-srpm-macros
 RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm

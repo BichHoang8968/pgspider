@@ -40,11 +40,11 @@ RUN mkdir -p /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 COPY ./ /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 
 RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm/* /home/user1
-RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf /home/user1
+RUN cp /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf /home/user1
 
 RUN rm -rf  /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/.git                  \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/rpm                   \
-            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-16-A4.pdf  \
+            /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/postgresql-${PGSPIDER_BASE_POSTGRESQL_VERSION}-A4.pdf  \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/PGSpider_rpm          \
             /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/centos-gpg-keys-8-3.el8.noarch.rpm
 
@@ -53,11 +53,11 @@ RUN chown user1:user1 -R /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}
 RUN chmod +x /home/user1/pgspider-${PGSPIDER_RELEASE_VERSION}/configure
 
 # Add paths.
-RUN echo /usr/pgsql-16/lib > /etc/ld.so.conf.d/pgspider.conf
+RUN echo /usr/pgsql-${PGSPIDER_BASE_POSTGRESQL_VERSION}/lib > /etc/ld.so.conf.d/pgspider.conf
 RUN ldconfig
-RUN echo "export PATH=\$PATH:/usr/pgsql-16/bin" >> /etc/bashrc
+RUN echo "export PATH=\$PATH:/usr/pgsql-\${PGSPIDER_BASE_POSTGRESQL_VERSION}/bin" >> /etc/bashrc
 RUN source /etc/bashrc
-ENV PATH $PATH:/usr/pgsql-16/bin
+ENV PATH $PATH:/usr/pgsql-${PGSPIDER_BASE_POSTGRESQL_VERSION}/bin
 
 ########## Start RPM building ##########
 USER user1

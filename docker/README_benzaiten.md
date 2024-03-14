@@ -142,7 +142,7 @@ Creating optimized PGSpider image with FDWs
 	- Configure proxy: Same [Configure of Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
 	- Configure PGSpider base image and FDWs packages
 		```sh
-		BASEIMAGE= 							# Name of PGSpider image. Example: swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724
+		BASEIMAGE= 							# Name of PGSpider image. Example: swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest
 		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry
 		SQLITE_FDW_ACCESS_TOKEN=			# Access token to authentication on sqlite_fdw's package registry
 		...
@@ -164,12 +164,12 @@ Usage of PGSpider image
 1. Pull PGSpider image from the Registry (Unnecessary if already available)
 	```sh
 	echo $PASSWORD | docker login --username $USERNAME --password-stdin swc.registry.benzaiten.toshiba.co.jp
-	docker pull swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724
+	docker pull swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest
 	```
 2. Start a PGSpider container instance
 	- Via `psql`
 		```sh
-		$ docker run -it swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724
+		$ docker run -it swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest
 		psql (16.0)
 		Type "help" for help.
 
@@ -177,12 +177,12 @@ Usage of PGSpider image
 		```
 	- Via detach mode
 		```sh
-		$ docker run -d swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724 DETACH_MODE
+		$ docker run -d swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest DETACH_MODE
 		```
 	The default `pgspider` user and database are created in the entrypoint with initdb.
 3. Forwarding Port
 	```sh
-	$ docker run -p 4813:4813 -d swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724 DETACH_MODE
+	$ docker run -p 4813:4813 -d swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest DETACH_MODE
 	$ psql -h 127.0.0.1 -p 4813 -U pgspider -d pgspider
 	psql (16.0)
 	Type "help" for help.
@@ -193,7 +193,7 @@ Usage of PGSpider image
 
 	This optional environment variable can be used to define a different name for the default database that is created when the image is first started.
 	```sh
-	$ docker run -p 4813:4813 -e PGSPIDER_DB=new_db swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:11724 DETACH_MODE
+	$ docker run -p 4813:4813 -e PGSPIDER_DB=new_db swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest DETACH_MODE
 	$ psql -h 127.0.0.1 -p 4813 -U pgspider -d pgspider
 	psql: error: connection to server at "127.0.0.1", port 4813 failed: FATAL:  database "pgspider" does not exist
 	$ psql -h 127.0.0.1 -p 4813 -U pgspider -d new_db
@@ -209,10 +209,10 @@ Usage of Run CI/CD pipeline
 	Menu TaskBar -> Build -> Pipelines
 	```
 2. Click `Run Pipeline` button
-![Alt text](images/pipeline_screen.PNG)
+![Alt text](images/benzaiten/pipeline_screen.PNG)
 3. Choose `Branch` or `Tag` name
 4. Provide `Access Token` through `Variabes`
 	- Input variable key: ACCESS_TOKEN
 	- Input variable value: Your access token
 5. Click `Run Pipeline` button  
-![Alt text](images/run_pipeline.PNG)
+![Alt text](images/benzaiten/run_pipeline.PNG)

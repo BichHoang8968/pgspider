@@ -4,8 +4,6 @@ FROM ${baseimage}
 
 USER root
 
-ARG PG_INS=/usr/pgsql-16
-
 ARG proxy
 ARG no_proxy
 
