@@ -74,6 +74,8 @@ else
                             -H \"Authorization: Bearer ${ACCESS_TOKEN}\" \
                             -H \"X-GitHub-Api-Version: 2022-11-28\" \
                             -H \"Content-Type: application/octet-stream\" \
+                            --retry 20 \
+                            --retry-max-time 120 \
                             --insecure"
     assets_uri="https://uploads.github.com/repos/${OWNER_GITHUB}/${PGSPIDER_PROJECT_GITHUB}/releases/${PGSPIDER_RELEASE_ID}/assets"
     binary_dir="--data-binary \"@${RPM_ARTIFACT_DIR}\""
@@ -100,7 +102,7 @@ else
     eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
                         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-llvmjit-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
     # plperl
-    eval "$curl_command $assets_uri?name=name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
+    eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
                         $binary_dir/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-plperl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm"
     # pltcl
     eval "$curl_command $assets_uri?name=pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-pltcl-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \

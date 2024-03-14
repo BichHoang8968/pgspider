@@ -111,12 +111,15 @@ The PGSpider rpm packages are created [above](#creating-pgspider-rpm-packages) w
 		```sh
 		location=gitlab 					# Fill in <gitlab> or <github>. In this project, please use <gitlab>
 		ACCESS_TOKEN=						# Fill in the Access Token for authentication purposes to get PGSpider rpm packages from the Package Registry.
+		PGSPIDER_PROJECT_ID=				# Fill in the ID of PGSpider project.
+		ENDPOINT_TO_REPO=					# Fill in endpoint to project API. In this project please use <https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects>
 		```
 	- Configure version of rpm packages: Same [Configure of Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
 	- Configure PGSpider docker image
 		```sh
 		IMAGE_NAME=pgspider					# Name of PGSpider image
-		PGSPIDER_RPM_ID=11816				# ID of PGSpider rpm package on the Package Registry
+		PGSPIDER_RPM_ID=					# ID of PGSpider rpm package on the Package Registry
+		PROJECT_PATH=						# Project path of repository in lower case. Example: https://tccloud2.toshiba.co.jp/swc/gitlab/db/PGSpider have project_path is "db/pgspider"
 		PGSPIDER_CONTAINER_REGISTRY=		# Container registry name
 		USERNAME_PGS_CONTAINER_REGISTRY=	# User name for authentication
 		PASSWORD_PGS_CONTAINER_REGISTRY=	# Password for authentication
