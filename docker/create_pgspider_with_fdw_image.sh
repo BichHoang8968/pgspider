@@ -3,7 +3,7 @@
 source docker/env_rpm_optimize_image.conf
 set -eE
 
-docker build -t ${IMAGE_NAME_OPTIMIZED} \
+docker build -t ${IMAGE_NAME_CUSTOMIZED} \
         --build-arg proxy=${proxy} \
         --build-arg no_proxy=${no_proxy} \
         --build-arg baseimage=${BASEIMAGE} \
@@ -21,4 +21,4 @@ docker build -t ${IMAGE_NAME_OPTIMIZED} \
         --build-arg ARROW_ACCESS_TOKEN=${ARROW_ACCESS_TOKEN} \
         --build-arg PARQUET_S3_FDW_URL_PACKAGE=${PARQUET_S3_FDW_URL_PACKAGE} \
         --build-arg PARQUET_S3_FDW_ACCESS_TOKEN=${PARQUET_S3_FDW_ACCESS_TOKEN} \
-        -f docker/${DOCKERFILE_OPTIMIZED} .
+        -f docker/${DOCKERFILE_CUSTOMIZED} .

@@ -132,7 +132,7 @@ PGSpider image is stored on the Container Registry of its repository
 	Menu TaskBar -> Deploy -> Container Registry
 	```
 
-Creating optimized PGSpider image with FDWs
+Creating customized PGSpider image with FDWs
 =====================================
 1. File used here
 	- docker/env_rpm_optimize_image.conf
@@ -154,10 +154,11 @@ Creating optimized PGSpider image with FDWs
 	./docker/create_pgspider_with_fdw_image.sh
 	```
 4. Confirmation after finishing executing the script  
-The optimized PGSpider image is created with the name `optimized_pgspider`
+The customized PGSpider image is created with the name `customized_pgspider`
 	```sh
 	$ docker images
-	REPOSITORY                 TAG                IMAGE ID          CREATED                optimized_pgspider         latest             a1ae1446e5f7      14 hours ago 
+	REPOSITORY                 TAG                IMAGE ID          CREATED                
+	customized_pgspider        latest             a1ae1446e5f7      14 hours ago
 	```
 Usage of PGSpider image
 =====================================
