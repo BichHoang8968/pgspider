@@ -1,7 +1,13 @@
 Usage of PGSpider docker image and PGSpider RPM packages
 =====================================
 
-This directory contains the source code to create the PGSpider docker image and the PGSpider rpm packages.
+This directory contains the source code to create the PGSpider docker image and the PGSpider rpm packages and usage of them.
+
+![Alt text](images/overview.png)
+
+- Binary Packages were built from newest source code. Refer [Here](#creating-pgspider-rpm-packages)
+- PGSpider docker image is built from PGSpider binary packages. Refer [Here](#creating-pgspider-docker-images)
+- You can create PGSspider docker image with FDWs by installing FDW binary packages. Refer [Here](#creating-customized-pgspider-image-with-fdws)
 
 Environment for creating rpm of PGSpider
 =====================================
