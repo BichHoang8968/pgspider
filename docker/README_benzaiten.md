@@ -147,7 +147,7 @@ Creating customized PGSpider image with FDWs
 	- Configure PGSpider base image and FDWs packages
 		```sh
 		BASEIMAGE= 							# Name of PGSpider image. Example: swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest
-		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry. Example: https://github.com/pgspider/sqlite_fdw/releases/download/v.2.4.0/sqlite_fdw_16-2.4.0-rhel8.x86_64-11826.rpm
+		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry. Example: https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/394/packages/generic/rpm_rhel8/16/sqlite_fdw_16-2.4.0-rhel8.x86_64-11826.rpm
 		SQLITE_FDW_ACCESS_TOKEN=			# Access token to authentication on sqlite_fdw's package registry
 		...
 		# Same for other FDWs
