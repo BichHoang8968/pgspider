@@ -212,7 +212,7 @@ Usage of Run CI/CD pipeline
 	```sh
 	Menu TaskBar -> Build -> Pipelines
 	```
-2. Click `Run Pipeline` button
+2. Click `Run Pipeline` button  
 ![Alt text](images/benzaiten/pipeline_screen.PNG)
 3. Choose `Branch` or `Tag` name
 4. Provide `Access Token` through `Variabes`
