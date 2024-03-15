@@ -5,6 +5,7 @@ This directory contains the source code to create the PGSpider docker image and 
 
 Environment for creating rpm of PGSpider
 =====================================
+The description below is used in the specific Linux distribution RockyLinux8.
 1. Docker
 	- Install Docker
 		```sh
@@ -146,7 +147,7 @@ Creating customized PGSpider image with FDWs
 	- Configure PGSpider base image and FDWs packages
 		```sh
 		BASEIMAGE= 							# Name of PGSpider image. Example: swc.registry.benzaiten.toshiba.co.jp/db/pgspider/pgspider:latest
-		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry
+		SQLITE_FDW_URL_PACKAGE=				# Link to download sqlite_fdw rpm package from sqlite_fdw's package registry. Example: https://github.com/pgspider/sqlite_fdw/releases/download/v.2.4.0/sqlite_fdw_16-2.4.0-rhel8.x86_64-11826.rpm
 		SQLITE_FDW_ACCESS_TOKEN=			# Access token to authentication on sqlite_fdw's package registry
 		...
 		# Same for other FDWs
@@ -220,3 +221,18 @@ Usage of Run CI/CD pipeline
 	- Input variable value: Your access token
 5. Click `Run Pipeline` button  
 ![Alt text](images/benzaiten/run_pipeline.PNG)
+
+How to upgrade new PGSpider version for packages
+=====================================
+1. Update `PGSPIDER_BASE_POSTGRESQL_VERSION` in `docker/env_rpm_optimize_image.conf` file.  
+The variable `PGSPIDER_BASE_POSTGRESQL_VERSION` represents the base Postgres version of PGSpider. You must change to the corresponding new version
+	```
+	PGSPIDER_BASE_POSTGRESQL_VERSION=16
+	```
+2. Overwrite new configuration, patches, settings files from `pgrpms` repository.  
+	- `pgrpms` repository: https://git.postgresql.org/gitweb/?p=pgrpms.git
+	- Go to path: /rpm/redhat/main/non-common/postgresql-16/EL-8/
+	- Copy the files in the `/rpm/redhat/main/non-common/postgresql-16/EL-8/` path to `rpm/` folder in root directory.
+	- Compare `rpm/PGSpider.spec` with `/rpm/redhat/main/non-common/postgresql-16/EL-8/postgresql-16.spec` and update `PGSpider.spec` if necessary.
+3. Rebuild new packages.  
+Refer [Configure of Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
