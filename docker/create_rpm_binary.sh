@@ -32,7 +32,7 @@ rm -f $RPM_ARTIFACT_DIR/*-debuginfo-*.rpm
 if [[ $location == [gG][iI][tT][lL][aA][bB] ]];
 then
     curl_command="curl --header \"PRIVATE-TOKEN: ${ACCESS_TOKEN}\" --insecure --upload-file"
-    package_uri="https://tccloud2.toshiba.co.jp/swc/gitlab/api/v4/projects/${PGSPIDER_PROJECT_ID}/packages/generic/rpm_${RPM_DISTRIBUTION_TYPE}/${PGSPIDER_BASE_POSTGRESQL_VERSION}"
+    package_uri="https://$API_V4_URL/projects/${PGSPIDER_PROJECT_ID}/packages/generic/rpm_${RPM_DISTRIBUTION_TYPE}/${PGSPIDER_BASE_POSTGRESQL_VERSION}"
 
     # pgspider
     eval "$curl_command ${RPM_ARTIFACT_DIR}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${RPM_DISTRIBUTION_TYPE}.x86_64.rpm \
