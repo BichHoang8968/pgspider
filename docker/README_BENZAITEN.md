@@ -220,13 +220,13 @@ Usage of Run CI/CD pipeline
 	Menu TaskBar -> Build -> Pipelines
 	```
 2. Click `Run Pipeline` button  
-![Alt text](images/benzaiten/pipeline_screen.PNG)
+![Alt text](images/BENZAITEN/pipeline_screen.PNG)
 3. Choose `Branch` or `Tag` name
 4. Provide `Access Token` through `Variabes`
 	- Input variable key: ACCESS_TOKEN
 	- Input variable value: Your access token
 5. Click `Run Pipeline` button  
-![Alt text](images/benzaiten/run_pipeline.PNG)
+![Alt text](images/BENZAITEN/run_pipeline.PNG)
 
 How to upgrade new PGSpider version for packages
 =====================================
