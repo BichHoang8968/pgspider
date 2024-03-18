@@ -1007,7 +1007,7 @@ SELECT c1 || c2, c7 || c3, c4-c6, c5*12 FROM tbl01 WHERE c3 != 'ABC' LIMIT 10 OF
  On sangen hauskaa, ettäabcdefghij | Côte dIvoire Fijifoxju~!@#$%^&*()_+=-{}[]|:;<>?/.                  |                6595 |               -156
  ABCDEFsome extent                 | Côte dIvoire FijifoxjuGuinea-Bissau Honduras Mexico                |                  -4 |          -144.3756
  ~!@#$%^&*()-{}[]|:;<>?/.          | Côte dIvoire Fijifoxjuጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                        |         61614987879 |         79344.3756
- a kwik di kwikMột ngày vui vẻ     | Côte dIvoire Fijifoxjuጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775807 | 1598.6544000000001
+ a kwik di kwikMột ngày vui vẻ     | Côte dIvoire Fijifoxjuጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ             | 9223372036854775680 | 1598.6544000000001
  съм многоIm finſteren             | Côte dIvoire Fijifoxjuขอขอบคุณอย่างจริงใจ                             |              654590 |           39122.94
  Canada Denmarkbrown fox           | Côte dIvoire Fijifoxjuいろはにほへど　ちりぬるをわがよたれぞ　つた |        573709551620 |           144.3756
 (8 rows)
@@ -3286,7 +3286,7 @@ SELECT c1 || c2 || c3, c4 - 100, c5/112*c6-c9/c10 FROM tbl01 GROUP BY c1, c2, c3
  I am happy todayabcdefghij今日はとても幸せです 今日はとても幸せです |        573709551515 | -8.443396226415094e+105
  On sangen hauskaa, ettäabcdefghij~!@#$%^&*()_+=-{}[]|:;<>?/.        |                6495 | -8.443396226415094e+105
  XinChàoBạnextent the rendit$%^Днес съм много щастлив                |            35643554 | -8.443396226415094e+105
- a kwik di kwikMột ngày vui vẻጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ       | 9223372036854775807 | -8.443396226415094e+105
+ a kwik di kwikMột ngày vui vẻጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ       | 9223372036854775707 | -8.443396226415094e+105
  ~!@#$%^&*()-{}[]|:;<>?/.ጤና ይስጥልኝልኝ ጤና ይስጥልኝልኝ                       |         61614987791 | -8.443396226415094e+105
  съм многоIm finſterenขอขอบคุณอย่างจริงใจ                               |              654445 | -8.443396226415094e+105
 (9 rows)

@@ -2978,22 +2978,22 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 --Testcase 420:
 \des+
                                                                             List of foreign servers
-         Name          | Owner | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
------------------------+-------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
- griddb_dest_srv       | tsdv  | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
- griddb_src_srv        | tsdv  | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
- influxdb_dest_srv     | tsdv  | influxdb_fdw         |                   |      |         | (host 'http://localhost', port '8086', dbname 'destdb')              | 
- influxdb_src_srv      | tsdv  | influxdb_fdw         |                   |      |         | (host 'http://localhost', port '8086', dbname 'sourcedb')            | 
- mysql_dest_srv        | tsdv  | mysql_fdw            |                   |      |         | (host 'localhost', port '3306')                                      | 
- mysql_src_srv         | tsdv  | mysql_fdw            |                   |      |         | (host 'localhost', port '3306')                                      | 
- new_pgspider_core_svr | tsdv  | pgspider_core_fdw    |                   |      |         |                                                                      | 
- oracle_dest_srv       | tsdv  | oracle_fdw           |                   |      |         | (dbserver '', isolation_level 'read_committed', "nchar" 'true')      | 
- oracle_src_srv        | tsdv  | oracle_fdw           |                   |      |         | (dbserver '', isolation_level 'read_committed', "nchar" 'true')      | 
- parquet_s3_dest_srv   | tsdv  | parquet_s3_fdw       |                   |      |         | (use_minio 'true', endpoint '127.0.0.1:9000')                        | 
- parquet_s3_src_srv    | tsdv  | parquet_s3_fdw       |                   |      |         | (use_minio 'true', endpoint '127.0.0.1:9000')                        | 
- pgspider_core_srv     | tsdv  | pgspider_core_fdw    |                   |      |         |                                                                      | 
- postgres_dest_srv     | tsdv  | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
- postgres_src_srv      | tsdv  | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'sourcedb')                  | 
+         Name          |  Owner   | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
+-----------------------+----------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
+ griddb_dest_srv       | pgspider | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+ griddb_src_srv        | pgspider | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+ influxdb_dest_srv     | pgspider | influxdb_fdw         |                   |      |         | (host 'http://localhost', port '8086', dbname 'destdb')              | 
+ influxdb_src_srv      | pgspider | influxdb_fdw         |                   |      |         | (host 'http://localhost', port '8086', dbname 'sourcedb')            | 
+ mysql_dest_srv        | pgspider | mysql_fdw            |                   |      |         | (host 'localhost', port '3306')                                      | 
+ mysql_src_srv         | pgspider | mysql_fdw            |                   |      |         | (host 'localhost', port '3306')                                      | 
+ new_pgspider_core_svr | pgspider | pgspider_core_fdw    |                   |      |         |                                                                      | 
+ oracle_dest_srv       | pgspider | oracle_fdw           |                   |      |         | (dbserver '', isolation_level 'read_committed', "nchar" 'true')      | 
+ oracle_src_srv        | pgspider | oracle_fdw           |                   |      |         | (dbserver '', isolation_level 'read_committed', "nchar" 'true')      | 
+ parquet_s3_dest_srv   | pgspider | parquet_s3_fdw       |                   |      |         | (use_minio 'true', endpoint '127.0.0.1:9000')                        | 
+ parquet_s3_src_srv    | pgspider | parquet_s3_fdw       |                   |      |         | (use_minio 'true', endpoint '127.0.0.1:9000')                        | 
+ pgspider_core_srv     | pgspider | pgspider_core_fdw    |                   |      |         |                                                                      | 
+ postgres_dest_srv     | pgspider | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
+ postgres_src_srv      | pgspider | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'sourcedb')                  | 
 (14 rows)
 
 -- list up all table after MIGRATE TO
@@ -3524,35 +3524,35 @@ DROP FOREIGN TABLE ft2;
 DROP EXTENSION postgres_fdw CASCADE;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server postgres_src_srv
-drop cascades to user mapping for tsdv on server postgres_src_srv
+drop cascades to user mapping for pgspider on server postgres_src_srv
 drop cascades to server postgres_dest_srv
-drop cascades to user mapping for tsdv on server postgres_dest_srv
+drop cascades to user mapping for pgspider on server postgres_dest_srv
 --Testcase 508:
 DROP EXTENSION griddb_fdw CASCADE;
 NOTICE:  drop cascades to 9 other objects
 DETAIL:  drop cascades to server griddb_src_srv
-drop cascades to user mapping for tsdv on server griddb_src_srv
+drop cascades to user mapping for pgspider on server griddb_src_srv
 drop cascades to server griddb_dest_srv
-drop cascades to user mapping for tsdv on server griddb_dest_srv
+drop cascades to user mapping for pgspider on server griddb_dest_srv
 drop cascades to extension mysql_fdw
 drop cascades to server mysql_src_srv
-drop cascades to user mapping for tsdv on server mysql_src_srv
+drop cascades to user mapping for pgspider on server mysql_src_srv
 drop cascades to server mysql_dest_srv
-drop cascades to user mapping for tsdv on server mysql_dest_srv
+drop cascades to user mapping for pgspider on server mysql_dest_srv
 --Testcase 509:
 DROP EXTENSION influxdb_fdw CASCADE;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server influxdb_src_srv
-drop cascades to user mapping for tsdv on server influxdb_src_srv
+drop cascades to user mapping for pgspider on server influxdb_src_srv
 drop cascades to server influxdb_dest_srv
-drop cascades to user mapping for tsdv on server influxdb_dest_srv
+drop cascades to user mapping for pgspider on server influxdb_dest_srv
 --Testcase 510:
 DROP EXTENSION oracle_fdw CASCADE;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server oracle_src_srv
-drop cascades to user mapping for tsdv on server oracle_src_srv
+drop cascades to user mapping for pgspider on server oracle_src_srv
 drop cascades to server oracle_dest_srv
-drop cascades to user mapping for tsdv on server oracle_dest_srv
+drop cascades to user mapping for pgspider on server oracle_dest_srv
 --Testcase 511:
 DROP EXTENSION mysql_fdw CASCADE;
 ERROR:  extension "mysql_fdw" does not exist
@@ -3560,9 +3560,9 @@ ERROR:  extension "mysql_fdw" does not exist
 DROP EXTENSION parquet_s3_fdw CASCADE;
 NOTICE:  drop cascades to 4 other objects
 DETAIL:  drop cascades to server parquet_s3_src_srv
-drop cascades to user mapping for tsdv on server parquet_s3_src_srv
+drop cascades to user mapping for pgspider on server parquet_s3_src_srv
 drop cascades to server parquet_s3_dest_srv
-drop cascades to user mapping for tsdv on server parquet_s3_dest_srv
+drop cascades to user mapping for pgspider on server parquet_s3_dest_srv
 --Testcase 513:
 DROP EXTENSION pgspider_core_fdw CASCADE;
 NOTICE:  drop cascades to 3 other objects
