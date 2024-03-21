@@ -1,7 +1,7 @@
 Usage of PGSpider docker image and PGSpider RPM packages
 =====================================
 
-The image above illustrates the process of building Docker images from source code and binary packages. First, the source code is used to build binary packages. These binary packages are then used to create the Docker image of PGSpider. Next, to create the Docker image PGSpider with FDWs, the FDW binary packages need to be installed into the Docker image PGSpider. As a result we have two Docker images, one is the PGSpider Docker image and the other is the PGSpider Docker image with FDWs.
+The image below illustrates the process of building Docker images from source code and binary packages. First, the source code is used to build binary packages. These binary packages are then used to create the Docker image of PGSpider. Next, to create the Docker image PGSpider with FDWs, the FDW binary packages need to be installed into the Docker image PGSpider. As a result we have two Docker images, one is the PGSpider Docker image and the other is the PGSpider Docker image with FDWs.
 
 ![Alt text](images/overview.png)
 
