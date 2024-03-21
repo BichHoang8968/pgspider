@@ -23,10 +23,9 @@ ENV PGSPIDER_BASE_POSTGRESQL_VERSION ${PGSPIDER_BASE_POSTGRESQL_VERSION}
 
 # Add postgres repository for pgdg-srpm-macros
 RUN dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-
-RUN dnf install -y wget pgdg-srpm-macros
-RUN dnf --enablerepo=powertools install -y perl-IPC-Run sudo
-RUN dnf --enablerepo=devel install -y snappy-devel
+RUN dnf install -y wget pgdg-srpm-macros \
+    && dnf --enablerepo=powertools install -y perl-IPC-Run sudo \
+    && dnf --enablerepo=devel install -y snappy-devel wget
 
 # Create pgspider user
 # User on host will mapped to this user.
@@ -54,15 +53,6 @@ RUN if [[ -z ${ACCESS_TOKEN} ]]; then \
     fi
 
 RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
-        wget ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm --no-check-certificate ; \
-    else \
-        curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-        --insecure ; \
-    fi
-
-RUN if [[ -z ${ACCESS_TOKEN} ]]; then \ 
         wget ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64${PGSPIDER_RPM_ID}.rpm --no-check-certificate ; \
     else \
         curl --header "PRIVATE-TOKEN: ${ACCESS_TOKEN}" \
@@ -84,16 +74,21 @@ RUN dnf -y localinstall \
     --setopt=skip_missing_names_on_install=False \
     /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
     /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
-    /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-devel-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
     /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-contrib-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm \
     /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-server-${PGSPIDER_RELEASE_VERSION}-${DISTRIBUTION_TYPE}.x86_64.rpm
-
 
 RUN mkdir -p /var/run/postgresql && chown -R pgspider:pgspider /var/run/postgresql && chmod 3777 /var/run/postgresql
 
 ENV PGSDATA /var/lib/postgresql/data
 # this 777 will be replaced by 700 at runtime (allows semi-arbitrary "--user" values)
 RUN mkdir -p "$PGSDATA" && chown -R pgspider:pgspider "$PGSDATA" && chmod 1777 "$PGSDATA"
+
+# clean image
+RUN rm -rf /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-* \
+    && dnf remove -y wget pgdg-srpm-macros \
+    && dnf --enablerepo=powertools remove -y perl-IPC-Run \
+    && dnf --enablerepo=devel remove -y snappy-devel \
+    && dnf remove -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 
 # open up the pgspider port
 EXPOSE 4813

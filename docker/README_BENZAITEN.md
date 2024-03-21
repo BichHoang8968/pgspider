@@ -1,13 +1,13 @@
 Usage of PGSpider docker image and PGSpider RPM packages
 =====================================
 
-This directory contains the source code to create the PGSpider docker image and the PGSpider rpm packages and usage of them.
+The image above illustrates the process of building Docker images from source code and binary packages. First, the source code is used to build binary packages. These binary packages are then used to create the Docker image of PGSpider. Next, to create the Docker image PGSpider with FDWs, the FDW binary packages need to be installed into the Docker image PGSpider. As a result we have two Docker images, one is the PGSpider Docker image and the other is the PGSpider Docker image with FDWs.
 
 ![Alt text](images/overview.png)
 
-- Binary Packages were built from newest source code. Refer [Here](#creating-pgspider-rpm-packages)
-- PGSpider docker image is built from PGSpider binary packages. Refer [Here](#creating-pgspider-docker-images)
-- You can create PGSspider docker image with FDWs by installing FDW binary packages. Refer [Here](#creating-customized-pgspider-image-with-fdws)
+- Create PGSpider RPM packages. Refer [Here](#creating-pgspider-rpm-packages)
+- Create PGSpider docker image from PGSpider RPM packages. Refer [Here](#creating-pgspider-docker-images)
+- Create PGSspider docker image with specific FDWs. Refer [Here](#creating-customized-pgspider-image-with-fdws)
 
 Environment for creating rpm of PGSpider
 =====================================
@@ -220,13 +220,13 @@ Usage of Run CI/CD pipeline
 	Menu TaskBar -> Build -> Pipelines
 	```
 2. Click `Run Pipeline` button  
-![Alt text](images/BENZAITEN/pipeline_screen.PNG)
+![Alt text](images/GitLab/pipeline_screen.PNG)
 3. Choose `Branch` or `Tag` name
 4. Provide `Access Token` through `Variabes`
 	- Input variable key: ACCESS_TOKEN
 	- Input variable value: Your access token
 5. Click `Run Pipeline` button  
-![Alt text](images/BENZAITEN/run_pipeline.PNG)
+![Alt text](images/GitLab/run_pipeline.PNG)
 
 How to upgrade new PGSpider version for packages
 =====================================
