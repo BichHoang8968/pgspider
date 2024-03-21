@@ -83,13 +83,6 @@ ENV PGSDATA /var/lib/postgresql/data
 # this 777 will be replaced by 700 at runtime (allows semi-arbitrary "--user" values)
 RUN mkdir -p "$PGSDATA" && chown -R pgspider:pgspider "$PGSDATA" && chmod 1777 "$PGSDATA"
 
-# clean image
-RUN rm -rf /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-* \
-    && dnf remove -y wget pgdg-srpm-macros \
-    && dnf --enablerepo=powertools remove -y perl-IPC-Run \
-    && dnf --enablerepo=devel remove -y snappy-devel \
-    && dnf remove -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
-
 # open up the pgspider port
 EXPOSE 4813
 
