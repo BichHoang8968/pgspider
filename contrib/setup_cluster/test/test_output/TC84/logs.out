@@ -19,7 +19,7 @@ NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
-File:install_util.c Function:query_execute L:147 Msg:IMPORT FOREIGN SCHEMA "test_setclusterjdbc" FROM SERVER db4 INTO temp_schema; failed :ERROR:  syntax error at or near "User"
+File:install_util.c Function:query_execute L:150 Msg:IMPORT FOREIGN SCHEMA "test_setclusterjdbc" FROM SERVER db4 INTO temp_schema; failed :ERROR:  syntax error at or near "User"
 LINE 1: ...S (key 'true'), Db CHAR (1) OPTIONS (key 'true'), User CHAR ...
                                                              ^
 QUERY:  CREATE FOREIGN TABLE IF NOT EXISTS columns_priv(Host CHAR (1) OPTIONS (key 'true'), Db CHAR (1) OPTIONS (key 'true'), User CHAR (1) OPTIONS (key 'true'), Table_name CHAR (1) OPTIONS (key 'true'), Column_name CHAR (1) OPTIONS (key 'true'), Timestamp TIMESTAMP, Column_priv SET) SERVER db4;

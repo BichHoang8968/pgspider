@@ -19,9 +19,9 @@ NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  extension "file_fdw" already exists, skipping
-NOTICE:  role "pgspider" is already a member of role "pg_read_server_files"
+NOTICE:  role "pgspider" has already been granted membership in role "pg_read_server_files" by role "vagrant"
 NOTICE:  extension "file_fdw" already exists, skipping
-NOTICE:  role "pgspider" is already a member of role "pg_read_server_files"
+NOTICE:  role "pgspider" has already been granted membership in role "pg_read_server_files" by role "vagrant"
 NOTICE:  relation "tmp_test_setcluster" already exists, skipping
 Config directory: ./
 Node information file: node_information.json

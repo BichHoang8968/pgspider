@@ -1,4 +1,4 @@
-File:install_util.c Function:create_connection L:84 Msg:Error: user name is not specified. Please confirm 'username_admin' in pgspider node information
+File:install_util.c Function:create_connection L:87 Msg:Error: user name is not specified. Please confirm 'username_admin' in pgspider node information
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

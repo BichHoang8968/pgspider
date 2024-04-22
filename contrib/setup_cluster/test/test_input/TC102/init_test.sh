@@ -26,6 +26,9 @@ then
   fi
 
   # Setup Redmine
+  # Copy certificate to the folder of redmine server before building and starting redmine server.
+  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${REDMINE_HOME}/
+
   redmine_container_name='redmine_server_for_existed_test'
   redmine_db_container_name='redmine_mysql_db'
   CUR_PATH=$(pwd)

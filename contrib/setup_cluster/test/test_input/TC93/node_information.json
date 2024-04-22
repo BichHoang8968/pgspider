@@ -16,7 +16,7 @@
 		"dbdrivername": "com.toshiba.mwcloud.gs.sql.Driver",
 		"dburl": "jdbc:gs://239.0.0.1:41999/griddbfdwTestSetcluster/public",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/gridstore-jdbc-5.0.0.jar",
+		"driverpathjar": "JDBC_LIB_PATH/gridstore-jdbc-5.1.0.jar",
 		"maxheapsize": "600",
 		"username": "admin",
 		"password": "testadmin"

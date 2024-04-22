@@ -27,11 +27,15 @@ then
   fi
 
   # Setup Gitlab
+  # Setup certificate for both server and client of gitlab
+  cp ${DATA_PATH}/certificate/certificate_local.* ${GITLAB_HOME}
+  cp ${DATA_PATH}/certificate/certificate_local.crt /tmp/certificate.cer
+  cp ${DATA_PATH}/gitlab/docker-compose.yml ${GITLAB_HOME}
+  
   gitlab_container_name='gitlab_server_for_existed_test'
   CUR_PATH=$(pwd)
   cd ${GITLAB_HOME}
-
-  cp certificate_local.crt /tmp/certificate.cer
+  
   # clean gitlab server if exists
   echo "Clean gitlab service if exists..."
   if [ "$(docker ps -aq -f name=^/${gitlab_container_name}$)" ]; then

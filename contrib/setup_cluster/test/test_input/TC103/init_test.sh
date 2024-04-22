@@ -26,6 +26,11 @@ then
   fi
 
   # Setup Gitlab
+  # Setup certificate for both server and client of gitlab
+  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${GITLAB_HOME}/
+  cp ${INIT_DATA_PATH}/certificate/certificate_local.crt /tmp/certificate.cer
+  cp ${INIT_DATA_PATH}/gitlab/docker-compose.yml ${GITLAB_HOME}/
+
   gitlab_container_name='gitlab_server_for_existed_test'
   CUR_PATH=$(pwd)
   cd ${GITLAB_HOME}

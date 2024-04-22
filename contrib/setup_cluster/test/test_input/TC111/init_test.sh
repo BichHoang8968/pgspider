@@ -26,6 +26,9 @@ then
   fi
 
   # Setup Redmine
+  # Copy certificate to the folder of redmine server before building and starting redmine server.
+  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${REDMINE_HOME}/
+
   redmine_container_name='redmine_server_for_existed_test'
   redmine_db_container_name='redmine_mysql_db'
   CUR_PATH=$(pwd)
@@ -53,11 +56,5 @@ $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON ALL TABLES
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "ALTER USER pgspider WITH NOSUPERUSER;"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "CREATE ROLE pgspider2 LOGIN SUPERUSER PASSWORD 'pgspider2';"
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "GRANT ALL PRIVILEGES ON SCHEMA public TO pgspider;"
-
-# Init data
-echo "Init data..."
-docker exec ${redmine_container_name} /bin/bash -c 'bundle exec rails runner -e production /home/test/create_redmine_data.rb'
-docker exec ${redmine_container_name} /bin/bash -c 'bundle exec rails runner -e production /home/test/create_customfields_data.rb'
-docker exec ${redmine_db_container_name} /bin/bash -c '/home/test/update_date_time_fields.sh'
 
 cd ${CUR_PATH}

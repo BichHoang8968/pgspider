@@ -1,6 +1,8 @@
 #include "azureStorage.hpp"
+#include <azure/core/exception.hpp>
 
 #include <sstream>
+#include <typeinfo>
 
 namespace ObjStorageFdw
 {
@@ -10,73 +12,81 @@ namespace ObjStorageFdw
     {
         if (Storage::instancePool.find(id) == Storage::instancePool.end())
         {
-            std::cout << "create new AzureStorage instance " << id << std::endl;
             Storage::instancePool.insert(std::make_pair(id, std::make_shared<AzureStorage>(id)));
         }
-        else if(!std::dynamic_pointer_cast<AzureStorage>(Storage::instancePool.at(id)))
+        else if (!std::dynamic_pointer_cast<AzureStorage>(Storage::instancePool.at(id)))
         {
-            std::cout << "[ERROR] exist Storage instance but different type " << id << std::endl;
-            return std::shared_ptr<AzureStorage>();
+            throw std::runtime_error("exist Storage instance but different type");
         }
-        else
-        {
-            std::cout << "return existing AzureStorage instance " << id << std::endl;
-        }
+
         return std::dynamic_pointer_cast<AzureStorage>(Storage::instancePool.at(id));
     }
 
     AzureStorage::AzureStorage(unsigned int id)
-    : containerClient(Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString("", "")),
-    stop(false),
-    Storage(id),
-    createContainerIfNotExists(false)
+    : Storage(id),
+    containerName(std::string()),
+    pathPrefix(std::string()),
+    createContainerIfNotExists(false),
+    containerClient(Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString("", "")),
+    stop(false)
     {
         return;
     }
 
     AzureStorage::~AzureStorage()
     {
-        std::cout << "AzureStorage::~AzureStorage() " << this->id << std::endl;
         this->finalize();
     }
 
-    int AzureStorage::initialize(const std::string& connectionString, const bool& createContainerIfNotExists)
+    int AzureStorage::initialize(const std::string& accountName, const  std::string& accountKey, const  std::string& blobEndpoint, const bool& createContainerIfNotExists)
     {
-        std::cout << "AzureStorage::initialize() " << connectionString << std::endl;
         std::lock_guard<std::recursive_mutex> lk(this->mutexSdk);
+        std::string strConnectionString;
 
-        if(this->initialized)
+        if (this->initialized)
         {
-            std::cout << "already initialized" << std::endl;
+            // already initialized
             return -1;
         }
 
-        this->connectionString = connectionString;
+        strConnectionString = "DefaultEndpointsProtocol=";
+        strConnectionString += (blobEndpoint.find("https")==0)?"https":"http";
+        strConnectionString += ";AccountName=";
+        strConnectionString += accountName;
+        strConnectionString += ";AccountKey=";
+        strConnectionString += accountKey;
+        strConnectionString += ";BlobEndpoint=";
+        strConnectionString += blobEndpoint;
+        strConnectionString += ";";
+
+        this->connectionString = strConnectionString;
         this->createContainerIfNotExists = createContainerIfNotExists;
 
-        //this->azureClientHoge = Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString("hoge", "hoge");
-        //this->azureClient.reset(&Azure::Storage::Blobs::BlobContainerClient::CreateFromConnectionString("hoge", "hoge"));
         this->containerClient = BlobContainerClient::CreateFromConnectionString(connectionString, containerName);
 
         this->finalize();
         this->stop = false;
-        for(int i=0; i<Storage::maxConcurrent; i++)
+        for (int i = 0; i < Storage::maxConcurrent; i++)
         {
             this->downloadWorkers.push_back(std::thread([this]
             {
                 std::shared_ptr<StorageItem> downloadItem;
-                while(true)
+
+                while (true)
                 {
                     {
                         std::unique_lock<std::recursive_mutex> lock(this->mutexDownloadQueue);
-                        while(!this->stop && this->downloadTasks.empty())
+
+                        while (!this->stop && this->downloadTasks.empty())
                         {
                             this->condWorkers.wait(lock);
                         }
-                        if(this->stop)
+
+                        if (this->stop)
                         {
                             return;
                         }
+
                         downloadItem = this->downloadTasks.front();
                         this->downloadTasks.pop();
                     }
@@ -84,49 +94,48 @@ namespace ObjStorageFdw
                     // download
                     std::vector<uint8_t> buffer;
                     std::size_t offset = 0;
-                    if(!this->containerName.empty())
+
+                    if (!this->containerName.empty())
                     {
                         offset += this->containerName.length() + 1;
                     }
+
                     auto path = downloadItem->getPath();
                     path.erase(0, offset);
-                    std::cout << "item path     : " << downloadItem->getPath() << std::endl;
-                    std::cout << "download path : " << path << std::endl;
-                    auto blockBlobClient = this->containerClient.GetBlockBlobClient(path);
+                    auto blockBlobClient =  this->containerClient.GetBlockBlobClient(path);
                     {
                         std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
                         downloadItem->startDownload();
                         std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
                         Storage::inProgress++;
                     }
-                    std::cout << "Blob name: " << downloadItem->getPath() << std::endl;
+
                     try
                     {
                         auto blobProperties = blockBlobClient.GetProperties();
                         buffer.resize(static_cast<size_t>(blobProperties.Value.BlobSize));
                         auto response = blockBlobClient.DownloadTo(buffer.data(), buffer.size());
-                        // エラー判断の方法が分からぬ…
-                        {
-                            std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                            downloadItem->setRawData(&buffer[0], buffer.size());
-                            std::cout << "notify complete \"" << downloadItem->getPath() << "\"" << std::endl;
-                            downloadItem->completeDownload(true);
-                            this->completeItems.push_back(downloadItem);
-                            std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
-                            Storage::inProgress--;
-                        }
-                    }
-                    catch (...)
-                    {
-                        std::cout << "catch exception" << std::endl;
+
                         std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                        downloadItem->completeDownload(false);
-                        this->completeItems.push_back(downloadItem);
-                        std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
-                        Storage::inProgress--;
-                        this->condInstanceMembers.notify_all();
-                        return;
+                        downloadItem->setRawData(&buffer[0], buffer.size());
+                        downloadItem->completeDownload(true);
                     }
+                    catch (Azure::Core::RequestFailedException &e)
+                    {
+                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                        downloadItem->completeDownload(false, e.what(), e.StatusCode == Azure::Core::Http::HttpStatusCode::NotFound);
+                    }
+                    catch (std::exception &e)
+                    {
+                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                        downloadItem->completeDownload(false, e.what());
+                    }
+
+                    /* Hold the lock */
+                    std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                    std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
+                    Storage::inProgress--;
+                    this->completeItems.push_back(downloadItem);
                     this->condInstanceMembers.notify_all();
                 }
             }));
@@ -138,11 +147,9 @@ namespace ObjStorageFdw
 
     void AzureStorage::finalize()
     {
-        std::cout << "AzureStorage::finalize()" << std::endl;
-
         this->stop = true;
         this->condWorkers.notify_all();
-        for(auto& item: this->downloadWorkers)
+        for (auto& item: this->downloadWorkers)
         {
             item.join();
         }
@@ -154,9 +161,13 @@ namespace ObjStorageFdw
         this->completeItems.clear();
         this->items.clear();
 
+        /* clean target object information */
+        this->containerName.clear();
+        this->pathPrefix.clear();
+
         return;
     }
-    
+
     void AzureStorage::setCallback(const DownloadResult& callback)
     {
         return;
@@ -171,20 +182,18 @@ namespace ObjStorageFdw
         this->items.clear();
 
         std::size_t pos;
-        if((pos=path.find("/")) != std::string::npos)
+        if ((pos=path.find("/")) != std::string::npos)
         {
             this->containerName = path.substr(0, pos);
             this->pathPrefix = path.substr(pos+1);
-            //std::cout << "bucket:" << this->bucketName << " prefix:" << this->prefix << std::endl;
         }
         else
         {
             this->containerName = path;
             this->pathPrefix.clear();
         }
-        std::cout << "AzureStorage::setDirPath() " << path << " containerName:" << this->containerName << std::endl;
         this->containerClient = BlobContainerClient::CreateFromConnectionString(connectionString, containerName);
-        if(this->createContainerIfNotExists)
+        if (this->createContainerIfNotExists)
         {
             this->containerClient.CreateIfNotExists();
         }
@@ -200,12 +209,11 @@ namespace ObjStorageFdw
 
         // ファイルの実在確認はどうするか?
         std::size_t pos;
-        if((pos=path.find("/")) != std::string::npos)
+        if ((pos=path.find("/")) != std::string::npos)
         {
             this->containerName = path.substr(0, pos);
             this->pathPrefix.clear();
             this->items.push_back(std::make_shared<StorageItem>(this->containerName + "/" + path.substr(pos+1)));
-            std::cout << "bucket:" << this->containerName << " file:" << this->items[0]->getPath() << std::endl;
         }
         else
         {
@@ -214,99 +222,65 @@ namespace ObjStorageFdw
             //this->prefix.clear();
         }
         this->containerClient = BlobContainerClient::CreateFromConnectionString(connectionString, containerName);
-        if(this->createContainerIfNotExists)
+        if (this->createContainerIfNotExists)
         {
             this->containerClient.CreateIfNotExists();
         }
     }
 
-    void AzureStorage::requestDownload(const std::shared_ptr<StorageItem>& target)
+    std::shared_ptr<StorageItem> AzureStorage::addFilePath(const std::string& path)
     {
-        auto result = std::find(this->items.begin(), this->items.end(), target);
-        if(result==this->items.end())
+        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+        std::size_t pos;
+
+        if ((pos = path.find("/")) != std::string::npos)
         {
-            std::cout << "target not found" << std::endl;
+            this->containerName = path.substr(0, pos);
+            this->pathPrefix.clear();
+            this->items.push_back(std::make_shared<StorageItem>(this->containerName + "/" + path.substr(pos+1)));
         }
         else
         {
-            std::cout << "target found " << result-this->items.begin() << std::endl;
-            auto dupChk = std::find(this->completeItems.begin(), this->completeItems.end(), target);
-            if(dupChk!=this->completeItems.end())
-            {
-                // エラー時の再ダウンロードを考慮していない。
-                std::cout << "already downloaded" << std::endl;
-                return;
-            }
+            throw std::runtime_error("Illegal file path.");
+        }
 
-            {
-                std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                (*result)->requestDownload();
-            }
-            {
-                std::lock_guard<std::recursive_mutex> lk(this->mutexDownloadQueue);
-                this->downloadTasks.push(*result);
-            }
+        this->containerClient = BlobContainerClient::CreateFromConnectionString(connectionString, containerName);
+        if (this->createContainerIfNotExists)
+        {
+            this->containerClient.CreateIfNotExists();
+        }
+
+        return this->items.back();
+    }
+
+    void AzureStorage::requestDownload(const std::shared_ptr<StorageItem>& target)
+    {
+        auto result = std::find(this->items.begin(), this->items.end(), target);
+        if (result==this->items.end())
+        {
+            throw std::runtime_error("AzureStorage::requestDownload target not found");
+        }
+        else
+        {
+            auto dupChk = std::find(this->completeItems.begin(), this->completeItems.end(), target);
+            if (dupChk != this->completeItems.end())
+                return;
+
+            std::lock_guard<std::recursive_mutex> lk1(this->mutexInstanceMembers);
+            (*result)->requestDownload();
+
+            std::lock_guard<std::recursive_mutex> lk2(this->mutexDownloadQueue);
+            this->downloadTasks.push(*result);
+
             this->condWorkers.notify_one();
         }
-        //this->refreshDownloadTask();
         return;
-    }
-
-    std::shared_ptr<StorageItem> AzureStorage::getAnyOne()
-    {
-        std::cout << "getAnyOne() " << this->items.size() << std::endl;
-        // comopleteなItemが無かったら起こされるまで待つ
-        // 起きたらitemsを確認、completeが無かったらまた待つ
-        std::unique_lock<std::recursive_mutex> lk(this->mutexInstanceMembers);
-        std::size_t targetNum = this->completeItems.size();
-        this->condInstanceMembers.wait(lk, [this, targetNum]{
-            if(this->completeItems.size() >= this->items.size())
-            {
-                // 全て完了している
-                return true;
-            }
-            if(targetNum >= this->completeItems.size())
-            {
-                // 完了してるアイテムがまだ少ない
-                return false;
-            }
-            // 何か完了した
-            return true;
-        });
-        
-        if(targetNum < this->completeItems.size())
-        {
-            auto item = this->completeItems[targetNum];
-            if(item->getState() == StorageItem::ItemState::complete)
-            {
-                return item;
-            }
-            //return this->completeItems[this->returnedCur++];
-        }
-
-        //return std::make_shared<StorageItem>(nullptr);
-        return std::shared_ptr<StorageItem>();
-    }
-
-    std::shared_ptr<StorageItem> AzureStorage::get(int pos)
-    {
-        std::cout << "items " << this->items.size() << " completeItems " << this->completeItems.size() << std::endl;
-        std::unique_lock<std::recursive_mutex> lk(this->mutexInstanceMembers);
-
-        if(pos>=this->completeItems.size())
-        {
-            std::cout << "out of range" << std::endl;
-            std::shared_ptr<StorageItem> nullItem;
-            return nullItem;
-        }
-
-        return this->completeItems[pos];
     }
 
     void AzureStorage::putItem(std::shared_ptr<StorageItem> item)
     {
         std::size_t offset = 0;
-        if(!this->containerName.empty())
+        if (!this->containerName.empty())
         {
             offset += this->containerName.length() + 1;
         }
@@ -314,36 +288,21 @@ namespace ObjStorageFdw
         path.erase(0, offset);
         auto blockBlobClient = this->containerClient.GetBlockBlobClient(path);
         auto response = blockBlobClient.UploadFrom(static_cast<const uint8_t*>(item->getRawData()), item->getSize());
-        std::cout << "AzureStorage::putItem() " << response.RawResponse->GetReasonPhrase() << std::endl;
+
+        /* check response status */
+
         return;
     }
 
     void AzureStorage::waitAllTask()
     {
-        std::cout << "AzureStorage::waitAllTask()" << std::endl;
-        // 新規のダウンロードタスクを追加できない状態にして
-        // 進行中のタスクの完了を待つ(現状キャンセルをサポートしていないので)
-        // 全itemのstatusを確認してみる。クラス変数の進行数を見ても良いはず。
-        //std::unique_lock<std::mutex> lk(this->mutexInstanceMembers);
-        //this->condInstanceMembers.wait(lk, [this]{
-        //    bool inProgress = false;
-        //    for(auto item : this->items)
-        //    {
-        //        if(StorageItem::ItemState::inProgress == item->getState())
-        //        {
-        //            inProgress = true;
-        //        }
-        //    }
-        //    return !inProgress;
-        //});
-
         this->stop = true;
         this->condWorkers.notify_all();
-        for(auto& item: this->downloadWorkers)
+
+        for (auto& item: this->downloadWorkers)
         {
             item.join();
         }
-
         return;
     }
 
@@ -351,43 +310,123 @@ namespace ObjStorageFdw
     {
         std::lock_guard<std::recursive_mutex> lk(this->mutexSdk);
 
-        if(this->connectionString.empty())
+        if (this->connectionString.empty())
         {
             return this->items;
         }
 
-        if(this->containerName.empty())
+        if (this->containerName.empty())
         {
             return this->items;
         }
 
-        if(!this->items.empty())
+        if (!this->items.empty())
         {
             return this->items;
         }
 
         this->containerClient = BlobContainerClient::CreateFromConnectionString(this->connectionString, this->containerName);
-        //auto containerClient = BlobContainerClient::CreateFromConnectionString(this->connectionString, this->containerName);
-        //this->containerClient.reset(&containerClient);
-        //containerClient.CreateIfNotExists();
         auto listBlobsOptions = ListBlobsOptions();
         listBlobsOptions.Prefix = this->pathPrefix;
         auto listBlobsResponse = containerClient.ListBlobs(listBlobsOptions);
-        std::cout << "Blobs " << this->containerName << " " << this->pathPrefix << " Blob count: " << listBlobsResponse.Blobs.size() << std::endl;
         this->items.reserve(listBlobsResponse.Blobs.size());
-        for(auto blobItem : listBlobsResponse.Blobs)
+
+        for (auto blobItem : listBlobsResponse.Blobs)
         {
-            std::cout << "Blob name: " << blobItem.Name << " " << blobItem.BlobSize << std::endl;
             std::string path;
-            if(!this->containerName.empty())
+            if (!this->containerName.empty())
             {
                 path += this->containerName+"/";
             }
             path += blobItem.Name;
             this->items.push_back(std::make_shared<StorageItem>(path));
         }
-        //this->containerClient.reset();
 
         return this->items;
+    }
+    
+    /*
+     *  Try to delete file/folder in Azure
+     */
+    bool AzureStorage::requestDelete(std::string target, std::string format, bool is_dir)
+    {
+        this->containerClient = BlobContainerClient::CreateFromConnectionString(this->connectionString, this->containerName);
+
+        if(is_dir)
+        {
+            auto items = this->getFiles();
+            int itemCount = items.size();
+
+            if (itemCount == 0) {
+                return false;
+            }
+
+            for(int i=0; i<itemCount; i++)
+            {
+                auto item = items[i];
+                if(item == nullptr)
+                {
+                    continue;
+                }
+
+                auto itemPath = item->getPath();
+            
+                auto p = SplitBucketPath(itemPath);
+                auto blod = this->containerClient.GetBlobClient(p.second);
+                auto result = blod.DeleteIfExists();
+
+                if (!result.Value.Deleted)
+                {
+                    return false;
+                }
+            }
+
+            this->items.clear();
+            this->completeItems.clear();
+        }
+        else 
+        {
+
+            auto p = SplitBucketPath(target);
+            auto blod = this->containerClient.GetBlobClient(p.second);
+            auto result = blod.DeleteIfExists();
+
+            if (!result.Value.Deleted)
+            {
+                return false;
+            }
+            
+            this->items.clear();
+            this->completeItems.clear();
+        }
+        return true;
+    }
+
+    /*
+     * Check single file exist in Azure
+     * Because No direct API to check. Get list object in Blob then iter
+     */
+    bool AzureStorage::is_file_exist(std::string path)
+    {
+        std::string folder = "";
+        auto p = SplitBucketPath(path);
+        this->containerClient = BlobContainerClient::CreateFromConnectionString(this->connectionString, this->containerName);
+        auto listBlobsOptions = ListBlobsOptions();
+
+        if (p.second.find_last_of("/\\") != std::string::npos)
+        {
+            folder = p.second.substr(0, p.second.find_last_of("/\\"));
+            listBlobsOptions.Prefix = this->pathPrefix;
+        }
+        auto listBlobsResponse = containerClient.ListBlobs(listBlobsOptions);
+        for (auto&& blodItem : listBlobsResponse.Blobs)
+        {
+            std::string filepath =  folder + blodItem.Name;
+            if ( filepath == path) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

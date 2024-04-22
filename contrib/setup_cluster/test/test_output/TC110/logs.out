@@ -65,6 +65,9 @@ NOTICE:  relation "time_entries" already exists, skipping
 NOTICE:  relation "issues" already exists, skipping
 NOTICE:  relation "issue_comments" already exists, skipping
 NOTICE:  relation "time_entries" already exists, skipping
+NOTICE:  relation "issues" already exists, skipping
+NOTICE:  relation "issue_comments" already exists, skipping
+NOTICE:  relation "time_entries" already exists, skipping
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

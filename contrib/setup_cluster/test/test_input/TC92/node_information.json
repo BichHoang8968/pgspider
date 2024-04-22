@@ -16,7 +16,7 @@
 		"dbdrivername": "org.postgresql.Driver",
 		"dburl": "jdbc:postgresql://localhost:5432/jdbcpostgres",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/postgresql-42.3.5.jar",
+		"driverpathjar": "JDBC_LIB_PATH/postgresql-42.6.0.jar",
 		"maxheapsize": "600",
 		"username": "postgres",
 		"password": "postgres",
