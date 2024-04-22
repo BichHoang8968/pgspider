@@ -8,7 +8,7 @@ GRIDDB_CLIENT=/home/jenkins/griddb-5.0/griddb
 TINYBRACE_HOME=/usr/local/tinybrace
 POSTGREST_BINARY_HOME=/home/jenkins/binary_Postgrest
 DYNAMODB_HOME=/home/jenkins/DynamoDB
-GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab/GitlabFDW
+GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab
 REDMINE_HOME=/home/jenkins/pgspiderci/Server/Redmine
 
 MONGO_HOST="localhost"
@@ -148,6 +148,11 @@ mkdir results || true
 
 for i in ${list_TC[@]}
 do
+    # Ignore this case, pgspider_core_fdw cannot handle mixing of schemaless and non-schemaless tables
+    if [ ${i} == "TC107" ]; then
+        continue
+    fi
+
     if [ ${i} == "." ]; then
         continue
     fi
@@ -308,6 +313,18 @@ do
     if [ ${i} == "TC112" ]; then
         echo "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out
         $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from branches order by name, web_url, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for redmine fdw, failed case. Allow user to input backslash or single quote character in option value.
+    if [ ${i} == "TC113" ]; then
+        echo "select * from issues order by id, parent_id;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
+    fi
+
+    # test for redmine_fdw, the endpoint name has hyphen character.
+    if [ ${i} == "TC114" ]; then
+        echo "select * from issues order by id, parent_id;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
     fi
 
     # Check data in parent node

@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <string.h>
 #include <time.h>
+#include <ctype.h>
 #include "libpq-fe.h"
 #include "install_util.h"
 #include "error_codes.h"
@@ -33,6 +34,8 @@ typedef struct timespec MyTimer;
 #endif
 
 void		err_msg(const char *file, const char *function, int line, const char *fmt,...) __attribute__((format(printf, 4, 5)));
+static void append_string_info_char(string_info str, char ch);
+static void enlarge_string_info(string_info str);
 
 void
 err_msg(const char *file, const char *function, int line, const char *fmt,...)
@@ -148,4 +151,104 @@ query_execute(PGconn *conn, char *query)
 		return SETUP_QUERY_FAILED;
 	}
 	return SETUP_OK;
+}
+
+/*
+ * Make a SQL string literal representing "val".
+ * Referenced from the function deparseStringLiteral() of PostgreSQL FDW 16.0
+ */
+void
+deparse_string_literal(string_info buf, const char *val)
+{
+	const char *valptr;
+
+	/*
+	 * According to PostgreSQL specification, PostgreSQL accepts “escape” string constants, which are an extension
+	 * to the SQL standard. An escape string constant is specified by writing the letter E (upper or lower case)
+	 * just before the opening single quote, e.g., E'foo'. Backslash (\) and single quote (') are allowed in
+	 * SQL string, so to include these characters, append a backslash before them like this \\ and \'.
+	 */
+	if (strchr(val, '\\') != NULL)
+		append_string_info_char(buf, ESCAPE_STRING_SYNTAX);
+	append_string_info_char(buf, '\'');
+	for (valptr = val; *valptr; valptr++)
+	{
+		char		ch = *valptr;
+
+		if (SQL_STR_DOUBLE(ch, TRUE))
+			append_string_info_char(buf, ch);
+		append_string_info_char(buf, ch);
+	}
+	append_string_info_char(buf, '\'');
+}
+
+/*
+ * append_string_info_char
+ *
+ * Append a character to string.
+ */
+static void
+append_string_info_char(string_info str, char ch)
+{
+	/* Make more room if needed */
+	if (str->len + 1 >= str->maxlen)
+		enlarge_string_info(str);
+
+	/* OK, append the character */
+	str->data[str->len] = ch;
+	str->len++;
+	str->data[str->len] = '\0';
+}
+
+/*
+ * enlarge_string_info
+ *
+ * enlarge string if it has not enough space
+ */
+static void
+enlarge_string_info(string_info str)
+{
+	int			newlen = 2 * str->maxlen;
+
+	str->data = (char *) realloc(str->data, newlen);
+
+	if (str->data == NULL)
+		PRINT_ERROR("Error: Not enough memory");
+
+	str->maxlen = newlen;
+}
+
+/*
+ * init_string_info
+ *
+ * Initialize a string with default values.
+ */
+void
+init_string_info(string_info str)
+{
+	int			size = 1024;	/* initial default buffer size */
+
+	str->data = (char *) malloc(size);
+	if (str->data == NULL)
+		PRINT_ERROR("Error: Not enough memory");
+
+	str->maxlen = size;
+	str->data[0] = '\0';
+	str->len = 0;
+}
+
+/*
+ * Lower string
+ */
+char*
+to_lower(char *str)
+{
+	int i;
+
+	for(i = 0; str[i]; i++)
+	{
+		str[i] = tolower(str[i]);
+	}
+
+	return str;
 }

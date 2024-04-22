@@ -105,8 +105,8 @@ NOTICE:  extension "postgres_fdw" already exists, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
-File:install_util.c Function:query_execute L:147 Msg:IMPORT FOREIGN SCHEMA public FROM SERVER db10 INTO temp_schema; failed :ERROR:  password is required
-DETAIL:  Non-superuser cannot connect if the server does not request a password.
+File:install_util.c Function:query_execute L:150 Msg:IMPORT FOREIGN SCHEMA public FROM SERVER db10 INTO temp_schema; failed :ERROR:  password or GSSAPI delegated credentials required
+DETAIL:  Non-superuser cannot connect if the server does not request a password or use GSSAPI with delegated credentials.
 HINT:  Target server's authentication method must be changed or password_required=false set in the user mapping attributes.
 
 Config directory: ./

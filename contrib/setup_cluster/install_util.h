@@ -40,6 +40,18 @@
 
 #define IS_S3_PATH(str) (strncmp(str, "s3://", 5) == 0)
 
+/*
+ * Support macros for escaping strings.  escape_backslash should be true
+ * if generating a non-standard-conforming string.  Prefixing a string
+ * with ESCAPE_STRING_SYNTAX guarantees it is non-standard-conforming.
+ * Beware of multiple evaluation of the "ch" argument!
+ * 
+ * Referenced from PostgreSQL
+ */
+#define SQL_STR_DOUBLE(ch, escape_backslash) ((ch) == '\'' || ((ch) == '\\' && (escape_backslash)))
+#define ESCAPE_STRING_SYNTAX 'E'
+#define TRUE 1
+
 extern const char spd_extensions[][CONFIG_LEN];
 
 typedef struct file_fdw_tables
@@ -157,10 +169,20 @@ typedef struct nodes
 	struct nodes *next;
 }			nodes;
 
+/* Note: Referenced from the struct StringInfoData of PostgreSQL */
+typedef struct string_info_data
+{
+	char	   *data;
+	int			len;
+	int			maxlen;
+} string_info_data;
+typedef string_info_data *string_info;
+
 ReturnCode	create_connection(PGconn **pConn, nodes * node, char isAdmin, int timeout);
 ReturnCode	query_execute(PGconn *conn, char *query);
 void		err_msg(const char *file, const char *function, int line, const char *fmt,...);
-
-
+void		deparse_string_literal(string_info str, const char *val);
+void 		init_string_info(string_info str);
+char*		to_lower(char *str);
 
 #endif							/* INSTALL_UTIL_H */

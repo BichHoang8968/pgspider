@@ -8,23 +8,19 @@ namespace ObjStorageFdw
     {
         if (Storage::instancePool.find(id) == Storage::instancePool.end())
         {
-            std::cout << "create new GcpStorage instance " << id << std::endl;
             Storage::instancePool.insert(std::make_pair(id, std::make_shared<GcpStorage>(id)));
         }
-        else if(!std::dynamic_pointer_cast<GcpStorage>(Storage::instancePool.at(id)))
+        else if (!std::dynamic_pointer_cast<GcpStorage>(Storage::instancePool.at(id)))
         {
-            std::cout << "[ERROR] exist Storage instance but different type " << id << std::endl;
-            return std::shared_ptr<GcpStorage>();
-        }
-        else
-        {
-            std::cout << "return existing GcpStorage instance " << id << std::endl;
+            throw std::runtime_error("[ERROR] exist Storage instance but different type "  + std::to_string(id));
         }
         return std::dynamic_pointer_cast<GcpStorage>(Storage::instancePool.at(id));
     }
 
     GcpStorage::GcpStorage(unsigned int id)
     : Storage(id),
+    restEndpoint(std::string()),
+    bucketName(std::string()),
     createBucketIfNotExists(false),
     bucketExist(false)
     {
@@ -33,17 +29,15 @@ namespace ObjStorageFdw
 
     GcpStorage::~GcpStorage()
     {
-        std::cout << "GcpStorage::~GcpStorage() " << this->id << std::endl;
         this->finalize();
     }
 
-    int GcpStorage::initialize(const std::string& restEndpoint, const bool& createBucketIfNotExists)
+    int GcpStorage::initialize(const std::string& restEndpoint, const bool& createBucketIfNotExists, const bool& suppressRetry, char *project_id)
     {
         std::lock_guard<std::recursive_mutex> lk(this->mutexSdk);
 
-        if(this->initialized)
+        if (this->initialized)
         {
-            std::cout << "already initialized" << std::endl;
             return -1;
         }
 
@@ -53,13 +47,18 @@ namespace ObjStorageFdw
         auto options = ::google::cloud::Options();
         options.set<::google::cloud::storage::RestEndpointOption>(this->restEndpoint);
         options.set<::google::cloud::UnifiedCredentialsOption>(::google::cloud::MakeInsecureCredentials());
-        options.unset<::google::cloud::storage::ProjectIdOption>();
+        options.set<::google::cloud::storage::ProjectIdOption>(project_id);
+        if (suppressRetry)
+        {
+            options.set<::google::cloud::storage::DownloadStallTimeoutOption>(std::chrono::seconds(1));
+            options.set<::google::cloud::storage::RetryPolicyOption>(::google::cloud::storage::LimitedErrorCountRetryPolicy(1).clone());
+        }
 
         this->client = ::google::cloud::storage::Client(options);
 
         this->finalize();
         this->stop = false;
-        for(int i=0; i<Storage::maxConcurrent; i++)
+        for (int i = 0; i < Storage::maxConcurrent; i++)
         {
             this->downloadWorkers.push_back(std::thread([this]
             {
@@ -72,7 +71,7 @@ namespace ObjStorageFdw
                         {
                             this->condWorkers.wait(lock);
                         }
-                        if(this->stop)
+                        if (this->stop)
                         {
                             return;
                         }
@@ -89,55 +88,43 @@ namespace ObjStorageFdw
 
                     // download
                     std::size_t offset = 0;
-                    if(!this->bucketName.empty())
+
+                    if (!this->bucketName.empty())
                     {
                         offset += this->bucketName.length()+1;
                     }
                     auto path = downloadItem->getPath();
                     path.erase(0, offset);
-                    std::cout << "item path     : " << downloadItem->getPath() << std::endl;
-                    std::cout << "download path : " << path << std::endl;
+
                     auto metaData = this->client.GetObjectMetadata(this->bucketName, path);
-                    if(metaData)
+
+                    if (!metaData)
                     {
-                        std::cout << "object:" << metaData->name() << " size:" << metaData->size() << std::endl;
+                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                        downloadItem->completeDownload(false, metaData.status().message(), metaData.status().code() == ::google::cloud::StatusCode::kNotFound);
                     }
                     else
                     {
-                        std::cout << "GetObjectMetadata failed" << std::endl;
-                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                        downloadItem->completeDownload(false);
-                        std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
-                        Storage::inProgress--;
-                        this->completeItems.push_back(downloadItem);
-                        this->condInstanceMembers.notify_all();
-                        return;
+                        auto inputStream = this->client.ReadObject(this->bucketName, path);
+
+                        if (inputStream.bad())
+                        {
+                            std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                            downloadItem->completeDownload(false, "GcpStorage: input stream is bad: " + inputStream.status().message());
+                        }
+                        else
+                        {
+                            std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(inputStream), {});
+                            std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                            downloadItem->setRawData(&buffer[0], buffer.size());
+                            downloadItem->completeDownload(true);
+                        }
                     }
 
-                    auto inputStream = this->client.ReadObject("download/storage/v1/b/"+this->bucketName, "o/"+path);
-                    if(inputStream.bad())
-                    {
-                        std::cout << "input stream is bad" << std::endl;
-                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                        downloadItem->completeDownload(false);
-                        std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
-                        Storage::inProgress--;
-                        this->completeItems.push_back(downloadItem);
-                        this->condInstanceMembers.notify_all();
-                        return;
-                    }
-                    inputStream.status();
-                    std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(inputStream), {});
-                    std::cout << "object:" << downloadItem->getPath() << " size:" << buffer.size() << std::endl;
-
-                    {
-                        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
-                        downloadItem->setRawData(&buffer[0], buffer.size());
-                        downloadItem->completeDownload(true);
-                        this->completeItems.push_back(downloadItem);
-                        std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
-                        Storage::inProgress--;
-                    }
+                    std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+                    std::lock_guard<std::recursive_mutex> lkClass(Storage::mutexClassMembers);
+                    Storage::inProgress--;
+                    this->completeItems.push_back(downloadItem);
                     this->condInstanceMembers.notify_all();
                 }
             }));
@@ -149,10 +136,9 @@ namespace ObjStorageFdw
 
     void GcpStorage::finalize()
     {
-        std::cout << "GcpStorage::finalize()" << std::endl;
         this->stop = true;
         this->condWorkers.notify_all();
-        for(auto& item: this->downloadWorkers)
+        for (auto& item: this->downloadWorkers)
         {
             item.join();
         }
@@ -163,6 +149,10 @@ namespace ObjStorageFdw
         std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
         this->completeItems.clear();
         this->items.clear();
+
+        /* clean target object information */
+        this->bucketName.clear();
+        this->pathPrefix.clear();
 
         return;
     }
@@ -176,11 +166,10 @@ namespace ObjStorageFdw
         this->items.clear();
 
         std::size_t pos;
-        if((pos=path.find("/")) != std::string::npos)
+        if ((pos=path.find("/")) != std::string::npos)
         {
             this->bucketName = path.substr(0, pos);
             this->pathPrefix = path.substr(pos+1);
-            //std::cout << "bucket:" << this->bucketName << " prefix:" << this->prefix << std::endl;
         }
         else
         {
@@ -189,15 +178,15 @@ namespace ObjStorageFdw
         }
 
         auto bucketMetadata = this->client.GetBucketMetadata(this->bucketName);
-        if(!bucketMetadata)
+        if (!bucketMetadata)
         {
-            if(bucketMetadata.status().code()==::google::cloud::StatusCode::kNotFound)
+            if (bucketMetadata.status().code()==::google::cloud::StatusCode::kNotFound)
             {
                 this->bucketExist = false;
             }
             else
             {
-                std::cout << "unrecoverable error" << std::endl;
+                this->bucketExist = true;
             }
         }
         else
@@ -217,28 +206,27 @@ namespace ObjStorageFdw
         this->items.clear();
 
         std::size_t pos;
-        if((pos=path.find("/")) != std::string::npos)
+        if ((pos=path.find("/")) != std::string::npos)
         {
             this->bucketName = path.substr(0, pos);
             this->pathPrefix.clear();
-            this->items.push_back(std::make_shared<StorageItem>(this->bucketName+"/"+path.substr(pos+1)));
-            std::cout << "bucket:" << this->bucketName << " file:" << path.substr(pos+1) << std::endl;
+            this->items.push_back(std::make_shared<StorageItem>(this->bucketName + "/" + path.substr(pos+1)));
         }
         else
         {
-            // error
+            throw std::runtime_error("Illegal path: " + path);
         }
 
         auto bucketMetadata = this->client.GetBucketMetadata(this->bucketName);
-        if(!bucketMetadata)
+        if (!bucketMetadata)
         {
-            if(bucketMetadata.status().code()==::google::cloud::StatusCode::kNotFound)
+            if (bucketMetadata.status().code()==::google::cloud::StatusCode::kNotFound)
             {
                 this->bucketExist = false;
             }
             else
             {
-                std::cout << "unrecoverable error" << std::endl;
+                throw std::runtime_error(bucketMetadata.status().message());
             }
         }
         else
@@ -249,33 +237,64 @@ namespace ObjStorageFdw
         return;
     }
 
+    std::shared_ptr<StorageItem> GcpStorage::addFilePath(const std::string& path)
+    {
+        std::lock_guard<std::recursive_mutex> lk(this->mutexInstanceMembers);
+
+        std::size_t pos;
+        if ((pos=path.find("/")) != std::string::npos)
+        {
+            this->bucketName = path.substr(0, pos);
+            this->pathPrefix.clear();
+            this->items.push_back(std::make_shared<StorageItem>(this->bucketName + "/" + path.substr(pos + 1)));
+        }
+        else
+        {
+            throw std::runtime_error("Illegal path: " + path);
+        }
+
+        auto bucketMetadata = this->client.GetBucketMetadata(this->bucketName);
+        if (!bucketMetadata)
+        {
+            if (bucketMetadata.status().code()==::google::cloud::StatusCode::kNotFound)
+            {
+                this->bucketExist = false;
+            }
+            else
+            {
+                throw std::runtime_error(bucketMetadata.status().message());
+            }
+        }
+        else
+        {
+            this->bucketExist = true;
+        }
+
+        return this->items.back();
+    }
+
     std::vector<std::shared_ptr<StorageItem>> GcpStorage::getFiles()
     {
-        std::cout << "GcpStorage::getFiles()" << std::endl;
         std::lock_guard<std::recursive_mutex> lk(this->mutexSdk);
 
-        if(!this->items.empty())
-        {
-            return this->items;
-        }
-        
-        if(this->bucketName.empty())
+        if (!this->items.empty())
         {
             return this->items;
         }
 
-        std::cout << "search: " << this->bucketName << std::endl;
-        
-        //auto objects = this->client.ListObjects(this->bucketName);
+        if (this->bucketName.empty())
+        {
+            return this->items;
+        }
+
         for (auto&& object_metadata : this->client.ListObjects(this->bucketName, google::cloud::storage::Prefix(this->pathPrefix)))
         {
             if (!object_metadata)
             {
                 throw std::runtime_error(object_metadata.status().message());
             }
-            std::cout << "bucket_name=" << object_metadata->bucket() << ", object_name=" << object_metadata->name() << " object_size=" << object_metadata->size() << std::endl;
             std::string path;
-            if(!this->bucketName.empty())
+            if (!this->bucketName.empty())
             {
                 path += this->bucketName+"/";
             }
@@ -289,18 +308,15 @@ namespace ObjStorageFdw
     void GcpStorage::requestDownload(const std::shared_ptr<StorageItem>& target)
     {
         auto result = std::find(this->items.begin(), this->items.end(), target);
-        if(result==this->items.end())
+        if (result == this->items.end())
         {
-            std::cout << "target not found" << std::endl;
+            throw std::runtime_error("GcpStorage: target not found");
         }
         else
         {
-            std::cout << "target found " << result-this->items.begin() << std::endl;
             auto dupChk = std::find(this->completeItems.begin(), this->completeItems.end(), target);
-            if(dupChk!=this->completeItems.end())
+            if (dupChk != this->completeItems.end())
             {
-                // エラー時の再ダウンロードを考慮していない。
-                std::cout << "already downloaded" << std::endl;
                 return;
             }
 
@@ -311,73 +327,19 @@ namespace ObjStorageFdw
             }
             this->condWorkers.notify_one();
         }
-        //this->refreshDownloadTask();
         return;
-    }
-
-    std::shared_ptr<StorageItem> GcpStorage::getAnyOne()
-    {
-        std::cout << "getAnyOne() " << this->items.size() << std::endl;
-        // comopleteなItemが無かったら起こされるまで待つ
-        // 起きたらitemsを確認、completeが無かったらまた待つ
-        std::unique_lock<std::recursive_mutex> lk(this->mutexInstanceMembers);
-        auto targetNum = this->completeItems.size();
-        this->condInstanceMembers.wait(lk, [this, targetNum]{
-            if(this->completeItems.size() >= this->items.size())
-            {
-                // 全て完了している
-                return true;
-            }
-            if(targetNum >= this->completeItems.size())
-            {
-                // 完了してるアイテムがまだ少ない
-                return false;
-            }
-            // 何か完了した
-            return true;
-        });
-        
-        if(targetNum < this->completeItems.size())
-        {
-            auto item = this->completeItems[targetNum];
-            if(item->getState() == StorageItem::ItemState::complete)
-            {
-                return item;
-            }
-            //return this->completeItems[this->returnedCur++];
-        }
-
-        //return std::make_shared<StorageItem>(nullptr);
-        return std::shared_ptr<StorageItem>();
-    }
-
-    std::shared_ptr<StorageItem> GcpStorage::get(int pos)
-    {
-        std::cout << "items " << this->items.size() << " completeItems " << this->completeItems.size() << std::endl;
-        std::unique_lock<std::recursive_mutex> lk(this->mutexInstanceMembers);
-
-        if(pos>=this->completeItems.size())
-        {
-            std::cout << "out of range" << std::endl;
-            std::shared_ptr<StorageItem> nullItem;
-            return nullItem;
-        }
-
-        return this->completeItems[pos];
     }
 
     void GcpStorage::putItem(std::shared_ptr<StorageItem> item)
     {
-        std::cout << "GcpStorage::putItem() " << this->bucketName << " " << item->getPath() << std::endl;
-
-        if(!this->bucketExist)
+        if (!this->bucketExist)
         {
-            if(this->createBucketIfNotExists)
+            if (this->createBucketIfNotExists)
             {
                 auto metadata = this->client.CreateBucket(this->bucketName, ::google::cloud::storage::BucketMetadata());
-                if(!metadata)
+                if (!metadata)
                 {
-                    std::cout << metadata.status().message() << std::endl;
+                   throw std::move(metadata).status();
                 }
                 else
                 {
@@ -386,7 +348,7 @@ namespace ObjStorageFdw
             }
             else
             {
-                std::cout << "Error: Bucket not exists : " << this->bucketName << std::endl;
+                throw std::runtime_error("Error: Bucket not exists : " + this->bucketName);
             }
         }
 
@@ -397,7 +359,7 @@ namespace ObjStorageFdw
         close(tmpFd);
 
         std::size_t offset = 0;
-        if(!this->bucketName.empty())
+        if (!this->bucketName.empty())
         {
             offset += this->bucketName.length() + 1;
         }
@@ -405,58 +367,148 @@ namespace ObjStorageFdw
         path.erase(0, offset);
         auto metadata = this->client.UploadFile(tmpFilename, this->bucketName, path);
 
+        if (!metadata)
+            throw std::runtime_error(metadata.status().message());
+
         remove(tmpFilename);
 
-        //this->client.UploadFile("/home/acky/public_html/index.php", this->bucketName, item->getPath());
-        //auto outputStream = this->client.WriteObject(this->bucketName, item->getPath());
-        //if(outputStream.bad())
-        //{
-        //    std::cout << "output stream is bad" << std::endl;
-        //    return;
-        //}
-        //else
-        //{
-        //    std::cout << "output stream is normal" << std::endl;
-        //}
-        //outputStream.write(static_cast<const char*>(item->getRawData()), item->getSize());
-        //outputStream << "test strings" << std::endl;
-        //std::cout << "write" << std::endl;
-        //outputStream.Close();
-        //std::cout << "close" << std::endl;
-        //google::cloud::StatusOr<google::cloud::storage::ObjectMetadata> metadata = std::move(outputStream).metadata();
-        //std::cout << "Successfully wrote to object " << metadata->name()
-        //    << " its size is: " << metadata->size()
-        //    << "\nFull metadata: " << *metadata << "\n";
         return;
-
     }
 
     void GcpStorage::waitAllTask()
     {
-        std::cout << "GcpStorage::waitAllTask()" << std::endl;
-        // 新規のダウンロードタスクを追加できない状態にして
-        // 進行中のタスクの完了を待つ(現状キャンセルをサポートしていないので)
-        // 全itemのstatusを確認してみる。クラス変数の進行数を見ても良いはず。
-        //std::unique_lock<std::recursive_mutex> lk(this->mutexSdk);
-        //this->condInstanceMembers.wait(lk, [this]{
-        //    bool inProgress = false;
-        //    for(auto item : this->items)
-        //    {
-        //        if(StorageItem::ItemState::inProgress == item->getState())
-        //        {
-        //            inProgress = true;
-        //        }
-        //    }
-        //    return !inProgress;
-        //});
-
         this->stop = true;
         this->condWorkers.notify_all();
-        for(auto& item: this->downloadWorkers)
+        for (auto& item: this->downloadWorkers)
         {
             item.join();
         }
 
         return;
+    }
+
+    /*
+     *  Try to delete file/folder in GCP
+     */
+    bool GcpStorage::requestDelete(std::string target, std::string format, bool is_dir)
+    {
+
+        if(is_dir)
+        {
+            auto items = this->getFiles();
+            int itemCount = items.size();
+
+            if (itemCount == 0) {
+                return false;
+            }
+
+            for(int i=0; i<itemCount; i++)
+            {
+                auto item = items[i];
+                if(item == nullptr)
+                {
+                    continue;
+                }
+
+                auto itemPath = item->getPath();
+            
+                auto p = SplitBucketPath(itemPath);
+                auto status = this->client.DeleteObject(this->bucketName, p.second);
+
+                if (!status.ok())
+                {
+                    if (status.code()==::google::cloud::StatusCode::kNotFound)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        throw std::runtime_error(status.message());
+                    }
+                }
+            }
+
+            this->items.clear();
+            this->completeItems.clear();
+        }
+        else 
+        {
+
+            auto p = SplitBucketPath(target);
+            auto status = this->client.DeleteObject(this->bucketName, p.second);
+
+            if (!status.ok())
+            {
+                if (status.code()==::google::cloud::StatusCode::kNotFound)
+                {
+                    return false;
+                }
+                else
+                {
+                    throw std::runtime_error(status.message());
+                }
+            }
+            
+            this->items.clear();
+            this->completeItems.clear();
+        }
+        return true;
+    }
+
+    /*
+     * Check single file exist in GCP
+     * Because No direct API to check. Get list object in Bucket then iter
+     */
+    bool GcpStorage::is_file_exist(std::string path)
+    {
+        std::string folder = "";
+        auto p = SplitBucketPath(path);
+        if (p.second.find_last_of("/\\") != std::string::npos)
+        {
+            folder = p.second.substr(0, p.second.find_last_of("/\\"));
+            for (auto&& object_metadata : this->client.ListObjects(this->bucketName, google::cloud::storage::Prefix(folder)))
+            {
+                if (!object_metadata)
+                {
+                    if (object_metadata.status().code()==::google::cloud::StatusCode::kNotFound)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        throw std::runtime_error(object_metadata.status().message());
+                    }
+                }
+                std::string filepath =  folder + object_metadata->name();
+                if ( filepath == path) 
+                {
+                    return true;
+                }
+            }
+        }
+        else
+        {
+            for (auto&& object_metadata : this->client.ListObjects(this->bucketName))
+            {
+                if (!object_metadata)
+                {
+                    if (object_metadata.status().code()==::google::cloud::StatusCode::kNotFound)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        throw std::runtime_error(object_metadata.status().message());
+                    }
+                }
+                std::string filepath =  folder + object_metadata->name();
+                if ( filepath == path) 
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

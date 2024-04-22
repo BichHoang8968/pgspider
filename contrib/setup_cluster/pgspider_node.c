@@ -36,7 +36,6 @@ static ReturnCode redmine_fdw(nodes *option, PGconn *conn);
 
 /* Helpful functions */
 static void appendOption(char *sql, char *option_name, char *option_value, bool need_delimiter);
-static const char *cui_quote_identifier(const char *ident);
 
 const		spd_function spd_func[] = {
 	{"file_fdw", file_fdw},
@@ -613,7 +612,7 @@ gitlab_fdw(nodes *option, PGconn *conn)
 	}
 
 	/* Check dependencies of ssl_verifypeer, ca_file and ca_path */
-	if (strcmp(tolower(option->ssl_verifypeer), "true") == 0)
+	if (strcmp(to_lower(option->ssl_verifypeer), "true") == 0)
 	{
 		if (strlen(option->ca_file) == 0 || strlen(option->ca_path) == 0)
 		{
@@ -621,7 +620,7 @@ gitlab_fdw(nodes *option, PGconn *conn)
 			return SETUP_INVALID_CONTENT;
 		}
 
-		appendOption(sql, "ssl_verifypeer", tolower(option->ssl_verifypeer), need_delimiter);
+		appendOption(sql, "ssl_verifypeer", to_lower(option->ssl_verifypeer), need_delimiter);
 
 		if (need_delimiter == false)
 			need_delimiter = true;
@@ -694,7 +693,7 @@ redmine_fdw(nodes *option, PGconn *conn)
 	}
 
 	/* Check dependencies of ssl_verifypeer, ca_file and ca_path */
-	if (strcmp(tolower(option->ssl_verifypeer), "true") == 0)
+	if (strcmp(to_lower(option->ssl_verifypeer), "true") == 0)
 	{
 		if (strlen(option->ca_file) == 0 || strlen(option->ca_path) == 0)
 		{
@@ -702,7 +701,7 @@ redmine_fdw(nodes *option, PGconn *conn)
 			return SETUP_INVALID_CONTENT;
 		}
 
-		appendOption(sql, "ssl_verifypeer", tolower(option->ssl_verifypeer), need_delimiter);
+		appendOption(sql, "ssl_verifypeer", to_lower(option->ssl_verifypeer), need_delimiter);
 
 		if (need_delimiter == false)
 			need_delimiter = true;
@@ -781,72 +780,19 @@ mapping_set_file(nodes *option, PGconn *conn, char *filename, int seqnum)
 static void appendOption(char *sql, char *option_name, char *option_value, bool need_delimiter)
 {
 	char		tmpOpt[CONFIG_LEN];
+	string_info_data buf;
+
+	init_string_info(&buf);
 
 	if (strlen(option_name) == 0)
 		return;
 
-	sprintf(tmpOpt, "%s %s '%s'", need_delimiter?",":"",option_name, cui_quote_identifier(option_value));
+	deparse_string_literal(&buf, option_value);
+
+	sprintf(tmpOpt, "%s %s %s", need_delimiter?",":"", option_name, buf.data);
 	strcat(sql, tmpOpt);
-}
 
-static const char *
-cui_quote_identifier(const char *ident)
-{
-	/*
-	 * Can avoid quoting if ident starts with a lowercase letter, a uppercase letter or underscore
-	 * and contains only lowercase letters, uppercase letters, digits, and underscores, *and* is
-	 * not any SQL keyword.  Otherwise, supply quotes.
-	 */
-	int			nquotes = 0;
-	bool		safe;
-	const char *ptr;
-	char	   *result;
-	char	   *optr;
-
-	/*
-	 * would like to use <ctype.h> macros here, but they might yield unwanted
-	 * locale-specific results...
-	 */
-	safe = ((ident[0] >= 'a' && ident[0] <= 'z') || ident[0] == '_' || (ident[0] >= 'A' && ident[0] <= 'Z') || 
-			ident[0] == '/');	/* Accept directory path */
-
-	for (ptr = ident; *ptr; ptr++)
-	{
-		char		ch = *ptr;
-
-		if ((ch >= 'a' && ch <= 'z') ||
-			(ch >= 'A' && ch <= 'Z') ||
-			(ch >= '0' && ch <= '9') ||
-			(ch == '_') ||
-			(ch == '/') || (ch == ':') || (ch == '.')) /* Accept http://www. */
-		{
-			/* okay */
-		}
-		else
-		{
-			safe = false;
-			if (ch == '"')
-				nquotes++;
-		}
-	}
-
-	if (safe)
-		return ident;			/* no change needed */
-
-	result = (char *) malloc(strlen(ident) + nquotes + 2 + 1);
-
-	optr = result;
-	*optr++ = '"';
-	for (ptr = ident; *ptr; ptr++)
-	{
-		char		ch = *ptr;
-
-		if (ch == '"')
-			*optr++ = '"';
-		*optr++ = ch;
-	}
-	*optr++ = '"';
-	*optr = '\0';
-
-	return result;
+	/* Free memory */
+	if (buf.data != NULL)
+		free(buf.data);
 }

@@ -18,7 +18,7 @@ NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-File:install_util.c Function:query_execute L:147 Msg:GRANT CREATE ON DATABASE pgspider TO invalid_user; failed :ERROR:  role "invalid_user" does not exist
+File:install_util.c Function:query_execute L:150 Msg:GRANT CREATE ON DATABASE pgspider TO invalid_user; failed :ERROR:  role "invalid_user" does not exist
 
 Config directory: ./
 Node information file: node_information.json

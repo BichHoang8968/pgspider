@@ -19,7 +19,7 @@ NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
-File:install_util.c Function:query_execute L:147 Msg:IMPORT FOREIGN SCHEMA public FROM SERVER db2 INTO temp_schema; failed :ERROR:  could not connect to server "db2"
+File:install_util.c Function:query_execute L:150 Msg:IMPORT FOREIGN SCHEMA public FROM SERVER db2 INTO temp_schema; failed :ERROR:  could not connect to server "db2"
 DETAIL:  connection to server at "127.0.0.1", port 5432 failed: Connection refused
 	Is the server running on that host and accepting TCP/IP connections?
 

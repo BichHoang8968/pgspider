@@ -18,7 +18,7 @@ NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-File:install_util.c Function:create_connection L:114 Msg:Error:connection to server at "127.0.0.1", port 4813 failed: fe_sendauth: no password supplied
+File:install_util.c Function:create_connection L:117 Msg:Error:connection to server at "127.0.0.1", port 4813 failed: fe_sendauth: no password supplied
 
 Config directory: ./
 Node information file: node_information.json

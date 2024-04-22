@@ -8,11 +8,15 @@
 #include "azureStorage.hpp"
 #include "s3Storage.hpp"
 #include "gcpStorage.hpp"
+#include <aws/core/Aws.h>
 
 #include <memory>
 
 int main(int argc, char* argv[])
 {
+    auto aws_sdk_options = Aws::SDKOptions();
+	Aws::InitAPI(aws_sdk_options);
+
     if(argc<4)
     {
         std::cout << "need more options" << std::endl;
@@ -56,7 +60,7 @@ int main(int argc, char* argv[])
             return -1;
         }
         distStorage = ObjStorageFdw::AzureStorage::GetInstance(1);
-        std::dynamic_pointer_cast<ObjStorageFdw::AzureStorage>(distStorage)->initialize(argv[4], true);
+        std::dynamic_pointer_cast<ObjStorageFdw::AzureStorage>(distStorage)->initialize(argv[4], argv[5], argv[6], true);
         distStorage->setDirPath(distDir);
     }
 #endif
@@ -91,7 +95,7 @@ int main(int argc, char* argv[])
             return -1;
         }
         distStorage = ObjStorageFdw::GcpStorage::GetInstance(1);
-        std::dynamic_pointer_cast<ObjStorageFdw::GcpStorage>(distStorage)->initialize(argv[4], true);
+        std::dynamic_pointer_cast<ObjStorageFdw::GcpStorage>(distStorage)->initialize(argv[4], true, true, (char *)"objstorage_fdw");
         distStorage->setDirPath(distDir);
     }
 #endif
@@ -124,4 +128,6 @@ int main(int argc, char* argv[])
 
     distStorage->finalize();
     srcStorage->finalize();
+
+    Aws::ShutdownAPI(aws_sdk_options);
 }

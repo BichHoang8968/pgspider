@@ -16,7 +16,7 @@
 		"dbdrivername": "com.mysql.jdbc.Driver",
 		"dburl": "jdbc:mysql://localhost:3306/test_setclusterjdbc",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/mysql-connector-j-8.0.31.jar",
+		"driverpathjar": "JDBC_LIB_PATH/mysql-connector-j-8.0.33.jar",
 		"maxheapsize": "600",
 		"username": "root",
 		"password": "Mysql_1234",
