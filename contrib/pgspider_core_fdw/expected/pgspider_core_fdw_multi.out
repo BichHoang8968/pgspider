@@ -634,10 +634,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -666,10 +666,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -698,10 +698,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: i, __spd_url, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -730,10 +730,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -762,10 +762,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -794,10 +794,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test2 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test2.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: __spd_url, i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -826,7 +826,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -851,7 +851,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url, __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: (avg(i)), __spd_url, __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -876,7 +876,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i) FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: __spd_url, (avg(i))
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -901,7 +901,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i), __spd_url FROM test2 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: __spd_url, (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -926,10 +926,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -968,10 +968,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -1010,10 +1010,10 @@ EXPLAIN VERBOSE
 SELECT i, __spd_url, __spd_url FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: i, __spd_url, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: i, __spd_url, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -1052,10 +1052,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY __spd_url, i ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -1094,10 +1094,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=36)
+ Sort  (cost=342.86..342.87 rows=0 width=36)
    Output: __spd_url, i
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=36)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=36)
          Output: __spd_url, i
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -1136,10 +1136,10 @@ EXPLAIN VERBOSE
 SELECT __spd_url, i, __spd_url FROM test1 GROUP BY i, __spd_url ORDER BY i;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
- Sort  (cost=288.33..288.33 rows=0 width=68)
+ Sort  (cost=342.86..342.87 rows=0 width=68)
    Output: __spd_url, i, __spd_url
    Sort Key: test1.i
-   ->  Foreign Scan  (cost=200.00..288.32 rows=0 width=68)
+   ->  Foreign Scan  (cost=234.13..342.85 rows=0 width=68)
          Output: __spd_url, i, __spd_url
          Node: pgspider_srv_1 / Status: Alive
            Sort push-down: no
@@ -1178,7 +1178,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1208,7 +1208,7 @@ EXPLAIN VERBOSE
 SELECT avg(i), __spd_url, __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: (avg(i)), __spd_url, __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1238,7 +1238,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i) FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=64)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=64)
    Output: __spd_url, (avg(i))
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes
@@ -1268,7 +1268,7 @@ EXPLAIN VERBOSE
 SELECT __spd_url, avg(i), __spd_url FROM test1 GROUP BY __spd_url;
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
- Foreign Scan  (cost=200.00..288.32 rows=1 width=96)
+ Foreign Scan  (cost=217.06..317.32 rows=1 width=96)
    Output: __spd_url, (avg(i)), __spd_url
    Node: pgspider_srv_1 / Status: Alive
      Agg push-down: yes

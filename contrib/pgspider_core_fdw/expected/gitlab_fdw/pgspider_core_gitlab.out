@@ -551,10 +551,10 @@ WHERE t4.name_with_namespace = t5.name_with_namespace AND ss.x1 = t4.id;
                                              Output: t1.id, t3.id
                                              Merge Cond: (t1.name = t3.name)
                                              ->  Sort  (cost=859.49..876.55 rows=6826 width=40)
-                                                   Output: t1.id, t1.name
+                                                   Output: t1.name, t1.id
                                                    Sort Key: t1.name
                                                    ->  Foreign Scan on public.projects t1  (cost=200.00..424.78 rows=6826 width=40)
-                                                         Output: t1.id, t1.name
+                                                         Output: t1.name, t1.id
                                                          Node: gitlab_svr1 / Status: Alive
                                                            Remote URI: GET https://127.0.0.1:443/gitlab/api/v4/projects
                                                          Node: gitlab_svr2 / Status: Alive

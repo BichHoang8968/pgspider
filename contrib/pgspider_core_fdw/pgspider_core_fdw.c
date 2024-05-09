@@ -5021,6 +5021,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 
 	/* pdate dummy child root */
 	root_child->parse->groupClause = list_copy(root->parse->groupClause);
+	root_child->processed_groupClause = list_copy(root->processed_groupClause);
 
 	if (fdw_private->having_quals != NIL)
 	{
@@ -5086,6 +5087,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 	{
 		/* Remove SPDURL from group clause. */
 		root_child->parse->groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, root_child->parse->groupClause);
+		root_child->processed_groupClause = remove_spdurl_from_group_clause(root, fdw_private->child_comp_tlist, root_child->processed_groupClause);
 
 		/*
 		 * Modify child tlist. We use child tlist for fetching data from child
@@ -5221,7 +5223,7 @@ spd_GetForeignGroupingPathsChild(ChildInfo *pChildInfo, SpdFdwPrivate *fdw_priva
 														  output_rel_child, tmp_path,
 														  root_child->upper_targets[UPPERREL_GROUP_AGG],
 														  aggStrategy, AGGSPLIT_SIMPLE,
-														  root_child->parse->groupClause, NULL, &aggcosts_child,
+														  root_child->processed_groupClause, NULL, &aggcosts_child,
 														  1);
 
 		fdw_private->pPseudoAggList = lappend_oid(fdw_private->pPseudoAggList, pChildInfo->server_oid);
@@ -5754,7 +5756,7 @@ get_foreign_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * rows is passed to pathnode->path.rows. When creating aggregation plan,
 	 * somehow path.rows is passed to dNumGroups.
 	 */
-	if (!parse->groupClause)
+	if (!root->processed_groupClause)
 	{
 		/* Not grouping */
 		rows = 1;
@@ -7810,7 +7812,7 @@ spd_GetForeignPlansChild(PlannerInfo *root, RelOptInfo *baserel,
 				 * Fill sortgrouprefs to temptlist. temptlist is non aggref
 				 * target list, we should use non aggref pathtarget to apply.
 				 */
-				if (IS_UPPER_REL(baserel) && root->parse->groupClause != NULL)
+				if (IS_UPPER_REL(baserel) && root->processed_groupClause != NULL)
 				{
 					apply_pathtarget_labeling_to_tlist(temptlist, fdw_private->rinfo.outerrel->reltarget);
 				}
