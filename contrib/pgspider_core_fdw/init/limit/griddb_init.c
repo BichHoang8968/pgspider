@@ -308,8 +308,7 @@ void insertRecordsFromTSV (GSGridStore *store, table_info *tbl_info, char* file_
  * Connect to GridDB cluster and insert data to the database
  * Arguments: IP address, port, cluster name, username, password
  */
-int griddb_preparation (const char *addr,
-                        const char *port,
+int griddb_preparation (const char *notification_member,
                         const char *cluster_name,
                         const char *user,
                         const char *passwd,
@@ -325,8 +324,7 @@ int griddb_preparation (const char *addr,
   int count;
   int32_t id;
   const GSPropertyEntry props[] = {
-      {"notificationAddress", addr},
-      {"notificationPort", port},
+      {"notificationMember", notification_member},
       {"clusterName", cluster_name},
       {"user", user},
       {"password", passwd}};
@@ -359,10 +357,10 @@ int griddb_preparation (const char *addr,
 /* Main function */
 void main(int argc, char *argv[])
 {
-  if(argc != 7) {
-    printf("Wrong syntax!!!\nExpected: ./griddb_init $HOST $PORT $CLUSTER $USER $PASSWORDS $FILE_PATH\n");
+  if(argc != 6) {
+    printf("Wrong syntax!!!\nExpected: ./griddb_init $NOTIFICATION_MEMBER $CLUSTER $USER $PASSWORDS $FILE_PATH\n");
     return;
   }
-  // argv[1]=HOST, argv[2]=PORT, argv[3]=CLUSTER, argv[4]=USER, argv[5]=PASSWORDS
-  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5], argv[6]);
+  // argv[1]=NOTIFICATION_MEMBER, argv[2]=CLUSTER, argv[3]=USER, argv[4]=PASSWORDS
+  griddb_preparation(argv[1], argv[2], argv[3], argv[4], argv[5]);
 }

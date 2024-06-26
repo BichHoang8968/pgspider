@@ -43,7 +43,7 @@ then
   sleep 3
 
   # Start Oracle server
-  if ! [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
+  if [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
   then
     echo "Start Oracle Server"
     systemctl start oracle-xe-21c.service

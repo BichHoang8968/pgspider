@@ -40,6 +40,8 @@
 
 #define IS_S3_PATH(str) (strncmp(str, "s3://", 5) == 0)
 
+#define IS_VALID_LENGTH(max, format,...) (snprintf(NULL, 0, format, ##__VA_ARGS__) <= max)
+
 /*
  * Support macros for escaping strings.  escape_backslash should be true
  * if generating a non-standard-conforming string.  Prefixing a string

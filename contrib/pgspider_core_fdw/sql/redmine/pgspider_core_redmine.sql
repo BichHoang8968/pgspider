@@ -159,7 +159,7 @@ SELECT parent_id, author, subject, priority, status FROM issues ORDER BY subject
 --Testcase 66:
 EXPLAIN VERBOSE SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
 --Testcase 67:
-SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
+SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject > 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
 --Testcase 68:
 EXPLAIN VERBOSE SELECT * FROM (SELECT subject, (watchers[1]).id, (watchers[1]).name, (watchers[2]).id, (watchers[2]).name FROM issues) AS t(s, id1, name1, id2, name2) WHERE t.id1 >= 1 AND t.id2 <= 23 ORDER BY t.s, t.id1, t.id2, t.name1, t.name2 LIMIT 1 OFFSET 1;
 --Testcase 69:

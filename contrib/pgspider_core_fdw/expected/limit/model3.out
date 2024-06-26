@@ -344,7 +344,7 @@ EXPLAIN VERBOSE SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) 
 SELECT min(c1), min(c2), max(c4-c5), min(c8/122*c9), count(c11) FROM tbl01 WHERE __spd_url NOT ILIKE 'sBi(' ORDER BY 1, 2 LIMIT ALL OFFSET NULL;
               min               |              min               |  max   |  min  | count 
 --------------------------------+--------------------------------+--------+-------+-------
- 43q34qtqt                      | `~!@#$%^                       | 9908.9 | 435.2 |    19
+ 43q34qtqt                      | -{}[]|:;                       | 9908.9 | 435.2 |    19
 (1 row)
 
 --Testcase 23:
@@ -761,8 +761,8 @@ EXPLAIN VERBOSE SELECT sum(c6+c10), max(c7), min(c8), count(c9-c5) FROM tbl01 WH
 SELECT sum(c6+c10), max(c7), min(c8), count(c9-c5) FROM tbl01 WHERE __spd_url NOT LIKE 'owoefj%' GROUP BY c3, c7 HAVING c3 != c7 ORDER BY c3, c7 LIMIT 10 OFFSET NULL;
  sum |                      max                       |    min     | count 
 -----+------------------------------------------------+------------+-------
- 104 | 常ならむ有為の奥山今日越えて浅き夢見           |       5846 |     2
  106 | ハンサム Đẹp trai                              |       7845 |     2
+ 104 | 常ならむ有為の奥山今日越えて浅き夢見           |       5846 |     2
   58 | いろはにほへどちりぬるをわがよたれぞつねならむ |      13453 |     1
  156 | живетезелоземляиижеикаколюди                   |    1646464 |     2
   59 | 友達と会うので遅刻した                         | 1010110001 |     1
@@ -831,9 +831,9 @@ SELECT count(*) FROM tbl01 WHERE __spd_url != 'aef3' GROUP BY c7 HAVING c7 != 'A
  count 
 -------
      2
-     2
-     2
      1
+     2
+     2
      2
      2
      2
@@ -1678,9 +1678,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE
 
 --Testcase 110:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
-                      min                       |    max     |        sum         | count 
-------------------------------------------------+------------+--------------------+-------
- いろはにほへどちりぬるをわがよたれぞつねならむ | 1010110001 | 1009761202.1578001 |    19
+                     min                     |    max     |        sum         | count 
+---------------------------------------------+------------+--------------------+-------
+ 6 years 5 months 4 days 3 hours 2 minutes 1 | 1010110001 | 1009761202.1578001 |    19
 (1 row)
 
 --Testcase 111:
@@ -2397,7 +2397,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                                                                                                            string_agg                                                                                                                           |                                                                                                                                                                                                                                                                                                               string_agg                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- `~!@#$%^+= `~!@#$%^+= []|:;<>?() []|:;<>?() 2w3raewfaw ((-9999,0),(1,99991)) ((-9999,0),(1,99991)) ((-9999,0),(1,99991)) A)#JAEWOFAW~!@#$%^&*()_ dIvoiFijit dIvoiFijit Eswatini I Eswatini I GHIJKLMNOP InBulgaria IrelandIRN IrelandIRN kwikdikwik kwikdikwik | いろはにほへどちりぬるをわがよたれぞつねならむ,いろはにほへどちりぬるをわがよたれぞつねならむ,6 years 5 months 4 days 3 hours 2 minutes 1,6 years 5 months 4 days 3 hours 2 minutes 1,ハンサム Đẹp trai,ハンサム Đẹp trai,(EKFA)WEFK)QWFKAPewf Ông là nhà văn,Thequickbrownfoxjumpsoverthelazydog,Thequickbrownfoxjumpsoverthelazydog,живетезелоземляиижеикаколюди,живетезелоземляиижеикаколюди,сковорода 鍋,сковорода 鍋,友達と会うので遅刻した,友達と会うので遅刻した Ông là nhà văn,常ならむ有為の奥山今日越えて浅き夢見,常ならむ有為の奥山今日越えて浅き夢見,豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿,豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ []|:;<>?() []|:;<>?() `~!@#$%^+= `~!@#$%^+= 2w3raewfaw ((-9999,0),(1,99991)) ((-9999,0),(1,99991)) ((-9999,0),(1,99991)) A)#JAEWOFAW~!@#$%^&*()_ dIvoiFijit dIvoiFijit Eswatini I Eswatini I GHIJKLMNOP InBulgaria IrelandIRN IrelandIRN kwikdikwik kwikdikwik | 6 years 5 months 4 days 3 hours 2 minutes 1,6 years 5 months 4 days 3 hours 2 minutes 1,(EKFA)WEFK)QWFKAPewf Ông là nhà văn,Thequickbrownfoxjumpsoverthelazydog,Thequickbrownfoxjumpsoverthelazydog,живетезелоземляиижеикаколюди,живетезелоземляиижеикаколюди,сковорода 鍋,сковорода 鍋,いろはにほへどちりぬるをわがよたれぞつねならむ,いろはにほへどちりぬるをわがよたれぞつねならむ,ハンサム Đẹp trai,ハンサム Đẹp trai,友達と会うので遅刻した,友達と会うので遅刻した Ông là nhà văn,常ならむ有為の奥山今日越えて浅き夢見,常ならむ有為の奥山今日越えて浅き夢見,豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿,豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
 (1 row)
 
 --Testcase 157:
@@ -2974,7 +2974,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                                                                                            string_agg                                                                                                                           |                                                                                                                                                                                                                                                                                                               string_agg                                                                                                                                                                                                                                                                                                               
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- `~!@#$%^+=-`~!@#$%^+=-[]|:;<>?()-[]|:;<>?()-2w3raewfaw-((-9999,0),(1,99991))-((-9999,0),(1,99991))-((-9999,0),(1,99991))-A)#JAEWOFAW~!@#$%^&*()_-dIvoiFijit-dIvoiFijit-Eswatini I-Eswatini I-GHIJKLMNOP-InBulgaria-IrelandIRN-IrelandIRN-kwikdikwik-kwikdikwik | いろはにほへどちりぬるをわがよたれぞつねならむ_いろはにほへどちりぬるをわがよたれぞつねならむ_6 years 5 months 4 days 3 hours 2 minutes 1_6 years 5 months 4 days 3 hours 2 minutes 1_ハンサム Đẹp trai_ハンサム Đẹp trai_(EKFA)WEFK)QWFKAPewf Ông là nhà văn_Thequickbrownfoxjumpsoverthelazydog_Thequickbrownfoxjumpsoverthelazydog_живетезелоземляиижеикаколюди_живетезелоземляиижеикаколюди_сковорода 鍋_сковорода 鍋_友達と会うので遅刻した_友達と会うので遅刻した Ông là nhà văn_常ならむ有為の奥山今日越えて浅き夢見_常ならむ有為の奥山今日越えて浅き夢見_豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿_豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ []|:;<>?()-[]|:;<>?()-`~!@#$%^+=-`~!@#$%^+=-2w3raewfaw-((-9999,0),(1,99991))-((-9999,0),(1,99991))-((-9999,0),(1,99991))-A)#JAEWOFAW~!@#$%^&*()_-dIvoiFijit-dIvoiFijit-Eswatini I-Eswatini I-GHIJKLMNOP-InBulgaria-IrelandIRN-IrelandIRN-kwikdikwik-kwikdikwik | 6 years 5 months 4 days 3 hours 2 minutes 1_6 years 5 months 4 days 3 hours 2 minutes 1_(EKFA)WEFK)QWFKAPewf Ông là nhà văn_Thequickbrownfoxjumpsoverthelazydog_Thequickbrownfoxjumpsoverthelazydog_живетезелоземляиижеикаколюди_живетезелоземляиижеикаколюди_сковорода 鍋_сковорода 鍋_いろはにほへどちりぬるをわがよたれぞつねならむ_いろはにほへどちりぬるをわがよたれぞつねならむ_ハンサム Đẹp trai_ハンサム Đẹp trai_友達と会うので遅刻した_友達と会うので遅刻した Ông là nhà văn_常ならむ有為の奥山今日越えて浅き夢見_常ならむ有為の奥山今日越えて浅き夢見_豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿_豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
 (1 row)
 
 --Testcase 191:
@@ -3606,9 +3606,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER
 
 --Testcase 230:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
-                      min                       |    max     |        sum         | count 
-------------------------------------------------+------------+--------------------+-------
- いろはにほへどちりぬるをわがよたれぞつねならむ | 1010110001 | 1009761202.1578001 |    19
+                     min                     |    max     |        sum         | count 
+---------------------------------------------+------------+--------------------+-------
+ 6 years 5 months 4 days 3 hours 2 minutes 1 | 1010110001 | 1009761202.1578001 |    19
 (1 row)
 
 --Testcase 231:
@@ -3806,7 +3806,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDE
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                                                                                            string_agg                                                                                                                           |                                                                                                                                                                                                                                                                                                                        string_agg                                                                                                                                                                                                                                                                                                                        
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- `~!@#$%^+=:`~!@#$%^+=:[]|:;<>?():[]|:;<>?():2w3raewfaw:((-9999,0),(1,99991)):((-9999,0),(1,99991)):((-9999,0),(1,99991)):A)#JAEWOFAW~!@#$%^&*()_:dIvoiFijit:dIvoiFijit:Eswatini I:Eswatini I:GHIJKLMNOP:InBulgaria:IrelandIRN:IrelandIRN:kwikdikwik:kwikdikwik | いろはにほへどちりぬるをわがよたれぞつねならむ>>いろはにほへどちりぬるをわがよたれぞつねならむ>>6 years 5 months 4 days 3 hours 2 minutes 1>>6 years 5 months 4 days 3 hours 2 minutes 1>>ハンサム Đẹp trai>>ハンサム Đẹp trai>>(EKFA)WEFK)QWFKAPewf Ông là nhà văn>>Thequickbrownfoxjumpsoverthelazydog>>Thequickbrownfoxjumpsoverthelazydog>>живетезелоземляиижеикаколюди>>живетезелоземляиижеикаколюди>>сковорода 鍋>>сковорода 鍋>>友達と会うので遅刻した>>友達と会うので遅刻した Ông là nhà văn>>常ならむ有為の奥山今日越えて浅き夢見>>常ならむ有為の奥山今日越えて浅き夢見>>豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿>>豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
+ []|:;<>?():[]|:;<>?():`~!@#$%^+=:`~!@#$%^+=:2w3raewfaw:((-9999,0),(1,99991)):((-9999,0),(1,99991)):((-9999,0),(1,99991)):A)#JAEWOFAW~!@#$%^&*()_:dIvoiFijit:dIvoiFijit:Eswatini I:Eswatini I:GHIJKLMNOP:InBulgaria:IrelandIRN:IrelandIRN:kwikdikwik:kwikdikwik | 6 years 5 months 4 days 3 hours 2 minutes 1>>6 years 5 months 4 days 3 hours 2 minutes 1>>(EKFA)WEFK)QWFKAPewf Ông là nhà văn>>Thequickbrownfoxjumpsoverthelazydog>>Thequickbrownfoxjumpsoverthelazydog>>живетезелоземляиижеикаколюди>>живетезелоземляиижеикаколюди>>сковорода 鍋>>сковорода 鍋>>いろはにほへどちりぬるをわがよたれぞつねならむ>>いろはにほへどちりぬるをわがよたれぞつねならむ>>ハンサム Đẹp trai>>ハンサム Đẹp trai>>友達と会うので遅刻した>>友達と会うので遅刻した Ông là nhà văn>>常ならむ有為の奥山今日越えて浅き夢見>>常ならむ有為の奥山今日越えて浅き夢見>>豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿>>豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿
 (1 row)
 
 --Testcase 243:
@@ -4667,8 +4667,8 @@ EXPLAIN VERBOSE SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP
 SELECT min(c1 || c2), max(c3), min(c4), sum(c5) FROM tbl01 GROUP BY c3 HAVING max(c3) IS NOT NULL ORDER BY c3;
             min             |           max           |         min          |        sum        
 ----------------------------+-------------------------+----------------------+-------------------
- 4trgrehtrhs-{}[]|:;        | `~!@#$%^+=              |                  545 |     132246.425024
  a34ta4ta4t[]|:;<>?         | []|:;<>?()              | -9223372036854775808 |       1159178.442
+ 4trgrehtrhs-{}[]|:;        | `~!@#$%^+=              |                  545 |     132246.425024
  weawtklmnopaweqr           | 2w3raewfaw              |                 6546 |                 0
  43q34qtqt9awt0a4-4fda-8dd3 | ((-9999,0),(1,99991))   |                10101 | 93220.29999999999
  aweta4t4aega4t4ewtaw       | A)#JAEWOFAW~!@#$%^&*()_ |                  151 |     54502124.2154
@@ -4703,8 +4703,8 @@ EXPLAIN VERBOSE SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FRO
 SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY c3, c7 HAVING max(c7) != max(c3) ORDER BY c3, c7;
       max      |                      max                       |    min     |        min         |         max         
 ---------------+------------------------------------------------+------------+--------------------+---------------------
-  66129.212512 | 常ならむ有為の奥山今日越えて浅き夢見           |       5846 |          3561975.2 | 2009-10-19 10:23:54
     579596.221 | ハンサム Đẹp trai                              |       7845 |              -39.2 | 2018-10-19 10:23:54
+  66129.212512 | 常ならむ有為の奥山今日越えて浅き夢見           |       5846 |          3561975.2 | 2009-10-19 10:23:54
             12 | いろはにほへどちりぬるをわがよたれぞつねならむ |      13453 |             -40.46 | 9999-12-31 23:59:59
        46546.1 | живетезелоземляиижеикаколюди                   |    1646464 | 252.54000000000002 | 2005-10-19 10:23:54
          205.1 | 友達と会うので遅刻した                         | 1010110001 | 14.298000000000002 | 2005-10-19 10:23:54
@@ -4775,8 +4775,8 @@ EXPLAIN VERBOSE SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROU
 SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING count(c3) > 0 ORDER BY c3;
         sum        |                      max                       |   min   | count 
 -------------------+------------------------------------------------+---------+-------
-     132246.425024 | 常ならむ有為の奥山今日越えて浅き夢見           |    5846 |     2
        1159178.442 | ハンサム Đẹp trai                              |    7845 |     2
+     132246.425024 | 常ならむ有為の奥山今日越えて浅き夢見           |    5846 |     2
                  0 | いろはにほへどちりぬるをわがよたれぞつねならむ |   13453 |     1
  93220.29999999999 | 友達と会うので遅刻した                         | 1646464 |     3
      54502124.2154 | сковорода 鍋                                   |  786786 |     1
@@ -4850,10 +4850,8 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, _
 --------------------------------+--------------------------------+------------+------------
  4wtw34af                       | AJW)#awef                      | dIvoiFijit | /file_svr/
  eta43te                        | Portugal                       | Eswatini I | /file_svr/
- ikjnhgvbhp                     | klmnopqr                       | GHIJKLMNOP | /file_svr/
  jwoejaq'3[ra[]]                | Democrat                       | dIvoiFijit | /file_svr/
- weawt                          | klmnopaweqr                    | 2w3raewfaw | /file_svr/
-(5 rows)
+(3 rows)
 
 --Testcase 303:
 EXPLAIN VERBOSE SELECT count(DISTINCT c8), c1, c2, c3 FROM tbl01 WHERE c5 NOT IN (-122.2,233.12,232.2) GROUP BY c1, c2, c3, c8, c9 HAVING c8 > c9 ORDER BY c1, c2, c3, c8, c9;

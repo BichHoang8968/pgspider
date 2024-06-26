@@ -52,38 +52,20 @@ $POSTGRES_HOME/bin/psql -p 15432 destdb -c "ALTER USER postgres with SUPERUSER;"
 #=========================================================================#
 # Start GridDB server
 #=========================================================================#
-if [[ ! -d "${GRIDDB_HOME}" ]];
-then
-  echo "GRIDDB_HOME environment variable not set"
-  exit 1
-fi
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${GRIDDB_CLIENT}/bin
-export GS_HOME=${GRIDDB_HOME}
-export GS_LOG=${GRIDDB_HOME}/log
-export no_proxy=127.0.0.1,localhost
-if pgrep -x "gsserver" > /dev/null
-then
-  ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
-  ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
-  sleep 1
-fi
-rm -rf ${GS_HOME}/data/* ${GS_LOG}/* ${GS_HOME}/txnlog/*
-sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
-echo "Starting GridDB server..."
-${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
-${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+griddb_container_name1='griddb_node1'
+clean_docker_img ${griddb_container_name1}
+echo "Start GRIDDB docker NODE 1"
+docker run -d --name ${griddb_container_name1} -p 10003:10001 \
+    -e GRIDDB_NODE_NUM=1 \
+    -e NOTIFICATION_ADDRESS=239.0.0.2 \
+    ${griddb_image}
 
 # start 2nd GridDB server in docker network
-griddb_container_name='griddb_node1'
+griddb_container_name2='griddb_node2'
+clean_docker_img ${griddb_container_name2}
+echo "Start GRIDDB docker NODE 2"
 
-clean_docker_img ${griddb_container_name}
-
-echo "Start GRIDDB docker NODE"
-
-# default cluster name: dockerGridDB
-# default user: admin
-# default pass: admin
-docker run -d --name ${griddb_container_name} -p 10002:10001 \
+docker run -d --name ${griddb_container_name2} -p 10002:10001 \
     -e GRIDDB_NODE_NUM=1 \
     -e NOTIFICATION_ADDRESS=239.0.0.2 \
     ${griddb_image}
@@ -124,7 +106,7 @@ mysql -h $MYSQL_HOST -u $MYSQL_USER_NAME -p$MYSQL_PWD -e "CREATE DATABASE destdb
 #=========================================================================#
 # Start Oracle server
 #=========================================================================#
-if ! [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
+if [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
 then
   echo "Start Oracle Server"
   systemctl start oracle-xe-21c.service
@@ -151,7 +133,7 @@ EOF
 
 function start_minio()
 {
-  sudo rm -rf ${3} || true
+  rm -rf ${3} || true
   mkdir -p ${3}/data/source || true
   mkdir -p ${3}/data/dest || true
 

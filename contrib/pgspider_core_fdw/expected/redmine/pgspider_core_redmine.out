@@ -192,12 +192,6 @@ EXPLAIN VERBOSE SELECT subject FROM issues ORDER BY subject;
 SELECT subject FROM issues ORDER BY subject;
        subject        
 ----------------------
- リポジトリ
- リポジトリ
- ドキュメント
- ドキュメント
- หล่อ Đẹp
- หล่อ Đẹp
  duplicate issue name
  duplicate issue name
  duplicate issue name
@@ -224,6 +218,12 @@ SELECT subject FROM issues ORDER BY subject;
  Issue5_1_2
  Issue5_1_3
  Issue5_1_3
+ หล่อ Đẹp
+ หล่อ Đẹp
+ ドキュメント
+ ドキュメント
+ リポジトリ
+ リポジトリ
  友達と会う
  友達と会う
 (34 rows)
@@ -261,12 +261,6 @@ EXPLAIN VERBOSE SELECT subject, project, description FROM issues ORDER BY 1, 2, 
 SELECT subject, project, description FROM issues ORDER BY 1, 2, 3;
        subject        |             project              |              description               
 ----------------------+----------------------------------+----------------------------------------
- リポジトリ           | (1,"test redmine_fwd project 1") | 
- リポジトリ           | (1,"test redmine_fwd project 1") | 
- ドキュメント         | (1,"test redmine_fwd project 1") | ジョブ名の頭に該非判定票番号をつける
- ドキュメント         | (1,"test redmine_fwd project 1") | ジョブ名の頭に該非判定票番号をつける
- หล่อ Đẹp              | (2,"test redmine_fwd project 2") | '~!@#$%^&*()_+(*$#@!{|{]\<>?:"/'?
- หล่อ Đẹp              | (2,"test redmine_fwd project 2") | '~!@#$%^&*()_+(*$#@!{|{]\<>?:"/'?
  duplicate issue name | (1,"test redmine_fwd project 1") | Issue_1_2 description
  duplicate issue name | (1,"test redmine_fwd project 1") | Issue_1_2 description
  duplicate issue name | (1,"test redmine_fwd project 1") | Issue_1_3 description
@@ -293,6 +287,12 @@ SELECT subject, project, description FROM issues ORDER BY 1, 2, 3;
  Issue5_1_2           | (5,"test redmine_fwd project 5") | 
  Issue5_1_3           | (5,"test redmine_fwd project 5") | 案件名、該非判定票の番号
  Issue5_1_3           | (5,"test redmine_fwd project 5") | 案件名、該非判定票の番号
+ หล่อ Đẹp              | (2,"test redmine_fwd project 2") | '~!@#$%^&*()_+(*$#@!{|{]\<>?:"/'?
+ หล่อ Đẹp              | (2,"test redmine_fwd project 2") | '~!@#$%^&*()_+(*$#@!{|{]\<>?:"/'?
+ ドキュメント         | (1,"test redmine_fwd project 1") | ジョブ名の頭に該非判定票番号をつける
+ ドキュメント         | (1,"test redmine_fwd project 1") | ジョブ名の頭に該非判定票番号をつける
+ リポジトリ           | (1,"test redmine_fwd project 1") | 
+ リポジトリ           | (1,"test redmine_fwd project 1") | 
  友達と会う           | (2,"test redmine_fwd project 2") | \r\nIssue 2_1_2.\r\n\r\n.
  友達と会う           | (2,"test redmine_fwd project 2") | \r\nIssue 2_1_2.\r\n\r\n.
 (34 rows)
@@ -860,10 +860,6 @@ EXPLAIN VERBOSE SELECT subject, description, start_date FROM issues WHERE estima
 SELECT subject, description, start_date FROM issues WHERE estimated_hours <= 10.5 AND is_private = FALSE ORDER BY subject, description, start_date;
     subject    |             description              | start_date 
 ---------------+--------------------------------------+------------
- リポジトリ    |                                      | 2022-12-12
- リポジトリ    |                                      | 2022-12-12
- ドキュメント  | ジョブ名の頭に該非判定票番号をつける | 2023-05-01
- ドキュメント  | ジョブ名の頭に該非判定票番号をつける | 2023-05-01
  issue_1_1     | \r\nIssue_1_1 description.\r\n\r\n.  | 2022-12-12
  issue_1_1     | \r\nIssue_1_1 description.\r\n\r\n.  | 2022-12-12
  issue_1_1_1   |                                      | 2023-02-07
@@ -876,6 +872,10 @@ SELECT subject, description, start_date FROM issues WHERE estimated_hours <= 10.
  issue_1_2_3   |                                      | 2023-05-01
  Issue_2_1_3_1 | </now?>aefa3<<>AWE?                  | 2022-01-01
  Issue_2_1_3_1 | </now?>aefa3<<>AWE?                  | 2022-01-01
+ ドキュメント  | ジョブ名の頭に該非判定票番号をつける | 2023-05-01
+ ドキュメント  | ジョブ名の頭に該非判定票番号をつける | 2023-05-01
+ リポジトリ    |                                      | 2022-12-12
+ リポジトリ    |                                      | 2022-12-12
 (16 rows)
 
 --Testcase 44:
@@ -1242,13 +1242,13 @@ EXPLAIN VERBOSE SELECT subject, author, start_date, due_date FROM issues ORDER B
 
 --Testcase 57:
 SELECT subject, author, start_date, due_date FROM issues ORDER BY subject, author, start_date, due_date LIMIT 5;
-   subject    |       author       | start_date |  due_date  
---------------+--------------------+------------+------------
- リポジトリ   | (8,"user5 Gomez")  | 2022-12-12 | 2023-03-31
- リポジトリ   | (8,"user5 Gomez")  | 2022-12-12 | 2023-03-31
- ドキュメント | (4,"user1 Jones")  | 2023-05-01 | 2023-06-06
- ドキュメント | (4,"user1 Jones")  | 2023-05-01 | 2023-06-06
- หล่อ Đẹp      | (7,"user4 Rivera") | 2022-01-01 | 2022-12-30
+       subject        |      author       | start_date |  due_date  
+----------------------+-------------------+------------+------------
+ duplicate issue name | (6,"user3 Green") | 2022-12-26 | 2023-02-12
+ duplicate issue name | (6,"user3 Green") | 2022-12-26 | 2023-02-12
+ duplicate issue name | (8,"user5 Gomez") | 2022-12-12 | 2023-06-06
+ duplicate issue name | (8,"user5 Gomez") | 2022-12-12 | 2023-06-06
+ issue_1_1            | (4,"user1 Jones") | 2022-12-12 | 2023-03-31
 (5 rows)
 
 --Testcase 58:
@@ -1450,13 +1450,13 @@ EXPLAIN VERBOSE SELECT parent_id, author, subject, priority, status FROM issues 
 
 --Testcase 65:
 SELECT parent_id, author, subject, priority, status FROM issues ORDER BY subject LIMIT 5 OFFSET 1;
- parent_id |       author       |   subject    |  priority  |    status    
------------+--------------------+--------------+------------+--------------
-         4 | (8,"user5 Gomez")  | リポジトリ   | (1,Low)    | (6,Rejected)
-         7 | (4,"user1 Jones")  | ドキュメント | (2,Normal) | (1,New)
-         7 | (4,"user1 Jones")  | ドキュメント | (2,Normal) | (1,New)
-        10 | (7,"user4 Rivera") | หล่อ Đẹp      | (2,Normal) | (1,New)
-        10 | (7,"user4 Rivera") | หล่อ Đẹp      | (2,Normal) | (1,New)
+ parent_id |      author       |       subject        |  priority  |    status    
+-----------+-------------------+----------------------+------------+--------------
+           | (8,"user5 Gomez") | duplicate issue name | (2,Normal) | (4,Feedback)
+           | (6,"user3 Green") | duplicate issue name | (2,Normal) | (1,New)
+           | (6,"user3 Green") | duplicate issue name | (2,Normal) | (1,New)
+           | (4,"user1 Jones") | issue_1_1            | (3,High)   | (1,New)
+           | (4,"user1 Jones") | issue_1_1            | (3,High)   | (1,New)
 (5 rows)
 
 --Testcase 66:
@@ -1498,12 +1498,12 @@ EXPLAIN VERBOSE SELECT start_date, due_date, created_on, updated_on, closed_on F
 (32 rows)
 
 --Testcase 67:
-SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject <= 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
- start_date |  due_date  |       created_on       |       updated_on       | closed_on 
-------------+------------+------------------------+------------------------+-----------
- 2023-05-01 | 2023-06-06 | 2023-02-07 06:36:08+00 | 2023-02-07 06:38:30+00 | 
- 2022-01-01 | 2022-12-30 | 2023-02-07 03:53:34+00 | 2023-02-07 04:02:18+00 | 
- 2022-01-01 | 2022-12-30 | 2023-02-07 03:53:34+00 | 2023-02-07 04:02:18+00 | 
+SELECT start_date, due_date, created_on, updated_on, closed_on FROM issues WHERE subject > 'issue%' AND id > 2 AND parent_id >= 1 ORDER BY id LIMIT 3 OFFSET 3;
+ start_date |  due_date  |       created_on       |       updated_on       |       closed_on        
+------------+------------+------------------------+------------------------+------------------------
+ 2022-12-12 | 2023-03-31 | 2023-02-07 04:34:15+00 | 2023-02-07 06:43:40+00 | 2023-02-07 04:34:15+00
+ 2022-12-12 | 2023-03-31 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00
+ 2022-12-12 | 2023-03-31 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00 | 2023-02-07 04:54:19+00
 (3 rows)
 
 --Testcase 68:

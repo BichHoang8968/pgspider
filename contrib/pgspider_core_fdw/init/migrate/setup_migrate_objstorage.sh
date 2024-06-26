@@ -33,7 +33,7 @@ docker compose -p objstoragetest up -d minio2
 docker compose -p objstoragetest up -d azurite2
 docker compose -p objstoragetest up -d gcs2
 
-source scl_source enable devtoolset-11
+source scl_source enable gcc-toolset-11
 
 g++ -LDFLAGS=-rdynamic \
  -lazure-storage-blobs -lazure-storage-common -lazure-core -lcurl -lssl -lcrypto -lpthread -lxml2 -lz -llzma -ldl \

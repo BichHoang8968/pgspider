@@ -874,13 +874,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 113:
 \des+
-                                                                             List of foreign servers
-         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
------------------------+---------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
- dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
- new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- source_svr            | vagrant | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+                                                                            List of foreign servers
+         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                             | Description 
+-----------------------+---------+----------------------+-------------------+------+---------+---------------------------------------------------------------------+-------------
+ dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                   | 
+ new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ source_svr            | vagrant | griddb_fdw           |                   |      |         | (notification_member '127.0.0.1:10003', clustername 'dockerGridDB') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -1027,13 +1027,13 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 134:
 \des+
-                                                                             List of foreign servers
-         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
------------------------+---------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
- dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
- new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- source_svr            | vagrant | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+                                                                            List of foreign servers
+         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                             | Description 
+-----------------------+---------+----------------------+-------------------+------+---------+---------------------------------------------------------------------+-------------
+ dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                   | 
+ new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ source_svr            | vagrant | griddb_fdw           |                   |      |         | (notification_member '127.0.0.1:10003', clustername 'dockerGridDB') | 
 (4 rows)
 
 -- foreign table of source server is kept
@@ -2148,14 +2148,14 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 273:
 \des+
-                                                                             List of foreign servers
-         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
------------------------+---------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
- dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
- new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_srv     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- source_svr            | vagrant | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+                                                                            List of foreign servers
+         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                             | Description 
+-----------------------+---------+----------------------+-------------------+------+---------+---------------------------------------------------------------------+-------------
+ dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                   | 
+ new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_srv     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ source_svr            | vagrant | griddb_fdw           |                   |      |         | (notification_member '127.0.0.1:10003', clustername 'dockerGridDB') | 
 (5 rows)
 
 -- foreign table of source server is kept
@@ -2319,14 +2319,14 @@ MIGRATE TABLE ft1 TO ft2 OPTIONS (USE_MULTITENANT_SERVER 'new_pgspider_core_svr'
 -- New 'new_pgspider_core_svr' is created
 --Testcase 296:
 \des+
-                                                                             List of foreign servers
-         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                              | Description 
------------------------+---------+----------------------+-------------------+------+---------+----------------------------------------------------------------------+-------------
- dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                    | 
- new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_srv     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                      | 
- source_svr            | vagrant | griddb_fdw           |                   |      |         | (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster') | 
+                                                                            List of foreign servers
+         Name          |  Owner  | Foreign-data wrapper | Access privileges | Type | Version |                             FDW options                             | Description 
+-----------------------+---------+----------------------+-------------------+------+---------+---------------------------------------------------------------------+-------------
+ dest_svr              | vagrant | postgres_fdw         |                   |      |         | (host '127.0.0.1', port '15432', dbname 'destdb')                   | 
+ new_pgspider_core_svr | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_srv     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ pgspider_core_svr     | vagrant | pgspider_core_fdw    |                   |      |         |                                                                     | 
+ source_svr            | vagrant | griddb_fdw           |                   |      |         | (notification_member '127.0.0.1:10003', clustername 'dockerGridDB') | 
 (5 rows)
 
 -- foreign table of source server is kept

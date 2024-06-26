@@ -111,11 +111,11 @@ EXPLAIN VERBOSE SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1
 SELECT min(t2.c1), t2.c4, max(t2.c5), t2.__spd_url FROM tbl01 t1 RIGHT JOIN tbl01 t2 USING (c1) WHERE t1.c5 < 0 GROUP BY t2.c1, t2.c4, t2.c5, t2.__spd_url LIMIT 5;
       min       |  c4   |    max     |    __spd_url     
 ----------------+-------+------------+------------------
- ごきげんよう   |  -565 | -656233.25 | /postgres_svr_1/
- ごきげんよう   |  -565 | -656233.25 | /postgres_svr_2/
  Đẹp trai       |  -626 | -656233.25 | /postgres_svr_1/
  Đẹp trai       | 86786 |       3.25 | /postgres_svr_1/
  Hang paintings | -5695 |          0 | /postgres_svr_2/
+ Hang paintings | 43123 | -656233.25 | /postgres_svr_2/
+ paintings      | -5695 |          0 | /postgres_svr_1/
 (5 rows)
 
 --Testcase 5:
@@ -339,8 +339,6 @@ EXPLAIN VERBOSE SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1
 SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOIN tbl01 AS ss1 ON t1.c4 >= ss1.c4 WHERE ss1.c5 > 0 GROUP BY t1.c1, t1.c2 ORDER BY t1.c1 LIMIT 10 OFFSET 0;
            c1            |          c2          
 -------------------------+----------------------
- ハンサム                | Improvements
- ハンサム                | ()ƯEFJAF
  Đẹp trai                | 格納用のドキュメント
  fat20 & ()\\            | MOẰNAJFK
  fat20 & (rat21 | cat22) | Officep
@@ -349,6 +347,8 @@ SELECT t1.c1, t1.c2 FROM tbl01 AS t1 LEFT JOIN tbl01 t3 ON t1.c1=t3.c1 INNER JOI
  txid_snapshot           | сковорода
  txid txid               | сковорода
  красивый Đẹp trai       | Improvements
+ красивый Đẹp trai       | 格納用のドキュメント
+ сковорода               | J%-2i30
 (10 rows)
 
 --Testcase 13:
@@ -392,10 +392,6 @@ EXPLAIN VERBOSE SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON 
 SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 AND f1.c5 IS NOT NULL) GROUP BY f1.__spd_url, f1.c2, f1.c1, f2.c1 ORDER BY f1.c1;
            c1            |          c2          |           c1            
 -------------------------+----------------------+-------------------------
- ハンサム                | ()ƯEFJAF             | ハンサム
- ハンサム                | Improvements         | ハンサム
- ごきげんよう            | Officep              | ごきげんよう
- ごきげんよう            | AWEFPƠ               | ごきげんよう
  Đẹp trai                | 格納用のドキュメント | Đẹp trai
  Đẹp trai                | 030-1923=0           | Đẹp trai
  fat20 & ()\\            | MOẰNAJFK             | fat20 & ()\\
@@ -412,6 +408,10 @@ SELECT f1.c1, f1.c2, f2.c1 FROM tbl01 f1 RIGHT JOIN tbl01 f2 ON (f1.c1 = f2.c1 A
  сковорода               | 格納用のドキュメント | сковорода
  กระทะ сковорода         | 格納用のドキュメント | กระทะ сковорода
  กระทะ сковорода         | J%kwe93-2i30         | กระทะ сковорода
+ ごきげんよう            | Officep              | ごきげんよう
+ ごきげんよう            | AWEFPƠ               | ごきげんよう
+ ハンサム                | Improvements         | ハンサム
+ ハンサム                | ()ƯEFJAF             | ハンサム
 (20 rows)
 
 --Testcase 15:

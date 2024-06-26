@@ -18,7 +18,7 @@ NOTICE:  extension "objstorage_fdw" does not exist, skipping
 NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-File:pgspider_node.c Function:gitlab_fdw L:619 Msg:ERROR: ca file and ca path must be set
+File:pgspider_node.c Function:gitlab_fdw L:634 Msg:ERROR: ca file and ca path must be set
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

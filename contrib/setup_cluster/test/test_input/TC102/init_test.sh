@@ -26,9 +26,6 @@ then
   fi
 
   # Setup Redmine
-  # Copy certificate to the folder of redmine server before building and starting redmine server.
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${REDMINE_HOME}/
-
   redmine_container_name='redmine_server_for_existed_test'
   redmine_db_container_name='redmine_mysql_db'
   CUR_PATH=$(pwd)
@@ -41,11 +38,7 @@ then
 
   # run server and wait until the service is healthy
   echo "Start redmine service..."
-  docker compose up -d
-
-  # check healthy again during around 400s
-  echo "Wait for redmine service health..."
-  sleep 400
+  docker compose up -d --wait
 
 fi
 

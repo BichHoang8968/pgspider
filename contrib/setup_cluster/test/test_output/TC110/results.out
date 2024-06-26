@@ -196,42 +196,42 @@ select * from test_table2 order by v, __spd_url;
 select * from branches order by name, web_url, __spd_url;
       name       | merged | protected | default | developers_can_push | developers_can_merge | can_push |                                 web_url                                 | __spd_url 
 -----------------+--------+-----------+---------+---------------------+----------------------+----------+-------------------------------------------------------------------------+-----------
- branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_1          | /db12/
- branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_1          | /db12/
+ branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_1              | /db12/
+ branch_1        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_1              | /db12/
  branch_1_1      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_1 | /db12/
  branch_1_2      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_2 | /db12/
  branch_1_3      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/branch_1_3 | /db12/
- branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_2          | /db12/
- branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_2          | /db12/
+ branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_2              | /db12/
+ branch_2        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_2              | /db12/
  branch_2_2      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/branch_2_2 | /db12/
  branch_2_3      | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/branch_2_3 | /db12/
- branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_3          | /db12/
- branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_3          | /db12/
- branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_4          | /db12/
- branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_4          | /db12/
- branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_5          | /db12/
- branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_5          | /db12/
- branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_6          | /db12/
- branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_6          | /db12/
- branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_abc        | /db12/
- branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_abc        | /db12/
- branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_def        | /db12/
- branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/branch_def        | /db12/
- bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/bugfixing_1234    | /db12/
- bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/bugfixing_1234    | /db12/
+ branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_3              | /db12/
+ branch_3        | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_3              | /db12/
+ branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_4              | /db12/
+ branch_4        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_4              | /db12/
+ branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_5              | /db12/
+ branch_5        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_5              | /db12/
+ branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_6              | /db12/
+ branch_6        | f      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_6              | /db12/
+ branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_abc            | /db12/
+ branch_abc      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_abc            | /db12/
+ branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_def            | /db12/
+ branch_def      | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/branch_def            | /db12/
+ bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/bugfixing_1234        | /db12/
+ bugfixing_1234  | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/bugfixing_1234        | /db12/
  main            | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_8/-/tree/main                  | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/master                | /db12/
+ master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_2/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_3/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_4/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_5/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_6/-/tree/master                | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_7/-/tree/master                | /db12/
- master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/master            | /db12/
- master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/master            | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/master     | /db12/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/master     | /db12/
- rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/rebase_branch_1   | /db12/
- rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_1/-/tree/rebase_branch_1   | /db12/
+ rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db12/
+ rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db12/
  start_branch    | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_9/-/tree/start_branch          | /db12/
 (37 rows)
 

@@ -38,18 +38,13 @@ then
 
   # run server and wait until the service is healthy
   echo "Start redmine service..."
-  
   # change environment variable to change the endpoint used to connect redmine service
   # the endpoint name has backslash and single quote characters.
   sed -i "/REDMINE_DB_PASSWORD: example/a \ \ \ \ \ \ RAILS_RELATIVE_URL_ROOT: /red'm\\\ine" docker-compose.yml
-  docker compose up -d
+  docker compose up -d --wait
 
-  # restore the old endpoint
-  sed -i '/RAILS_RELATIVE_URL_ROOT/d' docker-compose.yml
-
-  # check healthy again during around 400s
-  echo "Wait for redmine service health..."
-  sleep 400
+  # restore
+  sed -i "/RAILS_RELATIVE_URL_ROOT: \/red'm\\\ine/d" docker-compose.yml
 
 fi
 

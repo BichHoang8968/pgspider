@@ -4413,11 +4413,11 @@ EXPLAIN VERBOSE SELECT max(t1.i + t1.j), t1.t, t2.i, t2.k FROM J1_TBL t1 INNER J
 SELECT max(t1.i + t1.j), t1.t, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 USING(i) GROUP BY t1.i, t1.j, t1.t, t2.i, t2.k, t1.__spd_url ORDER BY t1.__spd_url LIMIT 5;
  max |   t   | i | k  
 -----+-------+---+----
-   5 | two   | 2 |  2
-     | zero  | 0 |   
    5 | two   | 2 |  4
+   5 | two   | 2 |  2
+   5 | five  | 5 | -5
    5 | three | 3 | -3
-   5 | one   | 1 | -1
+     | zero  | 0 |   
 (5 rows)
 
 --Testcase 137:
@@ -6057,8 +6057,8 @@ SELECT t1.i, t1.j, b1.k FROM J1_TBL t1 LEFT JOIN (SELECT i, k , '***'::text AS d
  i | j | k  
 ---+---+----
  1 | 4 | -1
- 2 | 3 |  4
  2 | 3 |  2
+ 2 | 3 |  4
  3 | 2 | -3
  4 | 1 |   
  5 | 0 | -5

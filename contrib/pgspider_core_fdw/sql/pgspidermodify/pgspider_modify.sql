@@ -92,7 +92,7 @@ maxheapsize '600'
 CREATE USER MAPPING FOR public SERVER jdbc_post_svr OPTIONS(username :JDBC_POSTGRES_USER, password :JDBC_POSTGRES_PASS);
 
 --Testcase 35:
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member :GRIDDB_NOTI_MEMBER, clustername :GRIDDB_CLUSTER_NAME);
 --Testcase 36:
 CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
 

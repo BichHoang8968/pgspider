@@ -542,7 +542,7 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		char		select_column_query[QUERY_LEN];
 		char		alter_query[QUERY_LEN];
 		char		create_query[QUERY_LEN];
-		char		newtable[QUERY_LEN];
+		char		newtable[TABLE_NAME_LEN];
 		char		parenttable[TABLE_NAME_LEN];
 
 		if (is_gitlab_or_redmine)
@@ -572,7 +572,13 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 			if (saved_idx == length)
 			{
 				/* Alter table name. Eg: parent -> parent__db2__0 */
-				sprintf(newtable, "%s__%s__0", table_name, server_name);
+				if (!IS_VALID_LENGTH(TABLE_NAME_LEN, "%s__%s__0", table_name, server_name))
+				{
+					PRINT_ERROR("Error: table name exceeded max length %d", QUERY_LEN);
+					rc = SETUP_QUERY_FAILED;
+					break;
+				}
+				snprintf(newtable, TABLE_NAME_LEN, "%s__%s__0", table_name, server_name);
 
 				/* Assign parent table = table name. Eg: parent -> parent */
 				strcpy(parenttable, table_name);
@@ -591,12 +597,24 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 				strncpy(id, table_name + saved_idx + 1, length - saved_idx - 1);
 
 				/* Create new table */
-				sprintf(newtable, "%s__%s__%s", parenttable, server_name, id);
+				if (!IS_VALID_LENGTH(TABLE_NAME_LEN, "%s__%s__%s", parenttable, server_name, id))
+				{
+					PRINT_ERROR("Error: table name exceeded max length %d", QUERY_LEN);
+					rc = SETUP_QUERY_FAILED;
+					break;
+				}
+				snprintf(newtable, TABLE_NAME_LEN, "%s__%s__%s", parenttable, server_name, id);
 			}
 		}
 		else
 		{
 			/* Default alter table name for FDWs */
+			if (!IS_VALID_LENGTH(TABLE_NAME_LEN, "%s__%s__0", PQgetvalue(res, i, 0), server_name))
+			{
+				PRINT_ERROR("Error: table name exceeded max length %d", QUERY_LEN);
+				rc = SETUP_QUERY_FAILED;
+				break;
+			}
 			sprintf(newtable, "%s__%s__0", PQgetvalue(res, i, 0), server_name);
 		}
 		sprintf(select_column_query, "SELECT c.oid,n.nspname,c.relname FROM pg_catalog.pg_class c LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace WHERE c.relname OPERATOR(pg_catalog.~) '^(%s)$' AND n.nspname OPERATOR(pg_catalog.~) '^(temp_schema)$' ORDER BY 2, 3;", PQgetvalue(res, i, 0));

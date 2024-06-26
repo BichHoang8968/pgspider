@@ -18,7 +18,7 @@ CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_svr;
 --Testcase 7:
 CREATE EXTENSION griddb_fdw;
 --Testcase 8:
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member :GRIDDB_NOTI_MEMBER, clustername :GRIDDB_CLUSTER_NAME);
 --Testcase 9:
 CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
 -- Create multi tenant tables

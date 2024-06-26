@@ -3,13 +3,12 @@
 # set global variables
 POSTGRES_HOME=/home/jenkins/postgresql-15.0/install
 PGSPIDER_HOME=/home/jenkins/PGSpider/install
-GRIDDB_HOME=/home/jenkins/griddb-5.0/griddb-5.0.0
 GRIDDB_CLIENT=/home/jenkins/griddb-5.0/griddb
 TINYBRACE_HOME=/usr/local/tinybrace
 POSTGREST_BINARY_HOME=/home/jenkins/binary_Postgrest
 DYNAMODB_HOME=/home/jenkins/DynamoDB
-GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab
-REDMINE_HOME=/home/jenkins/pgspiderci/Server/Redmine
+GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab/gitlab_ci
+REDMINE_HOME=/home/jenkins/pgspiderci/Server/Redmine/redmine_ci
 
 MONGO_HOST="localhost"
 MONGO_PORT="27017"
@@ -43,6 +42,7 @@ SLDCS_BIN_PATH=$SLDCS_PATH/sqlumdash/bin
 SLDCS_LIB_PATH=$SLDCS_PATH/sqlumdash/lib
 SLDCS_CLIENT_SHELL_PATH=$SLDCS_PATH/SQLumDashShell
 SQL_LIB_PATH=$SQLUMDASH_PATH/SQLumDash/psmalloc
+GITLAB_CA_CERT=$GITLAB_HOME/../localrootCA.crt
 
 # Please replace each "/" to "\\\/" for JDBC_LIB_PATH
 # Ex: /home/lib -> \\\/home\\\/lib
@@ -61,7 +61,6 @@ export PGS1_PORT="${PGS_PORT}"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
 export POSTGRES_HOME="${POSTGRES_HOME}"
 export PGSPIDER_HOME="${PGSPIDER_HOME}"
-export GRIDDB_HOME="${GRIDDB_HOME}"
 export GRIDDB_CLIENT="${GRIDDB_CLIENT}"
 export TINYBRACE_HOME="${TINYBRACE_HOME}"
 export POSTGREST_BINARY_HOME="${POSTGREST_BINARY_HOME}"
@@ -117,6 +116,7 @@ export SLDCS_BIN_PATH="${SLDCS_BIN_PATH}"
 export SLDCS_LIB_PATH="${SLDCS_LIB_PATH}"
 export SLDCS_CLIENT_SHELL_PATH="${SLDCS_CLIENT_SHELL_PATH}"
 export SQL_LIB_PATH="${SQL_LIB_PATH}"
+export GITLAB_CA_CERT="${GITLAB_CA_CERT}"
 
 # Path to directory contain jdbc lib
 # $JDBC_LIB_PATH

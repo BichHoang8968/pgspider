@@ -5,7 +5,7 @@ PGS1_DB=setcluster3_db1
 CUR_PATH=$(pwd)
 cd $PGSPIDER_HOME
 cd ../contrib/influxdb_fdw
-source /opt/rh/devtoolset-11/enable
+source /opt/rh/gcc-toolset-11/enable
 make clean
 make clean CXX_CLIENT=1
 make CXX_CLIENT=1
@@ -16,6 +16,17 @@ cd $CUR_PATH
 PG1_PORT=5432
 PG1_DB=setcluster3_db2
 DATA_PATH=$INIT_DATA_PATH
+
+function clean_docker_img()
+{
+  if [ "$(docker ps -aq -f name=^/${1}$)" ]; then
+    if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${1}$)" ]; then
+        docker rm ${1}
+    else
+        docker rm $(docker stop ${1})
+    fi
+  fi
+}
 
 if [[ "--start" == $1 ]]
 then
@@ -77,26 +88,10 @@ then
   sleep 3
 
   # Start GridDB server
-  if [[ ! -d "${GRIDDB_HOME}" ]];
-  then
-    echo "GRIDDB_HOME environment variable not set"
-    exit 1
-  fi
-  export GS_HOME=${GRIDDB_HOME}
-  export GS_LOG=${GRIDDB_HOME}/log
-  export no_proxy=127.0.0.1
-  if pgrep -x "gsserver" > /dev/null
-  then
-    ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
-    ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
-    sleep 1
-  fi
-
-  rm -rf ${GS_HOME}/data/* ${GS_HOME}/txnlog/* ${GS_HOME}/swap/* ${GS_LOG}/*
-  sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestSetcluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
-  echo "Starting GridDB server..."
-  ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
-  ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestSetcluster -u admin/testadmin
+  griddb_image='griddb-5.1.0'
+  griddb_container_name=griddb_svr
+  clean_docker_img ${griddb_container_name}
+  docker run -d --name ${griddb_container_name} --network="host" -e GRIDDB_CLUSTER_NAME=griddbfdwTestSetcluster -e GRIDDB_PASSWORD=testadmin -e NOTIFICATION_ADDRESS=239.0.0.1 -e NOTIFICATION_PORT=31999 ${griddb_image}
 
   cd $INIT_DATA_PATH
   echo "Init data for GridDB..."
@@ -104,6 +99,11 @@ then
   cp tbl_grid.data /tmp/
   export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${GRIDDB_CLIENT}/bin
   gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
+  # Wait until docker container of GridDB ready
+  until [ $(docker exec griddb_svr /bin/bash -c 'gs_stat -u admin/testadmin | grep \"nodeStatus\"' | awk -F': ' '{print $2}' | tr -d '\"'| sed 's/,$//') == "ACTIVE" ]
+  do
+    sleep 5
+  done
   ./griddb_init 239.0.0.1 31999 griddbfdwTestSetcluster admin testadmin /tmp/tbl_grid.data 1
 
   # Start Oracle server
@@ -141,9 +141,6 @@ then
   export LD_LIBRARY_PATH=$OLD_LIBRARY_PATH
 
   # Setup Redmine
-  # Copy certificate to the folder of redmine server before building and starting redmine server.
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${REDMINE_HOME}/
-
   redmine_container_name='redmine_server_for_existed_test'
   redmine_db_container_name='redmine_mysql_db'
   CUR_PATH=$(pwd)
@@ -156,17 +153,11 @@ then
 
   # run server and wait until the service is healthy
   echo "Start redmine service..."
-  docker compose up -d
-
-  # check healthy again during around 400s
-  echo "Wait for redmine service health..."
-  sleep 400
+  docker compose up -d --wait
 
   # Setup Gitlab
   # Setup certificate for both server and client of gitlab
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${GITLAB_HOME}/
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.crt /tmp/certificate.cer
-  cp ${INIT_DATA_PATH}/gitlab/docker-compose.yml ${GITLAB_HOME}/
+  cp ${GITLAB_CA_CERT} /tmp/certificate.cer
 
   gitlab_container_name='gitlab_server_for_existed_test'
   CUR_PATH=$(pwd)
@@ -181,6 +172,10 @@ then
   # run server and wait until the service is healthy
   echo "Start gitlab service..."
   docker compose up -d --wait
+
+  # check service health
+  echo "Wait for gitlab service health..."
+  until [ "$(curl -k -Is https://127.0.0.1/gitlab | head -n 1)" ]; do sleep 10; done;  
 
 fi
 #PGSpider should be already started

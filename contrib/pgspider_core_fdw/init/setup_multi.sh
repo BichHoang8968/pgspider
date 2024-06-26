@@ -6,6 +6,17 @@ DB_NAME=postgres
 
 source $(pwd)/environment_variable.config
 
+function clean_docker_img()
+{
+  if [ "$(docker ps -aq -f name=^/${1}$)" ]; then
+    if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${1}$)" ]; then
+        docker rm ${1}
+    else
+        docker rm $(docker stop ${1})
+    fi
+  fi
+}
+
 if [[ "--start" == $1 ]]
 then
   # Start PostgreSQL
@@ -74,25 +85,10 @@ then
   fi
 
   # Start GridDB server
-  if [[ ! -d "${GRIDDB_HOME}" ]];
-  then
-    echo "GRIDDB_HOME environment variable not set"
-    exit 1
-  fi
-  export GS_HOME=${GRIDDB_HOME}
-  export GS_LOG=${GRIDDB_HOME}/log
-  export no_proxy=127.0.0.1
-  if pgrep -x "gsserver" > /dev/null
-  then
-    ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
-    ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
-    sleep 1
-  fi
-  rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
-  sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
-  echo "Starting GridDB server..."
-  ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
-  ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+  griddb_image=$GRIDDB_IMAGE
+  griddb_container_name=griddb_svr
+  clean_docker_img ${griddb_container_name}
+  docker run -d --name ${griddb_container_name} -p 10001:10001 -e GRIDDB_NODE_NUM=1 ${griddb_image}
 
   # Stop TinyBrace Server
   if pgrep -x "tbserver" > /dev/null
@@ -121,7 +117,7 @@ cd $CURR_PATH
 cp -a griddb*.data /tmp/
 gcc griddb_init.c -o griddb_init -I${GRIDDB_CLIENT}/client/c/include -L${GRIDDB_CLIENT}/bin -lgridstore
 #use 0 for multi test, use 1 for selectfunc test
-./griddb_init 239.0.0.1 31999 griddbfdwTestCluster admin testadmin 0
+./griddb_init 127.0.0.1:10001  dockerGridDB admin admin 0
 
 ## Setup CSV
 rm -rf /tmp/pgtest.csv

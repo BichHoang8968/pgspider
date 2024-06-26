@@ -7,7 +7,7 @@ mkdir -p ${TMPDIR}
 mkdir -p ${TMPDIR}/local
 cp -ra data ${TMPDIR}/local/
 
-source scl_source enable devtoolset-11
+source scl_source enable gcc-toolset-11
 
 make clean
 make

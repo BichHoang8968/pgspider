@@ -33,13 +33,13 @@ CREATE USER MAPPING FOR CURRENT_USER SERVER postgres_src_srv OPTIONS (user 'post
 CREATE USER MAPPING FOR CURRENT_USER SERVER postgres_dest_srv OPTIONS (user 'postgres', password 'postgres');
 
 --Testcase 14:
-CREATE SERVER griddb_src_srv FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_src_srv FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member '127.0.0.1:10003', clustername 'dockerGridDB');
 --Testcase 15:
-CREATE SERVER griddb_dest_srv FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host '239.0.0.1', port '31999', clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_dest_srv FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member '127.0.0.1:10003', clustername 'dockerGridDB');
 --Testcase 16:
-CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_src_srv OPTIONS (username 'admin', password 'testadmin');
+CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_src_srv OPTIONS (username 'admin', password 'admin');
 --Testcase 17:
-CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_dest_srv OPTIONS (username 'admin', password 'testadmin');
+CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_dest_srv OPTIONS (username 'admin', password 'admin');
 
 --Testcase 18:
 CREATE SERVER influxdb_src_srv FOREIGN DATA WRAPPER influxdb_fdw OPTIONS (host 'http://localhost', port '8086', dbname 'sourcedb');

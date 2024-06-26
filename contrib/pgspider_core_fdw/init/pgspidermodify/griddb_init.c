@@ -21,8 +21,7 @@ GSResult	insert_recordsFromTSV(GSGridStore * store,
 								  table_info * tbl_info,
 								  char *file_path);
 
-GSResult	griddb_init(const char *addr,
-						const char *port,
+GSResult	griddb_init(const char *notification_member,
 						const char *cluster_name,
 						const char *user,
 						const char *passwd);
@@ -296,8 +295,7 @@ insert_recordsFromTSV(GSGridStore * store,
  *	Arguments: IP address, port, cluster name, username, password
  */
 GSResult
-griddb_init(const char *addr,
-			const char *port,
+griddb_init(const char *notification_member,
 			const char *cluster_name,
 			const char *user,
 			const char *passwd)
@@ -309,8 +307,7 @@ griddb_init(const char *addr,
 				tntbl21,
 				tntbl3;
 	const		GSPropertyEntry props[] = {
-		{"notificationAddress", addr},
-		{"notificationPort", port},
+		{"notificationMember", notification_member},
 		{"clusterName", cluster_name},
 		{"user", user},
 		{"password", passwd}
@@ -371,13 +368,12 @@ main(int argc, char *argv[])
 	int			i = 0;
 	char	   *key,
 			   *value;
-	char	   *host,
-			   *port,
+	char	   *notification_member,
 			   *cluster,
 			   *user,
 			   *passwd;
 
-	if (argc < 6)
+	if (argc < 5)
 	{
 		printf("Missing arguments\n");
 		goto TERMINATE;
@@ -392,24 +388,14 @@ main(int argc, char *argv[])
 			if (value == NULL)
 			{
 				printf("Invalid options\n"
-					   "Usage:\n    ./griddb_init host=a port=b cluster=c user=d passwd=e\n");
+					   "Usage:\n    ./griddb_init notification_member=a cluster=b user=c passwd=d\n");
 				goto TERMINATE;
 			}
 			else
 			{
-				if (strcmp(key, "host") == 0)
+				if (strcmp(key, "notification_member") == 0)
 				{
-					host = value;
-				}
-				else if (strcmp(key, "port") == 0)
-				{
-					/* Validate port number limitation */
-					if (atoi(value) > 65535 || atoi(value) < 0)
-					{
-						printf("Invalid port number\n");
-						goto TERMINATE;
-					}
-					port = value;
+					notification_member = value;
 				}
 				else if (strcmp(key, "cluster") == 0)
 				{
@@ -426,13 +412,13 @@ main(int argc, char *argv[])
 				else
 				{
 					printf("Invalid options\n"
-						   "Usage:\n    ./griddb_init host=a port=b cluster=c user=d passwd=e\n");
+						   "Usage:\n    ./griddb_init notification_member=a cluster=b user=c passwd=d\n");
 					goto TERMINATE;
 				}
 			}
 		}
 	}
-	ret = griddb_init(host, port, cluster, user, passwd);
+	ret = griddb_init(notification_member, cluster, user, passwd);
 	if (GS_SUCCEEDED(ret))
 	{
 		printf("Initialize all containers sucessfully.\n");

@@ -1,4 +1,5 @@
 def NODE_NAME = 'AWS_Instance_CentOS'
+//def NODE_NAME = 'tsdv_node_1'
 def MAIL_TO = '$DEFAULT_RECIPIENTS'
 def BRANCH_NAME = 'Branch [' + env.BRANCH_NAME + ']'
 def BUILD_INFO = 'Jenkins job: ' + env.BUILD_URL + '\n'
@@ -9,22 +10,28 @@ def DCT_DOCKER_PATH = '/home/jenkins/Docker/Server/GCP'
 def GITLAB_DOCKER_PATH = '/home/jenkins/Docker/Server/Gitlab'
 def OBJSTORAGE_MIGRATE_PATH = '/home/jenkins/Docker/Server/Objstorage/PGSMigrate'
 
-def BRANCH_PGSPIDER = 'Fix_propagate_userid_to_child_foreign_table'
+/*def PGSPIDER_DOCKER_PATH = '/home/test/jenkins/Docker/Server/PGSpider'
+def ENHANCE_TEST_DOCKER_PATH = '/home/test/jenkins/Docker'
+def DCT_DOCKER_PATH = '/home/test/jenkins/Docker/Server/GCP'
+def GITLAB_DOCKER_PATH = '/home/test/jenkins/Docker/Server/Gitlab'
+def OBJSTORAGE_MIGRATE_PATH = '/home/test/jenkins/Docker/Server/Objstorage/PGSMigrate'*/
+
+def BRANCH_PGSPIDER = 'rocky_linux_8_support'
 def BRANCH_TINYBRACE_FDW = 'master'
-def BRANCH_MYSQL_FDW = 'master'
-def BRANCH_SQLITE_FDW = 'port16.0'
-def BRANCH_GRIDDB_FDW = 'master'
-def BRANCH_INFLUXDB_FDW = 'master'
-def BRANCH_PARQUET_S3_FDW = 'master'
-def BRANCH_MONGO_FDW = 'master'
-def BRANCH_DYNAMODB_FDW = 'master'
-def BRANCH_ORACLE_FDW = 'master'
-def BRANCH_ODBC_FDW = 'master'
-def BRANCH_JDBC_FDW = 'master'
-def BRANCH_REDMINE_FDW = 'master'
+def BRANCH_MYSQL_FDW = 'rocky_linux_8_support'
+def BRANCH_SQLITE_FDW = 'master'
+def BRANCH_GRIDDB_FDW = 'rocky_linux_8_support'
+def BRANCH_INFLUXDB_FDW = 'rocky_linux_8_support'
+def BRANCH_PARQUET_S3_FDW = 'rocky_linux_8_support'
+def BRANCH_MONGO_FDW = 'rocky_linux_8_support'
+def BRANCH_DYNAMODB_FDW = 'rocky_linux_8_support'
+def BRANCH_ORACLE_FDW = 'rocky_linux_8_support'
+def BRANCH_ODBC_FDW = 'rocky_linux_8_support'
+def BRANCH_JDBC_FDW = 'rocky_linux_8_support'
+def BRANCH_REDMINE_FDW = 'rocky_linux_8_support'
 def BRANCH_PGSPIDER_COMPRESSION = 'main'
-def BRANCH_GITLAB_FDW = 'main'
-def BRANCH_OBJSTORAGE_FDW = 'dev_main'
+def BRANCH_GITLAB_FDW = 'rocky_linux_8_support'
+def BRANCH_OBJSTORAGE_FDW = 'fix_column_name_released'
 
 pipeline {
     agent {
@@ -172,6 +179,8 @@ pipeline {
             steps {
                 catchError() {
                     sh """
+                        docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/setup_oracle_server.sh'
                         docker exec postgresserver_multi_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgspider_multii.sh --test_core ${BRANCH_PGSPIDER}" postgres'
                         docker exec mysqlserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
                         docker exec tinybraceserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgspider_multii.sh ${BRANCH_PGSPIDER}'
@@ -181,6 +190,7 @@ pipeline {
                         docker exec redmine_mysql_db /bin/bash -c '/home/test/update_date_time_fields.sh'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_core" pgspider'
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_make_check.out
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/log log_pgspider_core_fdw
                     """
                 }
                 script {
@@ -330,12 +340,10 @@ pipeline {
                         docker exec -w /dynamodblocal dynamodbserver_multi1_existed_test /bin/bash -c 'java -jar DynamoDBLocal.jar -sharedDb &'
                         docker exec -w /dynamodblocal dynamodbserver_multi2_existed_test /bin/bash -c 'java -jar DynamoDBLocal.jar -sharedDb &'
                         docker exec mongoserver_multi_existed_test /bin/bash -c '/usr/bin/mongod --dbpath /data/db --bind_ip_all &'
-                        docker exec oracle_multi_existed_test /bin/bash -c '/home/test/start_oracle_config.sh'
-                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/setup_oracle_server.sh'
+                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}'
                         docker exec dynamodbserver_multi1_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh --dynamo1'
                         docker exec dynamodbserver_multi2_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh --dynamo2'
                         docker exec mongoserver_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}'
-                        docker exec -u oracle oracle_multi_existed_test /bin/bash -c '/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}'
 
                         docker exec mysqlserver_multi_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify.sh ${BRANCH_PGSPIDER}"
                         docker exec mysqlserver_multi1_existed_test /bin/bash -c "/home/test/start_existed_test_pgmodify_1.sh ${BRANCH_PGSPIDER}"
@@ -347,6 +355,7 @@ pipeline {
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test_pgmodify.sh" pgspider'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c '/home/test/start_odbc_for_pgmodify.sh'
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_existed_test.sh --test_pgmodify" pgspider'
+                        docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/tmp_install/log/install.log pgspider_core_fdw_pgmodify_install.log
                         docker cp pgspiderserver_multi1_existed_test:/home/pgspider/PGSpider/contrib/pgspider_core_fdw/make_check.out pgspider_core_fdw_pgmodify_make_check.out
                     """
                 }
@@ -462,7 +471,6 @@ pipeline {
                         docker compose up -d
                         sleep 10
                         docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/initialize_pgspider_compression_test.sh ${BRANCH_PGSPIDER} --build_data_compress ${BRANCH_MYSQL_FDW} ${BRANCH_GRIDDB_FDW} ${BRANCH_INFLUXDB_FDW} ${BRANCH_ORACLE_FDW} ${BRANCH_OBJSTORAGE_FDW}" pgspider'
-                        docker exec pgspiderserver_multi1_existed_test /bin/bash -c 'su -c "/home/test/start_data_compression_test.sh --init_data_compression" pgspider'
                     """
                 }
             }

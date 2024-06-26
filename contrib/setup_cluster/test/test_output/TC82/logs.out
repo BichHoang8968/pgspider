@@ -19,7 +19,7 @@ NOTICE:  extension "gitlab_fdw" does not exist, skipping
 NOTICE:  extension "redmine_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  extension "file_fdw" already exists, skipping
-File:install_main.c Function:set_pgspider_node_admin L:1737 Msg:Error: table is not specified for file_fdw. 
+File:install_main.c Function:set_pgspider_node_admin L:1755 Msg:Error: table is not specified for file_fdw. 
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json
