@@ -194,16 +194,31 @@ griddb_fdw(nodes *option, PGconn *conn)
 {
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
+	char		tmp_sql[QUERY_LEN];
 
 	if (strcmp(option->notification_member, "") == 0)
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->nodename, option->ip, option->port, option->clustername);
+		sprintf(tmp_sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->nodename, option->ip, option->port, option->clustername);
 	else
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->nodename, option->notification_member, option->clustername);
+		sprintf(tmp_sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->nodename, option->notification_member, option->clustername);
 	/* set dbname */
 	if (strcmp(option->dbname, "") == 0)
-		sprintf(sql, "%s);", sql);
+	{
+		if (!IS_VALID_LENGTH(QUERY_LEN, "%s);", tmp_sql))
+		{
+			PRINT_ERROR("Error: query length exceeded max length %d", QUERY_LEN);
+			return SETUP_QUERY_FAILED;
+		}
+		snprintf(sql, QUERY_LEN, "%s);", tmp_sql);
+	}
 	else
-		sprintf(sql, "%s,dbname '%s');", sql, option->dbname);
+	{
+		if (!IS_VALID_LENGTH(QUERY_LEN, "%s,dbname '%s');", tmp_sql, option->dbname))
+		{
+			PRINT_ERROR("Error: query length exceeded max length %d", QUERY_LEN);
+			return SETUP_QUERY_FAILED;
+		}
+		snprintf(sql, QUERY_LEN, "%s,dbname '%s');", tmp_sql, option->dbname);
+	}
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;

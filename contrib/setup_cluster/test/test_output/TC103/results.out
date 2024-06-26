@@ -110,7 +110,7 @@ select * from branches order by name, web_url, __spd_url;
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_5/-/tree/master                | /db2/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_6/-/tree/master                | /db2/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_7/-/tree/master                | /db2/
- master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/master     | /db2/
+ master          | f      | f         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_1/-/tree/master     | /db2/
  master          | f      | t         | t       | f                   | f                    | t        | https://127.0.0.1/gitlab/user_1/test_project_gitlab_2/-/tree/master     | /db2/
  rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db2/
  rebase_branch_1 | t      | f         | f       | f                   | f                    | t        | https://127.0.0.1/gitlab/db/test_project_1/-/tree/rebase_branch_1       | /db2/

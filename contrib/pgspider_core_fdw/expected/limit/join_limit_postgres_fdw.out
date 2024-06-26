@@ -2395,9 +2395,9 @@ SELECT * FROM (J1_TBL t1 LEFT JOIN J2_TBL t2 ON (t1.i = t2.i)) x1(a, b, c, d, e)
  a | b |   c   |       d        | e | k  |   __spd_url    | xx1 | xx2 |   __spd_url    
 ---+---+-------+----------------+---+----+----------------+-----+-----+----------------
  1 | 4 | one   | /postgres_svr/ | 1 | -1 | /postgres_svr/ |   1 |  -1 | /postgres_svr/
- 2 | 3 | two   | /postgres_svr/ | 2 |  2 | /postgres_svr/ |   2 |   4 | /postgres_svr/
- 2 | 3 | two   | /postgres_svr/ | 2 |  4 | /postgres_svr/ |   2 |   4 | /postgres_svr/
  2 | 3 | two   | /postgres_svr/ | 2 |  4 | /postgres_svr/ |   2 |   2 | /postgres_svr/
+ 2 | 3 | two   | /postgres_svr/ | 2 |  4 | /postgres_svr/ |   2 |   4 | /postgres_svr/
+ 2 | 3 | two   | /postgres_svr/ | 2 |  2 | /postgres_svr/ |   2 |   4 | /postgres_svr/
  2 | 3 | two   | /postgres_svr/ | 2 |  2 | /postgres_svr/ |   2 |   2 | /postgres_svr/
  3 | 2 | three | /postgres_svr/ | 3 | -3 | /postgres_svr/ |   3 |  -3 | /postgres_svr/
  4 | 1 | four  | /postgres_svr/ |   |    |                |     |     | 
@@ -4349,10 +4349,10 @@ SELECT max(t1.i + t1.j), t1.t, t2.i, t2.k FROM J1_TBL t1 INNER JOIN J2_TBL t2 US
  max |   t   | i | k  
 -----+-------+---+----
    5 | two   | 2 |  4
-     | zero  | 0 |   
-   5 | five  | 5 | -5
-   5 | two   | 2 |  2
    5 | three | 3 | -3
+     | zero  | 0 |   
+   5 | two   | 2 |  2
+   5 | five  | 5 | -5
 (5 rows)
 
 --Testcase 137:

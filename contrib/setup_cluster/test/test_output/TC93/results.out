@@ -68,8 +68,8 @@ ERROR:  relation "tbl_jdbcpostgres" does not exist
 LINE 1: select * from tbl_jdbcpostgres;
                       ^
 select * from tbl_jdbcgrid;
-ERROR:  remote server returned an error
 ERROR:  PGSpider fail to iterate tuple from child thread
+ DETAIL: remote server returned an error
 select * from tbl_postgrest;
 ERROR:  relation "tbl_postgrest" does not exist
 LINE 1: select * from tbl_postgrest;

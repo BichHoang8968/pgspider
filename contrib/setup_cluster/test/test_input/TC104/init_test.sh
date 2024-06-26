@@ -27,10 +27,8 @@ then
 
   ## Setup Gitlab
   # Setup certificate for both server and client of gitlab
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.* ${GITLAB_HOME}/
-  cp ${INIT_DATA_PATH}/certificate/certificate_local.crt /tmp/certificate.cer
-  cp ${INIT_DATA_PATH}/gitlab/docker-compose.yml ${GITLAB_HOME}/
-
+  cp ${GITLAB_CA_CERT} /tmp/certificate.cer
+  
   gitlab_container_name='gitlab_server_for_existed_test'
   CUR_PATH=$(pwd)
   cd ${GITLAB_HOME}
@@ -45,6 +43,9 @@ then
   echo "Start gitlab service..."
   docker compose up -d --wait
 
+  # check service health
+  echo "Wait for gitlab service health..."
+  until [ "$(curl -k -Is https://127.0.0.1/gitlab | head -n 1)" ]; do sleep 10; done;
 fi
 #PGSpider should be already started
 $PGS1_DIR/bin/psql -p $PGS1_PORT pgspider -c "create user pgspider with password 'pgspider';"

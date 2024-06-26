@@ -28,7 +28,6 @@ then
   # Setup Redmine
   redmine_container_name='redmine_server_for_existed_test'
   redmine_db_container_name='redmine_mysql_db'
-  CUR_PATH=$(pwd)
   cd ${REDMINE_HOME}
   # clean redmine server if exists
   echo "Clean redmine service if exists..."
@@ -38,18 +37,14 @@ then
 
   # run server and wait until the service is healthy
   echo "Start redmine service..."
-
   # change environment variable to change the endpoint used to connect redmine service
   # the endpoint name has hyphen character.
   sed -i '/REDMINE_DB_PASSWORD: example/a \ \ \ \ \ \ RAILS_RELATIVE_URL_ROOT: /red-mine' docker-compose.yml 
-  docker compose up -d
+  docker compose up -d --wait
 
   # restore the old endpoint
-  sed -i '/RAILS_RELATIVE_URL_ROOT/d' docker-compose.yml
+  sed -i "/RAILS_RELATIVE_URL_ROOT: \/red-mine/d" docker-compose.yml
 
-  # check healthy again during around 400s
-  echo "Wait for redmine service health..."
-  sleep 400
 fi
 
 #PGSpider should be already started
@@ -66,4 +61,4 @@ docker exec ${redmine_container_name} /bin/bash -c 'bundle exec rails runner -e 
 docker exec ${redmine_container_name} /bin/bash -c 'bundle exec rails runner -e production /home/test/create_customfields_data.rb'
 docker exec ${redmine_db_container_name} /bin/bash -c '/home/test/update_date_time_fields.sh'
 
-cd ${CUR_PATH}
+cd ${CUR_PATH}  

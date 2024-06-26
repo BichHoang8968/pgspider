@@ -5,14 +5,21 @@ export MONGO_PORT="27017"
 export MONGO_USER_NAME="edb"
 export MONGO_PWD="edb"
 
+export ORACLE_HOME=/opt/oracle/product/21c/dbhomeXE
+export PATH=$ORACLE_HOME/bin:$PATH
+export ORAENV_ASK=NO
+export ORACLE_SHLIB=$ORACLE_HOME/lib
+export ORACLE_SID=XE
+export LD_LIBRARY_PATH=$ORACLE_HOME/lib:$LD_LIBRARY_PATH
+
 MONGO_DB_NAME="mongo_pg_modify"
 MONGO_DB_NAME2="mongo_pg_modify2"
-DYNAMODB_HOME=/home/vagrant/workplace/dynamodblocal
+DYNAMODB_HOME=$DYNAMODB_HOME
 DYNAMODB_ENDPOINT1="http://localhost:8001"
 DYNAMODB_ENDPOINT2="http://localhost:8002"
 DYNAMODB_PORT1=8001
 DYNAMODB_PORT2=8002
-GRIDDB_CLIENT=/home/vagrant/workplace/griddb
+GRIDDB_CLIENT=$GRIDDB_CLIENT
 #Init data used in Postgres: tbl1, tbl2, tbl3, tbl4, tbl5
 POSTGRES_DB_NAME=pg_modify_db
 MYSQL_DB_NAME1=pg_modify_db1
@@ -21,6 +28,17 @@ JDBC_POSTGRES_DB_NAME=jdbc_modify_db
 ODBC_POSTGRES_DB_NAME=odbc_pg_modify
 JDBC_MYSQL_DB_NAME=jdbc_modify_db
 ODBC_MYSQL_DB_NAME=odbc_pg_modify
+
+function clean_docker_img()
+{
+  if [ "$(docker ps -aq -f name=^/${1}$)" ]; then
+    if [ "$(docker ps -aq -f status=exited -f status=created -f name=^/${1}$)" ]; then
+        docker rm ${1}
+    else
+        docker rm $(docker stop ${1})
+    fi
+  fi
+}
 
 CURR_PATH=$(pwd)
 if [[ "--start" == $1 ]]
@@ -32,7 +50,7 @@ then
     ./initdb ../test_pgspider_modify
     sed -i 's/#port = 5432.*/port = 15432/' ../test_pgspider_modify/postgresql.conf
     ./pg_ctl -D ../test_pgspider_modify start
-    sleep 2
+    sleep 5
     ./createdb -p 15432 $POSTGRES_DB_NAME
     ./createdb -p 15432 $ODBC_POSTGRES_DB_NAME
     ./createdb -p 15432 $JDBC_POSTGRES_DB_NAME
@@ -41,7 +59,7 @@ then
   then
     echo "Start PostgreSQL"
     ./pg_ctl -D ../test_pgspider_modify start
-    sleep 2
+    sleep 10
   fi
   #Postgres with port 15433 as offline, so do not start it
   # Start PostgreSQL 2
@@ -51,57 +69,42 @@ then
     ./initdb ../test_pgspider_modify_2
     sed -i 's/#port = 5432.*/port = 15434/' ../test_pgspider_modify_2/postgresql.conf
     ./pg_ctl -D ../test_pgspider_modify_2 start
-    sleep 2
+    sleep 10
     ./createdb -p 15434 $POSTGRES_DB_NAME
   fi
   if ! ./pg_isready -p 15434
   then
     echo "Start PostgreSQL"
     ./pg_ctl -D ../test_pgspider_modify_2 start
-    sleep 2
+    sleep 10
   fi
 
-  # Start GridDB server
-  if [[ ! -d "${GRIDDB_HOME}" ]];
-  then
-    echo "GRIDDB_HOME environment variable not set"
-    exit 1
-  fi
-  export GS_HOME=${GRIDDB_HOME}
-  export GS_LOG=${GRIDDB_HOME}/log
-  export no_proxy=127.0.0.1,localhost
-  if pgrep -x "gsserver" > /dev/null
-  then
-    ${GRIDDB_HOME}/bin/gs_leavecluster -w -f -u admin/testadmin
-    ${GRIDDB_HOME}/bin/gs_stopnode -w -u admin/testadmin
-    sleep 1
-  fi
-  #rm -rf ${GS_HOME}/data/* ${GS_LOG}/*
-  sed -i 's/\"clusterName\":.*/\"clusterName\":\"griddbfdwTestCluster\",/' ${GRIDDB_HOME}/conf/gs_cluster.json
-  echo "Starting GridDB server..."
-  ${GRIDDB_HOME}/bin/gs_startnode -w -u admin/testadmin
-  ${GRIDDB_HOME}/bin/gs_joincluster -w -c griddbfdwTestCluster -u admin/testadmin
+# Start GridDB server docker
+griddb_image=$GRIDDB_IMAGE
+griddb_container_name=griddb_svr
+clean_docker_img ${griddb_container_name}
+docker run -d --name ${griddb_container_name} -p 10001:10001 -e GRIDDB_NODE_NUM=1 ${griddb_image}
 
   # Start MySQL
   if ! [[ $(systemctl status mysqld.service) == *"active (running)"* ]]
   then
     echo "Start MySQL Server"
     systemctl start mysqld.service
-    sleep 2
+    sleep 10
   fi
   # Start Oracle server
-  if ! [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
+  if [[ $(systemctl status oracle-xe-21c.service) == *"active (exited)"* ]]
   then
     echo "Start Oracle Server"
     systemctl start oracle-xe-21c.service
-    sleep 2
+    sleep 10
   fi
   # Start MongoDB
   if ! [[ $(systemctl status mongod.service) == *"active (running)"* ]]
   then
     echo "Start MongoDB Server"
     systemctl start mongod.service
-    sleep 2
+    sleep 10
   fi
 
   # Stop DynamoDB
@@ -125,7 +128,7 @@ then
   then
     echo "Stop TinyBrace Server"
     pkill -9 tbserver
-    sleep 2
+    sleep 10
   fi
 
   cd $CURR_PATH
@@ -169,7 +172,7 @@ export LD_LIBRARY_PATH=./griddb/bin
 make clean && make
 result="$?"
 if [[ "$result" -eq 0 ]]; then
-	./griddb_init host=239.0.0.1 port=31999 cluster=griddbfdwTestCluster user=admin passwd=testadmin
+  ./griddb_init notification_member=127.0.0.1:10001  cluster=dockerGridDB user=admin passwd=admin
 fi
 
 # Setup mysql

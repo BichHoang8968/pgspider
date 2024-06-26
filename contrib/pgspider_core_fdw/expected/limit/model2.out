@@ -805,10 +805,10 @@ SELECT count(*) FROM tbl01 WHERE __spd_url != 'aef3' GROUP BY c7 HAVING c7 != 'A
 -------
      1
      1
-     1
      5
      2
      2
+     1
      1
      1
      1
@@ -1121,19 +1121,18 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
 
 --Testcase 74:
 SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
-    c1    |    c2     |                      c3                      |   c4   |  c5   | c6 |                                        c7                                        | c8 |      c9      | c10 |         c11         |  __spd_url   
-----------+-----------+----------------------------------------------+--------+-------+----+----------------------------------------------------------------------------------+----+--------------+-----+---------------------+--------------
- aeta4t   | rh5       | xa7a8a9aaabacadaeaf                          | -45345 |  -0.5 |  1 | $                                                                                | 65 |      -2.6253 |   9 | 2003-04-12 00:00:00 | /influx_svr/
- agaerg   | garege    | <verd>do did done</verd>                     |  -5453 |  -0.5 |  1 | $                                                                                |  4 |            0 |   2 | 2003-04-12 00:00:00 | /influx_svr/
- jrogl    | 4tat      | polygon                                      |  22132 |  -0.5 |  1 | $!@(#!*!@                                                                        |  3 |       46.138 |  45 | 2020-04-12 10:00:00 | /influx_svr/
- s6i6d    | Mexico    | <verd>do did done</verd>                     |      0 |  -0.5 |  1 | %$&*%!$*!#^%)!#&%                                                                |  0 |     623.6565 |   3 | 2003-04-12 10:00:00 | /influx_svr/
- y75tjd   | dr6d6u    | 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI= |      0 |  -0.5 |  1 | $                                                                                |  0 |       50.188 |  23 | 1999-01-08 10:00:00 | /influx_svr/
- 35t      | Mexetwico | Honduras                                     |     40 |  -0.5 |  1 | $!@(#!*!@                                                                        |  4 |     2323.188 |  23 | 2013-04-12 10:00:00 | /influx_svr/
- 3rawef   | argarg    | Ireland                                      |    500 | 500.2 |  1 | いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ | -5 |      -50.232 |   2 | 2003-04-12 00:00:00 | /influx_svr/
- 43twesrg | agagag    | xa7a8a9aaabacadaeaf                          |   3453 |  -0.5 |  1 | !@(#!*!@$                                                                        |  5 | -345345.5645 |  23 | 2003-04-12 10:00:00 | /influx_svr/
- arg      | rgargag   | varying                                      |  53453 |  -0.5 |  1 | %$&*%!$*!#^%)!#&%                                                                |  3 |      -50.188 |   8 | 1999-01-08 10:00:00 | /influx_svr/
- argaet34 | Mexico    | xa7a8a9aaabacadaeaf                          |    -53 |  -0.5 |  1 | _!@(#!*!@)#+!$~$                                                                 | 13 |       50.188 |  45 | 2003-04-12 10:00:00 | /influx_svr/
-(10 rows)
+    c1    |    c2     |                      c3                      |  c4   |  c5   | c6  |          c7          |     c8      |      c9      | c10 |         c11         |  __spd_url   
+----------+-----------+----------------------------------------------+-------+-------+-----+----------------------+-------------+--------------+-----+---------------------+--------------
+ agaerg   | garege    | <verd>do did done</verd>                     | -5453 |  -0.5 |   1 | $                    |           4 |            0 |   2 | 2003-04-12 00:00:00 | /influx_svr/
+ jrogl    | 4tat      | polygon                                      | 22132 |  -0.5 |   1 | $!@(#!*!@            |           3 |       46.138 |  45 | 2020-04-12 10:00:00 | /influx_svr/
+ s6i6d    | Mexico    | <verd>do did done</verd>                     |     0 |  -0.5 |   1 | %$&*%!$*!#^%)!#&%    |           0 |     623.6565 |   3 | 2003-04-12 10:00:00 | /influx_svr/
+ y75tjd   | dr6d6u    | 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI= |     0 |  -0.5 |   1 | $                    |           0 |       50.188 |  23 | 1999-01-08 10:00:00 | /influx_svr/
+ 35t      | Mexetwico | Honduras                                     |    40 |  -0.5 |   1 | $!@(#!*!@            |           4 |     2323.188 |  23 | 2013-04-12 10:00:00 | /influx_svr/
+ 43twesrg | agagag    | xa7a8a9aaabacadaeaf                          |  3453 |  -0.5 |   1 | !@(#!*!@$            |           5 | -345345.5645 |  23 | 2003-04-12 10:00:00 | /influx_svr/
+ arg      | rgargag   | varying                                      | 53453 |  -0.5 |   1 | %$&*%!$*!#^%)!#&%    |           3 |      -50.188 |   8 | 1999-01-08 10:00:00 | /influx_svr/
+ argaet34 | Mexico    | xa7a8a9aaabacadaeaf                          |   -53 |  -0.5 |   1 | _!@(#!*!@)#+!$~$     |          13 |       50.188 |  45 | 2003-04-12 10:00:00 | /influx_svr/
+ awfea    | tat       | Quick                                        |   400 | 400.2 | 127 | ăâđêôơưdêđêdờenờíìờẹ | 36854775806 |    -1.78e+68 |  23 | 2003-04-12 00:00:00 | /influx_svr/
+(9 rows)
 
 --Testcase 75:
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/22+c8, c5+12*c9, c11 FROM tbl01 WHERE c7 NOT IN ('inbetween', 'simple') LIMIT 15 OFFSET 5;
@@ -1648,9 +1647,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE
 
 --Testcase 110:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
-             min              |     max     | sum | count 
-------------------------------+-------------+-----+-------
- `~!@#$%^&*()_+=-{}[]|:;<>?/. | 36854775807 |   0 |    20
+    min    |     max     | sum | count 
+-----------+-------------+-----+-------
+ !@(#!*!@$ | 36854775807 |   0 |    20
 (1 row)
 
 --Testcase 111:
@@ -2329,7 +2328,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                                                                                                             string_agg                                                                                                                             |                                                                                                                                                                                                                          string_agg                                                                                                                                                                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI= Cuba Honduras Honduras Ireland Malaysia Mexico polygon polygon Quick Quick Quick Quick varying varying <verd>do did done</verd> <verd>do did done</verd> xa7a8a9aaabacadaeaf xa7a8a9aaabacadaeaf xa7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.,_!@(#!*!@)#+!$~$,!@(#!*!@$,$,$,$,$,$,$!@(#!*!@,$!@(#!*!@,%$&*%!$*!#^%)!#&%,%$&*%!$*!#^%)!#&%,กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ,いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ,0123456789,ăâđêôơưdêđêdờenờíìờẹ,Thequickbrownfoxjumpsoverthelazydog,べ員葉コ番告7次ノヌ従援かやじり図安ヨ,敷ヘカウ告政ヨハツヤ消70者32精楽ざ,色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
+ 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI= Cuba Honduras Honduras Ireland Malaysia Mexico polygon polygon Quick Quick Quick Quick varying varying <verd>do did done</verd> <verd>do did done</verd> xa7a8a9aaabacadaeaf xa7a8a9aaabacadaeaf xa7a8a9aaabacadaeaf | !@(#!*!@$,`~!@#$%^&*()_+=-{}[]|:;<>?/.,$,$,$,$,$,$!@(#!*!@,$!@(#!*!@,%$&*%!$*!#^%)!#&%,%$&*%!$*!#^%)!#&%,_!@(#!*!@)#+!$~$,0123456789,ăâđêôơưdêđêdờenờíìờẹ,Thequickbrownfoxjumpsoverthelazydog,กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ,いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ,べ員葉コ番告7次ノヌ従援かやじり図安ヨ,敷ヘカウ告政ヨハツヤ消70者32精楽ざ,色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
 (1 row)
 
 --Testcase 157:
@@ -2879,7 +2878,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                                                                                             string_agg                                                                                                                             |                                                                                                                                                                                                                          string_agg                                                                                                                                                                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI=-Cuba-Honduras-Honduras-Ireland-Malaysia-Mexico-polygon-polygon-Quick-Quick-Quick-Quick-varying-varying-<verd>do did done</verd>-<verd>do did done</verd>-xa7a8a9aaabacadaeaf-xa7a8a9aaabacadaeaf-xa7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.__!@(#!*!@)#+!$~$_!@(#!*!@$_$_$_$_$_$_$!@(#!*!@_$!@(#!*!@_%$&*%!$*!#^%)!#&%_%$&*%!$*!#^%)!#&%_กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ_いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ_0123456789_ăâđêôơưdêđêdờenờíìờẹ_Thequickbrownfoxjumpsoverthelazydog_べ員葉コ番告7次ノヌ従援かやじり図安ヨ_敷ヘカウ告政ヨハツヤ消70者32精楽ざ_色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
+ 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI=-Cuba-Honduras-Honduras-Ireland-Malaysia-Mexico-polygon-polygon-Quick-Quick-Quick-Quick-varying-varying-<verd>do did done</verd>-<verd>do did done</verd>-xa7a8a9aaabacadaeaf-xa7a8a9aaabacadaeaf-xa7a8a9aaabacadaeaf | !@(#!*!@$_`~!@#$%^&*()_+=-{}[]|:;<>?/._$_$_$_$_$_$!@(#!*!@_$!@(#!*!@_%$&*%!$*!#^%)!#&%_%$&*%!$*!#^%)!#&%__!@(#!*!@)#+!$~$_0123456789_ăâđêôơưdêđêdờenờíìờẹ_Thequickbrownfoxjumpsoverthelazydog_กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ_いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ_べ員葉コ番告7次ノヌ従援かやじり図安ヨ_敷ヘカウ告政ヨハツヤ消70者32精楽ざ_色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
 (1 row)
 
 --Testcase 191:
@@ -3517,9 +3516,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER
 
 --Testcase 230:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
-             min              |     max     | sum | count 
-------------------------------+-------------+-----+-------
- `~!@#$%^&*()_+=-{}[]|:;<>?/. | 36854775807 |   0 |    20
+    min    |     max     | sum | count 
+-----------+-------------+-----+-------
+ !@(#!*!@$ | 36854775807 |   0 |    20
 (1 row)
 
 --Testcase 231:
@@ -3710,7 +3709,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDE
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                                                                                             string_agg                                                                                                                             |                                                                                                                                                                                                                                   string_agg                                                                                                                                                                                                                                    
 -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI=:Cuba:Honduras:Honduras:Ireland:Malaysia:Mexico:polygon:polygon:Quick:Quick:Quick:Quick:varying:varying:<verd>do did done</verd>:<verd>do did done</verd>:xa7a8a9aaabacadaeaf:xa7a8a9aaabacadaeaf:xa7a8a9aaabacadaeaf | `~!@#$%^&*()_+=-{}[]|:;<>?/.>>_!@(#!*!@)#+!$~$>>!@(#!*!@$>>$>>$>>$>>$>>$>>$!@(#!*!@>>$!@(#!*!@>>%$&*%!$*!#^%)!#&%>>%$&*%!$*!#^%)!#&%>>กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ>>いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ>>0123456789>>ăâđêôơưdêđêdờenờíìờẹ>>Thequickbrownfoxjumpsoverthelazydog>>べ員葉コ番告7次ノヌ従援かやじり図安ヨ>>敷ヘカウ告政ヨハツヤ消70者32精楽ざ>>色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
+ 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI=:Cuba:Honduras:Honduras:Ireland:Malaysia:Mexico:polygon:polygon:Quick:Quick:Quick:Quick:varying:varying:<verd>do did done</verd>:<verd>do did done</verd>:xa7a8a9aaabacadaeaf:xa7a8a9aaabacadaeaf:xa7a8a9aaabacadaeaf | !@(#!*!@$>>`~!@#$%^&*()_+=-{}[]|:;<>?/.>>$>>$>>$>>$>>$>>$!@(#!*!@>>$!@(#!*!@>>%$&*%!$*!#^%)!#&%>>%$&*%!$*!#^%)!#&%>>_!@(#!*!@)#+!$~$>>0123456789>>ăâđêôơưdêđêdờenờíìờẹ>>Thequickbrownfoxjumpsoverthelazydog>>กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ>>いろはにほへど　ちりぬるをわがよたれぞ　つねならむうゐのおくやま　けふこえてあさ>>べ員葉コ番告7次ノヌ従援かやじり図安ヨ>>敷ヘカウ告政ヨハツヤ消70者32精楽ざ>>色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見
 (1 row)
 
 --Testcase 243:
@@ -4592,9 +4591,9 @@ SELECT max(c5+c6), max(c7), min(c8), min(c9 - c10), max(c11) FROM tbl01 GROUP BY
      0.5 | %$&*%!$*!#^%)!#&%                                                                |            3 |            -58.188 | 1999-01-08 10:00:00
      0.5 | $                                                                                |            4 |                 -2 | 2003-04-12 00:00:00
      0.5 | %$&*%!$*!#^%)!#&%                                                                |            0 |           620.6565 | 2003-04-12 10:00:00
-     0.5 | _!@(#!*!@)#+!$~$                                                                 |           13 |  5.188000000000002 | 2003-04-12 10:00:00
      0.5 | !@(#!*!@$                                                                        |            5 |       -345368.5645 | 2003-04-12 10:00:00
      0.5 | $                                                                                |           65 |           -11.6253 | 2003-04-12 00:00:00
+     0.5 | _!@(#!*!@)#+!$~$                                                                 |           13 |  5.188000000000002 | 2003-04-12 10:00:00
 (20 rows)
 
 --Testcase 295:
@@ -4661,7 +4660,7 @@ SELECT sum(c5), max(c7), min(c8), count(c9/2-c5) FROM tbl01 GROUP BY c3 HAVING c
   300.3 | 色は匂へど 散りぬるを我が世誰ぞ 常ならむ有為の奥山 今日越えて浅き夢見            |           -4 |     4
      -1 | %$&*%!$*!#^%)!#&%                                                                |            3 |     2
      -1 | %$&*%!$*!#^%)!#&%                                                                |            0 |     2
-   -1.5 | $                                                                                |            5 |     3
+   -1.5 | _!@(#!*!@)#+!$~$                                                                 |            5 |     3
 (11 rows)
 
 --ORDER BY 11
@@ -4727,7 +4726,6 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, _
 ----------+-----------+----------------------------------------------+--------------
  123456   | Canada    | Honduras                                     | /influx_svr/
  35t      | Mexetwico | Honduras                                     | /influx_svr/
- 3rawef   | argarg    | Ireland                                      | /influx_svr/
  43twesrg | agagag    | xa7a8a9aaabacadaeaf                          | /influx_svr/
  5yws5    | People    | Quick                                        | /influx_svr/
  aeta4t   | et        | varying                                      | /influx_svr/
@@ -4737,8 +4735,7 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, _
  awfea    | tat       | Quick                                        | /influx_svr/
  s6i6d    | Mexico    | <verd>do did done</verd>                     | /influx_svr/
  y75tjd   | dr6d6u    | 0rYRAZdOTUO+SeeOMtfKc6MsIB13HCcyWZ1pHn4R0WI= | /influx_svr/
- yjrh     | Keywords  | Malaysia                                     | /influx_svr/
-(13 rows)
+(11 rows)
 
 --Testcase 303:
 EXPLAIN VERBOSE SELECT count(DISTINCT c8), c1, c2, c3 FROM tbl01 WHERE c5 NOT IN (-122.2,233.12,232.2) GROUP BY c1, c2, c3, c8, c9 HAVING c8 > c9 ORDER BY c1, c2, c3, c8, c9;

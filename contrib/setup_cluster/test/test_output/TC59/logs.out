@@ -1,4 +1,4 @@
-File:install_main.c Function:detect_loop L:1511 Msg:Error: There is a loop in structure.
+File:install_main.c Function:detect_loop L:1529 Msg:Error: There is a loop in structure.
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json

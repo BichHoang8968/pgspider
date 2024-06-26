@@ -6,7 +6,7 @@ CREATE SERVER pgspider_core_svr FOREIGN DATA WRAPPER pgspider_core_fdw;
 CREATE USER MAPPING FOR CURRENT_USER SERVER pgspider_core_svr;
 CREATE EXTENSION griddb_fdw;
 CREATE FOREIGN TABLE tbl01 (c1 text, c2 text, c3 text, c4 int, c5 real, c6 smallint, c7 text, c8 bigint, c9 double precision, c10 smallint, c11 timestamp, __spd_url text) SERVER pgspider_core_svr;
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member :GRIDDB_NOTI_MEMBER, clustername :GRIDDB_CLUSTER_NAME);
 CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
 CREATE FOREIGN TABLE tbl01__griddb_svr__0 (c1 text, c2 text, c3 text, c4 int, c5 real, c6 smallint, c7 text, c8 bigint, c9 double precision, c10 smallint, c11 timestamp) SERVER griddb_svr OPTIONS (table_name 'tbl01');
 \i sql/limit/limit_orderby.sql
@@ -981,12 +981,13 @@ EXPLAIN VERBOSE SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
 
 --Testcase 74:
 SELECT * FROM tbl01 WHERE c3 > c7 LIMIT 10 OFFSET 5;
-     c1     |     c2     |                 c3                 |  c4   |      c5       | c6 |                  c7                  |   c8   |    c9     | c10 |           c11           |  __spd_url   
-------------+------------+------------------------------------+-------+---------------+----+--------------------------------------+--------+-----------+-----+-------------------------+--------------
- 32精楽     | красивый   | Ông là nhà văn hiện thực thế kỷ 20 |     0 |             0 |  7 | 4f333df6-90a4-4fda-8dd3-9485d27ceea6 |   3453 | 5465.6526 | 786 | 1970-01-01 00:00:02.022 | /griddb_svr/
- IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюди       |  3453 | 5.4505455e+06 |  0 | polkiuytxp,^&*()_+=,kwikdikwik       |     34 |         0 |  76 | 1970-01-01 00:00:02.023 | /griddb_svr/
- IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | 35345 |         22.15 | 12 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ       | 232323 |  45656.65 | 786 | 1970-01-01 00:00:01.97  | /griddb_svr/
-(3 rows)
+     c1     |     c2     |                 c3                 |   c4   |      c5       | c6 |                  c7                  |   c8   |     c9     | c10 |           c11           |  __spd_url   
+------------+------------+------------------------------------+--------+---------------+----+--------------------------------------+--------+------------+-----+-------------------------+--------------
+ บปผภ       | 援かや     | Canada Denmark Turkey Yemen Tokyo  | 167646 |        75.215 | 45 | 7次ノヌ,ノヌ従,援かや                | -51989 | 987935.565 |  45 | 1970-01-01 00:00:02.021 | /griddb_svr/
+ 32精楽     | красивый   | Ông là nhà văn hiện thực thế kỷ 20 |      0 |             0 |  7 | 4f333df6-90a4-4fda-8dd3-9485d27ceea6 |   3453 |  5465.6526 | 786 | 1970-01-01 00:00:02.022 | /griddb_svr/
+ IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюди       |   3453 | 5.4505455e+06 |  0 | polkiuytxp,^&*()_+=,kwikdikwik       |     34 |          0 |  76 | 1970-01-01 00:00:02.023 | /griddb_svr/
+ IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 |  35345 |         22.15 | 12 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ       | 232323 |   45656.65 | 786 | 1970-01-01 00:00:01.97  | /griddb_svr/
+(4 rows)
 
 --Testcase 75:
 EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4/22+c8, c5+12*c9, c11 FROM tbl01 WHERE c7 NOT IN ('inbetween', 'simple') LIMIT 15 OFFSET 5;
@@ -1302,8 +1303,8 @@ EXPLAIN VERBOSE SELECT lower(c1 || c2), c3, c4-c5, c8*0.212+c9, c11 FROM tbl01 W
 SELECT lower(c1 || c2), c3, c4-c5, c8*0.212+c9, c11 FROM tbl01 WHERE c3 <> 'AJEOF' GROUP BY 1, 2, 3, 4, 5 ORDER BY 1 ASC, 2, 3, 4, 5 LIMIT 5;
         lower         |                 c3                  |     ?column?      |  ?column?  |           c11           
 ----------------------+-------------------------------------+-------------------+------------+-------------------------
- 32精楽красивый       | Ông là nhà văn hiện thực thế kỷ 20  |                 0 |  6197.6886 | 1970-01-01 00:00:02.022
  !@#$%7次ノヌ         | In Bulgarian it is desirable        | 5200.677001953125 | -1.79e+108 | 1970-01-01 00:00:02.018
+ 32精楽красивый       | Ông là nhà văn hiện thực thế kỷ 20  |                 0 |  6197.6886 | 1970-01-01 00:00:02.022
  84udycgsvabrownfo    | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ  | 55090.64562988281 |    -1e+108 | 1970-01-01 00:00:09.999
  ăâđêôơưdêđêdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog | 16744.85000038147 | -1.79e+108 | 1970-01-01 00:00:01.97
  ijklmnopinbulgaria   | живетезелоземляиижеикаколюди        |        -5447092.5 |      7.208 | 1970-01-01 00:00:02.023
@@ -1333,15 +1334,15 @@ EXPLAIN VERBOSE SELECT upper(c1 || '&' || c3), c5, c7, c9, c11 + '1 hour'::inter
 SELECT upper(c1 || '&' || c3), c5, c7, c9, c11 + '1 hour'::interval FROM tbl01 WHERE c7 != '[]' GROUP BY 1, 2, 3, 4, 5 ORDER BY 1, 2, 3, 4, 5 LIMIT 10;
                      upper                      |      c5       |                  c7                  |     c9     |        ?column?         
 ------------------------------------------------+---------------+--------------------------------------+------------+-------------------------
+ !@#$%&IN BULGARIAN IT IS DESIRABLE             |      2362.323 | abcd,EFGH,友達と会                   | -1.79e+108 | 1970-01-01 01:00:02.018
  32精楽&ÔNG LÀ NHÀ VĂN HIỆN THỰC THẾ KỶ 20      |             0 | 4f333df6-90a4-4fda-8dd3-9485d27ceea6 |  5465.6526 | 1970-01-01 01:00:02.022
  84UDYCGSVA&敷ヘカウ告政ヨハツヤ消70者32精楽ざ  |     -545.6456 | กระทะ Cái chảo                       |    -1e+108 | 1970-01-01 01:00:09.999
  ĂÂĐÊÔƠƯDÊĐ&THEQUICKBROWNFOXJUMPSOVERTHELAZYDOG |         22.15 | 友達と会うので遅刻した 鍋 сковорода  | -1.79e+108 | 1970-01-01 01:00:01.97
- บปผภ&CANADA DENMARK TURKEY YEMEN TOKYO         |        75.215 | 7次ノヌ,ノヌ従,援かや                | 987935.565 | 1970-01-01 01:00:02.021
  IJKLMNOP&ЖИВЕТЕЗЕЛОЗЕМЛЯИИЖЕИКАКОЛЮДИ          | 5.4505455e+06 | polkiuytxp,^&*()_+=,kwikdikwik       |          0 | 1970-01-01 01:00:02.023
  IKLM&AND TO SOME EXTENT THE RENDITION          |      -985.455 | 1,1,1,1,1                            |    54.6565 | 1970-01-01 01:00:02.02
- !@#$%&IN BULGARIAN IT IS DESIRABLE             |      2362.323 | abcd,EFGH,友達と会                   | -1.79e+108 | 1970-01-01 01:00:02.018
  IRELANDIRN&豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿  |         22.15 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ       |   45656.65 | 1970-01-01 01:00:01.97
  TYUIYYTW&べ員葉コ番告7次ノヌ従援かやじり図安ヨ |             0 | ABCDEFGHIJ                           |     55.215 | 1970-01-01 01:00:02.018
+ บปผภ&CANADA DENMARK TURKEY YEMEN TOKYO         |        75.215 | 7次ノヌ,ノヌ従,援かや                | 987935.565 | 1970-01-01 01:00:02.021
  友達と会&กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ        |      545.5454 | ff333df6-90a4-4fda-8dd3-9485d28cee36 | -1.79e+108 | 1970-01-01 01:00:02.019
 (10 rows)
 
@@ -1445,9 +1446,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE
 
 --Testcase 110:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 WHERE c5 <> c9 ORDER BY 1, 2 LIMIT 15;
-              min               |      max      |    sum    | count 
---------------------------------+---------------+-----------+-------
- กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ | 1579222800000 | 6.37e+108 |    10
+    min    |      max      |    sum    | count 
+-----------+---------------+-----------+-------
+ 1,1,1,1,1 | 1579222800000 | 6.37e+108 |    10
 (1 row)
 
 --Testcase 111:
@@ -1836,8 +1837,8 @@ EXPLAIN VERBOSE SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 
 SELECT c1 || c2, c3, c4-c5, c8-c9 FROM tbl01 ORDER BY 1 ASC,2 , 3 LIMIT 5;
        ?column?       |                 c3                  |     ?column?      |      ?column?       
 ----------------------+-------------------------------------+-------------------+---------------------
- 32精楽красивый       | Ông là nhà văn hiện thực thế kỷ 20  |                 0 | -2012.6526000000003
  !@#$%7次ノヌ         | In Bulgarian it is desirable        | 5200.677001953125 |           1.79e+108
+ 32精楽красивый       | Ông là nhà văn hiện thực thế kỷ 20  |                 0 | -2012.6526000000003
  84udycgsvabrownfo    | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ  | 55090.64562988281 |              1e+108
  ăâđêôơưdêđêdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog | 16744.85000038147 |           1.79e+108
  IJKLMNOPInBulgaria   | живетезелоземляиижеикаколюди        |        -5447092.5 |                  34
@@ -1885,10 +1886,10 @@ SELECT c1 || c2, c3 || c7, round(c4/(c8-c5)+c9), c11 FROM tbl01 ORDER BY c1, c2,
        ?column?       |                                ?column?                                |   round    |           c11           
 ----------------------+------------------------------------------------------------------------+------------+-------------------------
  !@#$%7次ノヌ         | In Bulgarian it is desirableabcd,EFGH,友達と会                         | -1.79e+108 | 1970-01-01 00:00:02.018
- บปผภ援かや           | Canada Denmark Turkey Yemen Tokyo7次ノヌ,ノヌ従,援かや                 |     987932 | 1970-01-01 00:00:02.021
  32精楽красивый       | Ông là nhà văn hiện thực thế kỷ 204f333df6-90a4-4fda-8dd3-9485d27ceea6 |       5466 | 1970-01-01 00:00:02.022
  84udycgsvabrownfo    | 敷ヘカウ告政ヨハツヤ消70者32精楽ざกระทะ Cái chảo                       |    -1e+108 | 1970-01-01 00:00:09.999
  ăâđêôơưdêđêdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog友達と会うので遅刻した 鍋 сковорода | -1.79e+108 | 1970-01-01 00:00:01.97
+ IJKLMNOPInBulgaria   | живетезелоземляиижеикаколюдиpolkiuytxp,^&*()_+=,kwikdikwik             |         -0 | 1970-01-01 00:00:02.023
 (5 rows)
 
 --Testcase 145:
@@ -2034,7 +2035,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER
 SELECT string_agg(c3, ' ' ORDER BY c3), string_agg(c7, ',' ORDER BY c7) FROM tbl01 LIMIT 5;
                                                                                                                                                                    string_agg                                                                                                                                                                   |                                                                                                                        string_agg                                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ And to some extent the rendition Canada Denmark Turkey Yemen Tokyo In Bulgarian it is desirable Ông là nhà văn hiện thực thế kỷ 20 Thequickbrownfoxjumpsoverthelazydog живетезелоземляиижеикаколюди べ員葉コ番告7次ノヌ従援かやじり図安ヨ 敷ヘカウ告政ヨハツヤ消70者32精楽ざ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ,1,1,1,1,1,4f333df6-90a4-4fda-8dd3-9485d27ceea6,7次ノヌ,ノヌ従,援かや,ABCDEFGHIJ,abcd,EFGH,友達と会,กระทะ Cái chảo,ff333df6-90a4-4fda-8dd3-9485d28cee36,polkiuytxp,^&*()_+=,kwikdikwik,友達と会うので遅刻した 鍋 сковорода
+ And to some extent the rendition Canada Denmark Turkey Yemen Tokyo In Bulgarian it is desirable Thequickbrownfoxjumpsoverthelazydog Ông là nhà văn hiện thực thế kỷ 20 живетезелоземляиижеикаколюди กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ べ員葉コ番告7次ノヌ従援かやじり図安ヨ 敷ヘカウ告政ヨハツヤ消70者32精楽ざ 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | 1,1,1,1,1,4f333df6-90a4-4fda-8dd3-9485d27ceea6,7次ノヌ,ノヌ従,援かや,ABCDEFGHIJ,abcd,EFGH,友達と会,ff333df6-90a4-4fda-8dd3-9485d28cee36,polkiuytxp,^&*()_+=,kwikdikwik,กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ,กระทะ Cái chảo,友達と会うので遅刻した 鍋 сковорода
 (1 row)
 
 --Testcase 157:
@@ -2225,9 +2226,9 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP B
 
 --Testcase 170:
 SELECT c1, c2, c3 || '123' || c7, c4, c8/1000 FROM tbl01 GROUP BY __spd_url, c1, c2, c3, c4, c7, c8 ORDER BY 1 ASC, 2 DESC LIMIT 1 OFFSET 1;
-  c1  |   c2   |                         ?column?                          |   c4   | ?column? 
-------+--------+-----------------------------------------------------------+--------+----------
- บปผภ | 援かや | Canada Denmark Turkey Yemen Tokyo1237次ノヌ,ノヌ従,援かや | 167646 |      -51
+   c1   |    c2    |                                 ?column?                                  | c4 | ?column? 
+--------+----------+---------------------------------------------------------------------------+----+----------
+ 32精楽 | красивый | Ông là nhà văn hiện thực thế kỷ 201234f333df6-90a4-4fda-8dd3-9485d27ceea6 |  0 |        3
 (1 row)
 
 --Testcase 171:
@@ -2306,13 +2307,13 @@ EXPLAIN VERBOSE SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c
 
 --Testcase 176:
 SELECT c1, c2, c3, c4, c5, c6, c9, c10 FROM tbl01 GROUP BY c1, c2, c3, c4, c5, c6, __spd_url, c9, c10 ORDER BY 1 LIMIT 5 OFFSET 3;
-     c1     |     c2     |                 c3                  |  c4   |      c5       | c6 |     c9     | c10 
-------------+------------+-------------------------------------+-------+---------------+----+------------+-----
- 84udycgsva | brownfo    | 敷ヘカウ告政ヨハツヤ消70者32精楽ざ  | 54545 |     -545.6456 |  6 |    -1e+108 |  45
- ăâđêôơưdêđ | êdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog | 16767 |         22.15 | 12 | -1.79e+108 | 212
- IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюди        |  3453 | 5.4505455e+06 |  0 |          0 |  76
- IKLM       | กขฃคฅ      | And to some extent the rendition    | 34534 |      -985.455 | 12 |    54.6565 |   4
- IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿  | 35345 |         22.15 | 12 |   45656.65 | 786
+     c1     |     c2     |                  c3                   |  c4   |      c5       | c6 |     c9     | c10 
+------------+------------+---------------------------------------+-------+---------------+----+------------+-----
+ ăâđêôơưdêđ | êdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog   | 16767 |         22.15 | 12 | -1.79e+108 | 212
+ IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюди          |  3453 | 5.4505455e+06 |  0 |          0 |  76
+ IKLM       | กขฃคฅ      | And to some extent the rendition      | 34534 |      -985.455 | 12 |    54.6565 |   4
+ IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿    | 35345 |         22.15 | 12 |   45656.65 | 786
+ tyuiyytw   | QyhsgER    | べ員葉コ番告7次ノヌ従援かやじり図安ヨ |  9956 |             0 |  0 |     55.215 | 454
 (5 rows)
 
 --Testcase 177:
@@ -2337,13 +2338,13 @@ EXPLAIN VERBOSE SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, 
 
 --Testcase 178:
 SELECT c1, c2, c3 || c7, c4-c5, c8/2+c9 FROM tbl01 GROUP BY c1, c2, c3, __spd_url, c4, c5, c7, c8, c9 ORDER BY 1 LIMIT 5 OFFSET 4;
-     c1     |     c2     |                                ?column?                                |      ?column?      |  ?column?  
-------------+------------+------------------------------------------------------------------------+--------------------+------------
- ăâđêôơưdêđ | êdờenờíìờẹ | Thequickbrownfoxjumpsoverthelazydog友達と会うので遅刻した 鍋 сковорода |  16744.85000038147 | -1.79e+108
- IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюдиpolkiuytxp,^&*()_+=,kwikdikwik             |         -5447092.5 |         17
- IKLM       | กขฃคฅ      | And to some extent the rendition1,1,1,1,1                              | 35519.455017089844 |    54.6565
- IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ       |  35322.85000038147 |  161817.65
- tyuiyytw   | QyhsgER    | べ員葉コ番告7次ノヌ従援かやじり図安ヨABCDEFGHIJ                        |               9956 | 282312.215
+     c1     |     c2     |                             ?column?                             |      ?column?      |  ?column?  
+------------+------------+------------------------------------------------------------------+--------------------+------------
+ IJKLMNOP   | InBulgaria | живетезелоземляиижеикаколюдиpolkiuytxp,^&*()_+=,kwikdikwik       |         -5447092.5 |         17
+ IKLM       | กขฃคฅ      | And to some extent the rendition1,1,1,1,1                        | 35519.455017089844 |    54.6565
+ IrelandIRN | `~!@#$%^   | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ |  35322.85000038147 |  161817.65
+ tyuiyytw   | QyhsgER    | べ員葉コ番告7次ノヌ従援かやじり図安ヨABCDEFGHIJ                  |               9956 | 282312.215
+ บปผภ       | 援かや     | Canada Denmark Turkey Yemen Tokyo7次ノヌ,ノヌ従,援かや           |  167570.7850036621 | 961941.565
 (5 rows)
 
 --Testcase 179:
@@ -2423,7 +2424,7 @@ SELECT c1 || c2, c3, __spd_url FROM tbl01 WHERE c4 != 0 ORDER BY 1, 2 LIMIT 5 OF
  IKLMกขฃคฅ          | And to some extent the rendition      | /griddb_svr/
  IrelandIRN`~!@#$%^ | 豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿    | /griddb_svr/
  tyuiyytwQyhsgER    | べ員葉コ番告7次ノヌ従援かやじり図安ヨ | /griddb_svr/
- 友達と会oiuytrewqa | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ        | /griddb_svr/
+ บปผภ援かや         | Canada Denmark Turkey Yemen Tokyo     | /griddb_svr/
 (5 rows)
 
 --Testcase 185:
@@ -2511,7 +2512,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER
 SELECT string_agg(c3, '-' ORDER BY c3), string_agg(c7, '_' ORDER BY c7) FROM tbl01 WHERE c8 != c9 ORDER BY 1, 2 LIMIT 5 OFFSET 0;
                                                                                                                                                                    string_agg                                                                                                                                                                   |                                                                                                                        string_agg                                                                                                                        
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ-And to some extent the rendition-Canada Denmark Turkey Yemen Tokyo-In Bulgarian it is desirable-Ông là nhà văn hiện thực thế kỷ 20-Thequickbrownfoxjumpsoverthelazydog-живетезелоземляиижеикаколюди-べ員葉コ番告7次ノヌ従援かやじり図安ヨ-敷ヘカウ告政ヨハツヤ消70者32精楽ざ-豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ_1,1,1,1,1_4f333df6-90a4-4fda-8dd3-9485d27ceea6_7次ノヌ,ノヌ従,援かや_ABCDEFGHIJ_abcd,EFGH,友達と会_กระทะ Cái chảo_ff333df6-90a4-4fda-8dd3-9485d28cee36_polkiuytxp,^&*()_+=,kwikdikwik_友達と会うので遅刻した 鍋 сковорода
+ And to some extent the rendition-Canada Denmark Turkey Yemen Tokyo-In Bulgarian it is desirable-Thequickbrownfoxjumpsoverthelazydog-Ông là nhà văn hiện thực thế kỷ 20-живетезелоземляиижеикаколюди-กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ-べ員葉コ番告7次ノヌ従援かやじり図安ヨ-敷ヘカウ告政ヨハツヤ消70者32精楽ざ-豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | 1,1,1,1,1_4f333df6-90a4-4fda-8dd3-9485d27ceea6_7次ノヌ,ノヌ従,援かや_ABCDEFGHIJ_abcd,EFGH,友達と会_ff333df6-90a4-4fda-8dd3-9485d28cee36_polkiuytxp,^&*()_+=,kwikdikwik_กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ_กระทะ Cái chảo_友達と会うので遅刻した 鍋 сковорода
 (1 row)
 
 --Testcase 191:
@@ -3019,9 +3020,9 @@ EXPLAIN VERBOSE SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER
 
 --Testcase 230:
 SELECT min(c7), max(c8), sum(c8-c9), count(c10) FROM tbl01 ORDER BY 1 DESC, 2 ASC, 3;
-              min               |      max      |    sum    | count 
---------------------------------+---------------+-----------+-------
- กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ | 1579222800000 | 6.37e+108 |    10
+    min    |      max      |    sum    | count 
+-----------+---------------+-----------+-------
+ 1,1,1,1,1 | 1579222800000 | 6.37e+108 |    10
 (1 row)
 
 --Testcase 231:
@@ -3177,7 +3178,7 @@ EXPLAIN VERBOSE SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDE
 SELECT string_agg(c3, ':' ORDER BY c3), string_agg(c7, '>>' ORDER BY c7) FROM tbl01 ORDER BY 1, 2;
                                                                                                                                                                    string_agg                                                                                                                                                                   |                                                                                                                            string_agg                                                                                                                             
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ:And to some extent the rendition:Canada Denmark Turkey Yemen Tokyo:In Bulgarian it is desirable:Ông là nhà văn hiện thực thế kỷ 20:Thequickbrownfoxjumpsoverthelazydog:живетезелоземляиижеикаколюди:べ員葉コ番告7次ノヌ従援かやじり図安ヨ:敷ヘカウ告政ヨハツヤ消70者32精楽ざ:豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ>>1,1,1,1,1>>4f333df6-90a4-4fda-8dd3-9485d27ceea6>>7次ノヌ,ノヌ従,援かや>>ABCDEFGHIJ>>abcd,EFGH,友達と会>>กระทะ Cái chảo>>ff333df6-90a4-4fda-8dd3-9485d28cee36>>polkiuytxp,^&*()_+=,kwikdikwik>>友達と会うので遅刻した 鍋 сковорода
+ And to some extent the rendition:Canada Denmark Turkey Yemen Tokyo:In Bulgarian it is desirable:Thequickbrownfoxjumpsoverthelazydog:Ông là nhà văn hiện thực thế kỷ 20:живетезелоземляиижеикаколюди:กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ:べ員葉コ番告7次ノヌ従援かやじり図安ヨ:敷ヘカウ告政ヨハツヤ消70者32精楽ざ:豆贝尔维克斯艾勒艾弗诶比迪吉吾艾儿 | 1,1,1,1,1>>4f333df6-90a4-4fda-8dd3-9485d27ceea6>>7次ノヌ,ノヌ従,援かや>>ABCDEFGHIJ>>abcd,EFGH,友達と会>>ff333df6-90a4-4fda-8dd3-9485d28cee36>>polkiuytxp,^&*()_+=,kwikdikwik>>กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ>>กระทะ Cái chảo>>友達と会うので遅刻した 鍋 сковорода
 (1 row)
 
 --Testcase 243:
@@ -3972,7 +3973,8 @@ SELECT c1, c2, c3, __spd_url FROM tbl01 WHERE c3 > c7 GROUP BY c1, c2, c3, c4, _
  32精楽   | красивый   | Ông là nhà văn hiện thực thế kỷ 20    | /griddb_svr/
  IJKLMNOP | InBulgaria | живетезелоземляиижеикаколюди          | /griddb_svr/
  tyuiyytw | QyhsgER    | べ員葉コ番告7次ノヌ従援かやじり図安ヨ | /griddb_svr/
-(4 rows)
+ 友達と会 | oiuytrewqa | กขฃคฅฆงจฉชซฌญฎฏฐฑฒณดตถทธนบปผภฮ        | /griddb_svr/
+(5 rows)
 
 --Testcase 303:
 EXPLAIN VERBOSE SELECT count(DISTINCT c8), c1, c2, c3 FROM tbl01 WHERE c5 NOT IN (-122.2,233.12,232.2) GROUP BY c1, c2, c3, c8, c9 HAVING c8 > c9 ORDER BY c1, c2, c3, c8, c9;

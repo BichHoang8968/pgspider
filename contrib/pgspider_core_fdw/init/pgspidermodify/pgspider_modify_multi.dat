@@ -113,7 +113,7 @@ CREATE FOREIGN TABLE tntbl3__jdbc_post_svr__0 (_id text OPTIONS (key 'true'), c1
 
 
 -- griddb_fdw
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member '127.0.0.1:10002', clustername 'dockerGridDB');
 CREATE USER MAPPING FOR public SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
 CREATE FOREIGN TABLE tntbl2__griddb_svr__0 (_id text OPTIONS (rowkey 'true'), c1 int, c2 text, c3 boolean, c4 double precision, c5 bigint) SERVER griddb_svr OPTIONS (table_name 'tntbl2');
 CREATE FOREIGN TABLE tntbl3__griddb_svr__0 (_id text OPTIONS (rowkey 'true'), c1 int, c2 real, c3 double precision, c4 bigint) SERVER griddb_svr OPTIONS (table_name 'tntbl3');

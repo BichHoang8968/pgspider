@@ -10,7 +10,7 @@ CREATE EXTENSION griddb_fdw;
 
 CREATE FOREIGN TABLE tbl01 (c1 text, c2 text, c3 text, c4 int, c5 real, c6 smallint, c7 text, c8 bigint, c9 double precision, c10 smallint, c11 timestamp, __spd_url text) SERVER pgspider_core_svr;
 
-CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (host :GRIDDB_HOST, port :GRIDDB_PORT, clustername 'griddbfdwTestCluster');
+CREATE SERVER griddb_svr FOREIGN DATA WRAPPER griddb_fdw OPTIONS (notification_member :GRIDDB_NOTI_MEMBER, clustername :GRIDDB_CLUSTER_NAME);
 CREATE USER MAPPING FOR CURRENT_USER SERVER griddb_svr OPTIONS (username :GRIDDB_USER, password :GRIDDB_PASS);
 
 CREATE FOREIGN TABLE tbl01__griddb_svr__0 (c1 text, c2 text, c3 text, c4 int, c5 real, c6 smallint, c7 text, c8 bigint, c9 double precision, c10 smallint, c11 timestamp) SERVER griddb_svr OPTIONS (table_name 'tbl01');

@@ -1,4 +1,4 @@
-File:install_main.c Function:load_tier_json L:2079 Msg:Error: JSON format is wrong. 
+File:install_main.c Function:load_tier_json L:2097 Msg:Error: JSON format is wrong. 
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json
