@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "tinybrace_fdw",
-		"ip": "127.0.0.1",
-		"port": 5100,
+		"ip": "TINYBRACE_HOST",
+		"port": "TINYBRACE_PORT",
 		"username": "user",
 		"password": "testuser",
 		"dbname": "test_setcluster.db"

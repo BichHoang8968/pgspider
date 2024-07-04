@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -15,6 +15,6 @@
 		"fdw": "dynamodb_fdw",
 		"username": "admin",
 		"password": "testadmin",
-		"endpoint": "http://localhost:8000"
+		"endpoint": "http://DYNAMODB_ENDPOINT"
 	}
 ]

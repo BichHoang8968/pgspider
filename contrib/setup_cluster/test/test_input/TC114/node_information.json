@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,7 +13,7 @@
 	{
 		"nodename": "db2",
 		"fdw": "redmine_fdw",
-		"endpoint": "https://127.0.0.1:3000/red-mine",
+		"endpoint": "https://REDMINE2_ENDPOINT/red-mine",
 		"username": "admin",
 		"password": "Test1234"
 	}

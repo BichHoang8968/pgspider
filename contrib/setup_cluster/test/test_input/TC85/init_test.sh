@@ -1,8 +1,8 @@
 #PGSpider nodes
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 #Postgres nodes
 PG1_PORT=5432
-PG1_DB=setcluster2_db2
+PG1_DB=setcluster1_db2
 
 source /opt/rh/gcc-toolset-11/enable
 DATA_PATH=$INIT_DATA_PATH

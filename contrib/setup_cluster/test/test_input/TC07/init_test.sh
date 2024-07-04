@@ -1,5 +1,5 @@
 #PGSpider nodes
-PGS1_DB=setcluster5_db1
+PGS1_DB=databases
 
 function clean_docker_img()
 {

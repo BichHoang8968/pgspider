@@ -1,6 +1,6 @@
 # Note: It takes time to start gitlab server. Start it manually first.
 #PGSpider nodes
-PGS1_DB=setcluster3_db1
+PGS1_DB=databases
 
 DATA_PATH=$INIT_DATA_PATH
 

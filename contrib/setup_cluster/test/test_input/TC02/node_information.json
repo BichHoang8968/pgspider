@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 5432,
+		"ip": "POSTGRESQL1_HOST",
+		"port": "POSTGRESQL1_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -29,8 +29,8 @@
 	{
 		"nodename": "db4",
 		"fdw": "griddb_fdw",
-		"ip": "239.0.0.1",
-		"port": 31999,
+		"ip": "GRIDDB_HOST",
+		"port": "GRIDDB_PORT",
 		"username": "admin",
 		"password": "testadmin",
 		"clustername": "griddbfdwTestSetcluster",
@@ -39,8 +39,8 @@
 	{
 		"nodename": "db5",
 		"fdw": "mysql_fdw",
-		"ip": "127.0.0.1",
-		"port": 3306,
+		"ip": "MYSQL_HOST",
+		"port": "MYSQL_PORT",
 		"username": "root",
 		"password": "Mysql_1234",
 		"dbname": "test_setcluster"
@@ -48,8 +48,8 @@
 	{
 		"nodename": "db6",
 		"fdw": "influxdb_fdw",
-		"ip": "http://127.0.0.1",
-		"port": 8086,
+		"ip": "http://INFLUXDBV1_HOST",
+		"port": "INFLUXDBV1_PORT",
 		"username": "",
 		"password": "",
 		"dbname": "test_setcluster"
@@ -57,8 +57,8 @@
 	{
 		"nodename": "db7",
 		"fdw": "tinybrace_fdw",
-		"ip": "127.0.0.1",
-		"port": 5100,
+		"ip": "TINYBRACE_HOST",
+		"port": "TINYBRACE_PORT",
 		"username": "user",
 		"password": "testuser",
 		"dbname": "test_setcluster.db"

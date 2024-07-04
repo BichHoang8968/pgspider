@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "mongo_fdw",
-		"ip": "127.0.0.1",
-		"port": 27017,
+		"ip": "MONGO_HOST",
+		"port": "MONGO_PORT",
 		"username": "edb",
 		"password": "edb",
 		"dbname": "setup_cluster",
@@ -24,8 +24,8 @@
 	{
 		"nodename": "db3",
 		"fdw": "postgrest_fdw",
-		"ip": "127.0.0.1",
-		"port": "3000",
+		"ip": "POSTGREST_HOST",
+		"port": "POSTGREST_PORT",
 		"username": "postgres",
 		"password": "postgres"
 	},
@@ -33,9 +33,9 @@
 		"nodename": "db4",
 		"fdw": "jdbc_fdw",
 		"dbdrivername": "com.mysql.jdbc.Driver",
-		"dburl": "jdbc:mysql://localhost:3306/test_setclusterjdbc",
+		"dburl": "jdbc:mysql://JDBC_MYSQL_URL/test_setclusterjdbc",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/mysql-connector-j-8.0.33.jar",
+		"driverpathjar": "JDBC_LIB_PATH/JDBC_MYSQL_LIB",
 		"maxheapsize": "600",
 		"username": "root",
 		"password": "Mysql_1234",
@@ -45,9 +45,9 @@
 		"nodename": "db5",
 		"fdw": "jdbc_fdw",
 		"dbdrivername": "org.postgresql.Driver",
-		"dburl": "jdbc:postgresql://localhost:5432/jdbcpostgres",
+		"dburl": "jdbc:postgresql://JDBC_POSTGRESQL_URL/jdbcpostgres",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/postgresql-42.6.0.jar",
+		"driverpathjar": "JDBC_LIB_PATH/JDBC_POSTGRES_LIB",
 		"maxheapsize": "600",
 		"username": "postgres",
 		"password": "postgres",
@@ -57,9 +57,9 @@
 		"nodename": "db6",
 		"fdw": "jdbc_fdw",
 		"dbdrivername": "com.toshiba.mwcloud.gs.sql.Driver",
-		"dburl": "jdbc:gs://239.0.0.1:41999/griddbfdwTestCluster/public",
+		"dburl": "jdbc:gs://JDBC_GRIDDB_URL/griddbfdwTestSetcluster/public",
 		"querytimeout": "15",
-		"driverpathjar": "JDBC_LIB_PATH/gridstore-jdbc-5.1.0.jar",
+		"driverpathjar": "JDBC_LIB_PATH/JDBC_GRIDDB_LIB",
 		"maxheapsize": "600",
 		"username": "admin",
 		"password": "testadmin"
@@ -69,6 +69,6 @@
 		"fdw": "dynamodb_fdw",
 		"username": "admin",
 		"password": "testadmin",
-		"endpoint": "http://localhost:8000"
+		"endpoint": "http://DYNAMODB_ENDPOINT"
 	}
 ]

@@ -2,7 +2,7 @@
 	{
 		"nodename": "db1",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
+		"ip": "POSTGRESQL1_HOST",
 		"port": 15444,
 		"username": "postgres",
 		"password": "postgres",
@@ -11,7 +11,7 @@
 	{
 		"nodename": "db2",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
+		"ip": "POSTGRESQL1_HOST",
 		"port": 15445,
 		"username": "postgres",
 		"password": "postgres",

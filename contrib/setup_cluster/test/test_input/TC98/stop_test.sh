@@ -1,5 +1,5 @@
 #PGSpider nodes
-PGS1_DB=setcluster6_db1
+PGS1_DB=databases
 
 CURR_PATH=$(pwd)
 

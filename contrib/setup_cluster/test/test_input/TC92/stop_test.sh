@@ -1,6 +1,6 @@
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 PG1_PORT=5432
-PG1_DB=setcluster2_db2
+PG1_DB=setcluster1_db2
 CURR_PATH=$(pwd)
 
 if [[ "--stop" == $1 ]]

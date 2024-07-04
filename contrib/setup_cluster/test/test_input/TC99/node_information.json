@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 5432,
+		"ip": "POSTGRESQL1_HOST",
+		"port": "POSTGRESQL1_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -22,8 +22,8 @@
 	{
 		"nodename": "db3",
 		"fdw": "griddb_fdw",
-		"ip": "239.0.0.1",
-		"port": 31999,
+		"ip": "GRIDDB_HOST",
+		"port": "GRIDDB_PORT",
 		"username": "admin",
 		"password": "testadmin",
 		"clustername": "griddbfdwTestSetcluster",
@@ -32,8 +32,8 @@
 	{
 		"nodename": "db4",
 		"fdw": "mysql_fdw",
-		"ip": "127.0.0.1",
-		"port": 3306,
+		"ip": "MYSQL_HOST",
+		"port": "MYSQL_PORT",
 		"username": "root",
 		"password": "Mysql_1234",
 		"dbname": "test_setcluster"
@@ -41,8 +41,8 @@
 	{
 		"nodename": "db5",
 		"fdw": "influxdb_fdw",
-		"ip": "http://localhost",
-		"port": 38086,
+		"ip": "http://INFLUXDBV2_HOST",
+		"port": "INFLUXDBV2_PORT",
 		"dbname": "test_setcluster",
 		"influxdb_version": "2",
 		"token": "mytoken"
@@ -50,8 +50,8 @@
 	{
 		"nodename": "db6",
 		"fdw": "tinybrace_fdw",
-		"ip": "127.0.0.1",
-		"port": 5100,
+		"ip": "TINYBRACE_HOST",
+		"port": "TINYBRACE_PORT",
 		"username": "user",
 		"password": "testuser",
 		"dbname": "test_setcluster.db"
@@ -62,7 +62,7 @@
 		"username": "setupcluster",
 		"password": "setupcluster",
 		"case": "lower",
-		"dbserver": "",
+		"dbserver": "ORACLE_HOST",
 		"isolation_level": "read_committed",
 		"nchar": "true",
 		"dbname": "SETUPCLUSTER"
@@ -77,7 +77,7 @@
 		"nodename": "db9",
 		"fdw": "parquet_s3_fdw",
 		"useminio": "true",
-		"endpoint": "127.0.0.1:8000",
+		"endpoint": "PARQUET_MINIO_ENDPOINT",
 		"region": "ap-southeast-2",
 		"username": "minioadmin",
 		"password": "minioadmin",
@@ -87,8 +87,8 @@
 	{
 		"nodename": "db10",
 		"fdw": "odbc_fdw",
-		"ip": "127.0.0.1",
-		"port": "3306",
+		"ip": "ODBC_MYSQL_ADDR",
+		"port": "ODBC_MYSQL_CONN_PORT",
 		"dbserver": "MySQL",
 		"dbdrivername": "MySQL ODBC 8.0 Unicode Driver",
 		"username": "root",
@@ -98,8 +98,8 @@
 	{
 		"nodename": "db11",
 		"fdw": "odbc_fdw",
-		"ip": "127.0.0.1",
-		"port": "5432",
+		"ip": "ODBC_POSTGRESQL_HOST",
+		"port": "ODBC_POSTGRESQL_PORT",
 		"dbserver": "",
 		"dbdrivername": "PostgreSQL",
 		"username": "postgres",
@@ -109,8 +109,8 @@
 	{
 		"nodename": "db12",
 		"fdw": "sqlumdashcs_fdw",
-		"ip": "127.0.0.1",
-		"port": 12345,
+		"ip": "SQLUMDASH_HOST",
+		"port": "SQLUMDASH_PORT",
 		"username": "user_sc",
 		"password": "testuser_sc",
 		"dbname": "test_sc.db"

@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "influxdb_fdw",
-		"ip": "http://127.0.0.1",
-		"port": 8086,
+		"ip": "http://INFLUXDBV1_HOST",
+		"port": "INFLUXDBV1_PORT",
 		"username": "",
 		"password": "",
 		"dbname": "test_setcluster"

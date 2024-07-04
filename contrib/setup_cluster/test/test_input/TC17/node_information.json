@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "db2",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 5432,
+		"ip": "POSTGRESQL1_HOST",
+		"port": "POSTGRESQL1_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -22,8 +22,8 @@
 	{
 		"nodename": "db3",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15437,
+		"ip": "POSTGRESQL2_HOST",
+		"port": "POSTGRESQL2_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -31,8 +31,8 @@
 	{
 		"nodename": "db4",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 14814,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER1_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -42,8 +42,8 @@
 	{
 		"nodename": "db5",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 14815,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER2_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -53,8 +53,8 @@
 	{
 		"nodename": "db6",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15438,
+		"ip": "POSTGRESQL3_HOST",
+		"port": "POSTGRESQL3_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -62,8 +62,8 @@
 	{
 		"nodename": "db7",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 14816,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER3_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -73,8 +73,8 @@
 	{
 		"nodename": "db8",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15439,
+		"ip": "POSTGRESQL4_HOST",
+		"port": "POSTGRESQL4_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -82,8 +82,8 @@
 	{
 		"nodename": "db9",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15440,
+		"ip": "POSTGRESQL5_HOST",
+		"port": "POSTGRESQL5_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -91,8 +91,8 @@
 	{
 		"nodename": "db10",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 14817,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER4_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -102,8 +102,8 @@
 	{
 		"nodename": "db11",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15441,
+		"ip": "POSTGRESQL6_HOST",
+		"port": "POSTGRESQL6_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -111,8 +111,8 @@
 	{
 		"nodename": "db12",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 15442,
+		"ip": "POSTGRESQL7_HOST",
+		"port": "POSTGRESQL7_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"

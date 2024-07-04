@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,8 +13,8 @@
 	{
 		"nodename": "",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 5432,
+		"ip": "POSTGRESQL1_HOST",
+		"port": "POSTGRESQL1_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
