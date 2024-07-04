@@ -1,24 +1,24 @@
 #PGSpider nodes
-PGS1_DB=setcluster11_db1
+PGS1_DB=databases
 PGS2_PORT=14814
-PGS2_DB=setcluster11_db4
+PGS2_DB=setcluster2_db1
 PGS3_PORT=14815
-PGS3_DB=setcluster11_db7
+PGS3_DB=setcluster2_db2
 #Postgres nodes
 PG1_PORT=5432
-PG1_DB=setcluster11_db2
+PG1_DB=setcluster1_db2
 PG2_PORT=15437
-PG2_DB=setcluster11_db3
+PG2_DB=setcluster1_db3
 PG3_PORT=15438
-PG3_DB=setcluster11_db5
+PG3_DB=setcluster1_db4
 PG4_PORT=15439
-PG4_DB=setcluster11_db6
+PG4_DB=setcluster1_db5
 PG5_PORT=15440
-PG5_DB=setcluster11_db8
+PG5_DB=setcluster1_db6
 PG6_PORT=15441
-PG6_DB=setcluster11_db9
+PG6_DB=setcluster1_db7
 PG7_PORT=15442
-PG7_DB=setcluster11_db10
+PG7_DB=setcluster1_db8
 
 DATA_PATH=$INIT_DATA_PATH
 

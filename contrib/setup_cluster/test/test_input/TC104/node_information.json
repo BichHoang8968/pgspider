@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -13,10 +13,10 @@
 	{
 		"nodename": "db2",
 		"fdw": "gitlab_fdw",
-		"endpoint": "https://127.0.0.1/gitlab/",
+		"endpoint": "https://GITLAB_ENDPOINT/gitlab/",
 		"ssl_verifypeer": "true",
-		"ca_file": "/tmp/certificate.cer",
-		"ca_path": "/tmp",
+		"ca_file": "GITLAB_CA_FILE",
+		"ca_path": "GITLAB_CA_PATH",
 		"access_token": "awefrq2awef32gregasef"
 	}
 ]

@@ -1,4 +1,4 @@
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH$SLDCS_LIB_PATH
 
 CUR_PATH=$(pwd)

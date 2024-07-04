@@ -1,14 +1,70 @@
 #!/bin/sh
 
 # set global variables
-POSTGRES_HOME=/home/jenkins/postgresql-15.0/install
-PGSPIDER_HOME=/home/jenkins/PGSpider/install
-GRIDDB_CLIENT=/home/jenkins/griddb-5.0/griddb
-TINYBRACE_HOME=/usr/local/tinybrace
-POSTGREST_BINARY_HOME=/home/jenkins/binary_Postgrest
-DYNAMODB_HOME=/home/jenkins/DynamoDB
-GITLAB_HOME=/home/jenkins/pgspiderci/Server/Gitlab/gitlab_ci
-REDMINE_HOME=/home/jenkins/pgspiderci/Server/Redmine/redmine_ci
+source ./environment_config.conf
+# Update node_information
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER_HOST/$PGSPIDER_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER_PORT/$PGSPIDER_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER1_PORT/$PGSPIDER1_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER2_PORT/$PGSPIDER2_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER3_PORT/$PGSPIDER3_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER4_PORT/$PGSPIDER4_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PGSPIDER5_PORT/$PGSPIDER5_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/GRIDDB_HOST/$GRIDDB_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/GRIDDB_PORT/$GRIDDB_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL1_HOST/$POSTGRESQL1_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL1_PORT/$POSTGRESQL1_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL2_HOST/$POSTGRESQL2_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL2_PORT/$POSTGRESQL2_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL3_HOST/$POSTGRESQL3_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL3_PORT/$POSTGRESQL3_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL4_HOST/$POSTGRESQL4_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL4_PORT/$POSTGRESQL4_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL5_HOST/$POSTGRESQL5_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL5_PORT/$POSTGRESQL5_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL6_HOST/$POSTGRESQL6_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL6_PORT/$POSTGRESQL6_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL7_HOST/$POSTGRESQL7_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGRESQL7_PORT/$POSTGRESQL7_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/MYSQL_HOST/$MYSQL_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/MYSQL_PORT/$MYSQL_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV1_HOST/$INFLUXDBV1_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV1_PORT/$INFLUXDBV1_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/TINYBRACE_HOST/$TINYBRACE_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/TINYBRACE_PORT/$TINYBRACE_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/DYNAMODB_ENDPOINT/$DYNAMODB_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ORACLE_HOST/$ORACLE_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/MONGO_HOST/$MONGO_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/MONGO_PORT/$MONGO_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_LIB_PATH/$JDBC_LIB_PATH/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_MYSQL_URL/$JDBC_MYSQL_URL/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_POSTGRESQL_URL/$JDBC_POSTGRESQL_URL/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_GRIDDB_URL/$JDBC_GRIDDB_URL/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_POSTGRESQL_HOST/$ODBC_POSTGRESQL_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_POSTGRESQL_PORT/$ODBC_POSTGRESQL_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_ADDR/$ODBC_MYSQL_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_CONN_PORT/$ODBC_MYSQL_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/PARQUET_MINIO_ENDPOINT/$PARQUET_MINIO_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/SQLUMDASH_HOST/$SQLUMDASH_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/SQLUMDASH_PORT/$SQLUMDASH_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGREST_HOST/$POSTGREST_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/POSTGREST_PORT/$POSTGREST_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV2_HOST/$INFLUXDBV2_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV2_PORT/$INFLUXDBV2_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV1_AUTH_HOST/$INFLUXDBV1_AUTH_HOST/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/INFLUXDBV1_AUTH_PORT/$INFLUXDBV1_AUTH_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/REDMINE_ENDPOINT/$REDMINE_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/REDMINE1_ENDPOINT/$REDMINE1_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/REDMINE2_ENDPOINT/$REDMINE2_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/GITLAB_ENDPOINT/$GITLAB_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/GITLAB_CA_FILE/$GITLAB_CA_FILE/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/GITLAB_CA_PATH/$GITLAB_CA_PATH/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/OBJ_MINIO_ENDPOINT/$OBJ_MINIO_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/OBJ_AZURE_ENDPOINT/$OBJ_AZURE_ENDPOINT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/OBJ_LOCAL_ROOT_PATH/$OBJ_LOCAL_ROOT_PATH/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_POSTGRES_LIB/$JDBC_POSTGRES_LIB/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_GRIDDB_LIB/$JDBC_GRIDDB_LIB/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/JDBC_MYSQL_LIB/$JDBC_MYSQL_LIB/g" {} \;
 
 MONGO_HOST="localhost"
 MONGO_PORT="27017"
@@ -46,7 +102,6 @@ GITLAB_CA_CERT=$GITLAB_HOME/../localrootCA.crt
 
 # Please replace each "/" to "\\\/" for JDBC_LIB_PATH
 # Ex: /home/lib -> \\\/home\\\/lib
-JDBC_LIB_PATH=\\\/home\\\/jenkins\\\/JDBC\\\/jdbc_lib
 
 PGS_PORT=4813
 LD_LIBRARY_PATH=":$PGSPIDER_HOME/lib:/usr/lib64/mysql:$GRIDDB_CLIENT/bin:/usr/local/tinybrace/lib:/usr/local/lib:/opt/oracle/product/21c/dbhomeXE/lib:/usr/local/lib64:"
@@ -61,6 +116,7 @@ export PGS1_PORT="${PGS_PORT}"
 export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
 export POSTGRES_HOME="${POSTGRES_HOME}"
 export PGSPIDER_HOME="${PGSPIDER_HOME}"
+export GRIDDB_HOST="${GRIDDB_HOST}"
 export GRIDDB_CLIENT="${GRIDDB_CLIENT}"
 export TINYBRACE_HOME="${TINYBRACE_HOME}"
 export POSTGREST_BINARY_HOME="${POSTGREST_BINARY_HOME}"

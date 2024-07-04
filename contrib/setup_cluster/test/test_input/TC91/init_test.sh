@@ -1,4 +1,4 @@
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 DATA_PATH=$INIT_DATA_PATH
 
 if [[ "--start" == $1 ]]

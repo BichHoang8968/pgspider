@@ -1,5 +1,5 @@
 #PGSpider nodes
-PGS1_DB=setcluster7_db1
+PGS1_DB=databases
 
 DATA_PATH=$INIT_DATA_PATH
 

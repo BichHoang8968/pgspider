@@ -1,8 +1,8 @@
 #PGSpider nodes
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 #Postgres nodes
 PG1_PORT=5432
-PG1_DB=setcluster2_db2
+PG1_DB=setcluster1_db2
 
 function clean_docker_img()
 {

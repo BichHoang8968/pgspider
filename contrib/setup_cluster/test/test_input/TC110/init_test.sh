@@ -1,5 +1,5 @@
 #PGSpider nodes
-PGS1_DB=setcluster3_db1
+PGS1_DB=databases
 
 # Build influxdb_fdw with cxx client
 CUR_PATH=$(pwd)
@@ -14,7 +14,7 @@ cd $CUR_PATH
 
 #Postgres nodes
 PG1_PORT=5432
-PG1_DB=setcluster3_db2
+PG1_DB=setcluster1_db2
 DATA_PATH=$INIT_DATA_PATH
 
 function clean_docker_img()

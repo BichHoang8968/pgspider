@@ -1,4 +1,4 @@
-PGS1_DB=setcluster2_db1
+PGS1_DB=databases
 
 CURR_PATH=$(pwd)
 

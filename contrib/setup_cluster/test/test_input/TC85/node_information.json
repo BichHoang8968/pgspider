@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -20,8 +20,8 @@
 	{
 		"nodename": "db3",
 		"fdw": "mysql_fdw",
-		"ip": "127.0.0.1",
-		"port": 3306,
+		"ip": "MYSQL_HOST",
+		"port": "MYSQL_PORT",
 		"username": "root",
 		"password": "Mysql_1234",
 		"dbname": "test_setcluster"
@@ -31,13 +31,13 @@
 		"fdw": "dynamodb_fdw",
 		"username": "admin",
 		"password": "testadmin",
-		"endpoint": "http://localhost:8000"
+		"endpoint": "http://DYNAMODB_ENDPOINT"
 	},
 	{
 		"nodename": "db5",
 		"fdw": "mongo_fdw",
-		"ip": "127.0.0.1",
-		"port": 27017,
+		"ip": "MONGO_HOST",
+		"port": "MONGO_PORT",
 		"username": "edb",
 		"password": "edb",
 		"dbname": "setup_cluster",
@@ -53,8 +53,8 @@
 	{
 		"nodename": "db7",
 		"fdw": "postgrest_fdw",
-		"ip": "127.0.0.1",
-		"port": "3000",
+		"ip": "POSTGREST_HOST",
+		"port": "POSTGREST_PORT",
 		"username": "postgres",
 		"password": "postgres"
 	}

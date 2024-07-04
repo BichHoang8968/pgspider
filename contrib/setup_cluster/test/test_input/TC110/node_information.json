@@ -2,8 +2,8 @@
 	{
 		"nodename": "db1",
 		"fdw": "pgspider_fdw",
-		"ip": "127.0.0.1",
-		"port": 4813,
+		"ip": "PGSPIDER_HOST",
+		"port": "PGSPIDER_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",
@@ -14,7 +14,7 @@
 		"nodename": "db2",
 		"fdw": "objstorage_fdw",
 		"storage_type": "azure",
-		"endpoint": "http://127.0.0.1:10000/devstoreaccount1/",
+		"endpoint": "http://OBJ_AZURE_ENDPOINT/devstoreaccount1/",
 		"username": "devstoreaccount1",
 		"password": "Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==",
 		"tablename": "test_table2",
@@ -25,8 +25,8 @@
 	{
 		"nodename": "db3",
 		"fdw": "influxdb_fdw",
-		"ip": "http://localhost",
-		"port": 18086,
+		"ip": "http://INFLUXDBV1_AUTH_HOST",
+		"port": "INFLUXDBV1_AUTH_PORT",
 		"username": "user",
 		"password": "pass",
 		"influxdb_version": "1",
@@ -42,8 +42,8 @@
 	{
 		"nodename": "db5",
 		"fdw": "postgres_fdw",
-		"ip": "127.0.0.1",
-		"port": 5432,
+		"ip": "POSTGRESQL1_HOST",
+		"port": "POSTGRESQL1_PORT",
 		"username": "postgres",
 		"password": "postgres",
 		"dbname": "postgres"
@@ -51,8 +51,8 @@
 	{
 		"nodename": "db6",
 		"fdw": "griddb_fdw",
-		"ip": "239.0.0.1",
-		"port": 31999,
+		"ip": "GRIDDB_HOST",
+		"port": "GRIDDB_PORT",
 		"username": "admin",
 		"password": "testadmin",
 		"clustername": "griddbfdwTestSetcluster",
@@ -61,8 +61,8 @@
 	{
 		"nodename": "db7",
 		"fdw": "tinybrace_fdw",
-		"ip": "127.0.0.1",
-		"port": 5100,
+		"ip": "TINYBRACE_HOST",
+		"port": "TINYBRACE_PORT",
 		"username": "user",
 		"password": "testuser",
 		"dbname": "test_setcluster.db"
@@ -73,7 +73,7 @@
 		"username": "setupcluster",
 		"password": "setupcluster",
 		"case": "lower",
-		"dbserver": "",
+		"dbserver": "ORACLE_HOST",
 		"isolation_level": "read_committed",
 		"nchar": "true",
 		"dbname": "SETUPCLUSTER"
@@ -82,7 +82,7 @@
 		"nodename": "db9",
 		"fdw": "parquet_s3_fdw",
 		"useminio": "true",
-		"endpoint": "127.0.0.1:8000",
+		"endpoint": "PARQUET_MINIO_ENDPOINT",
 		"region": "ap-southeast-2",
 		"username": "minioadmin",
 		"password": "minioadmin",
@@ -92,8 +92,8 @@
 	{
 		"nodename": "db10",
 		"fdw": "odbc_fdw",
-		"ip": "127.0.0.1",
-		"port": "5432",
+		"ip": "ODBC_POSTGRESQL_HOST",
+		"port": "ODBC_POSTGRESQL_PORT",
 		"dbserver": "",
 		"dbdrivername": "PostgreSQL",
 		"username": "postgres",
@@ -103,8 +103,8 @@
 	{
 		"nodename": "db11",
 		"fdw": "sqlumdashcs_fdw",
-		"ip": "127.0.0.1",
-		"port": 12345,
+		"ip": "SQLUMDASH_HOST",
+		"port": "SQLUMDASH_PORT",
 		"username": "user_sc",
 		"password": "testuser_sc",
 		"dbname": "test_sc.db"
@@ -112,14 +112,14 @@
 	{
 		"nodename": "db12",
 		"fdw": "gitlab_fdw",
-		"endpoint": "https://127.0.0.1/gitlab/",
+		"endpoint": "https://GITLAB_ENDPOINT/gitlab/",
 		"ssl_verifypeer": "false",
 		"access_token": "awefrq2awef32gregasef"
 	},
 	{
 		"nodename": "db13",
 		"fdw": "redmine_fdw",
-		"endpoint": "https://127.0.0.1:3000/redmine",
+		"endpoint": "https://REDMINE_ENDPOINT/redmine",
 		"username": "admin",
 		"password": "Test1234"
 	}
