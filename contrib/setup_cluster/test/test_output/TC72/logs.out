@@ -1,5 +1,7 @@
-File:install_main.c Function:main L:2202 Msg:Error: Can not open file ./not_exist_file.json 
+File:install_main.c Function:main L:2272 Msg:Error: Can not open file ./not_exist_file.json 
 Config directory: ./
 Node information file: node_information.json
 Node structure file: not_exist_file.json
 Timeout: 0
+Node schema: public
+Node on conflict: none

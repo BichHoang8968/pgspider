@@ -1,8 +1,10 @@
-File:install_main.c Function:detect_loop L:1529 Msg:Error: There is a loop in structure.
+File:install_main.c Function:detect_loop L:1576 Msg:Error: There is a loop in structure.
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json
 Timeout: 0
+Node schema: public
+Node on conflict: none
 free db2
 free db3
 free db5

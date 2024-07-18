@@ -1,5 +1,7 @@
-File:install_main.c Function:verify_nodename L:1422 Msg:Error: Duplicate node name in node data: db1
+File:install_main.c Function:verify_nodename L:1469 Msg:Error: Duplicate node name in node data: db1
 Config directory: ./
 Node information file: node_information.json
 Node structure file: node_structure.json
 Timeout: 0
+Node schema: public
+Node on conflict: none

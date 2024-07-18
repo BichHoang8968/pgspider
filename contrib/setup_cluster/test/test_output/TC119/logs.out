@@ -1,0 +1,31 @@
+NOTICE:  extension "pgspider_core_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to user mapping for public on server db1
+drop cascades to foreign table test_table2
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to user mapping for public on server db2
+drop cascades to foreign table test_table2__db2__0
+NOTICE:  foreign table "test_table2__db2__0" does not exist, skipping
+NOTICE:  foreign table "test_table2" does not exist, skipping
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to user mapping for public on server db6
+drop cascades to foreign table test_table2__db6__0
+NOTICE:  foreign table "test_table2__db6__0" does not exist, skipping
+NOTICE:  drop cascades to 2 other objects
+DETAIL:  drop cascades to user mapping for public on server db10
+drop cascades to foreign table test_table2__db10__0
+NOTICE:  foreign table "test_table2__db10__0" does not exist, skipping
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+Node schema: public
+Node on conflict: recreate
+FINISH db1 
+free db2
+free db6
+free db10
+Success to create pgspider tables.

@@ -90,12 +90,12 @@ tinybrace_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "tinybrace_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "tinybrace_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -109,12 +109,12 @@ mysql_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "mysql_fdw", option->ip, option->port);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "mysql_fdw", option->ip, option->port);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -128,12 +128,12 @@ postgres_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s',dbname '%s');\n", option->nodename, "postgres_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s',dbname '%s');\n", option->nodename, "postgres_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -147,12 +147,12 @@ pgspider_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "pgspider_fdw", option->ip, option->port, option->dbname);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "pgspider_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -166,7 +166,7 @@ sqlite_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(database '%s');\n", option->nodename, "sqlite_fdw", option->dbname);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(database '%s');\n", option->nodename, "sqlite_fdw", option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -197,9 +197,9 @@ griddb_fdw(nodes *option, PGconn *conn)
 	char		tmp_sql[QUERY_LEN];
 
 	if (strcmp(option->notification_member, "") == 0)
-		sprintf(tmp_sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->nodename, option->ip, option->port, option->clustername);
+		sprintf(tmp_sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(host '%s',port '%s', clustername '%s'", option->nodename, option->ip, option->port, option->clustername);
 	else
-		sprintf(tmp_sql, "CREATE SERVER %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->nodename, option->notification_member, option->clustername);
+		sprintf(tmp_sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER griddb_fdw OPTIONS(notification_member '%s', clustername '%s'", option->nodename, option->notification_member, option->clustername);
 	/* set dbname */
 	if (strcmp(option->dbname, "") == 0)
 	{
@@ -223,7 +223,7 @@ griddb_fdw(nodes *option, PGconn *conn)
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(username '%s',password '%s');\n", option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
@@ -241,12 +241,12 @@ influxdb_fdw(nodes *option, PGconn *conn)
 	/* CXX version 1 */
 	if (strcmp(option->influxdb_version, "1") == 0)
 	{
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
 
-		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 				option->nodename, option->user, option->pass);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
@@ -255,12 +255,12 @@ influxdb_fdw(nodes *option, PGconn *conn)
 	/* CXX version 2 */
 	else if (strcmp(option->influxdb_version, "2") == 0)
 	{
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s', version '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname, option->influxdb_version);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
 
-		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(auth_token '%s');\n", option->nodename, option->token);
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(auth_token '%s');\n", option->nodename, option->token);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
@@ -268,12 +268,12 @@ influxdb_fdw(nodes *option, PGconn *conn)
 	/* Go client or CXX client wihout version option */
 	else if (strcmp(option->influxdb_version, "") == 0)
 	{
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname);
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s', dbname '%s');\n", option->nodename, "influxdb_fdw", option->ip, option->port, option->dbname);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
 
-		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 				option->nodename, option->user, option->pass);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
@@ -296,24 +296,24 @@ parquet_s3_fdw(nodes *option, PGconn *conn)
 
 	if (IS_S3_PATH(option->dirpath))
 	{
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(use_minio '%s', endpoint '%s', region '%s');\n",
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(use_minio '%s', endpoint '%s', region '%s');\n",
 				option->nodename, "parquet_s3_fdw", option->useminio, option->endpoint, option->region);
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
 
-		sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 				option->nodename, option->user, option->pass);
 		rc = query_execute(conn, sql);
 	}
 	else
 	{
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s;\n", option->nodename, "parquet_s3_fdw");
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s;\n", option->nodename, "parquet_s3_fdw");
 		rc = query_execute(conn, sql);
 		if (rc != SETUP_OK)
 			return rc;
 
-		sprintf(sql, "CREATE USER MAPPING for public SERVER %s;\n", option->nodename);
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s;\n", option->nodename);
 		rc = query_execute(conn, sql);
 	}
 
@@ -326,7 +326,7 @@ oracle_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(dbserver '%s'", option->nodename, "oracle_fdw", option->dbserver);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(dbserver '%s'", option->nodename, "oracle_fdw", option->dbserver);
 	if (strlen(option->isolation_level) > 0)
 	{
 		char tmpOpt[ORACLE_OPTION_LEN];
@@ -347,7 +347,7 @@ oracle_fdw(nodes *option, PGconn *conn)
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -360,7 +360,7 @@ mongo_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(address '%s', port '%s'", option->nodename, "mongo_fdw", option->ip, option->port);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(address '%s', port '%s'", option->nodename, "mongo_fdw", option->ip, option->port);
 
 	if (strlen(option->use_remote_estimate) > 0)
 	{
@@ -452,7 +452,7 @@ mongo_fdw(nodes *option, PGconn *conn)
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(username '%s',password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(username '%s',password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -465,12 +465,12 @@ postgrest_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "postgrest_fdw", option->ip, option->port);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS(host '%s',port '%s');\n", option->nodename, "postgrest_fdw", option->ip, option->port);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS(user '%s',password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS(user '%s',password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -484,12 +484,12 @@ dynamodb_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (endpoint '%s');", option->nodename, "dynamodb_fdw", option->endpoint);
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (endpoint '%s');", option->nodename, "dynamodb_fdw", option->endpoint);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS (user '%s', password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS (user '%s', password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -503,13 +503,13 @@ sqlumdashcs_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (host '%s', port '%s', dbname '%s');",
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (host '%s', port '%s', dbname '%s');",
 			option->nodename, "sqlumdashcs_fdw", option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING for public SERVER %s OPTIONS (username '%s', password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS for public SERVER %s OPTIONS (username '%s', password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -522,13 +522,13 @@ odbc_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (odbc_DRIVER '%s', odbc_SERVER '%s', odbc_PORT '%s', odbc_DATABASE '%s');\n",
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (odbc_DRIVER '%s', odbc_SERVER '%s', odbc_PORT '%s', odbc_DATABASE '%s');\n",
 			option->nodename, "odbc_fdw", option->dbdrivername, option->ip, option->port, option->dbname);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS(odbc_UID '%s', odbc_PWD '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS(odbc_UID '%s', odbc_PWD '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -542,13 +542,13 @@ jdbc_fdw(nodes *option, PGconn *conn)
 	ReturnCode	rc;
 	char		sql[QUERY_LEN];
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (drivername '%s', url '%s', querytimeout '%s', jarfile '%s', maxheapsize '%s');\n",
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (drivername '%s', url '%s', querytimeout '%s', jarfile '%s', maxheapsize '%s');\n",
 			option->nodename, "jdbc_fdw", option->dbdrivername, option->dburl, option->querytimeout, option->driverpathjar, option->maxheapsize);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS(username '%s', password '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS(username '%s', password '%s');\n",
 			option->nodename, option->user, option->pass);
 	rc = query_execute(conn, sql);
 
@@ -564,19 +564,19 @@ objstorage_fdw(nodes *option, PGconn *conn)
 
 	/* storage types need endpoint */
 	if (strcmp(option->storage_type, "local") != 0 )
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s', endpoint '%s');", option->nodename, "objstorage_fdw", option->storage_type, option->endpoint);
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s', endpoint '%s');", option->nodename, "objstorage_fdw", option->storage_type, option->endpoint);
 	else
-		sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s');", option->nodename, "objstorage_fdw", option->storage_type);
+		sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (storage_type '%s');", option->nodename, "objstorage_fdw", option->storage_type);
 	rc = query_execute(conn, sql);
 	if (rc != SETUP_OK)
 		return rc;
 
 	/* storage types need username and password */
 	if (strcmp(option->storage_type, "azure") == 0 || strcmp(option->storage_type, "s3") == 0)
-		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS(user '%s', password '%s');\n",
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS(user '%s', password '%s');\n",
 			option->nodename, option->user, option->pass);
 	else
-		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s;\n", option->nodename);
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s;\n", option->nodename);
 
 	rc = query_execute(conn, sql);
 
@@ -590,7 +590,7 @@ gitlab_fdw(nodes *option, PGconn *conn)
 	char		sql[QUERY_LEN];
 	bool		need_delimiter = false;
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "gitlab_fdw");
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "gitlab_fdw");
 
 	/*
 	 * FDW accepts empty value however should not add empty value
@@ -657,7 +657,7 @@ gitlab_fdw(nodes *option, PGconn *conn)
 	if (rc != SETUP_OK)
 		return rc;
 
-	sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (access_token '%s');\n",
+	sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS (access_token '%s');\n",
 			option->nodename, option->access_token);
 	rc = query_execute(conn, sql);
 
@@ -671,7 +671,7 @@ redmine_fdw(nodes *option, PGconn *conn)
 	char		sql[QUERY_LEN];
 	bool		need_delimiter = false;
 
-	sprintf(sql, "CREATE SERVER %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "redmine_fdw");
+	sprintf(sql, "CREATE SERVER IF NOT EXISTS %s FOREIGN DATA WRAPPER %s OPTIONS (", option->nodename, "redmine_fdw");
 
 	/*
 	 * FDW accepts empty value however should not add empty value
@@ -744,9 +744,9 @@ redmine_fdw(nodes *option, PGconn *conn)
 	 * because connection will be failed
 	 */
 	if (strlen(option->api_key) > 0)
-		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (api_key '%s');\n", option->nodename, option->api_key);
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS (api_key '%s');\n", option->nodename, option->api_key);
 	else
-		sprintf(sql, "CREATE USER MAPPING FOR public SERVER %s OPTIONS (user '%s', password '%s');\n", option->nodename, option->user, option->pass);
+		sprintf(sql, "CREATE USER MAPPING IF NOT EXISTS FOR public SERVER %s OPTIONS (user '%s', password '%s');\n", option->nodename, option->user, option->pass);
 
 	rc = query_execute(conn, sql);
 

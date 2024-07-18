@@ -42,8 +42,8 @@ find test/test_input -name "*.json" -exec sed -i "s/JDBC_POSTGRESQL_URL/$JDBC_PO
 find test/test_input -name "*.json" -exec sed -i "s/JDBC_GRIDDB_URL/$JDBC_GRIDDB_URL/g" {} \;
 find test/test_input -name "*.json" -exec sed -i "s/ODBC_POSTGRESQL_HOST/$ODBC_POSTGRESQL_HOST/g" {} \;
 find test/test_input -name "*.json" -exec sed -i "s/ODBC_POSTGRESQL_PORT/$ODBC_POSTGRESQL_PORT/g" {} \;
-find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_ADDR/$ODBC_MYSQL_HOST/g" {} \;
-find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_CONN_PORT/$ODBC_MYSQL_PORT/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_ADDR/$ODBC_MYSQL_ADDR/g" {} \;
+find test/test_input -name "*.json" -exec sed -i "s/ODBC_MYSQL_CONN_PORT/$ODBC_MYSQL_CONN_PORT/g" {} \;
 find test/test_input -name "*.json" -exec sed -i "s/PARQUET_MINIO_ENDPOINT/$PARQUET_MINIO_ENDPOINT/g" {} \;
 find test/test_input -name "*.json" -exec sed -i "s/SQLUMDASH_HOST/$SQLUMDASH_HOST/g" {} \;
 find test/test_input -name "*.json" -exec sed -i "s/SQLUMDASH_PORT/$SQLUMDASH_PORT/g" {} \;
@@ -382,6 +382,34 @@ do
         echo "select * from issues order by id, parent_id;" >> results/$i/results.out
         $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from issues order by id, parent_id;" >> results/$i/results.out 2>&1
     fi
+
+    # test new schema
+    if [ ${i} == "TC115" ]; then
+        echo "select * from test_schema.test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_schema.test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # test new schema with on_conflict is recreate (new schema is 'test_schema').
+    # TC117 depends on TC116. TC116 creates all foreign tables but not drop, TC117 will drop and re-create all foreign tables.
+    if [ ${i} == "TC116" ]  || [ ${i} == "TC117" ]; then
+        echo "select * from test_schema.test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_schema.test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # test with on_conflict is recreate (retain the default schema 'public').
+    # TC119 depends on TC118. TC118 creates all foreign tables but not drop, TC119 will drop and re-create all foreign tables.
+    if [ ${i} == "TC118" ]  || [ ${i} == "TC119" ]; then
+        echo "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
+    # test with on_conflict is none (retain the default schema 'public') - failed
+    # TC121 depends on TC120. TC120 creates all foreign tables but not drop, TC121 will be failed due to foreign tables already existed.
+    if [ ${i} == "TC120" ]  || [ ${i} == "TC121" ]; then
+        echo "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out
+        $PGSPIDER_HOME/bin/psql -d pgspider -p $PGS_PORT -c "select * from test_table2 order by v, __spd_url;" >> results/$i/results.out 2>&1
+    fi
+
 
     # Check data in parent node
     cmp -s results/$i/results.out $TEST_OUTPUT_PATH/$i/results.out
