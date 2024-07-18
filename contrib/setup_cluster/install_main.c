@@ -81,30 +81,6 @@ drop_extension(const char *name, PGconn *conn)
 }
 
 /*
- * Drop extensions which this tool are supporting.
- *
- * @param[in] conn - Connection for PGSpider
- *
- * @return Return code
- */
-static ReturnCode
-drop_extensions(PGconn *conn)
-{
-	int			i;
-
-	for (i = 0; i < extension_size; i++)
-	{
-		ReturnCode	rc;
-
-		rc = drop_extension(spd_func[i].name, conn);
-		if (rc != SETUP_OK)
-			return rc;
-	}
-
-	return SETUP_OK;
-}
-
-/*
  * Drop extensions as log as possible. Even if it failed to drop one of FDW extension,
  * it continues to drop the other FDW extensions.
  *
@@ -161,6 +137,23 @@ drop_all_fdws_with_connect(nodes * nodes_data, child_node_list * child_node, int
 		drop_all_fdws(conn);
 		PQfinish(conn);
 	}
+}
+
+/*
+ * Drop a server cascade.
+ *
+ * @param[in] name - server name
+ * @param[in] conn - Connection for PGSpider
+ *
+ * @return none
+ */
+static ReturnCode
+drop_server(const char *svr_name, PGconn *conn)
+{
+	char		query[QUERY_LEN];
+
+	sprintf(query, "DROP SERVER IF EXISTS %s CASCADE;", svr_name);
+	return query_execute(conn, query);
 }
 
 /*
@@ -510,11 +503,13 @@ load_filefdw(PGconn *conn, nodes * node_data, char *parent_server)
  * @param[in] server_name - Child node server name
  * @param[in] fdw - Child table's fdw
  * @param[in] parent_node_name - Parent(pgspider) node name
+ * @param[in] schema - schema that holds foreign tables
+ * @param[in] on_conflict - foreign tables will be re-created or retained depeding on its value.
  *
  * @return none
 */
 static ReturnCode
-rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_node_name)
+rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_node_name, char *schema, char *on_conflict)
 {
 	ReturnCode	rc;
 	int			i,
@@ -536,13 +531,28 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		return SETUP_QUERY_FAILED;
 	}
 
+	/* If schema is not public, create and set it as default schema */
+	if (strcmp(schema, DEFAULT_SCHEMA) != 0)
+	{
+		sprintf(query, "CREATE SCHEMA IF NOT EXISTS \"%s\";", schema);
+		rc = query_execute(conn, query);
+		if (rc != SETUP_OK)
+			return SETUP_QUERY_FAILED;
+
+		sprintf(query, "SET SEARCH_PATH=\"%s\";", schema);
+		rc = query_execute(conn, query);
+		if (rc != SETUP_OK)
+			return SETUP_QUERY_FAILED;
+	}
+
 	/* change table name and schema */
 	for (i = 0; i < PQntuples(res); i++)
 	{
 		char		select_column_query[QUERY_LEN];
 		char		alter_query[QUERY_LEN];
 		char		create_query[QUERY_LEN];
-		char		newtable[TABLE_NAME_LEN];
+		char		drop_query[QUERY_LEN];
+		char		newtable[QUERY_LEN];
 		char		parenttable[TABLE_NAME_LEN];
 
 		if (is_gitlab_or_redmine)
@@ -637,11 +647,21 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 			break;
 		}
 
+		/* If on_conflict is recreate, drop the existing child table first */
+		if (strcmp(on_conflict, DEFAULT_ON_CONFLICT_RECREATE) == 0)
+		{
+			sprintf(drop_query, "DROP FOREIGN TABLE IF EXISTS \"%s\";", newtable);
+			rc = query_execute(conn, drop_query);
+			if (rc != SETUP_OK)
+				break;
+		}
+
 		sprintf(alter_query, "ALTER TABLE temp_schema.\"%s\" RENAME TO \"%s\";", PQgetvalue(res, i, 0), newtable);
 		rc = query_execute(conn, alter_query);
 		if (rc != SETUP_OK)
 			break;
-		sprintf(alter_query, "ALTER TABLE temp_schema.\"%s\" SET schema public;", newtable);
+
+		sprintf(alter_query, "ALTER TABLE temp_schema.\"%s\" SET schema \"%s\";", newtable, schema);
 		rc = query_execute(conn, alter_query);
 		if (rc != SETUP_OK)
 			break;
@@ -666,6 +686,23 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		{
 			sprintf(alter_query, "ALTER FOREIGN TABLE \"%s\" OPTIONS (table_name '%s');", newtable, PQgetvalue(res, i, 0));
 			rc = query_execute(conn, alter_query);
+			if (rc != SETUP_OK)
+				break;
+		}
+
+		/* If on_conflict is recreate, drop the existing parent table first */
+		if (strcmp(on_conflict, DEFAULT_ON_CONFLICT_RECREATE) == 0)
+		{
+			if (is_gitlab_or_redmine)
+			{
+				sprintf(drop_query, "DROP FOREIGN TABLE IF EXISTS \"%s\";", parenttable);
+			}
+			else
+			{
+				sprintf(drop_query, "DROP FOREIGN TABLE IF EXISTS \"%s\";", PQgetvalue(res, i, 0));
+			}
+
+			rc = query_execute(conn, drop_query);
 			if (rc != SETUP_OK)
 				break;
 		}
@@ -713,6 +750,16 @@ rename_foreign_table(PGconn *conn, char *server_name, char *fdw, char *parent_no
 		PQclear(select_column_res_tmp);
 
 	PQclear(res);
+
+	/* Change back to the public schema */
+	if (strcmp(schema, DEFAULT_SCHEMA) != 0)
+	{
+		sprintf(query, "SET SEARCH_PATH=public;");
+		rc = query_execute(conn, query);
+		if (rc != SETUP_OK)
+			return SETUP_QUERY_FAILED;
+	}
+
 	return SETUP_OK;
 }
 
@@ -1647,12 +1694,12 @@ load_nodedata(json_t * element, nodes * *nodes_list)
  *
  * @param[in] nodes_data - node information data list
  * @param[in] child_node - child node list
- * @param[in] timeout - Tineout time when retrying to connect to PGSpider
+ * @param[in] params - configuration parameters
  *
  * @return Return code
  */
 static ReturnCode
-set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int timeout)
+set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, config_params *params)
 {
 	ReturnCode	rc;
 	nodes	   *parent_node,
@@ -1676,7 +1723,7 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 	}
 
 	/* Connect to PGSpider with admin user. */
-	rc = create_connection(&conn, parent_node, 1, timeout);
+	rc = create_connection(&conn, parent_node, 1, params->timeout);
 	if (rc != SETUP_OK)
 		return rc;
 
@@ -1693,10 +1740,6 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 	 * pg_spd_node_info.
 	 */
 	rc = query_execute(conn, "DELETE FROM pg_spd_node_info;");
-	if (rc != SETUP_OK)
-		goto err_set_pgspider_node_admin;
-
-	rc = drop_extensions(conn);
 	if (rc != SETUP_OK)
 		goto err_set_pgspider_node_admin;
 
@@ -1770,6 +1813,18 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 		{
 			char		query[QUERY_LEN] = {0};
 
+			/* Drop foreign server if on_conflict is recreate */
+			if (strcmp(params->on_conflict, DEFAULT_ON_CONFLICT_RECREATE) == 0)
+			{
+				rc = drop_server(parent_node->nodename, conn);
+				if (rc != SETUP_OK)
+					goto err_set_pgspider_node_admin;
+
+				rc = drop_server(child_node_data->nodename, conn);
+				if (rc != SETUP_OK)
+					goto err_set_pgspider_node_admin;
+			}
+
 			rc = node_set(child_node_data, conn);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node_admin;
@@ -1781,7 +1836,7 @@ set_pgspider_node_admin(nodes * nodes_data, child_node_list * child_node, int ti
 			rc = node_set_spdcore(parent_node, conn);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node_admin;
-			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename);
+			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename, params->schema, params->on_conflict);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node_admin;
 
@@ -1837,12 +1892,12 @@ err_set_pgspider_node_admin:
  *
  * @param[in] nodes_data - node information data list
  * @param[in] child_node - child node list
- * @param[in] timeout - Tineout time when retrying to connect to PGSpider
+ * @param[in] params - configuration parameters
  *
  * @return none
  */
 static ReturnCode
-set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
+set_pgspider_node(nodes * nodes_data, child_node_list * child_node, config_params *params)
 {
 	ReturnCode	rc;
 	nodes	   *parent_node,
@@ -1859,7 +1914,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 		return SETUP_OK;
 
 	/* Connect to PGSpider with normal user. */
-	rc = create_connection(&conn, parent_node, 0, timeout);
+	rc = create_connection(&conn, parent_node, 0, params->timeout);
 	if (rc != SETUP_OK)
 		return rc;
 
@@ -1869,6 +1924,14 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 	{
 		PQfinish(conn);
 		return rc;
+	}
+
+	/* Drop foreign server if on_conflict is recreate */
+	if (strcmp(params->on_conflict, DEFAULT_ON_CONFLICT_RECREATE) == 0)
+	{
+		rc = drop_server(parent_node->nodename, conn);
+		if (rc != SETUP_OK)
+			goto err_set_pgspider_node;
 	}
 
 	/* Set foreign server in parent node  */
@@ -1888,6 +1951,13 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 		assert(child_node_data != NULL);
 		assert(strcmp(child_node_data->fdw, "") != 0);
 
+		if (strcmp(params->on_conflict, DEFAULT_ON_CONFLICT_RECREATE) == 0)
+		{
+			rc = drop_server(child_node_data->nodename, conn);
+			if (rc != SETUP_OK)
+				goto err_set_pgspider_node;
+		}
+
 		if (strcasecmp(child_node_data->fdw, "file_fdw") == 0)
 		{
 			rc = load_filefdw(conn, child_node_data, child_node->node_name);
@@ -1903,7 +1973,7 @@ set_pgspider_node(nodes * nodes_data, child_node_list * child_node, int timeout)
 			rc = import_schema(conn, child_node_data);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node;
-			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename);
+			rc = rename_foreign_table(conn, child_node_data->nodename, child_node_data->fdw, parent_node->nodename, params->schema, params->on_conflict);
 			if (rc != SETUP_OK)
 				goto err_set_pgspider_node;
 		}
@@ -1928,12 +1998,12 @@ err_set_pgspider_node:
  *
  * @param[in] nodes_data - node information data list
  * @param[in] child_node - child node list
- * @param[in] timeout - Tineout time when retrying to connect to PGSpider
+ * @param[in] params - configuration parameters
  *
  * @return none
  */
 static ReturnCode
-set_pgspider_node_walker(nodes * nodes_data, child_node_list * child_node, char isAdmin, int timeout)
+set_pgspider_node_walker(nodes * nodes_data, child_node_list * child_node, char isAdmin, config_params *params)
 {
 	ReturnCode	rc;
 	int			i;
@@ -1944,7 +2014,7 @@ set_pgspider_node_walker(nodes * nodes_data, child_node_list * child_node, char 
 	{
 		for (i = 0; i < child_node->child_nums; i++)
 		{
-			rc = set_pgspider_node_walker(nodes_data, &p[i], isAdmin, timeout);
+			rc = set_pgspider_node_walker(nodes_data, &p[i], isAdmin, params);
 			if (rc != SETUP_OK)
 				return rc;
 		}
@@ -1954,13 +2024,13 @@ set_pgspider_node_walker(nodes * nodes_data, child_node_list * child_node, char 
 #endif
 	if (isAdmin == 0)
 	{
-		rc = set_pgspider_node(nodes_data, child_node, timeout);
+		rc = set_pgspider_node(nodes_data, child_node, params);
 		if (rc != SETUP_OK)
-			drop_all_fdws_with_connect(nodes_data, child_node, timeout);
+			drop_all_fdws_with_connect(nodes_data, child_node, params->timeout);
 		return rc;
 	}
 	else
-		return set_pgspider_node_admin(nodes_data, child_node, timeout);
+		return set_pgspider_node_admin(nodes_data, child_node, params);
 }
 
 /*
@@ -1968,20 +2038,20 @@ set_pgspider_node_walker(nodes * nodes_data, child_node_list * child_node, char 
  *
  * @param[in] nodes_data - node information data list
  * @param[in] child_node - child node list
- * @param[in] timeout - Tineout time when retrying to connect to PGSpider
+ * @param[in] params - configuration parameters.
  *
  * @return none
  */
 static ReturnCode
-set_pgspider_node_all(nodes * nodes_data, child_node_list * child_node, int timeout)
+set_pgspider_node_all(nodes * nodes_data, child_node_list * child_node, config_params *params)
 {
 	ReturnCode	rc;
 
-	rc = set_pgspider_node_walker(nodes_data, child_node, 1, timeout);
+	rc = set_pgspider_node_walker(nodes_data, child_node, 1, params);
 	if (rc != SETUP_OK)
 		return rc;
 
-	rc = set_pgspider_node_walker(nodes_data, child_node, 0, timeout);
+	rc = set_pgspider_node_walker(nodes_data, child_node, 0, params);
 	if (rc != SETUP_OK)
 		return rc;
 
@@ -2241,7 +2311,7 @@ main(int argc, char **argv)
 #endif
 
 	/* create foreign server and foreign table on pgspider */
-	rc = set_pgspider_node_all(nodes_data, node_list, params.timeout);
+	rc = set_pgspider_node_all(nodes_data, node_list, &params);
 	if (rc != SETUP_OK)
 		goto end_main;
 

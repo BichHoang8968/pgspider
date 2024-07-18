@@ -92,7 +92,7 @@
 		"nodename": "db10",
 		"fdw": "pgspider_fdw",
 		"ip": "PGSPIDER_HOST",
-		"port": "PGSPIDER5_PORT",
+		"port": "PGSPIDER4_PORT",
 		"username": "pgspider",
 		"password": "pgspider",
 		"username_admin": "pgspider2",

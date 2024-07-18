@@ -1,0 +1,35 @@
+NOTICE:  extension "pgspider_core_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  extension "objstorage_fdw" already exists, skipping
+NOTICE:  server "db1" already exists, skipping
+NOTICE:  user mapping for "public" already exists for server "db1", skipping
+NOTICE:  server "db2" already exists, skipping
+NOTICE:  user mapping for "public" already exists for server "db2", skipping
+File:install_util.c Function:query_execute L:150 Msg:ALTER TABLE temp_schema."test_table2__db2__0" SET schema "public"; failed :ERROR:  relation "test_table2__db2__0" already exists in schema "public"
+
+File:install_util.c Function:query_execute L:150 Msg:CREATE SERVER IF NOT EXISTS db6 FOREIGN DATA WRAPPER objstorage_fdw OPTIONS (storage_type 's3', endpoint 'http://127.0.0.1:9000'); failed :ERROR:  current transaction is aborted, commands ignored until end of transaction block
+
+NOTICE:  drop cascades to 3 other objects
+DETAIL:  drop cascades to server db1
+drop cascades to user mapping for public on server db1
+drop cascades to foreign table test_table2
+NOTICE:  drop cascades to 9 other objects
+DETAIL:  drop cascades to server db2
+drop cascades to user mapping for public on server db2
+drop cascades to foreign table test_table2__db2__0
+drop cascades to server db6
+drop cascades to user mapping for public on server db6
+drop cascades to foreign table test_table2__db6__0
+drop cascades to server db10
+drop cascades to user mapping for public on server db10
+drop cascades to foreign table test_table2__db10__0
+Config directory: ./
+Node information file: node_information.json
+Node structure file: node_structure.json
+Timeout: 0
+Node schema: public
+Node on conflict: none
+free db2
+free db6
+free db10

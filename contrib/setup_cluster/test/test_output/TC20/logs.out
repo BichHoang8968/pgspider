@@ -1,65 +1,5 @@
-NOTICE:  extension "file_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_fdw" does not exist, skipping
-NOTICE:  extension "postgres_fdw" does not exist, skipping
-NOTICE:  extension "sqlite_fdw" does not exist, skipping
-NOTICE:  extension "tinybrace_fdw" does not exist, skipping
-NOTICE:  extension "mysql_fdw" does not exist, skipping
-NOTICE:  extension "griddb_fdw" does not exist, skipping
-NOTICE:  extension "influxdb_fdw" does not exist, skipping
-NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
-NOTICE:  extension "mongo_fdw" does not exist, skipping
-NOTICE:  extension "oracle_fdw" does not exist, skipping
-NOTICE:  extension "postgrest_fdw" does not exist, skipping
-NOTICE:  extension "odbc_fdw" does not exist, skipping
-NOTICE:  extension "jdbc_fdw" does not exist, skipping
-NOTICE:  extension "dynamodb_fdw" does not exist, skipping
-NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
-NOTICE:  extension "objstorage_fdw" does not exist, skipping
-NOTICE:  extension "gitlab_fdw" does not exist, skipping
-NOTICE:  extension "redmine_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  extension "postgres_fdw" already exists, skipping
 NOTICE:  extension "postgres_fdw" already exists, skipping
-NOTICE:  extension "file_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_fdw" does not exist, skipping
-NOTICE:  extension "postgres_fdw" does not exist, skipping
-NOTICE:  extension "sqlite_fdw" does not exist, skipping
-NOTICE:  extension "tinybrace_fdw" does not exist, skipping
-NOTICE:  extension "mysql_fdw" does not exist, skipping
-NOTICE:  extension "griddb_fdw" does not exist, skipping
-NOTICE:  extension "influxdb_fdw" does not exist, skipping
-NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
-NOTICE:  extension "mongo_fdw" does not exist, skipping
-NOTICE:  extension "oracle_fdw" does not exist, skipping
-NOTICE:  extension "postgrest_fdw" does not exist, skipping
-NOTICE:  extension "odbc_fdw" does not exist, skipping
-NOTICE:  extension "jdbc_fdw" does not exist, skipping
-NOTICE:  extension "dynamodb_fdw" does not exist, skipping
-NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
-NOTICE:  extension "objstorage_fdw" does not exist, skipping
-NOTICE:  extension "gitlab_fdw" does not exist, skipping
-NOTICE:  extension "redmine_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
-NOTICE:  extension "file_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_fdw" does not exist, skipping
-NOTICE:  extension "postgres_fdw" does not exist, skipping
-NOTICE:  extension "sqlite_fdw" does not exist, skipping
-NOTICE:  extension "tinybrace_fdw" does not exist, skipping
-NOTICE:  extension "mysql_fdw" does not exist, skipping
-NOTICE:  extension "griddb_fdw" does not exist, skipping
-NOTICE:  extension "influxdb_fdw" does not exist, skipping
-NOTICE:  extension "parquet_s3_fdw" does not exist, skipping
-NOTICE:  extension "mongo_fdw" does not exist, skipping
-NOTICE:  extension "oracle_fdw" does not exist, skipping
-NOTICE:  extension "postgrest_fdw" does not exist, skipping
-NOTICE:  extension "odbc_fdw" does not exist, skipping
-NOTICE:  extension "jdbc_fdw" does not exist, skipping
-NOTICE:  extension "dynamodb_fdw" does not exist, skipping
-NOTICE:  extension "sqlumdashcs_fdw" does not exist, skipping
-NOTICE:  extension "objstorage_fdw" does not exist, skipping
-NOTICE:  extension "gitlab_fdw" does not exist, skipping
-NOTICE:  extension "redmine_fdw" does not exist, skipping
-NOTICE:  extension "pgspider_core_fdw" does not exist, skipping
 NOTICE:  extension "pgspider_fdw" already exists, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
@@ -68,10 +8,12 @@ NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  schema "temp_schema" does not exist, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
 NOTICE:  relation "tbl_postgre" already exists, skipping
-Config directory: /home/vagrant/test_cluster_gui/PGSpider/contrib/setup_cluster/test/test_input/TC20
+Config directory: /home/vagrant/GIT/PGSpider/contrib/setup_cluster/test/test_input/TC20
 Node information file: information.json
 Node structure file: node_structure.json
 Timeout: 0
+Node schema: public
+Node on conflict: none
 FINISH db3 
 FINISH db4 
 FINISH db1 

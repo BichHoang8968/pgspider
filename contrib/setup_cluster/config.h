@@ -10,6 +10,10 @@
 
 #define DEFAULT_STRFILENAME "node_structure.json"
 #define DEFAULT_INFOFILENAME "node_information.json"
+#define DEFAULT_SCHEMA "public"
+#define TEMP_SCHEMA "temp_schema"
+#define DEFAULT_ON_CONFLICT_NONE "none"
+#define DEFAULT_ON_CONFLICT_RECREATE "recreate"
 
 typedef struct config_params 
 {
@@ -21,6 +25,10 @@ typedef struct config_params
 	char *node_struct_file;
 	
 	int timeout;
+
+	char *schema;
+
+	char *on_conflict;
 	
 }			config_params;
 
