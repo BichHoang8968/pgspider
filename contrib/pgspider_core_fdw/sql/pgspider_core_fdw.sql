@@ -6,7 +6,7 @@ CREATE EXTENSION pgspider_core_fdw;
 --Testcase 184:
 CREATE SERVER pgspider_svr FOREIGN DATA WRAPPER pgspider_core_fdw OPTIONS (host '127.0.0.1',port '50849');
 --Testcase 185:
-CREATE USER mapping for public server pgspider_svr OPTIONS (user 'postgres',password 'postgres');
+CREATE USER mapping for public server pgspider_svr OPTIONS (user 'postgres', password 'postgres');
 --Testcase 186:
 CREATE FOREIGN TABLE test1 (i int,__spd_url text) SERVER pgspider_svr;
 --Testcase 187:
@@ -69,7 +69,7 @@ SELECT * FROM test1 IN ('/tiny_svr/') where i = 1;
 --Testcase 201:
 CREATE SERVER post_svr FOREIGN DATA WRAPPER postgres_fdw OPTIONS (host '127.0.0.1',port '15432');
 --Testcase 202:
-CREATE USER mapping for public server post_svr OPTIONS (user 'postgres',password 'postgres');
+CREATE USER mapping for public server post_svr OPTIONS (user 'postgres', password 'postgres');
 --Testcase 203:
 CREATE FOREIGN TABLE test1__post_svr__0 (i int) SERVER post_svr OPTIONS (table_name 'test1');
 --Testcase 11:
@@ -2070,6 +2070,213 @@ CREATE USER MAPPING for CURRENT_USER SERVER post_svr OPTIONS (user 'postgres',pa
 
 --Testcase 747:
 DELETE FROM test2;
+--Testcase 881:
+RESET parallel_setup_cost;
+--Testcase 882:
+RESET parallel_tuple_cost;
+--Testcase 883:
+RESET max_parallel_workers_per_gather;
+--Testcase 884:
+RESET debug_parallel_query;
+--Testcase 885:
+RESET enable_hashjoin;
+--Testcase 886:
+RESET enable_nestloop;
+--Testcase 887:
+RESET enable_mergejoin;
+
+-- ===================================================================
+-- Test for alias foreign table in conversion error case
+-- ===================================================================
+-- We can only check alias name when debugging as follows: 
+-- foreign table "[child_foreign_table_name]" foreign column "[column_name]" 
+-- have data type "integer" (usual affinity "integer"), in query there is reference to foreign column
+--
+-- Single child node
+--
+-- Create a parent node
+--Testcase 888:
+CREATE FOREIGN TABLE single_alias_tb (
+    c1 int,
+    c2 int NOT NULL,
+    c3 text,
+    c4 timestamptz,
+    c5 timestamp,
+    c6 varchar(10),
+    c7 char(10),
+    c8 text,
+    __spd_url text) SERVER pgspider_svr;
+-- Create a child node
+--Testcase 889:
+CREATE FOREIGN TABLE single_alias_tb__sqlite_svr__0 (
+    c1 int,
+    c2 int NOT NULL,
+    c3 text,
+    c4 timestamptz,
+    c5 timestamp,
+    c6 varchar(10),
+    c7 char(10),
+    c8 text
+) SERVER sqlite_svr OPTIONS (table 'T 1');
+
+-- Create a parent node
+--Testcase 890:
+CREATE FOREIGN TABLE single_alias_tb2 (
+    c1 int NOT NULL,
+    c2 int NOT NULL,
+    c3 text,
+    __spd_url text) SERVER pgspider_svr;
+-- Create a child node
+--Testcase 891:
+CREATE FOREIGN TABLE single_alias_tb2__post_svr__0 (
+    c1 int NOT NULL,
+    c2 int NOT NULL,
+    c3 text
+) SERVER post_svr OPTIONS (table_name 'T 2');
+--Testcase 892:
+ALTER FOREIGN TABLE single_alias_tb__sqlite_svr__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
+--Testcase 893:
+SELECT * FROM single_alias_tb;
+--Testcase 894:
+ALTER FOREIGN TABLE single_alias_tb__sqlite_svr__0 ALTER COLUMN c8 TYPE int;
+
+-- Select all columns of foreign table
+--Testcase 895:
+SELECT * FROM single_alias_tb;   -- ERROR
+--Testcase 896:
+SELECT * FROM single_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8) WHERE x1 = 1;   -- ERROR
+--Testcase 897:
+SELECT * FROM single_alias_tb__sqlite_svr__0 ftx(x1,x2,x3,x4,x5,x6,x7,x8) WHERE x1 = 1;   -- ERROR
+
+-- Select some specific columns of foreign table
+--Testcase 898:
+SELECT ftx.x1, ft2.c2 FROM single_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8), single_alias_tb2 AS ft2
+  WHERE ftx.x1 = ft2.c1;
+--Testcase 899:
+SELECT ftx.x1, ft2.c2, ftx.x8 FROM single_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8), single_alias_tb2 AS ft2
+  WHERE ftx.x1 = ft2.c1; -- ERROR
+--Testcase 900:
+SELECT ftx.x1, ft2.c2, ftx FROM single_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8), single_alias_tb2 AS ft2
+  WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
+
+-- Join query 
+--Testcase 901:
+SELECT * FROM single_alias_tb ftx1 join single_alias_tb2 ftx2 on (ftx1.c1 = ftx2.c1); -- ERROR
+--Testcase 902:
+SELECT ftx1.c1, ftx1.c3, ftx2.c2, ftx2.__spd_url FROM single_alias_tb ftx1 join single_alias_tb2 ftx2 on (ftx1.c1 = ftx2.c1);
+--Testcase 903:
+SELECT ftx1.x11, ftx1.x12, ftx1.x18, ftx1.x_spd1, ftx2.x21, ftx2.x22, ftx2.x_spd2 FROM single_alias_tb ftx1(x11,x12,x13,x14,x15,x16,x17,x18,x_spd1) 
+LEFT JOIN single_alias_tb2 ftx2(x21, x22, x23, x_spd2) on ftx1.x11 = ftx2.x21; -- ERROR
+
+-- Subquery
+--Testcase 904:
+SELECT * FROM (SELECT AVG(c2) AS avg_c2 FROM single_alias_tb) AS subquery;
+--Testcase 905:
+SELECT * FROM single_alias_tb WHERE c2 < (SELECT c1 FROM single_alias_tb2 WHERE c3 = 'AAA005'); -- ERROR
+--Testcase 906:
+SELECT * FROM single_alias_tb ft1 WHERE ft1.c2 IN (SELECT ft2.c1 FROM single_alias_tb2 ft2 WHERE ft2.c2 < 8);
+
+-- Aggregate function
+--Testcase 907:
+SELECT COUNT(ft1.c3), SUM(ft1.c2), AVG(ft1.c1) FROM single_alias_tb ft1 WHERE ft1.c1 > 2;
+--Testcase 908:
+SELECT array_agg(c8) FROM single_alias_tb GROUP BY c8; -- ERROR
+
+-- 
+-- Multiple child nodes
+-- 
+-- Create a parent node
+--Testcase 909:
+CREATE FOREIGN TABLE multi_alias_tb (
+    c1 int,
+    c2 int NOT NULL,
+    c3 text,
+    c4 timestamptz,
+    c5 timestamp,
+    c6 varchar(10),
+    c7 char(10),
+    c8 text,
+    __spd_url text) SERVER pgspider_svr;
+-- Create the first child node
+--Testcase 910:
+CREATE FOREIGN TABLE multi_alias_tb__post_svr__0 (
+    c1 int,
+    c2 int NOT NULL,
+    c3 text,
+    c4 timestamptz,
+    c5 timestamp,
+    c6 varchar(10),
+    c7 char(10),
+    c8 text
+) SERVER post_svr OPTIONS (table_name 'T 1');
+-- Create the second child node
+--Testcase 911:
+CREATE FOREIGN TABLE multi_alias_tb__sqlite_svr__0 (
+    c1 int OPTIONS (key 'true'),
+    c2 int NOT NULL,
+    c3 text,
+    c4 timestamptz,
+    c5 timestamp,
+    c6 varchar(10),
+    c7 char(10),
+    c8 text
+) SERVER sqlite_svr OPTIONS (table 'T 1');
+--Testcase 912:
+ALTER FOREIGN TABLE multi_alias_tb__post_svr__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
+--Testcase 913:
+ALTER FOREIGN TABLE multi_alias_tb__sqlite_svr__0 ALTER COLUMN c1 OPTIONS (column_name 'C 1');
+--Testcase 914:
+SELECT * FROM multi_alias_tb ORDER BY c1;
+--Testcase 915:
+ALTER FOREIGN TABLE multi_alias_tb__post_svr__0 ALTER COLUMN c8 TYPE int;
+--Testcase 916:
+ALTER FOREIGN TABLE multi_alias_tb__sqlite_svr__0 ALTER COLUMN c8 TYPE int;
+
+-- Select all columns of foreign table
+--Testcase 917:
+SELECT * FROM multi_alias_tb;    -- ERROR
+--Testcase 918:
+SELECT * FROM multi_alias_tb__post_svr__0;    -- ERROR
+--Testcase 919:
+SELECT * FROM multi_alias_tb__sqlite_svr__0;    -- ERROR
+--Testcase 920:
+SELECT * FROM multi_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8) WHERE x1 = 1;    -- ERROR
+
+-- Select some specific columns of foreign table
+--Testcase 921:
+SELECT ftx.x1, ft2.c2, ftx.x8 FROM multi_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8), single_alias_tb2 AS ft2
+  WHERE ftx.x1 = ft2.c1; -- ERROR
+--Testcase 922:
+SELECT ftx.x1, ft2.c2, ftx FROM multi_alias_tb ftx(x1,x2,x3,x4,x5,x6,x7,x8), single_alias_tb2 AS ft2
+  WHERE ftx.x1 = ft2.c1 AND ftx.x1 = 1; -- ERROR
+
+-- Join query 
+--Testcase 923:
+SELECT * FROM multi_alias_tb ftx1 join multi_alias_tb ftx2 on (ftx1.c1 = ftx2.c1); -- ERROR
+--Testcase 924:
+SELECT ftx1.c1, ftx1.c3, ftx2.c2, ftx2.__spd_url FROM multi_alias_tb ftx1 JOIN multi_alias_tb ftx2 ON (ftx1.c1 = ftx2.c1) ORDER BY ftx1.c1;
+--Testcase 925:
+SELECT ftx1.x11, ftx1.x12, ftx1.x18, ftx1.x_spd1, ftx2.x21, ftx2.x22, ftx2.x_spd2 
+FROM multi_alias_tb ftx1(x11,x12,x13,x14,x15,x16,x17,x18,x_spd1) 
+LEFT JOIN multi_alias_tb ftx2(x21, x22, x23, x_spd2) on ftx1.x11 = ftx2.x21; -- ERROR
+
+-- Subquery
+--Testcase 926:
+SELECT *
+FROM
+   (SELECT ft2.c1, ft2.c3									
+   FROM single_alias_tb2 ft2
+   WHERE ft2.c2 < (SELECT sum(c2) FROM single_alias_tb));
+--Testcase 927:
+SELECT * FROM multi_alias_tb WHERE c2 < (SELECT c1 FROM single_alias_tb2 WHERE c3 = 'AAA005'); -- ERROR
+--Testcase 928:
+SELECT * FROM multi_alias_tb ft1 WHERE ft1.c2 IN (SELECT ft2.c1 FROM single_alias_tb2 ft2 WHERE ft2.c2 < 8);  -- ERROR
+
+-- Aggregate function
+--Testcase 929:
+SELECT COUNT(ft1.c3), SUM(ft1.c2), AVG(ft1.c1) FROM multi_alias_tb ft1 WHERE ft1.c1 > 2;
+--Testcase 930:
+SELECT array_agg(c8) FROM multi_alias_tb GROUP BY c8; -- ERROR
 
 -- Clean up
 --Testcase 800:

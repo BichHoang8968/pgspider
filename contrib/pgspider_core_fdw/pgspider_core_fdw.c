@@ -26,6 +26,7 @@ PG_MODULE_MAGIC;
 #include <time.h>
 #include <unistd.h>
 
+#include "access/relation.h"
 #include "access/table.h"
 #include "access/tableam.h"
 #include "access/xact.h"
@@ -596,6 +597,7 @@ static TupleTableSlot **spd_concat_rslots(TupleTableSlot ***r_slots,
 										  int num_child,
 										  int *slot_cnt);
 static TupleTableSlot *spd_clone_tuple_slot(TupleTableSlot *srcslot);
+static void spd_BuildRelationAliases(TupleDesc tupdesc, Alias *alias, Alias *eref);
 
 /* postgresql.conf paramater */
 static bool throwErrorIfDead;
@@ -4005,33 +4007,143 @@ groupby_has_spdurl(PlannerInfo *root)
 	return false;
 }
 
+/*
+ * spd_BuildRelationAliases
+ *
+ * Construct the eref column name list for a relation RTE.
+ * 
+ * @param[in] tupdesc: the physical column information
+ * @param[in] alias: the user-supplied alias, or NULL if none
+ * @param[in] eref: the eref Alias to store column names
+ * 
+ * Refer buildRelationAliases() in src/backend/parser/parse_relation.c 
+ */
+
+static void
+spd_BuildRelationAliases(TupleDesc tupdesc, Alias *alias, Alias *eref)
+{
+	int			maxattrs = tupdesc->natts;
+	List	   *aliaslist;
+	ListCell   *aliaslc;
+	int			numaliases;
+	int			varattno;
+	int			numdropped = 0;
+
+	Assert(eref->colnames == NIL);
+
+	if (alias)
+	{
+		aliaslist = alias->colnames;
+		aliaslc = list_head(aliaslist);
+		numaliases = list_length(aliaslist);
+		/* We'll rebuild the alias colname list */
+		alias->colnames = NIL;
+	}
+	else
+	{
+		aliaslist = NIL;
+		aliaslc = NULL;
+		numaliases = 0;
+	}
+
+	for (varattno = 0; varattno < maxattrs; varattno++)
+	{
+		Form_pg_attribute attr = TupleDescAttr(tupdesc, varattno);
+		String	   *attrname;
+
+		if (attr->attisdropped)
+		{
+			/* Always insert an empty string for a dropped column */
+			attrname = makeString(pstrdup(""));
+			if (aliaslc)
+				alias->colnames = lappend(alias->colnames, attrname);
+			numdropped++;
+		}
+		else if (aliaslc)
+		{
+			/* Use the next user-supplied alias */
+			attrname = lfirst_node(String, aliaslc);
+			aliaslc = lnext(aliaslist, aliaslc);
+			alias->colnames = lappend(alias->colnames, attrname);
+		}
+		else
+		{
+			attrname = makeString(pstrdup(NameStr(attr->attname)));
+			/* we're done with the alias if any */
+		}
+
+		eref->colnames = lappend(eref->colnames, attrname);
+	}
+
+	/* Too many user-supplied aliases? */
+	if (aliaslc)
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_COLUMN_REFERENCE),
+				 errmsg("table \"%s\" has %d columns available but %d columns specified",
+						eref->aliasname, maxattrs - numdropped, numaliases)));
+}
+
 /**
  * spd_makeRangeTableEntry
  *
  * Create new range table entry.
  *
  * @param[in] relid Relation OID
- * @param[in] relkind relation kind (see pg_class.relkind)
+ * @param[in] parent_rte parent range table entry
  * @param[in] spd_url_list URL list
  * @return Created range table entry
  */
 static RangeTblEntry *
-spd_makeRangeTableEntry(Oid relid, char relkind, List *spd_url_list)
+spd_makeRangeTableEntry(Oid relid, RangeTblEntry *parent_rte, List *spd_url_list)
 {
-	RangeTblEntry *rte;
-
 	/* Build a minimal RTE for the rel. */
-	rte = makeNode(RangeTblEntry);
-	rte->rtekind = RTE_RELATION;
-	rte->relid = relid;
-	rte->relkind = relkind;
-	rte->eref = makeNode(Alias);
-	rte->eref->aliasname = pstrdup("");
-	rte->lateral = false;
-	rte->inh = false;
-	rte->inFromCl = true;
-	rte->eref = makeAlias(pstrdup(""), NIL);
-	rte->rellockmode = AccessShareLock; /* For SELECT query */
+	RangeTblEntry *rte = makeNode(RangeTblEntry);
+
+	switch (parent_rte->rtekind)
+	{
+		case RTE_JOIN:
+			rte->rtekind = RTE_JOIN;
+			rte->subquery = NULL;
+			rte->jointype = parent_rte->jointype;
+			rte->alias = rte->eref =  makeAlias("unnamed_join", NIL);
+
+			rte->lateral = false;
+			rte->inFromCl = parent_rte->inFromCl;
+
+			break;
+
+		case RTE_SUBQUERY:
+			rte->rtekind = RTE_SUBQUERY;
+			rte->subquery = parent_rte->subquery;
+			rte->alias = rte->eref = makeAlias("unnamed_subquery", NIL);
+
+			rte->lateral = parent_rte->lateral;
+			rte->inFromCl = parent_rte->inFromCl;
+
+			break;
+
+		default:
+			rte->rtekind = RTE_RELATION;
+			rte->relid = relid;
+			rte->relkind = parent_rte->relkind;
+			rte->lateral = false;
+			rte->inh = false;
+			rte->inFromCl = true;
+			rte->rellockmode = AccessShareLock; /* For SELECT query */
+
+			if (relid != 0)
+			{
+				Relation rel;
+
+				rte->alias = rte->eref = makeAlias(pstrdup(get_rel_name(relid)), NIL);
+				rel = relation_open(relid, AccessShareLock);
+				spd_BuildRelationAliases(rel->rd_att, rte->alias, rte->eref);
+				
+				table_close(rel, NoLock);	
+			}
+
+			break;
+	}
 
 	/*
 	 * If child node is pgspider_fdw and IN clause is used, then should set
@@ -4183,8 +4295,7 @@ spd_CreateChildRoot(PlannerInfo *root, Index relid, Oid tableOid, Oid oid_server
 			child_relid = 0;
 
 		/* Create a range table entry. */
-		child_rte = spd_makeRangeTableEntry(child_relid, rte->relkind, spd_url_list);
-
+		child_rte = spd_makeRangeTableEntry(child_relid, rte, spd_url_list);
 		if (child_relid != 0)
 		{
 			/* Create RTEPermissionInfo */
@@ -4512,7 +4623,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 		RTEPermissionInfo *perminfo;
 
 		/* Create a range table entry. */
-		new_rte = spd_makeRangeTableEntry(rte->relid, rte->relkind, NULL);
+		new_rte = spd_makeRangeTableEntry(rte->relid, rte, NULL);
 
 		if (new_rte->relid != 0)
 		{
@@ -4520,7 +4631,7 @@ spd_CopyRoot(PlannerInfo *root, RelOptInfo *baserel, SpdFdwPrivate * fdw_private
 			perminfo = addRTEPermissionInfo(&rteperminfos, new_rte);
 			perminfo->requiredPerms = ACL_SELECT;
 		}
-
+	
 		rtable = lappend(rtable, new_rte);
 	}
 
@@ -16149,3 +16260,4 @@ spd_get_batch_size_option(Relation rel)
 
 	return batch_size;
 }
+
