@@ -22,3 +22,22 @@ DROP TABLE IF EXISTS test2;
 CREATE TABLE test2 (i int PRIMARY KEY NOT NULL);
 INSERT INTO test2 VALUES(1);
 INSERT INTO test2 VALUES(22222);
+
+DROP TABLE IF EXISTS "T 1";
+CREATE TABLE "T 1" (
+	"C 1" int,
+	c2 int NOT NULL,
+	c3 text,
+	c4 timestamptz,
+	c5 timestamp,
+	c6 varchar(10),
+	c7 char(10),
+	c8 text check (c8 IN ('foo', 'bar', 'buz')),
+	CONSTRAINT t1_pkey PRIMARY KEY ("C 1")
+);
+INSERT INTO "T 1" 
+VALUES 
+	(1, 1, '00001', '1970-01-01 00:00:00+08', '1970-01-01 00:00:00', '1', '1', 'foo'), 
+	(2, 2, '00002', '1970-01-02 00:00:00+08', '1970-01-02 00:00:00', '2', '2', 'foo'),
+	(3, 3, '00003', '1970-01-03 00:00:00+08', '1970-01-03 00:00:00', '3', '3', 'foo'),
+	(4, 4, '00004', '1970-01-04 00:00:00+08', '1970-01-04 00:00:00', '4', '4', 'foo');
