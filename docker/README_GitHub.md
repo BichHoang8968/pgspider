@@ -6,8 +6,13 @@ The image below illustrates the process of building Docker images from source co
 ![Alt text](images/overview.png)
 
 - Create PGSpider RPM packages. Refer [Here](#creating-pgspider-rpm-packages)
+	- RPM package is puiblished on the Assets of Release of PGSpider repository.
 - Create PGSpider docker image from PGSpider RPM packages. Refer [Here](#creating-pgspider-docker-images)
+	- The PGSpider RPM package is required. It must be released first.
+	- The PGSpider docker image is published on the Packages Registry of PGSpider repository.
 - Create PGSspider docker image with specific FDWs. Refer [Here](#creating-customized-pgspider-image-with-fdws)
+	- The PGSpider docker image and the FDW RPM package are required. It must be released first.
+- Additionally, we also provide Github Actions for creating RPM packages and docker image for [PGSpider](#usage-of-github-actions).
 
 Environment for creating rpm of PGSpider
 =====================================
@@ -39,16 +44,7 @@ The description below is used in the specific Linux distribution RockyLinux8.
 		sudo systemctl daemon-reload
 		sudo systemctl restart docker
 		```
-2. rpm Tools
-	- rpmdevtools
-		```sh
-		sudo yum install -y rpmdevtools
-		```
-	- rpm-build
-		```sh
-		sudo yum install -y gcc gcc-c++ make automake autoconf rpm-build
-		```
-3. Get the required files  
+2. Get the required files  
 	```sh
 	git clone https://github.com/pgspider/pgspider.git
 	```
@@ -64,7 +60,7 @@ Creating PGSpider rpm packages
 2. Configure `docker/env_rpm_optimize_image.conf` file
 	- Configure proxy (optional)
 		```sh
-		proxy: The ip address of proxy server. 
+		proxy: The ip address of proxy server.
 		no_proxy: List of domains to exclude proxying.
 		```
 	- Configure the registry location to publish the package and version of the packages
@@ -72,7 +68,7 @@ Creating PGSpider rpm packages
 		ACCESS_TOKEN=						# Fill in the access token of your account. It will be used for authentication when publish docker image or packages to GitHub. Refer (https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic) for how to create a access token.
 		PGSPIDER_BASE_POSTGRESQL_VERSION=	# Base version of Postgres for PGSpider. For example: 16.
 		PGSPIDER_RELEASE_VERSION=			# The release version of PGSpider. It used to version of PGSpider rpm package. For example: 4.0.0.
-		RPM_DISTRIBUTION_TYPE=				# The distribution operating system name. The default value is "rhel8".
+		PACKAGE_RELEASE_VERSION=1			# The number of times this version of the software has been packaged.
 		OWNER_GITHUB=						# Owner of this repository on Gihub (For example: https://github.com/pgspider/sqlite_fdw. The owner is pgspider).
 		PGSPIDER_PROJECT_GITHUB=			# Repository name of pgspider. Normally it is "pgspider". If you forked or import it into a new repository, it will be different).
 		PGSPIDER_RELEASE_ID=				# Before using shell script, you need to create a release (with a tag name) on GitHub manually. And then you need to access into (https://docs.github.com/en/graphql/overview/explorer) then execute the below script to get release id (need to update **owner**, **name** and **tagName**)
@@ -99,24 +95,13 @@ Creating PGSpider rpm packages
 		...
 		{"message":"201 Created"}
 		```
-	- rpm Packages are stored on the assert of Release. For example:
+	- RPM Packages are stored on the Assets of Release. For example:
 
 		![Alt text](images/GitHub/release_screen.PNG)
 
-Creating Postgres rpm packages
-=====================================
-1. File used here
-	- docker/make_postgres_rpm.patch
-2. To create Postgres rpm packages
-	- Apply `docker/make_postgres_rpm.patch` patch file firstly.
-		```sh
-		patch -p0 < docker/make_postgres_rpm.patch
-		```
-	- The next steps are same with [Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
-
 Creating PGSpider docker images
 =====================================
-The PGSpider rpm packages are created [above](#creating-pgspider-rpm-packages) will be taken from the Release to build PGSpider image.
+The PGSpider rpm packages are created [above](#creating-pgspider-rpm-packages) will be taken from the Assets of Release to build PGSpider image.
 1. File used here
 	- docker/env_rpm_optimize_image.conf
 	- docker/Dockerfile
@@ -218,7 +203,7 @@ Usage of GitHub Actions
 	- PGSPIDER_PROJECT_GITHUB
 	- PGSPIDER_RELEASE_VERSION
 	- PGSPIDER_BASE_POSTGRESQL_VERSION
-	- RPM_DISTRIBUTION_TYPE
+	- PACKAGE_RELEASE_VERSION
 
 2. Access to Actions tab and click on Run workflow.
 

@@ -6,8 +6,13 @@ The image below illustrates the process of building Docker images from source co
 ![Alt text](images/overview.png)
 
 - Create PGSpider RPM packages. Refer [Here](#creating-pgspider-rpm-packages)
+	- RPM package is puiblished on the Package Registry of PGSpider repository.
 - Create PGSpider docker image from PGSpider RPM packages. Refer [Here](#creating-pgspider-docker-images)
+	- The PGSpider RPM package is required. It must be released first.
+	- The PGSpider docker image is published on the Container Registry of PGSpider repository.
 - Create PGSspider docker image with specific FDWs. Refer [Here](#creating-customized-pgspider-image-with-fdws)
+	- The PGSpider docker image and the FDW RPM package are required. It must be released first.
+- Additionally, we also provide Gitlab CI/CD pipeline for creating PGSpider RPM packages and PGSpider docker image for [PGSpider](#usage-of-run-cicd-pipeline).
 
 Environment for creating rpm of PGSpider
 =====================================
@@ -39,16 +44,7 @@ The description below is used in the specific Linux distribution RockyLinux8.
 		sudo systemctl daemon-reload
 		sudo systemctl restart docker
 		```
-2. rpm Tools
-	- rpmdevtools
-		```sh
-		sudo yum install -y rpmdevtools
-		```
-	- rpm-build
-		```sh
-		sudo yum install -y gcc gcc-c++ make automake autoconf rpm-build
-		```
-3. Get the required files  
+2. Get the required files  
 	```sh
 	git clone https://tccloud2.toshiba.co.jp/swc/gitlab/db/PGSpider.git
 	```
@@ -74,7 +70,7 @@ Creating PGSpider rpm packages
 		PGSPIDER_PROJECT_ID=				# Fill in the ID of the PGSpider project.
 		PGSPIDER_BASE_POSTGRESQL_VERSION= 	# Base Postgres version of PGSpider. Example: 16
 		PGSPIDER_RELEASE_VERSION=			# Version of PGSpider rpm package
-		RPM_DISTRIBUTION_TYPE="rhel8"		# Distribution version of RedHat that the PGSpider rpm packages supports. The default value is "rhel8"
+		PACKAGE_RELEASE_VERSION=			# The number of times this version of the software has been packaged. Starting from 1.
 		```
 3. Build execution
 	```sh
@@ -88,21 +84,10 @@ Creating PGSpider rpm packages
 		...
 		{"message":"201 Created"}
 		```
-	- rpm Packages are stored on the Package Registry of its repository
+	- RPM Packages are stored on the Package Registry of its repository
 		```sh
 		Menu TaskBar -> Deploy -> Package Registry
 		```
-
-Creating Postgres rpm packages
-=====================================
-1. File used here
-	- docker/make_postgres_rpm.patch
-2. To create Postgres rpm packages
-	- Apply `docker/make_postgres_rpm.patch` patch file firstly.
-		```sh
-		patch -p0 < docker/make_postgres_rpm.patch
-		```
-	- The next steps are same with [Creating PGSpider rpm packages](#creating-pgspider-rpm-packages)
 
 Creating PGSpider docker images
 =====================================

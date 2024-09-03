@@ -64,7 +64,7 @@
 Summary:	PGSpider is High-Performance SQL Cluster Engine for distributed big data.
 Name:		%{sname_pgs}%{pgmajorversion}
 Version:	%{pgreleaseversion}
-Release:	%{?dist}
+Release:	%{?package_release_version}.%{?dist}
 License:	TOSHIBA CORPORATION
 Url:		https://github.com/pgspider
 
