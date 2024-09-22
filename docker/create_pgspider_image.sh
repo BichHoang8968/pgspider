@@ -45,7 +45,7 @@ then
         --build-arg PGSPIDER_RPM_ID=${PGSPIDER_RPM_ID_POSTFIX} \
         -f docker/${DOCKERFILE} .
     
-    # docker push ${PGSPIDER_CONTAINER_REGISTRY}/${PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
+    docker push ${PGSPIDER_CONTAINER_REGISTRY}/${PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
     docker rmi ${PGSPIDER_CONTAINER_REGISTRY}/${PROJECT_PATH}/${IMAGE_NAME}:${IMAGE_TAG}
 else
     ./docker/validate_parameters.sh OWNER_GITHUB PGSPIDER_PROJECT_GITHUB
