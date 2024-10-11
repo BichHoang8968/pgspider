@@ -8,7 +8,7 @@ env:
   OWNER_GITHUB: "bichhoang8968"                       # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
   PGSPIDER_PROJECT_GITHUB: "pgspider"            # Repository name. For example: [your_repository] in https://github.com/user_name/your_repository.git
   RPM_ARTIFACT_DIR: "fdw_rpm"                    # Directory name of Artifact to contain rpm files temporary. Default is "fdw_rpm".
-  PGSPIDER_RELEASE_VERSION: "Release_PGS_XXX"              # Release version of PGSpider. For example: 4.0.0.
+  PGSPIDER_RELEASE_VERSION: "1.1.1"              # Release version of PGSpider. For example: 4.0.0.
   PGSPIDER_BASE_POSTGRESQL_VERSION: "16"         # Main version of postgresql that pgspider based on it. For example: 16.
   PACKAGE_RELEASE_VERSION: "1"                             # The number of times this version of the software has been packaged.
 
