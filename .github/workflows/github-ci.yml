@@ -5,7 +5,7 @@ on:
 
 env:
   ACCESS_TOKEN: "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"
-  OWNER_GITHUB: "BichHoang8968"                       # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
+  OWNER_GITHUB: "bichhoang8968"                       # User name. For example: [user_name] in https://github.com/user_name/your_repository.git
   PGSPIDER_PROJECT_GITHUB: "pgspider"            # Repository name. For example: [your_repository] in https://github.com/user_name/your_repository.git
   RPM_ARTIFACT_DIR: "fdw_rpm"                    # Directory name of Artifact to contain rpm files temporary. Default is "fdw_rpm".
   PGSPIDER_RELEASE_VERSION: "Release_PGS_XXX"              # Release version of PGSpider. For example: 4.0.0.
