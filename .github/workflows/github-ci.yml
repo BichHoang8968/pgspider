@@ -53,7 +53,7 @@ jobs:
         rm -rf ${{ env.RPM_ARTIFACT_DIR}}/x86_64/
 
     - name: Upload RPM Artifact
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ env.RPM_ARTIFACT_DIR }}
         path: '${{ github.workspace }}/${{ env.RPM_ARTIFACT_DIR }}'
