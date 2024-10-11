@@ -42,10 +42,8 @@ RUN if [[ -z ${ACCESS_TOKEN} ]]; then \
     echo "PARAM_CURL_OPTS='${PARAM_CURL_OPTS}'" > /tmp/params.txt
 
 # Download PGSpider libraries
-RUN . /tmp/params.txt && \
-    eval curl ${PARAM_CURL_OPTS} \
-        ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
-        -o /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm
+RUN  wget ${PGSPIDER_RPM_URL}/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64${PGSPIDER_RPM_ID}.rpm \
+        -O /root/pgspider${PGSPIDER_BASE_POSTGRESQL_VERSION}-libs-${PGSPIDER_RELEASE_VERSION}-${PACKAGE_RELEASE_VERSION}.rhel8.x86_64.rpm --no-check-certificate
 
 # Download PGSpider core
 RUN . /tmp/params.txt && \
