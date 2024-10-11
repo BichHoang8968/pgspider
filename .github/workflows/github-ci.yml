@@ -82,7 +82,7 @@ jobs:
 
     # Download rpm files from Artifact
     - name: Download RPM Artifact
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v4
       with:
         name: ${{ env.RPM_ARTIFACT_DIR }}
 
