@@ -206,7 +206,6 @@ jobs:
       REGISTRY: ghcr.io
       IMAGE_NAME: "pgspider"
       IMAGE_TAG: "${GITHUB_RUN_ID}"
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     steps:
     - name: Checkout Repository
